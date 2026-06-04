@@ -20,15 +20,6 @@
             --success: #10b981;
             --danger: #f97316;
         }
-        body.light {
-            --bg: #f0f2f5;
-            --card-bg: white;
-            --text: #1e293b;
-            --text-secondary: #64748b;
-            --border: #e0e0e0;
-            --primary: #0088cc;
-            --primary-dark: #006699;
-        }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
             background: var(--bg);
@@ -77,22 +68,17 @@
         .notification-bell { position: relative; display: inline-block; cursor: pointer; }
         .badge-count { position: absolute; top: -8px; right: -12px; background: red; color: white; font-size: 10px; border-radius: 20px; padding: 2px 6px; }
         .color-preview { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-left: 10px; border: 1px solid #ccc; }
-        .radio-group { display: flex; gap: 20px; margin: 10px 0; align-items: center; }
         .topup-amounts { display: flex; justify-content: space-around; margin: 15px 0; flex-wrap: wrap; gap: 12px; }
         .amount-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 30px; width: auto; margin: 0; flex: 1; text-align: center; cursor: pointer; transition: 0.2s; }
         .amount-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
         .fee-info { background: var(--bg); padding: 12px; border-radius: 16px; margin: 12px 0; text-align: center; font-size: 14px; }
         .custom-amount { display: flex; gap: 8px; align-items: center; margin: 12px 0; }
         .custom-amount input { flex: 2; margin: 0; }
-        .profile-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; cursor: pointer; }
-        .avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; }
-        .profile-info { flex: 1; }
-        .achievement-badges { display: flex; gap: 8px; margin-top: 5px; }
-        .badge { width: 32px; height: 32px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 1px solid var(--border); }
-        .badge.earned { background: var(--primary); color: white; border-color: var(--primary); }
-        .badge.locked { opacity: 0.4; }
-        .admin-panel { display: none; }
-        .admin-panel.visible { display: block; }
+        .profile-avatar { display: flex; flex-direction: column; align-items: center; margin-bottom: 16px; cursor: pointer; }
+        .avatar-circle { width: 80px; height: 80px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 8px; }
+        .achievement-icons { display: flex; justify-content: center; gap: 12px; margin: 12px 0; }
+        .achi-icon { width: 50px; height: 50px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-secondary); cursor: pointer; }
+        .admin-only { display: none; }
     </style>
 </head>
 <body>
@@ -123,64 +109,35 @@
             <button id="confirmTopupBtn">Пополнить</button>
         </div>
     </div>
-    <div id="achievementsModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal close-achievements">&times;</span>
-            <h3>🏆 Мои достижения</h3>
-            <div id="achievementsList"></div>
-        </div>
-    </div>
-    <div id="adminModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal close-admin">&times;</span>
-            <h3>🛠 Админ-панель</h3>
-            <div id="adminPanel"></div>
-        </div>
-    </div>
     <script>
         (async () => {
-            // ----------------------------- DRAG TABS -----------------------------
+            // DRAG TABS
             const tabsWrapper = document.querySelector('.tabs-wrapper');
             let isDown = false, startX, scrollLeft;
             tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
             window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
             window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
             
-            // ----------------------------- TELEGRAM -----------------------------
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
             
-            // ----------------------------- SUPABASE -----------------------------
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             let currentUser = null;
-            let adminId = 6048486427; // Ваш Telegram ID – замените!
             
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
             
-            // ----------------------------- NOTIFICATION HELPERS -----------------------------
-            async function sendTradeNotification(buyerId, sellerId, amount, price, total) {
-                const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
-                try {
-                    await fetch(`${BACKEND_URL}/trade-notification`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ buyer_id: buyerId, seller_id: sellerId, amount, price, total })
-                    });
-                } catch(e) { console.error(e); }
-            }
-            
-            // ----------------------------- USER & DB -----------------------------
+            // ----------------------------- USER -----------------------------
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0, notify_trades: true, notify_topup: true, notify_referral: true }]).select().single();
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0 }]).select().single();
                     if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                     return newUser;
                 }
@@ -256,28 +213,13 @@
                 return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
             }
             async function getAchievements() {
-                const { data, error } = await supabase.from('user_achievements').select('achievements(name, description, icon)').eq('user_id', userId);
-                if (error) return [];
-                return data;
+                // Заглушка – пока возвращаем пустой массив
+                return [];
             }
             async function getSellerRating(sellerId) {
                 const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
                 if (error || !data.length) return null;
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
-            }
-            async function checkReferralBonus() {
-                // Проверяем, не начислен ли уже бонус за реферала, который пополнил на ≥ 1000 звезд (10 ⭐)
-                const { data: refData, error } = await supabase.from('referrals').select('*').eq('referred_id', userId).eq('reward_given', false).single();
-                if (refData) {
-                    const referrer = refData.referrer_id;
-                    const { data: userData } = await supabase.from('users').select('stars_balance').eq('id', userId).single();
-                    if (userData && userData.stars_balance >= 1000) { // 10 звёзд = 1000 копеек
-                        // Начисляем рефереру 5 акций (500 копеек)
-                        await supabase.rpc('add_shares', { p_user_id: referrer, p_amount: 500 });
-                        await supabase.from('referrals').update({ reward_given: true }).eq('id', refData.id);
-                        await sendNotification(referrer, "🎉 Ваш друг пополнил баланс! Вы получили 5 акций.", "notify_referral");
-                    }
-                }
             }
             
             // ----------------------------- CHART -----------------------------
@@ -308,18 +250,18 @@
                 const graphWidth = width - padding.left - padding.right;
                 const graphHeight = height - padding.top - padding.bottom;
                 const stepX = graphWidth / (values.length - 1);
-                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--card-bg') || '#fff';
+                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--card-bg') || '#1e293b';
                 ctx.fillRect(0, 0, width, height);
                 ctx.beginPath(); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
                 ctx.moveTo(padding.left, padding.top); ctx.lineTo(padding.left, height - padding.bottom); ctx.lineTo(width - padding.right, height - padding.bottom); ctx.stroke();
-                ctx.beginPath(); ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--primary') || '#0088cc'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--primary') || '#38bdf8'; ctx.lineWidth = 2;
                 for (let i = 0; i < values.length; i++) {
                     const x = padding.left + i * stepX;
                     let y = (range === 0) ? padding.top + graphHeight/2 : padding.top + graphHeight - ((values[i] - min) / range) * graphHeight;
                     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 }
                 ctx.stroke();
-                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text') || '#333';
+                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text') || '#f1f5f9';
                 ctx.font = '11px sans-serif';
                 ctx.fillText(max.toFixed(2), padding.left - 30, padding.top + 10);
                 ctx.fillText(min.toFixed(2), padding.left - 30, height - padding.bottom - 5);
@@ -392,11 +334,9 @@
                                 if (!buyAmount) return;
                                 buyAmount = parseFloat(buyAmount);
                                 if (isNaN(buyAmount) || buyAmount < 1 || buyAmount > maxShares) { alert('Некорректное количество'); return; }
-                                const buyAmountCents = toCents(buyAmount);
                                 try {
-                                    await executePartialTrade(order.id, buyAmountCents);
+                                    await executePartialTrade(order.id, toCents(buyAmount));
                                     alert('Сделка завершена');
-                                    await sendTradeNotification(userId, order.seller_id, fromCents(buyAmountCents), fromCents(order.price_per_share), (buyAmountCents * order.price_per_share / 10000).toFixed(2));
                                     await refreshAll();
                                 } catch (err) { alert(err.message); }
                             });
@@ -417,31 +357,25 @@
                 } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
             }
             
-            async function refreshAll() { 
-                currentUser = await getOrCreateUser(); 
-                await renderStocksTab(); 
-                await checkReferralBonus();
-            }
+            async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
             
             async function renderProfileTab() {
                 const stats = await getUserStats();
-                const achievements = await getAchievements();
+                const achievements = await getAchievements(); // пока пусто
                 const refCode = currentUser.referral_code;
                 const refLink = `https://t.me/VoxAction_Bot?start=${refCode}`;
-                // Получаем ачивки для отображения в шапке (первые 4)
-                const topAchievements = achievements.slice(0,4);
+                const isAdmin = (userId === 6048486427); // ваш ID
+                const adminHtml = isAdmin ? `<hr><div class="admin-only" style="display: block;"><h3>Админ-панель</h3><p>Здесь будут инструменты управления. В разработке.</p></div>` : '';
                 const html = `
-                    <div class="card">
-                        <div class="profile-header" id="openAchievementsBtn">
-                            <div class="avatar">${username.charAt(0).toUpperCase()}</div>
-                            <div class="profile-info">
-                                <div><strong>${username}</strong></div>
-                                <div class="small-text">ID: ${userId}</div>
-                                <div class="achievement-badges">
-                                    ${topAchievements.map(a => `<div class="badge earned" title="${a.achievements.name}">${a.achievements.icon || '🏅'}</div>`).join('')}
-                                    ${Array(4 - topAchievements.length).fill('<div class="badge locked">❓</div>').join('')}
-                                </div>
-                            </div>
+                    <div class="card" style="text-align: center;">
+                        <div class="profile-avatar" id="avatarClick">
+                            <div class="avatar-circle">${username.charAt(0).toUpperCase()}</div>
+                            <div class="small-text">Нажмите, чтобы изменить аватар</div>
+                        </div>
+                        <p style="font-size: 24px; font-weight: bold;">${username}</p>
+                        <p>ID: ${userId}</p>
+                        <div class="achievement-icons" id="achievementIcons">
+                            ${'<div class="achi-icon">?</div>'.repeat(5)}
                         </div>
                         <div style="display: flex; justify-content: space-around; margin: 20px 0;">
                             <div><p style="font-size: 28px;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
@@ -456,13 +390,21 @@
                         <hr>
                         <h3>🔗 Реферальная ссылка</h3>
                         <div class="small-text" style="background: var(--bg); padding: 8px; border-radius: 12px; word-break: break-all;">${refLink}</div>
-                        <p class="small-text">Приглашайте друзей – они получат бонус, а вы 5 акций, когда друг пополнит на 10 ⭐.</p>
-                        ${userId == adminId ? `<button id="adminBtn">🛠 Админ-панель</button>` : ''}
+                        <p class="small-text" style="margin-top: 8px;">Приглашайте друзей – они получат бонус, а вы 5 акций, когда друг пополнит на 10 ⭐ 🎁.</p>
+                        ${adminHtml}
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
-                document.getElementById('openAchievementsBtn')?.addEventListener('click', showAchievementsModal);
-                if (userId == adminId) document.getElementById('adminBtn')?.addEventListener('click', showAdminModal);
+                // Обработка нажатия на аватар – пока просто алерт
+                document.getElementById('avatarClick')?.addEventListener('click', () => {
+                    alert('Загрузка аватаров будет доступна позже. Можно установить через @BotFather команду /setuserpic');
+                });
+                // При нажатии на иконку ачивки – показываем заглушку
+                document.querySelectorAll('.achi-icon').forEach(icon => {
+                    icon.addEventListener('click', () => {
+                        alert('Достижения появятся после выполнения условий. Следите за обновлениями!');
+                    });
+                });
             }
             
             async function renderRatingTab() {
@@ -498,7 +440,7 @@
                     canvas.width = w; canvas.height = h;
                     const maxVol = Math.max(...volume.data.map(v=>v.total_amount/100));
                     const barW = (w-40)/volume.data.length - 2;
-                    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--primary') || '#0088cc';
+                    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--primary') || '#38bdf8';
                     volume.data.forEach((v,i)=>{
                         const barH = (v.total_amount/100 / maxVol) * (h-20);
                         const x = 20 + i*(barW+2);
@@ -513,42 +455,29 @@
             
             async function renderSettingsTab() {
                 const hideRating = currentUser.hide_rating || false;
-                const currentTheme = document.body.classList.contains('light') ? 'light' : 'dark';
-                const customColor = localStorage.getItem('custom_color') || (document.body.classList.contains('light') ? '#0088cc' : '#38bdf8');
+                const customColor = localStorage.getItem('custom_color') || '#38bdf8';
                 const notifyTrades = currentUser.notify_trades !== undefined ? currentUser.notify_trades : true;
                 const notifyTopup = currentUser.notify_topup !== undefined ? currentUser.notify_topup : true;
                 const notifyReferral = currentUser.notify_referral !== undefined ? currentUser.notify_referral : true;
                 const html = `
-                    <div class="card"><h2>⚙️ Настройки</h2>
-                    <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br>
-                    <div><strong>Уведомления от бота:</strong></div>
-                    <label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br>
-                    <label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br>
-                    <label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br>
-                    <div><strong>Тема интерфейса:</strong></div>
-                    <div class="radio-group">
-                        <label><input type="radio" name="theme" value="dark" ${currentTheme==='dark'?'checked':''}> 🌙 Тёмная</label>
-                        <label><input type="radio" name="theme" value="light" ${currentTheme==='light'?'checked':''}> ☀️ Светлая</label>
+                    <div class="card">
+                        <h2>⚙️ Настройки</h2>
+                        <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br>
+                        <div><strong>Уведомления от бота:</strong></div>
+                        <label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br>
+                        <label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br>
+                        <label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br>
+                        <div><strong>Цвет акцента:</strong></div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <input type="color" id="colorPicker" value="${customColor}">
+                            <span id="colorPreview" class="color-preview" style="background: ${customColor};"></span>
+                        </div>
+                        <button id="saveSettings">Сохранить</button>
                     </div>
-                    <div style="margin: 12px 0;"><strong>Цвет акцента:</strong></div>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <input type="color" id="colorPicker" value="${customColor}">
-                        <span id="colorPreview" class="color-preview" style="background: ${customColor};"></span>
-                    </div>
-                    <button id="saveSettings">Сохранить</button></div>
                 `;
                 document.getElementById('app').innerHTML = html;
                 document.getElementById('colorPicker')?.addEventListener('input', (e) => {
                     document.getElementById('colorPreview').style.background = e.target.value;
-                });
-                const themeRadios = document.querySelectorAll('input[name="theme"]');
-                themeRadios.forEach(radio => {
-                    radio.addEventListener('change', () => {
-                        if (radio.checked) {
-                            const newTheme = radio.value;
-                            setTheme(newTheme, document.getElementById('colorPicker').value);
-                        }
-                    });
                 });
                 document.getElementById('saveSettings').onclick = async () => {
                     const newHide = document.getElementById('hideRatingCheckbox').checked;
@@ -557,6 +486,8 @@
                     const newNotifyReferral = document.getElementById('notifyReferralCheckbox').checked;
                     const newColor = document.getElementById('colorPicker').value;
                     localStorage.setItem('custom_color', newColor);
+                    document.documentElement.style.setProperty('--primary', newColor);
+                    document.documentElement.style.setProperty('--primary-dark', newColor);
                     await supabase.from('users').update({
                         hide_rating: newHide,
                         notify_trades: newNotifyTrades,
@@ -567,25 +498,8 @@
                     currentUser.notify_trades = newNotifyTrades;
                     currentUser.notify_topup = newNotifyTopup;
                     currentUser.notify_referral = newNotifyReferral;
-                    const selectedTheme = document.querySelector('input[name="theme"]:checked')?.value || 'dark';
-                    setTheme(selectedTheme, newColor);
                     alert('Настройки сохранены');
                 };
-            }
-            
-            function setTheme(theme, customColor = null) {
-                if (theme === 'light') document.body.classList.add('light');
-                else document.body.classList.remove('light');
-                if (customColor) {
-                    localStorage.setItem('custom_color', customColor);
-                    document.documentElement.style.setProperty('--primary', customColor);
-                    document.documentElement.style.setProperty('--primary-dark', customColor);
-                } else {
-                    const savedColor = localStorage.getItem('custom_color');
-                    if (savedColor) document.documentElement.style.setProperty('--primary', savedColor);
-                }
-                localStorage.setItem('theme', theme);
-                if (currentUser) supabase.from('users').update({ theme }).eq('id', userId);
             }
             
             // ----------------------------- TOPUP LOGIC -----------------------------
@@ -627,7 +541,7 @@
                     return;
                 }
                 document.getElementById('topupModal').style.display = 'none';
-                const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
+                const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // замените на ваш URL
                 try {
                     const response = await fetch(`${BACKEND_URL}/create-invoice`, {
                         method: 'POST',
@@ -654,62 +568,11 @@
                 document.getElementById('topupModal').style.display = 'none';
             });
             
-            // ----------------------------- ACHIEVEMENTS MODAL -----------------------------
-            async function showAchievementsModal() {
-                const achievements = await getAchievements();
-                const allAchievements = [
-                    { name: "Первый шаг", description: "Совершите первую сделку", icon: "🎯", condition: "trades >= 1" },
-                    { name: "Трейдер-любитель", description: "Совершите 10 сделок", icon: "📈", condition: "trades >= 10" },
-                    { name: "Акционер", description: "Наберите 1000 акций", icon: "📊", condition: "shares >= 1000" },
-                    { name: "Лидер", description: "Пригласите 5 друзей", icon: "👑", condition: "referrals >= 5" }
-                ];
-                const earnedIds = achievements.map(a => a.achievement_id);
-                const list = allAchievements.map((ach, idx) => {
-                    const isEarned = earnedIds.includes(idx+1);
-                    return `<div class="achievement-item">${ach.icon} ${ach.name}<span class="small-text"> - ${ach.description}</span> ${isEarned ? '✅' : '❌'}</div>`;
-                }).join('');
-                document.getElementById('achievementsList').innerHTML = list;
-                document.getElementById('achievementsModal').style.display = 'flex';
-            }
-            document.querySelector('.close-achievements')?.addEventListener('click', () => {
-                document.getElementById('achievementsModal').style.display = 'none';
-            });
-            
-            // ----------------------------- ADMIN MODAL -----------------------------
-            async function showAdminModal() {
-                const { data: stats } = await supabase.from('users').select('shares');
-                const totalSharesCents = stats.reduce((s,u)=>s+u.shares,0);
-                const totalSharesStars = (totalSharesCents/100).toFixed(2);
-                const html = `
-                    <p><strong>Общее количество акций:</strong> ${totalSharesStars}</p>
-                    <p><strong>Ваш баланс (акций):</strong> ${fromCents(currentUser.shares)}</p>
-                    <p><strong>Ваш баланс (Stars):</strong> ${fromCents(currentUser.stars_balance)}</p>
-                    <hr>
-                    <button id="addToReserveBtn">➕ Добавить акции в резерв (1000)</button>
-                    <button id="removeFromReserveBtn">➖ Изъять акции из резерва (1000)</button>
-                `;
-                document.getElementById('adminPanel').innerHTML = html;
-                document.getElementById('addToReserveBtn')?.addEventListener('click', async () => {
-                    await supabase.rpc('add_to_reserve', { amount: 100000 }); // 1000 акций в копейках
-                    alert('Добавлено');
-                    showAdminModal();
-                });
-                document.getElementById('removeFromReserveBtn')?.addEventListener('click', async () => {
-                    await supabase.rpc('remove_from_reserve', { amount: 100000 });
-                    alert('Изъято');
-                    showAdminModal();
-                });
-                document.getElementById('adminModal').style.display = 'flex';
-            }
-            document.querySelector('.close-admin')?.addEventListener('click', () => {
-                document.getElementById('adminModal').style.display = 'none';
-            });
-            
             // ----------------------------- START -----------------------------
             currentUser = await getOrCreateUser();
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            const savedColor = localStorage.getItem('custom_color') || (savedTheme === 'light' ? '#0088cc' : '#38bdf8');
-            setTheme(savedTheme, savedColor);
+            const savedColor = localStorage.getItem('custom_color') || '#38bdf8';
+            document.documentElement.style.setProperty('--primary', savedColor);
+            document.documentElement.style.setProperty('--primary-dark', savedColor);
             await renderStocksTab();
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', async () => {
