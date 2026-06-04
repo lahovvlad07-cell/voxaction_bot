@@ -15,7 +15,7 @@
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
             background: #f0f2f5;
-            padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: 70px; /* стандартный отступ под вкладки */
         }
         .card {
             background: white;
@@ -32,7 +32,7 @@
             background: white;
             display: flex;
             justify-content: space-around;
-            padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+            padding: 10px 0;
             border-top: 1px solid #e0e0e0;
             z-index: 100;
         }
@@ -43,8 +43,9 @@
             font-size: 14px;
             font-weight: 500;
             color: #666;
-            transition: 0.2s;
             cursor: pointer;
+            transition: 0.2s;
+            background: transparent;
         }
         .tab.active {
             color: #0088cc;
@@ -117,6 +118,7 @@
             background: white;
             border-radius: 12px;
             overflow: hidden;
+            touch-action: none; /* для улучшения обработки касаний */
         }
         canvas {
             width: 100%;
@@ -131,8 +133,9 @@
             border-radius: 8px;
             font-size: 12px;
             pointer-events: none;
-            z-index: 10;
+            z-index: 20;
             display: none;
+            white-space: nowrap;
         }
         .ticker {
             background: #f8f9fa;
@@ -233,14 +236,24 @@
                 return data || [];
             }
 
-            async function getTotalMarketCap() {
+            // Средняя взвешенная цена за последние сделки (можно использовать все, но ограничим 100)
+            async function getAveragePrice() {
+                const { data, error } = await supabase.from('trades').select('price_per_share, amount').order('created_at', { ascending: false }).limit(100);
+                if (error || !data || data.length === 0) return 1;
+                let totalAmount = 0;
+                let totalPriceAmount = 0;
+                for (let trade of data) {
+                    totalAmount += trade.amount;
+                    totalPriceAmount += trade.price_per_share * trade.amount;
+                }
+                return totalAmount > 0 ? totalPriceAmount / totalAmount : 1;
+            }
+
+            async function getTotalMarketCap(avgPrice) {
                 const { data, error } = await supabase.from('users').select('shares');
                 if (error) throw new Error(`Ошибка подсчёта акций: ${error.message}`);
                 const totalShares = data.reduce((sum, u) => sum + u.shares, 0);
-                const { data: priceData, error: priceErr } = await supabase.from('price_history').select('price').order('created_at', { ascending: false }).limit(1);
-                if (priceErr) throw new Error(`Ошибка получения цены: ${priceErr.message}`);
-                const lastPrice = priceData && priceData.length ? priceData[0].price : 1;
-                return { totalShares, lastPrice, marketCap: totalShares * lastPrice };
+                return { totalShares, marketCap: totalShares * avgPrice };
             }
 
             async function createOrder(amount, price) {
@@ -262,6 +275,8 @@
             }
 
             let chartDataPoints = [];
+            let currentChart = null;
+
             function drawInteractiveChart(history) {
                 const container = document.getElementById('chart-container');
                 if (!container) return;
@@ -296,10 +311,13 @@
                 const graphWidth = width - padding.left - padding.right;
                 const graphHeight = height - padding.top - padding.bottom;
                 const stepX = graphWidth / (values.length - 1);
+                let currentHoverIndex = -1;
+
                 function draw() {
                     ctx.clearRect(0, 0, width, height);
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, width, height);
+                    // сетка
                     ctx.beginPath();
                     ctx.strokeStyle = '#ccc';
                     ctx.lineWidth = 1;
@@ -307,6 +325,7 @@
                     ctx.lineTo(padding.left, height - padding.bottom);
                     ctx.lineTo(width - padding.right, height - padding.bottom);
                     ctx.stroke();
+                    // линия
                     ctx.beginPath();
                     ctx.strokeStyle = '#0088cc';
                     ctx.lineWidth = 2;
@@ -319,18 +338,30 @@
                         else ctx.lineTo(x, y);
                     }
                     ctx.stroke();
+                    // подписи осей
                     ctx.fillStyle = '#333';
                     ctx.font = '11px sans-serif';
                     ctx.fillText(max.toFixed(1), padding.left - 30, padding.top + 10);
                     ctx.fillText(min.toFixed(1), padding.left - 30, height - padding.bottom - 5);
-                    if (history.length > 0) {
-                        const firstDate = new Date(history[0].created_at).toLocaleDateString();
-                        const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
-                        ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
-                        ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
+                    const firstDate = new Date(history[0].created_at).toLocaleDateString();
+                    const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
+                    ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
+                    ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
+                    // точка при наведении
+                    if (currentHoverIndex !== -1 && currentHoverIndex < values.length) {
+                        const x = padding.left + currentHoverIndex * stepX;
+                        const y = padding.top + graphHeight - ((values[currentHoverIndex] - min) / range) * graphHeight;
+                        ctx.beginPath();
+                        ctx.fillStyle = '#ff6600';
+                        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.fillStyle = 'white';
+                        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                        ctx.fill();
                     }
                 }
-                draw();
+
                 function getMousePos(e) {
                     const rect = canvas.getBoundingClientRect();
                     const scaleX = canvas.width / rect.width;
@@ -347,6 +378,7 @@
                     const y = (clientY - rect.top) * scaleY;
                     return { x, y };
                 }
+
                 function findNearestPoint(mouseX) {
                     let minDist = Infinity;
                     let index = -1;
@@ -358,13 +390,16 @@
                             index = i;
                         }
                     }
-                    if (minDist < 20) return index;
+                    if (minDist < 25) return index;
                     return -1;
                 }
-                function showTooltip(e) {
+
+                function onMove(e) {
                     const { x: mouseX, y: mouseY } = getMousePos(e);
                     const idx = findNearestPoint(mouseX);
                     if (idx !== -1) {
+                        currentHoverIndex = idx;
+                        draw();
                         const point = chartDataPoints[idx];
                         tooltip.style.display = 'block';
                         tooltip.innerHTML = `💰 ${point.price} ⭐<br>${point.dateStr}`;
@@ -375,19 +410,30 @@
                         tooltip.style.left = left + 'px';
                         tooltip.style.top = top + 'px';
                     } else {
+                        currentHoverIndex = -1;
+                        draw();
                         tooltip.style.display = 'none';
                     }
                 }
-                canvas.addEventListener('mousemove', showTooltip);
-                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); showTooltip(e); });
-                canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
-                canvas.addEventListener('touchend', () => { tooltip.style.display = 'none'; });
+
+                function onLeave() {
+                    currentHoverIndex = -1;
+                    draw();
+                    tooltip.style.display = 'none';
+                }
+
+                canvas.addEventListener('mousemove', onMove);
+                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); onMove(e); });
+                canvas.addEventListener('mouseleave', onLeave);
+                canvas.addEventListener('touchend', onLeave);
                 window.addEventListener('resize', () => {
                     const newWidth = container.clientWidth;
                     canvas.width = newWidth;
                     canvas.height = 250;
-                    draw();
+                    // пересчитать stepX, padding остаётся тот же? перерисуем заново с новыми размерами
+                    drawInteractiveChart(history); // проще пересоздать
                 });
+                draw();
             }
 
             function renderTicker(trades) {
@@ -406,7 +452,8 @@
                     const orders = await getActiveOrders();
                     const priceHistory = await getPriceHistory();
                     const recentTrades = await getRecentTrades(10);
-                    const { totalShares, lastPrice, marketCap } = await getTotalMarketCap();
+                    const avgPrice = await getAveragePrice();
+                    const { totalShares, marketCap } = await getTotalMarketCap(avgPrice);
 
                     const html = `
                         <div class="card">
@@ -415,7 +462,7 @@
                                     <p>📊 Акций: <strong>${currentUser.shares}</strong></p>
                                     <p>⭐ Stars: <strong>${currentUser.stars_balance}</strong></p>
                                 </div>
-                                <div class="price">${lastPrice} ⭐</div>
+                                <div class="price">${avgPrice.toFixed(2)} ⭐</div>
                             </div>
                         </div>
                         <div class="card">
@@ -520,13 +567,11 @@
             function renderSettingsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>Настройки</h2><p>В разработке</p></div>'; }
 
             currentUser = await getOrCreateUser();
-            let activeTab = 'stocks';
             await renderStocksTab();
 
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', async () => {
                     const tabName = tab.dataset.tab;
-                    activeTab = tabName;
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     if (tabName === 'profile') renderProfileTab();
