@@ -131,21 +131,23 @@
     </div>
     <script>
         (async () => {
-            // ======================== DRAG TABS ========================
+            const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';  // Укажите свой Render URL
+
+            // Drag tabs
             const tabsWrapper = document.querySelector('.tabs-wrapper');
             let isDown = false, startX, scrollLeft;
             tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
             window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
             window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
             
-            // ======================== TELEGRAM ========================
+            // Telegram user
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
-            
-            // ======================== SUPABASE ========================
+
+            // Supabase
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -154,7 +156,7 @@
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
             
-            // ======================== USER & DB ========================
+            // ---------- Database ----------
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -258,7 +260,7 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
-            // ======================== CHART ========================
+            // ---------- Chart ----------
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
                 let startDate = new Date();
@@ -316,7 +318,7 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
             
-            // ======================== RENDERING ========================
+            // ---------- Rendering tabs ----------
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -592,7 +594,6 @@
                     return;
                 }
                 document.getElementById('topupModal').style.display = 'none';
-                const BACKEND_URL = 'https://voxaction-bot.onrender.com'; // <---!!! Укажите ВАШ URL бэкенда на Render (без кавычек внутри кавычек)
                 try {
                     const response = await fetch(`${BACKEND_URL}/create-invoice`, {
                         method: 'POST',
