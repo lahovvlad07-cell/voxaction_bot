@@ -131,32 +131,23 @@
     </div>
     <script>
         (async () => {
-            const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';  // Укажите свой Render URL
-
-            // Drag tabs
-            const tabsWrapper = document.querySelector('.tabs-wrapper');
-            let isDown = false, startX, scrollLeft;
-            tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
-            window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
-            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
-            
-            // Telegram user
+            // ========== TELEGRAM ==========
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
 
-            // Supabase
+            // ========== SUPABASE ==========
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             let currentUser = null;
-            
+
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
-            
-            // ---------- Database ----------
+
+            // ========== DATABASE FUNCTIONS ==========
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -167,7 +158,7 @@
                 }
                 return data;
             }
-            
+
             async function getActiveOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
                 if (error) throw new Error(error.message);
@@ -200,7 +191,7 @@
                 if (!data.success) throw new Error(data.error);
                 return true;
             }
-            
+
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(error.message);
@@ -259,8 +250,8 @@
                 if (error || !data.length) return null;
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
-            
-            // ---------- Chart ----------
+
+            // ========== CHART ==========
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
                 let startDate = new Date();
@@ -317,8 +308,8 @@
                 const items = trades.map(t => `<span class="trade-item">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('');
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
-            
-            // ---------- Rendering tabs ----------
+
+            // ========== RENDERING TABS ==========
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -394,9 +385,8 @@
                     });
                 } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
             }
-            
             async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); await updateNotificationBell(); }
-            
+
             async function renderProfileTab() {
                 const stats = await getUserStats();
                 const achievements = await getAchievements();
@@ -433,7 +423,6 @@
                 document.getElementById('app').innerHTML = html;
                 document.getElementById('notifBell')?.addEventListener('click', showNotificationsModal);
             }
-            
             async function renderRatingTab() {
                 const leaders = await getLeaderboard();
                 let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
@@ -442,7 +431,6 @@
                 html += `</div>`;
                 document.getElementById('app').innerHTML = html;
             }
-            
             async function renderAnalyticsTab() {
                 const volume = await supabase.rpc('get_volume_history', { days_limit: 30 });
                 const trades = await supabase.from('trades').select('*').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`).order('created_at', { ascending: false }).limit(50);
@@ -468,7 +456,6 @@
                     historyDiv.innerHTML = trades.data.map(t => `<div class="history-item">${t.buyer_id===userId?'Покупка':'Продажа'} ${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐<span class="small-text">${new Date(t.created_at).toLocaleString()}</span></div>`).join('');
                 } else historyDiv.innerHTML = '<p>Нет сделок</p>';
             }
-            
             async function renderWalletTab() {
                 document.getElementById('app').innerHTML = `
                     <div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr>
@@ -482,7 +469,6 @@
                     document.getElementById('withdrawModal').style.display = 'flex';
                 });
             }
-            
             async function renderSettingsTab() {
                 const hideRating = currentUser.hide_rating || false;
                 const currentTheme = document.body.classList.contains('light') ? 'light' : 'dark';
@@ -529,7 +515,6 @@
                     alert('Настройки сохранены');
                 };
             }
-            
             function setTheme(theme, customColor = null) {
                 if (theme === 'light') document.body.classList.add('light');
                 else document.body.classList.remove('light');
@@ -544,7 +529,6 @@
                 localStorage.setItem('theme', theme);
                 if (currentUser) supabase.from('users').update({ theme }).eq('id', userId);
             }
-            
             async function updateNotificationBell() {
                 const count = await getUnreadCount();
                 const bell = document.querySelector('#notifBell');
@@ -561,8 +545,8 @@
             }
             document.querySelector('.close-modal')?.addEventListener('click', () => document.getElementById('notificationModal').style.display = 'none');
             document.getElementById('markReadBtn')?.addEventListener('click', async () => { await markNotificationsRead(); showNotificationsModal(); await updateNotificationBell(); });
-            
-            // ======================== TOPUP LOGIC ========================
+
+            // ========== TOPUP LOGIC (fixed) ==========
             let selectedAmount = null;
             function updateTopupFee(amount) {
                 const fee = Math.floor(amount * 0.05);
@@ -594,6 +578,7 @@
                     return;
                 }
                 document.getElementById('topupModal').style.display = 'none';
+                const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ЗАМЕНИТЕ НА ВАШ АДРЕС НА RENDER
                 try {
                     const response = await fetch(`${BACKEND_URL}/create-invoice`, {
                         method: 'POST',
@@ -619,16 +604,14 @@
             document.getElementById('closeTopupModal')?.addEventListener('click', () => {
                 document.getElementById('topupModal').style.display = 'none';
             });
-            
-            // ======================== WITHDRAW ========================
             document.getElementById('closeWithdrawModal')?.addEventListener('click', () => {
                 document.getElementById('withdrawModal').style.display = 'none';
             });
             document.getElementById('closeWithdrawBtn')?.addEventListener('click', () => {
                 document.getElementById('withdrawModal').style.display = 'none';
             });
-            
-            // ======================== START ========================
+
+            // ========== START ==========
             currentUser = await getOrCreateUser();
             const savedTheme = localStorage.getItem('theme') || 'dark';
             const savedColor = localStorage.getItem('custom_color') || (savedTheme === 'light' ? '#0088cc' : '#38bdf8');
