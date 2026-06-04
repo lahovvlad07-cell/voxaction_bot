@@ -3,91 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Акции – биржа</title>
+    <title>Биржа акций</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: system-ui; padding: 16px; background: #f0f2f5; }
-        .card { background: white; border-radius: 20px; padding: 16px; margin-bottom: 16px; }
-        .error { color: red; background: #ffe0e0; padding: 12px; border-radius: 12px; }
+        body { font-family: system-ui; margin: 0; padding: 16px; background: #f0f2f5; }
+        .card { background: white; border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        button { background: #0088cc; color: white; border: none; padding: 12px; border-radius: 40px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 8px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 40px; }
     </style>
 </head>
 <body>
     <div id="app">Загрузка...</div>
     <script>
-        (async () => {
-            // ----- 1. Telegram и userId -----
-            const tg = window.Telegram.WebApp;
-            tg.ready();
-            tg.expand();
+        // ---------- Telegram ----------
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        const userId = tg.initDataUnsafe?.user?.id;
+        const username = tg.initDataUnsafe?.user?.username || "user";
 
-            // Получаем userId – если нет, используем fallback 123456
-            let userId = tg.initDataUnsafe?.user?.id;
-            const username = tg.initDataUnsafe?.user?.username || "player";
+        // ---------- Supabase (ваши данные) ----------
+        const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
 
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = null;
+
+        async function init() {
             if (!userId) {
-                console.warn("⚠️ Telegram user ID не найден, используем тестовый ID 123456");
-                userId = 123456;
-                document.getElementById('app').innerHTML = `<div class="card">⚠️ Режим отладки: используется тестовый ID 123456. В Telegram ID определится автоматически.</div>`;
+                document.getElementById('app').innerHTML = '<div class="card">Ошибка: не удалось определить пользователя</div>';
+                return;
             }
 
-            // ----- 2. Supabase (замените на свои ключи) -----
-            const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
-            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
+            // Пытаемся найти пользователя
+            let { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
 
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-            // ----- 3. Функция загрузки баланса -----
-            async function loadUser() {
-                try {
-                    // Пытаемся найти пользователя
-                    let { data, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('id', userId)
-                        .single();
-
-                    if (error && error.code === 'PGRST116') {
-                        // Пользователь не найден – создаём нового
-                        const { data: newUser, error: insertError } = await supabase
-                            .from('users')
-                            .insert([{ id: userId, username: username, shares: 100, stars_balance: 50 }])
-                            .select()
-                            .single();
-                        if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
-                        data = newUser;
-                    } else if (error) {
-                        throw new Error(`Ошибка запроса: ${error.message}`);
-                    }
-
-                    // Отображаем баланс
-                    document.getElementById('app').innerHTML = `
-                        <div class="card">
-                            <h2>💰 Мой баланс</h2>
-                            <p>📊 Акций: <strong>${data.shares}</strong></p>
-                            <p>⭐ Stars: <strong>${data.stars_balance}</strong></p>
-                            <hr />
-                            <p style="font-size:12px; color:gray;">ID: ${userId}</p>
-                        </div>
-                        <div class="card">
-                            <p>✅ Всё работает! Теперь можно добавлять биржевую логику.</p>
-                        </div>
-                    `;
-                } catch (err) {
-                    console.error("❌ Ошибка загрузки:", err);
-                    document.getElementById('app').innerHTML = `
-                        <div class="card error">
-                            <h3>Ошибка подключения к базе данных</h3>
-                            <p>${err.message}</p>
-                            <p>Проверьте настройки Supabase: URL, ключ, таблицы и CORS.</p>
-                        </div>
-                    `;
+            if (error && error.code === 'PGRST116') {
+                // Создаём нового
+                const { data: newUser, error: insertError } = await supabase
+                    .from('users')
+                    .insert([{ id: userId, username: username, shares: 100, stars_balance: 50 }])
+                    .select()
+                    .single();
+                if (insertError) {
+                    document.getElementById('app').innerHTML = `<div class="card">Ошибка создания пользователя: ${insertError.message}</div>`;
+                    return;
                 }
+                data = newUser;
+            } else if (error) {
+                document.getElementById('app').innerHTML = `<div class="card">Ошибка подключения: ${error.message}. Проверьте настройки CORS или URL.</div>`;
+                return;
             }
 
-            // Запускаем
-            await loadUser();
-        })();
+            currentUser = data;
+            render();
+        }
+
+        function render() {
+            document.getElementById('app').innerHTML = `
+                <div class="card">
+                    <h2>💰 Мой баланс</h2>
+                    <p>📊 Акций: <strong>${currentUser.shares}</strong></p>
+                    <p>⭐ Stars: <strong>${currentUser.stars_balance}</strong></p>
+                </div>
+                <div class="card">
+                    <h3>📈 Продать акции</h3>
+                    <input type="number" id="amount" placeholder="Количество">
+                    <input type="number" id="price" placeholder="Цена (Stars)">
+                    <button id="sellBtn">Продать</button>
+                </div>
+                <div class="card">
+                    <h3>📋 Активные ордера</h3>
+                    <div id="orders">Загрузка...</div>
+                </div>
+            `;
+
+            document.getElementById('sellBtn').addEventListener('click', async () => {
+                const amount = parseInt(document.getElementById('amount').value);
+                const price = parseInt(document.getElementById('price').value);
+                if (isNaN(amount) || isNaN(price) || amount <= 0 || price <= 0) {
+                    alert('Введите корректные значения');
+                    return;
+                }
+                if (currentUser.shares < amount) {
+                    alert(`Недостаточно акций. У вас только ${currentUser.shares}`);
+                    return;
+                }
+                // Создаём ордер в таблице orders (предварительно создайте таблицу)
+                const { error } = await supabase
+                    .from('orders')
+                    .insert([{
+                        seller_id: userId,
+                        amount: amount,
+                        price_per_share: price,
+                        status: 'active'
+                    }]);
+                if (error) {
+                    alert('Ошибка создания ордера: ' + error.message);
+                } else {
+                    // Списываем акции
+                    const newShares = currentUser.shares - amount;
+                    await supabase.from('users').update({ shares: newShares }).eq('id', userId);
+                    currentUser.shares = newShares;
+                    render();
+                    loadOrders();
+                }
+            });
+
+            loadOrders();
+        }
+
+        async function loadOrders() {
+            const { data: orders, error } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('status', 'active')
+                .order('price_per_share', { ascending: true });
+            if (error) {
+                document.getElementById('orders').innerHTML = '<p>Ошибка загрузки ордеров</p>';
+                return;
+            }
+            if (!orders || orders.length === 0) {
+                document.getElementById('orders').innerHTML = '<p>Нет активных ордеров</p>';
+                return;
+            }
+            let html = '';
+            for (let order of orders) {
+                html += `
+                    <div style="border-bottom:1px solid #eee; padding:8px 0;">
+                        ${order.amount} шт. по ${order.price_per_share} ⭐
+                        <button data-id="${order.id}" data-price="${order.price_per_share}" data-amount="${order.amount}" data-seller="${order.seller_id}" class="buy-btn">Купить</button>
+                    </div>
+                `;
+            }
+            document.getElementById('orders').innerHTML = html;
+            document.querySelectorAll('.buy-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const orderId = parseInt(btn.dataset.id);
+                    const price = parseInt(btn.dataset.price);
+                    const amount = parseInt(btn.dataset.amount);
+                    const sellerId = parseInt(btn.dataset.seller);
+                    const total = price * amount;
+                    if (currentUser.stars_balance < total) {
+                        alert(`Недостаточно Stars. Нужно ${total}, у вас ${currentUser.stars_balance}`);
+                        return;
+                    }
+                    // Списываем Stars у покупателя
+                    await supabase.from('users').update({ stars_balance: currentUser.stars_balance - total }).eq('id', userId);
+                    // Начисляем акции покупателю
+                    await supabase.from('users').update({ shares: currentUser.shares + amount }).eq('id', userId);
+                    // Переводим Stars продавцу
+                    const { data: seller } = await supabase.from('users').select('stars_balance').eq('id', sellerId).single();
+                    await supabase.from('users').update({ stars_balance: seller.stars_balance + total }).eq('id', sellerId);
+                    // Закрываем ордер
+                    await supabase.from('orders').update({ status: 'completed' }).eq('id', orderId);
+                    // Обновляем текущего пользователя
+                    currentUser.stars_balance -= total;
+                    currentUser.shares += amount;
+                    render();
+                });
+            });
+        }
+
+        init();
     </script>
 </body>
 </html>
