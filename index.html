@@ -19,6 +19,7 @@
             --primary-dark: #0284c7;
             --success: #10b981;
             --danger: #f97316;
+            --warning: #fbbf24;
         }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
@@ -37,6 +38,7 @@
         .tab-label { font-size: 12px; font-weight: 500; }
         button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
         button:active { transform: scale(0.97); }
+        button.secondary { background: var(--border); color: var(--text); }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
         .buy-btn, .cancel-btn { width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
         .cancel-btn { background: var(--danger); }
@@ -80,6 +82,16 @@
         .achi-icon { width: 50px; height: 50px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-secondary); cursor: pointer; transition: 0.2s; }
         .achi-icon.earned { background: var(--primary); color: white; }
         .admin-only { display: none; }
+        /* Toast */
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 40px; font-size: 14px; z-index: 2000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .achieve-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 8px; border-radius: 16px; background: var(--bg); }
+        .achieve-info { display: flex; align-items: center; gap: 12px; }
+        .achieve-icon { font-size: 28px; }
+        .achieve-name { font-weight: bold; }
+        .achieve-desc { font-size: 12px; color: var(--text-secondary); }
+        .wear-btn { background: var(--primary); padding: 4px 12px; border-radius: 20px; font-size: 12px; margin: 0; width: auto; }
+        .wear-btn.remove { background: var(--danger); }
     </style>
 </head>
 <body>
@@ -89,6 +101,7 @@
             <div class="tab" data-tab="profile"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
             <div class="tab active" data-tab="stocks"><div class="tab-icon">📈</div><div class="tab-label">Акции</div></div>
             <div class="tab" data-tab="analytics"><div class="tab-icon">📊</div><div class="tab-label">Аналитика</div></div>
+            <div class="tab" data-tab="achievements"><div class="tab-icon">🏅</div><div class="tab-label">Достижения</div></div>
             <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
             <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
             <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
@@ -110,8 +123,19 @@
             <button id="confirmTopupBtn">Пополнить</button>
         </div>
     </div>
+    <div id="toast" class="toast"></div>
     <script>
         (async () => {
+            // Toast function
+            function showToast(message, type = 'info') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+
             // DRAG TABS
             const tabsWrapper = document.querySelector('.tabs-wrapper');
             let isDown = false, startX, scrollLeft;
@@ -228,6 +252,10 @@
                 if (error || !data.length) return null;
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
+            async function updateDisplayedAchievements(ids) {
+                await supabase.from('users').update({ displayed_achievements: ids }).eq('id', userId);
+                currentUser.displayed_achievements = ids;
+            }
             
             // ----------------------------- CHART -----------------------------
             let currentTimeframe = '30d';
@@ -340,17 +368,19 @@
                                 let buyAmount = prompt(`Введите количество (от 1 до ${maxShares}):`, maxShares);
                                 if (!buyAmount) return;
                                 buyAmount = parseFloat(buyAmount);
-                                if (isNaN(buyAmount) || buyAmount < 1 || buyAmount > maxShares) { alert('Некорректное количество'); return; }
+                                if (isNaN(buyAmount) || buyAmount < 1 || buyAmount > maxShares) { showToast('Некорректное количество'); return; }
                                 try {
                                     await executePartialTrade(order.id, toCents(buyAmount));
-                                    alert('Сделка завершена');
+                                    showToast('Сделка завершена', 'success');
                                     await refreshAll();
-                                } catch (err) { alert(err.message); }
+                                } catch (err) { showToast(err.message); }
                             });
                         });
                         document.querySelectorAll('.cancel-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
-                                if (confirm('Отменить?')) { try { await cancelOrder(parseInt(btn.dataset.orderId)); alert('Отменено'); await refreshAll(); } catch (err) { alert(err.message); } }
+                                if (confirm('Отменить ордер?')) {
+                                    try { await cancelOrder(parseInt(btn.dataset.orderId)); showToast('Ордер отменён'); await refreshAll(); } catch (err) { showToast(err.message); }
+                                }
                             });
                         });
                     }
@@ -358,10 +388,10 @@
                     if (sellBtn) sellBtn.addEventListener('click', async () => {
                         let amount = parseFloat(document.getElementById('sellAmount').value);
                         let price = parseFloat(document.getElementById('sellPrice').value);
-                        if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { alert('Введите количество не менее 1 и цену не менее 1'); return; }
-                        try { await createOrder(amount, price); alert('Ордер создан'); await refreshAll(); } catch (err) { alert(err.message); }
+                        if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { showToast('Введите количество не менее 1 и цену не менее 1'); return; }
+                        try { await createOrder(amount, price); showToast('Ордер создан'); await refreshAll(); } catch (err) { showToast(err.message); }
                     });
-                } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
+                } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`; }
             }
             
             async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
@@ -376,9 +406,13 @@
                 const referralBonusShares = referralCount * 5;
                 const isAdmin = (userId === 6048486427);
                 const adminHtml = isAdmin ? `<hr><div class="admin-only" style="display: block;"><h3>Админ-панель</h3><p>Здесь будут инструменты управления. В разработке.</p></div>` : '';
-                // Формируем иконки ачивок (до 5 штук, показываем последние полученные)
-                const earnedIds = new Set(userAchievements.map(a => a.id));
-                const displayedAchievements = allAchievements.filter(a => earnedIds.has(a.id)).slice(0,5);
+                // Отображаем выбранные ачивки (displayed_achievements) или первые 5 полученных
+                const displayedIds = currentUser.displayed_achievements || [];
+                let displayedAchievements = allAchievements.filter(a => displayedIds.includes(a.id));
+                if (displayedAchievements.length === 0) {
+                    // показать первые 5 полученных
+                    displayedAchievements = userAchievements.slice(0,5);
+                }
                 const achievementIconsHtml = displayedAchievements.map(ach => `<div class="achi-icon earned" title="${ach.name}: ${ach.description}">${ach.icon}</div>`).join('');
                 const missingCount = Math.max(0, 5 - displayedAchievements.length);
                 const missingHtml = '?'.repeat(missingCount).split('').map(() => `<div class="achi-icon">?</div>`).join('');
@@ -416,12 +450,63 @@
                 `;
                 document.getElementById('app').innerHTML = html;
                 document.getElementById('avatarClick')?.addEventListener('click', () => {
-                    alert('Аватар можно изменить через @BotFather командой /setuserpic');
+                    showToast('Аватар можно изменить через @BotFather командой /setuserpic');
                 });
                 document.querySelectorAll('.achi-icon').forEach(icon => {
                     icon.addEventListener('click', () => {
-                        const all = allAchievements.map(a => `${a.icon} ${a.name}: ${a.description}`).join('\n');
-                        alert(`Ваши достижения:\n${all}`);
+                        // Показываем список всех достижений в модалке
+                        const all = allAchievements.map(a => `${a.icon} ${a.name}: ${a.description} ${userAchievements.some(ua=>ua.id===a.id) ? '✅' : '❌'}`).join('\n');
+                        showToast('Все достижения:\n' + all, 'info', 3000);
+                    });
+                });
+            }
+            
+            async function renderAchievementsTab() {
+                const allAchievements = await getAllAchievements();
+                const userAchievements = await getAchievements();
+                const earnedIds = new Set(userAchievements.map(a => a.id));
+                const displayedIds = new Set(currentUser.displayed_achievements || []);
+                let html = `<div class="card"><h2>🏅 Достижения</h2>`;
+                for (let ach of allAchievements) {
+                    const earned = earnedIds.has(ach.id);
+                    const isDisplayed = displayedIds.has(ach.id);
+                    html += `
+                        <div class="achieve-item">
+                            <div class="achieve-info">
+                                <div class="achieve-icon">${ach.icon}</div>
+                                <div>
+                                    <div class="achieve-name">${ach.name}</div>
+                                    <div class="achieve-desc">${ach.description}</div>
+                                </div>
+                            </div>
+                            ${earned ? `<button class="wear-btn ${isDisplayed ? 'remove' : ''}" data-id="${ach.id}">${isDisplayed ? 'Снять' : 'Надеть'}</button>` : '<span class="small-text">❌ не получено</span>'}
+                        </div>
+                    `;
+                }
+                html += `<p class="small-text">Вы можете надеть до 5 ачивок. Они отобразятся в вашем профиле.</p></div>`;
+                document.getElementById('app').innerHTML = html;
+                // Обработчики кнопок
+                document.querySelectorAll('.wear-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const achId = parseInt(btn.dataset.id);
+                        let currentDisplayed = currentUser.displayed_achievements || [];
+                        if (currentDisplayed.includes(achId)) {
+                            // снять
+                            currentDisplayed = currentDisplayed.filter(id => id !== achId);
+                            await updateDisplayedAchievements(currentDisplayed);
+                            showToast('Ачивка снята');
+                        } else {
+                            if (currentDisplayed.length >= 5) {
+                                showToast('Нельзя надеть больше 5 ачивок. Сначала снимите одну.');
+                                return;
+                            }
+                            currentDisplayed.push(achId);
+                            await updateDisplayedAchievements(currentDisplayed);
+                            showToast('Ачивка надета');
+                        }
+                        await renderAchievementsTab(); // обновить
+                        // обновить профиль (ачивки в шапке)
+                        await renderProfileTab();
                     });
                 });
             }
@@ -517,7 +602,7 @@
                     currentUser.notify_trades = newNotifyTrades;
                     currentUser.notify_topup = newNotifyTopup;
                     currentUser.notify_referral = newNotifyReferral;
-                    alert('Настройки сохранены');
+                    showToast('Настройки сохранены');
                 };
             }
             
@@ -556,7 +641,7 @@
             }
             document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => {
                 if (!selectedAmount || selectedAmount < 1) {
-                    alert('Выберите или введите сумму');
+                    showToast('Выберите или введите сумму');
                     return;
                 }
                 document.getElementById('topupModal').style.display = 'none';
@@ -571,16 +656,16 @@
                     if (data.ok && data.invoice_link) {
                         tg.openInvoice(data.invoice_link, (status) => {
                             if (status === 'paid') {
-                                alert('Баланс пополнен!');
+                                showToast('Баланс пополнен!');
                                 refreshAll();
                             }
                         });
                     } else {
-                        alert('Ошибка: ' + (data.error || 'Не удалось создать счёт'));
+                        showToast('Ошибка: ' + (data.error || 'Не удалось создать счёт'));
                     }
                 } catch (err) {
                     console.error(err);
-                    alert('Ошибка соединения. Попробуйте позже.');
+                    showToast('Ошибка соединения. Попробуйте позже.');
                 }
             });
             document.getElementById('closeTopupModal')?.addEventListener('click', () => {
@@ -601,6 +686,7 @@
                     if (tabName === 'profile') await renderProfileTab();
                     else if (tabName === 'stocks') await renderStocksTab();
                     else if (tabName === 'analytics') await renderAnalyticsTab();
+                    else if (tabName === 'achievements') await renderAchievementsTab();
                     else if (tabName === 'rating') await renderRatingTab();
                     else if (tabName === 'wallet') await renderWalletTab();
                     else if (tabName === 'settings') await renderSettingsTab();
