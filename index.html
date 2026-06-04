@@ -37,8 +37,9 @@
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
         .price { font-size: 24px; font-weight: bold; color: #0088cc; }
         .small-text { font-size: 12px; color: #666; }
-        .chart-container { position: relative; width: 100%; height: 250px; margin: 12px 0; background: white; border-radius: 12px; overflow: hidden; }
-        .volume-chart-container { position: relative; width: 100%; height: 150px; margin: 12px 0; background: white; border-radius: 12px; overflow: hidden; }
+        .chart-container, .volume-chart-container { position: relative; width: 100%; margin: 12px 0; background: white; border-radius: 12px; overflow: hidden; }
+        .chart-container { height: 250px; }
+        .volume-chart-container { height: 150px; }
         canvas { width: 100%; height: 100%; display: block; }
         .tooltip { position: absolute; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 8px; font-size: 12px; pointer-events: none; z-index: 10; display: none; }
         .ticker { background: #f8f9fa; border-radius: 20px; padding: 8px 12px; overflow: hidden; white-space: nowrap; margin-bottom: 12px; font-size: 14px; color: #333; }
@@ -56,6 +57,7 @@
         .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
         .filter-btn, .sort-btn { background: #e9ecef; color: #333; margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; }
         .filter-btn.active, .sort-btn.active { background: #0088cc; color: white; }
+        .error-message { color: red; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
@@ -73,6 +75,7 @@
     </div>
     <script>
         (async () => {
+            // Drag-to-scroll для вкладок
             const tabsWrapper = document.getElementById('tabsWrapper');
             let isDown = false, startX, scrollLeft;
             tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
@@ -84,11 +87,16 @@
             function setProgress(v) { progress = v; if (progressBar) progressBar.style.width = progress + '%'; }
             setProgress(10);
             const tg = window.Telegram.WebApp;
+            // Проверка, что запущено в Telegram
+            if (!tg || !tg.initDataUnsafe?.user) {
+                document.getElementById('app').innerHTML = '<div class="card error-message">❌ Ошибка: приложение должно быть открыто через Telegram. Перейдите в бота и нажмите кнопку меню.</div>';
+                setProgress(100);
+                return;
+            }
             tg.ready(); tg.expand();
             setProgress(20);
-            let userId = tg.initDataUnsafe?.user?.id;
-            const username = tg.initDataUnsafe?.user?.username || "player";
-            if (!userId) { console.warn("Тестовый режим, ID=123456"); userId = 123456; }
+            let userId = tg.initDataUnsafe.user.id;
+            const username = tg.initDataUnsafe.user.username || "user_" + userId;
             setProgress(30);
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
@@ -101,7 +109,8 @@
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 10000, stars_balance: 5000, hide_rating: false }]).select().single();
+                    // Новый пользователь – без стартовых бонусов
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0, hide_rating: false }]).select().single();
                     if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                     return newUser;
                 }
@@ -141,7 +150,7 @@
             async function getCurrentPrice() {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
                 if (error) throw new Error(`Ошибка загрузки сделок для цены: ${error.message}`);
-                if (!data || data.length === 0) return 100;
+                if (!data || data.length === 0) return 100; // цена по умолчанию 1 звезда (100 копеек)
                 let totalAmount = 0, totalStars = 0;
                 for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
                 return totalAmount > 0 ? totalStars / totalAmount : 100;
@@ -177,6 +186,7 @@
                 return true;
             }
 
+            // --- График цены (с тултипом) ---
             let chartDataPoints = [];
             function drawInteractiveChart(history) {
                 const container = document.getElementById('chart-container');
@@ -275,7 +285,9 @@
                 window.addEventListener('resize', () => { canvas.width = container.clientWidth; canvas.height = 250; draw(); });
             }
 
-            function drawVolumeChart(volumes) {
+            // --- График объёмов с тултипом ---
+            let volumeDataPoints = [];
+            function drawInteractiveVolumeChart(volumes) {
                 const container = document.getElementById('volume-chart');
                 if (!container) return;
                 container.innerHTML = '';
@@ -283,31 +295,83 @@
                     container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных об объёмах</p>';
                     return;
                 }
+                volumeDataPoints = volumes.map(v => ({ amount: v.total_amount / 100, day: new Date(v.day), dateStr: new Date(v.day).toLocaleDateString() }));
                 const canvas = document.createElement('canvas');
                 const width = container.clientWidth, height = 150;
                 canvas.width = width; canvas.height = height;
                 canvas.style.width = '100%'; canvas.style.height = 'auto';
                 container.appendChild(canvas);
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                container.appendChild(tooltip);
                 const ctx = canvas.getContext('2d');
-                const maxVolume = Math.max(...volumes.map(v => v.total_amount));
-                const barWidth = (width - 40) / volumes.length - 2;
-                ctx.fillStyle = '#f8f9fa';
-                ctx.fillRect(0, 0, width, height);
-                for (let i = 0; i < volumes.length; i++) {
-                    const barHeight = (volumes[i].total_amount / maxVolume) * (height - 20);
-                    const x = 20 + i * (barWidth + 2);
-                    const y = height - 10 - barHeight;
-                    ctx.fillStyle = '#0088cc';
-                    ctx.fillRect(x, y, barWidth, barHeight);
+                const values = volumeDataPoints.map(v => v.amount);
+                const maxVolume = Math.max(...values);
+                const barWidth = (width - 40) / values.length - 2;
+                function draw() {
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.fillStyle = '#f8f9fa';
+                    ctx.fillRect(0, 0, width, height);
+                    for (let i = 0; i < values.length; i++) {
+                        const barHeight = (values[i] / maxVolume) * (height - 20);
+                        const x = 20 + i * (barWidth + 2);
+                        const y = height - 10 - barHeight;
+                        ctx.fillStyle = '#0088cc';
+                        ctx.fillRect(x, y, barWidth, barHeight);
+                    }
+                    ctx.fillStyle = '#333';
+                    ctx.font = '10px sans-serif';
+                    if (volumeDataPoints.length > 0) {
+                        const firstDate = volumeDataPoints[0].dateStr;
+                        const lastDate = volumeDataPoints[volumeDataPoints.length-1].dateStr;
+                        ctx.fillText(firstDate, 20, height - 2);
+                        ctx.fillText(lastDate, width - 60, height - 2);
+                    }
                 }
-                ctx.fillStyle = '#333';
-                ctx.font = '10px sans-serif';
-                if (volumes.length > 0) {
-                    const firstDate = new Date(volumes[0].day).toLocaleDateString();
-                    const lastDate = new Date(volumes[volumes.length-1].day).toLocaleDateString();
-                    ctx.fillText(firstDate, 20, height - 2);
-                    ctx.fillText(lastDate, width - 60, height - 2);
+                draw();
+                function getMousePos(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+                    let clientX, clientY;
+                    if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+                    else { clientX = e.clientX; clientY = e.clientY; }
+                    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
                 }
+                function findBarIndex(mouseX) {
+                    for (let i = 0; i < values.length; i++) {
+                        const xStart = 20 + i * (barWidth + 2);
+                        const xEnd = xStart + barWidth;
+                        if (mouseX >= xStart && mouseX <= xEnd) return i;
+                    }
+                    return -1;
+                }
+                function showTooltip(e) {
+                    const { x: mouseX, y: mouseY } = getMousePos(e);
+                    const idx = findBarIndex(mouseX);
+                    if (idx !== -1) {
+                        const point = volumeDataPoints[idx];
+                        tooltip.style.display = 'block';
+                        tooltip.innerHTML = `📊 ${point.amount.toFixed(2)} акций<br>${point.dateStr}`;
+                        let left = mouseX + 10, top = mouseY + 10;
+                        if (left + tooltip.offsetWidth > width) left = mouseX - tooltip.offsetWidth - 10;
+                        if (top + tooltip.offsetHeight > height) top = mouseY - tooltip.offsetHeight - 10;
+                        tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
+                        // Подсветка столбца
+                        ctx.fillStyle = 'rgba(0,136,204,0.3)';
+                        const x = 20 + idx * (barWidth + 2);
+                        const barHeight = (values[idx] / maxVolume) * (height - 20);
+                        const y = height - 10 - barHeight;
+                        ctx.fillRect(x, y, barWidth, barHeight);
+                    } else {
+                        tooltip.style.display = 'none';
+                        draw();
+                    }
+                }
+                canvas.addEventListener('mousemove', (e) => { draw(); showTooltip(e); });
+                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(); showTooltip(e); });
+                canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; draw(); });
+                canvas.addEventListener('touchend', () => { tooltip.style.display = 'none'; draw(); });
+                window.addEventListener('resize', () => { canvas.width = container.clientWidth; canvas.height = 150; draw(); });
             }
 
             function renderTicker(trades) {
@@ -403,20 +467,17 @@
             async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
             function renderProfileTab() { document.getElementById('app').innerHTML = `<div class="card"><h2>👤 Профиль</h2><p><strong>${username}</strong></p><p>ID: ${userId}</p><p>📌 Акций: ${fromCents(currentUser.shares)}</p><p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p><hr><p class="small-text">Виртуальная биржа акций за Telegram Stars. Торгуйте, создавайте ордера, смотрите график.</p></div>`; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; }
             async function renderRatingTab() { try { const leaders = await getLeaderboard(20); let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2><div id="leaderboardList">`; if (leaders.length === 0) html += '<p>Нет данных</p>'; else { leaders.forEach((user, idx) => { html += `<div class="leaderboard-item"><div class="rank">${idx+1}</div><div class="user-name">${user.username || "Аноним"}</div><div class="user-shares">${fromCents(user.shares)} акций</div></div>`; }); } html += `</div></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; } }
-            function renderWalletTab() { const html = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><p>В ближайшее время: пополнение Stars через Telegram Stars API.</p><button id="fakeTopup">➕ Тестовое пополнение (10 Stars)</button></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; document.getElementById('fakeTopup')?.addEventListener('click', async () => { currentUser.stars_balance += 1000; await supabase.from('users').update({ stars_balance: currentUser.stars_balance }).eq('id', userId); alert('Баланс пополнен на 10 Stars (тестово)'); renderWalletTab(); }); }
+            function renderWalletTab() { 
+                const html = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><p>Пополнение через Telegram Stars будет доступно в ближайшее время.</p><button id="fakeTopup">➕ Тестовое пополнение (10 Stars)</button></div>`;
+                document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
+                document.getElementById('fakeTopup')?.addEventListener('click', async () => { currentUser.stars_balance += 1000; await supabase.from('users').update({ stars_balance: currentUser.stars_balance }).eq('id', userId); alert('Баланс пополнен на 10 Stars (тестово)'); renderWalletTab(); }); 
+            }
             async function renderAnalyticsTab() {
                 const volumeData = await getVolumeHistory(30);
-                const html = `
-                    <div class="card">
-                        <h2>📊 Объёмы торгов</h2>
-                        <div id="volume-chart" class="volume-chart-container"></div>
-                        <p class="small-text">График показывает количество акций, проданных за последние 30 дней (в звёздах).</p>
-                    </div>
-                `;
+                const html = `<div class="card"><h2>📊 Объёмы торгов</h2><div id="volume-chart" class="volume-chart-container"></div><p class="small-text">График показывает количество акций, проданных за последние 30 дней (в звёздах). Наведите на столбец для просмотра значения.</p></div>`;
                 document.getElementById('app').innerHTML = html;
-                const bar = document.getElementById('loadingBar');
-                if (bar) bar.style.display = 'none';
-                drawVolumeChart(volumeData);
+                const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
+                drawInteractiveVolumeChart(volumeData);
             }
             async function renderSettingsTab() { const hideRating = currentUser.hide_rating || false; const html = `<div class="card"><h2>⚙️ Настройки</h2><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="hideRatingCheckbox" ${hideRating ? 'checked' : ''}> Скрыть меня из рейтинга</label><button id="saveSettingsBtn">Сохранить</button></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; document.getElementById('saveSettingsBtn')?.addEventListener('click', async () => { const newValue = document.getElementById('hideRatingCheckbox').checked; const { error } = await supabase.from('users').update({ hide_rating: newValue }).eq('id', userId); if (error) alert('Ошибка сохранения'); else { currentUser.hide_rating = newValue; alert('Настройки сохранены'); } }); }
             currentUser = await getOrCreateUser();
