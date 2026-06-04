@@ -11,7 +11,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            user-select: none; /* запрет выделения на всём сайте, но для инпутов оставим */
+            user-select: none;
         }
         input, button, textarea {
             user-select: text;
@@ -21,7 +21,6 @@
             background: #f0f2f5;
             padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
         }
-        /* Анимация загрузки */
         .loading-bar {
             position: fixed;
             top: 0;
@@ -44,7 +43,6 @@
             margin: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        /* Контейнер вкладок с прокруткой и drag-to-scroll */
         .tabs-wrapper {
             position: fixed;
             bottom: 0;
@@ -79,7 +77,6 @@
             transition: all 0.2s;
             cursor: pointer;
             min-width: 70px;
-            user-select: none;
         }
         .tab.active {
             background: #0088cc;
@@ -93,10 +90,6 @@
             font-size: 12px;
             font-weight: 500;
         }
-        .tab.active .tab-label {
-            color: white;
-        }
-        /* Стилизация скроллбара */
         .tabs-wrapper::-webkit-scrollbar {
             height: 4px;
         }
@@ -263,6 +256,11 @@
         .user-shares {
             font-weight: bold;
         }
+        .toggle-switch {
+            display: inline-block;
+            margin-left: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -300,30 +298,6 @@
     </div>
     <script>
         (async () => {
-            // Drag to scroll для вкладок (чтобы можно было зажать мышью и двигать)
-            const tabsWrapper = document.getElementById('tabsWrapper');
-            let isDragging = false;
-            let startX = 0;
-            let scrollLeft = 0;
-            tabsWrapper.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                startX = e.pageX - tabsWrapper.offsetLeft;
-                scrollLeft = tabsWrapper.scrollLeft;
-                tabsWrapper.style.cursor = 'grabbing';
-                e.preventDefault();
-            });
-            window.addEventListener('mouseup', () => {
-                isDragging = false;
-                tabsWrapper.style.cursor = 'grab';
-            });
-            window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const x = e.pageX - tabsWrapper.offsetLeft;
-                const walk = (x - startX) * 1.5;
-                tabsWrapper.scrollLeft = scrollLeft - walk;
-            });
-            tabsWrapper.addEventListener('dragstart', (e) => e.preventDefault());
-            
             let progress = 0;
             const progressBar = document.getElementById('loadingProgress');
             function setProgress(value) {
@@ -358,7 +332,7 @@
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 10000 }]).select().single(); // 100.00 Stars
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 10000, stars_balance: 5000, hide_from_leaderboard: false }]).select().single();
                     if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                     return newUser;
                 }
@@ -377,8 +351,15 @@
                 return data || [];
             }
 
-            async function getRecentTrades(limit = 10) {
-                const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
+            async function getRecentTrades(limit = 5) {
+                // Исключаем сделки самого пользователя
+                const { data, error } = await supabase
+                    .from('trades')
+                    .select('amount, price_per_share')
+                    .not('seller_id', 'eq', userId)
+                    .not('buyer_id', 'eq', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
                 if (error) throw new Error(`Ошибка загрузки сделок: ${error.message}`);
                 return data || [];
             }
@@ -404,17 +385,16 @@
             }
 
             async function getLeaderboard(limit = 20) {
-                const { data, error } = await supabase.from('users').select('username, shares').order('shares', { ascending: false }).limit(limit);
+                const { data, error } = await supabase.from('users').select('username, shares').eq('hide_from_leaderboard', false).order('shares', { ascending: false }).limit(limit);
                 if (error) throw new Error(`Ошибка загрузки рейтинга: ${error.message}`);
                 return data;
             }
 
             async function createOrder(amount, price) {
-                // Проверка: количество должно быть целым >=1, цена целая >=1
-                if (!Number.isInteger(amount) || amount <= 0) throw new Error('Количество акций должно быть целым положительным числом (минимум 1)');
-                if (!Number.isInteger(price) || price <= 0) throw new Error('Цена за акцию должна быть целым положительным числом (минимум 1 Star)');
-                const amountCents = toCents(amount);
-                const priceCents = toCents(price);
+                if (!Number.isInteger(amount)) throw new Error('Количество акций должно быть целым числом');
+                if (price < 1) throw new Error('Цена не может быть меньше 1 звезды');
+                const amountCents = amount * 100;
+                const priceCents = price * 100;
                 const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amountCents, p_price: priceCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
@@ -422,7 +402,7 @@
                 return true;
             }
 
-            async function executeTradePartial(orderId, buyAmountCents) {
+            async function executePartialTrade(orderId, buyAmountCents) {
                 const { data, error } = await supabase.rpc('execute_trade_partial', { p_order_id: orderId, p_buyer_id: userId, p_buy_amount: buyAmountCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
@@ -584,7 +564,7 @@
                     setProgress(60);
                     const orders = await getActiveOrders();
                     const priceHistory = await getPriceHistory();
-                    const recentTrades = await getRecentTrades(10);
+                    const recentTrades = await getRecentTrades(5);
                     const { totalShares, currentPrice, marketCap } = await getTotalMarketCap();
                     setProgress(80);
                     
@@ -614,8 +594,8 @@
                         </div>
                         <div class="card">
                             <h3>📈 Продать акции</h3>
-                            <input type="number" id="sellAmount" placeholder="Количество (целое, мин 1)" step="1" min="1">
-                            <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars, мин 1)" step="1" min="1">
+                            <input type="number" id="sellAmount" placeholder="Количество (целое, от 1)" step="1" min="1">
+                            <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars, целое, от 1)" step="1" min="1">
                             <button id="sellBtn">➕ Выставить на продажу</button>
                         </div>
                         <div class="card">
@@ -648,15 +628,15 @@
                         document.querySelectorAll('.buy-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
                                 const order = JSON.parse(btn.dataset.order);
-                                const maxShares = fromCents(order.amount);
-                                let buyAmount = prompt(`Введите количество акций для покупки (от 0.01 до ${maxShares}):`, maxShares);
+                                const maxShares = parseFloat(fromCents(order.amount));
+                                let buyAmount = prompt(`Введите количество акций для покупки (целое, до ${maxShares}):`, maxShares);
                                 if (buyAmount === null) return;
                                 buyAmount = parseFloat(buyAmount);
-                                if (isNaN(buyAmount) || buyAmount <= 0 || buyAmount > parseFloat(maxShares)) {
-                                    alert('Некорректное количество');
+                                if (isNaN(buyAmount) || buyAmount <= 0 || buyAmount > maxShares || !Number.isInteger(buyAmount)) {
+                                    alert('Введите целое положительное количество, не превышающее доступное');
                                     return;
                                 }
-                                const buyAmountCents = toCents(buyAmount);
+                                const buyAmountCents = buyAmount * 100;
                                 try {
                                     const { data: freshOrder, error: freshErr } = await supabase
                                         .from('orders')
@@ -665,8 +645,8 @@
                                         .single();
                                     if (freshErr) throw new Error('Ошибка проверки ордера');
                                     if (freshOrder.status !== 'active') throw new Error('Ордер уже не активен');
-                                    if (freshOrder.amount < buyAmountCents) throw new Error('Недостаточно акций в продаже. Кто-то купил часть.');
-                                    await executeTradePartial(order.id, buyAmountCents);
+                                    if (freshOrder.amount < buyAmountCents) throw new Error('Количество превышает доступное. Кто-то уже купил часть.');
+                                    await executePartialTrade(order.id, buyAmountCents);
                                     alert('Сделка успешно завершена!');
                                     await refreshAll();
                                 } catch (err) {
@@ -678,18 +658,14 @@
                     const sellBtn = document.getElementById('sellBtn');
                     if (sellBtn) {
                         sellBtn.addEventListener('click', async () => {
-                            let amount = parseFloat(document.getElementById('sellAmount').value);
-                            let price = parseFloat(document.getElementById('sellPrice').value);
-                            if (isNaN(amount) || isNaN(price) || amount <= 0 || price <= 0) {
-                                alert('Введите корректные количество и цену');
+                            let amount = parseInt(document.getElementById('sellAmount').value);
+                            let price = parseInt(document.getElementById('sellPrice').value);
+                            if (isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
+                                alert('Количество должно быть целым положительным числом');
                                 return;
                             }
-                            if (!Number.isInteger(amount)) {
-                                alert('Количество акций должно быть целым числом');
-                                return;
-                            }
-                            if (!Number.isInteger(price)) {
-                                alert('Цена должна быть целым числом (минимум 1 Star)');
+                            if (isNaN(price) || price < 1 || !Number.isInteger(price)) {
+                                alert('Цена должна быть целым числом не менее 1');
                                 return;
                             }
                             try {
@@ -727,10 +703,25 @@
                         <p>📌 Акций: ${fromCents(currentUser.shares)}</p>
                         <p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p>
                         <hr>
-                        <p class="small-text">Виртуальная биржа акций за Telegram Stars. Торгуйте, создавайте ордера, смотрите график.</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Скрыть меня из рейтинга</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="hideFromLeaderboard" ${currentUser.hide_from_leaderboard ? 'checked' : ''}>
+                            </label>
+                        </div>
+                        <p class="small-text">Если включено, ваш профиль не будет отображаться в таблице лидеров.</p>
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
+                const checkbox = document.getElementById('hideFromLeaderboard');
+                if (checkbox) {
+                    checkbox.addEventListener('change', async (e) => {
+                        const newValue = e.target.checked;
+                        await supabase.from('users').update({ hide_from_leaderboard: newValue }).eq('id', userId);
+                        currentUser.hide_from_leaderboard = newValue;
+                        alert('Настройка сохранена');
+                    });
+                }
                 const bar = document.getElementById('loadingBar');
                 if (bar) bar.style.display = 'none';
             }
@@ -792,6 +783,33 @@
                 const bar = document.getElementById('loadingBar');
                 if (bar) bar.style.display = 'none';
             }
+
+            // Drag-to-scroll для вкладок на ПК
+            const wrapper = document.getElementById('tabsWrapper');
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+            wrapper.addEventListener('mousedown', (e) => {
+                isDown = true;
+                startX = e.pageX - wrapper.offsetLeft;
+                scrollLeft = wrapper.scrollLeft;
+                wrapper.style.cursor = 'grabbing';
+            });
+            wrapper.addEventListener('mouseleave', () => {
+                isDown = false;
+                wrapper.style.cursor = 'grab';
+            });
+            wrapper.addEventListener('mouseup', () => {
+                isDown = false;
+                wrapper.style.cursor = 'grab';
+            });
+            wrapper.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - wrapper.offsetLeft;
+                const walk = (x - startX) * 1.5;
+                wrapper.scrollLeft = scrollLeft - walk;
+            });
 
             currentUser = await getOrCreateUser();
             let activeTab = 'stocks';
