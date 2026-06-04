@@ -11,6 +11,10 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            user-select: none; /* запрет выделения на всём сайте, но для инпутов оставим */
+        }
+        input, button, textarea {
+            user-select: text;
         }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
@@ -50,20 +54,18 @@
             border-top: 1px solid #e0e0e0;
             padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
             z-index: 100;
-        }
-        .tabs {
-            display: flex;
             overflow-x: auto;
-            scroll-behavior: smooth;
             white-space: nowrap;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
-            padding: 0 12px;
+        }
+        .tabs {
+            display: inline-flex;
             gap: 8px;
+            padding: 0 12px;
         }
         .tab {
-            flex: 0 0 auto;
-            display: flex;
+            display: inline-flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -73,6 +75,7 @@
             transition: all 0.2s;
             cursor: pointer;
             min-width: 70px;
+            user-select: none;
         }
         .tab.active {
             background: #0088cc;
@@ -89,33 +92,15 @@
         .tab.active .tab-label {
             color: white;
         }
-        /* Индикаторы прокрутки (тени) */
-        .tabs::before,
-        .tabs::after {
-            content: '';
-            position: sticky;
-            width: 20px;
-            height: 100%;
-            pointer-events: none;
-            z-index: 2;
-        }
-        .tabs::before {
-            left: 0;
-            background: linear-gradient(to right, white, transparent);
-        }
-        .tabs::after {
-            right: 0;
-            background: linear-gradient(to left, white, transparent);
-        }
-        /* Стилизация скроллбара (для вебкит) */
-        .tabs::-webkit-scrollbar {
+        /* Стилизация скроллбара */
+        .tabs-wrapper::-webkit-scrollbar {
             height: 4px;
         }
-        .tabs::-webkit-scrollbar-track {
+        .tabs-wrapper::-webkit-scrollbar-track {
             background: #f0f0f0;
             border-radius: 4px;
         }
-        .tabs::-webkit-scrollbar-thumb {
+        .tabs-wrapper::-webkit-scrollbar-thumb {
             background: #ccc;
             border-radius: 4px;
         }
@@ -163,6 +148,16 @@
             padding: 12px 0;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .order-info {
+            flex: 2;
+        }
+        .order-actions {
+            display: flex;
+            gap: 8px;
             align-items: center;
         }
         .flex-between {
@@ -267,12 +262,11 @@
     </style>
 </head>
 <body>
-    <!-- Анимированная полоска загрузки -->
     <div class="loading-bar" id="loadingBar">
         <div class="loading-progress" id="loadingProgress"></div>
     </div>
     <div id="app">Загрузка...</div>
-    <div class="tabs-wrapper">
+    <div class="tabs-wrapper" id="tabsWrapper">
         <div class="tabs" id="tabs">
             <div class="tab" data-tab="profile">
                 <div class="tab-icon">👤</div>
@@ -302,7 +296,6 @@
     </div>
     <script>
         (async () => {
-            // Функция для обновления прогресса загрузки
             let progress = 0;
             const progressBar = document.getElementById('loadingProgress');
             function setProgress(value) {
@@ -330,11 +323,15 @@
             let currentUser = null;
             setProgress(40);
 
+            // Вспомогательная функция для работы с дробными числами (умножение на 100)
+            function toCents(value) { return Math.round(parseFloat(value) * 100); }
+            function fromCents(cents) { return (cents / 100).toFixed(2); }
+
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 100, stars_balance: 50 }]).select().single();
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 10000, stars_balance: 5000 }]).select().single(); // в копейках 100.00 акций и 50.00 Stars
                     if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                     return newUser;
                 }
@@ -362,13 +359,13 @@
             async function getCurrentPrice() {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
                 if (error) throw new Error(`Ошибка загрузки сделок для цены: ${error.message}`);
-                if (!data || data.length === 0) return 1;
+                if (!data || data.length === 0) return 100; // 1.00 Star
                 let totalAmount = 0, totalStars = 0;
                 for (let trade of data) {
                     totalAmount += trade.amount;
                     totalStars += trade.amount * trade.price_per_share;
                 }
-                return totalAmount > 0 ? totalStars / totalAmount : 1;
+                return totalAmount > 0 ? totalStars / totalAmount : 100;
             }
 
             async function getTotalMarketCap() {
@@ -386,23 +383,45 @@
             }
 
             async function createOrder(amount, price) {
-                const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amount, p_price: price });
+                const amountCents = toCents(amount);
+                const priceCents = toCents(price);
+                const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amountCents, p_price: priceCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
-                currentUser.shares -= amount;
+                currentUser.shares -= amountCents;
                 return true;
             }
 
-            async function executeTrade(order) {
-                const { data, error } = await supabase.rpc('execute_trade', { p_order_id: order.id, p_buyer_id: userId });
+            async function executeTrade(orderId, buyAmountCents) {
+                const { data, error } = await supabase.rpc('execute_trade_partial', { p_order_id: orderId, p_buyer_id: userId, p_buy_amount: buyAmountCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
-                const totalStars = order.amount * order.price_per_share;
-                currentUser.stars_balance -= totalStars;
-                currentUser.shares += order.amount;
+                // Обновляем локального пользователя – суммарно (будет перезагружено)
                 return true;
             }
 
+            // RPC-функции должны быть созданы в Supabase. Для работы с дробными я добавляю новую функцию execute_trade_partial.
+            // Временно оставим execute_trade, но позже нужно будет создать новую. Для простоты пока буду использовать старую execute_trade,
+            // но с преобразованием количества в целое. Однако она не поддерживает частичные покупки. Добавим в интерфейс логику проверки остатка.
+            // Вместо создания новой RPC, реализуем логику на клиенте: перед покупкой проверяем актуальный остаток ордера, затем вызываем старую функцию execute_trade,
+            // которая выкупит весь ордер. Если пользователь хочет купить часть, мы создадим новый ордер на оставшуюся часть? Сложно.
+            // Для MVP оставлю покупку всего ордера целиком. Но сделаем проверку, что ордер ещё не куплен.
+
+            // Пока оставим старую execute_trade, но добавим предупреждение, что покупается весь ордер.
+            // В будущем нужно реализовать частичную покупку через новую RPC.
+            
+            // Для демонстрации я реализую частичную покупку на клиенте: сначала получаем актуальный ордер, проверяем, что запрашиваемое количество <= остатку,
+            // затем вызываем старую RPC execute_trade, но передаём только часть? Нет, execute_trade не умеет частично. 
+            // Поэтому в целях простоты пока оставлю покупку только всего ордера. Но добавлю поле ввода количества с проверкой на <= остатка и вызов
+            // специальной новой RPC execute_trade_partial. Я приведу код для создания этой RPC в инструкции.
+
+            // Для надёжности я перепишу execute_trade_partial в SQL-скрипте позже. Здесь я сделаю фронтенд, который при покупке запрашивает количество,
+            // и если оно меньше остатка, вызывает новую RPC (которая должна быть создана). Пользователь увидит сообщение, если RPC отсутствует.
+            
+            // Упростим: пока оставим покупку только всего ордера, но добавим возможность указать количество, если оно равно остатку.
+            
+            // Ниже я напишу функцию buyOrder с проверкой остатка и частичной покупкой (если RPC существует). Если нет – сообщим.
+            
             let chartDataPoints = [];
             function drawInteractiveChart(history) {
                 const container = document.getElementById('chart-container');
@@ -413,12 +432,11 @@
                     return;
                 }
                 chartDataPoints = history.map((h, idx) => ({
-                    price: h.price,
+                    price: h.price / 100,
                     time: new Date(h.created_at).getTime(),
                     dateStr: new Date(h.created_at).toLocaleString()
                 }));
                 const canvas = document.createElement('canvas');
-                canvas.id = 'price-canvas';
                 const width = container.clientWidth;
                 const height = 250;
                 canvas.width = width;
@@ -463,8 +481,8 @@
                     ctx.stroke();
                     ctx.fillStyle = '#333';
                     ctx.font = '11px sans-serif';
-                    ctx.fillText(max.toFixed(1), padding.left - 30, padding.top + 10);
-                    ctx.fillText(min.toFixed(1), padding.left - 30, height - padding.bottom - 5);
+                    ctx.fillText(max.toFixed(2), padding.left - 30, padding.top + 10);
+                    ctx.fillText(min.toFixed(2), padding.left - 30, height - padding.bottom - 5);
                     if (history.length > 0) {
                         const firstDate = new Date(history[0].created_at).toLocaleDateString();
                         const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
@@ -550,7 +568,7 @@
                     container.innerHTML = '<div class="ticker-content">Нет сделок</div>';
                     return;
                 }
-                const items = trades.map(t => `<span class="trade-item">${t.amount} шт. по ${t.price_per_share} ⭐</span>`).join('');
+                const items = trades.map(t => `<span class="trade-item">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('');
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
 
@@ -567,21 +585,21 @@
                         <div class="card">
                             <div class="flex-between">
                                 <div>
-                                    <p>📊 Акций: <strong>${currentUser.shares}</strong></p>
-                                    <p>⭐ Stars: <strong>${currentUser.stars_balance}</strong></p>
+                                    <p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p>
+                                    <p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p>
                                 </div>
-                                <div class="price">${currentPrice.toFixed(2)} ⭐</div>
+                                <div class="price">${(currentPrice/100).toFixed(2)} ⭐</div>
                             </div>
                         </div>
                         <div class="card">
                             <div class="info-panel">
                                 <div class="info-card">
                                     <div class="info-label">Рыночная капитализация</div>
-                                    <div class="info-value">${Math.round(marketCap)} ⭐</div>
+                                    <div class="info-value">${Math.round(marketCap/100)} ⭐</div>
                                 </div>
                                 <div class="info-card">
                                     <div class="info-label">Всего акций</div>
-                                    <div class="info-value">${totalShares}</div>
+                                    <div class="info-value">${(totalShares/100).toFixed(2)}</div>
                                 </div>
                             </div>
                             <div id="chart-container" class="chart-container"></div>
@@ -589,8 +607,8 @@
                         </div>
                         <div class="card">
                             <h3>📈 Продать акции</h3>
-                            <input type="number" id="sellAmount" placeholder="Количество" min="1">
-                            <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars)" min="1">
+                            <input type="number" id="sellAmount" placeholder="Количество (минимум 0.01)" step="0.01" min="0.01">
+                            <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars)" step="0.01" min="0.01">
                             <button id="sellBtn">➕ Выставить на продажу</button>
                         </div>
                         <div class="card">
@@ -610,16 +628,46 @@
                             const div = document.createElement('div');
                             div.className = 'order-item';
                             div.innerHTML = `
-                                <div>${order.amount} шт. по ${order.price_per_share} ⭐ (всего ${order.amount * order.price_per_share})</div>
-                                <button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>
+                                <div class="order-info">
+                                    <div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐</div>
+                                    <div class="small-text">Продавец ID: ${order.seller_id}</div>
+                                </div>
+                                <div class="order-actions">
+                                    <button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>
+                                </div>
                             `;
                             ordersDiv.appendChild(div);
                         });
                         document.querySelectorAll('.buy-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
                                 const order = JSON.parse(btn.dataset.order);
+                                const maxShares = fromCents(order.amount);
+                                let buyAmount = prompt(`Введите количество акций для покупки (до ${maxShares}):`, maxShares);
+                                if (buyAmount === null) return;
+                                buyAmount = parseFloat(buyAmount);
+                                if (isNaN(buyAmount) || buyAmount <= 0 || buyAmount > maxShares) {
+                                    alert('Некорректное количество');
+                                    return;
+                                }
+                                const buyAmountCents = toCents(buyAmount);
                                 try {
-                                    await executeTrade(order);
+                                    // Проверяем, не изменился ли ордер (остаток)
+                                    const { data: freshOrder, error: freshErr } = await supabase
+                                        .from('orders')
+                                        .select('amount, status')
+                                        .eq('id', order.id)
+                                        .single();
+                                    if (freshErr) throw new Error('Ошибка проверки ордера');
+                                    if (freshOrder.status !== 'active') throw new Error('Ордер уже не активен');
+                                    if (freshOrder.amount < buyAmountCents) throw new Error('Количество превышает доступное. Кто-то уже купил часть.');
+                                    // Вызываем RPC для частичной покупки (требуется создание функции в Supabase)
+                                    const { data, error } = await supabase.rpc('execute_trade_partial', {
+                                        p_order_id: order.id,
+                                        p_buyer_id: userId,
+                                        p_buy_amount: buyAmountCents
+                                    });
+                                    if (error) throw new Error(error.message);
+                                    if (!data.success) throw new Error(data.error);
                                     alert('Сделка успешно завершена!');
                                     await refreshAll();
                                 } catch (err) {
@@ -631,8 +679,8 @@
                     const sellBtn = document.getElementById('sellBtn');
                     if (sellBtn) {
                         sellBtn.addEventListener('click', async () => {
-                            const amount = parseInt(document.getElementById('sellAmount').value);
-                            const price = parseInt(document.getElementById('sellPrice').value);
+                            let amount = parseFloat(document.getElementById('sellAmount').value);
+                            let price = parseFloat(document.getElementById('sellPrice').value);
                             if (isNaN(amount) || isNaN(price) || amount <= 0 || price <= 0) {
                                 alert('Введите корректные количество и цену');
                                 return;
@@ -669,8 +717,8 @@
                         <h2>👤 Профиль</h2>
                         <p><strong>${username}</strong></p>
                         <p>ID: ${userId}</p>
-                        <p>📌 Акций: ${currentUser.shares}</p>
-                        <p>⭐ Stars: ${currentUser.stars_balance}</p>
+                        <p>📌 Акций: ${fromCents(currentUser.shares)}</p>
+                        <p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p>
                         <hr>
                         <p class="small-text">Виртуальная биржа акций за Telegram Stars. Торгуйте, создавайте ордера, смотрите график.</p>
                     </div>
@@ -691,7 +739,7 @@
                                 <div class="leaderboard-item">
                                     <div class="rank">${idx+1}</div>
                                     <div class="user-name">${user.username || "Аноним"}</div>
-                                    <div class="user-shares">${user.shares} акций</div>
+                                    <div class="user-shares">${fromCents(user.shares)} акций</div>
                                 </div>
                             `;
                         });
@@ -709,8 +757,8 @@
                 const html = `
                     <div class="card">
                         <h2>💳 Кошелёк</h2>
-                        <p>⭐ Баланс Stars: <strong>${currentUser.stars_balance}</strong></p>
-                        <p>📊 Акций: <strong>${currentUser.shares}</strong></p>
+                        <p>⭐ Баланс Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p>
+                        <p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p>
                         <hr>
                         <p>В ближайшее время: пополнение Stars через Telegram Stars API.</p>
                         <button id="fakeTopup">➕ Тестовое пополнение (10 Stars)</button>
@@ -720,7 +768,7 @@
                 const bar = document.getElementById('loadingBar');
                 if (bar) bar.style.display = 'none';
                 document.getElementById('fakeTopup')?.addEventListener('click', async () => {
-                    currentUser.stars_balance += 10;
+                    currentUser.stars_balance += 1000;
                     await supabase.from('users').update({ stars_balance: currentUser.stars_balance }).eq('id', userId);
                     alert('Баланс пополнен на 10 Stars (тестово)');
                     renderWalletTab();
@@ -748,7 +796,6 @@
                     activeTab = tabName;
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    // Показать полоску загрузки при смене вкладки
                     const bar = document.getElementById('loadingBar');
                     if (bar) bar.style.display = 'block';
                     setProgress(30);
