@@ -27,6 +27,14 @@
             --border: #334155;
             --primary: #38bdf8;
         }
+        body.custom {
+            --bg: #1e1e2f;
+            --card-bg: #2d2d44;
+            --text: #f0f0f0;
+            --text-secondary: #c0c0c0;
+            --border: #444;
+            --primary: #bb86fc;
+        }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
             background: var(--bg);
@@ -43,7 +51,7 @@
         .tab-icon { font-size: 22px; margin-bottom: 4px; }
         .tab-label { font-size: 12px; font-weight: 500; }
         button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
         .buy-btn, .cancel-btn { width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
         .cancel-btn { background: var(--danger); }
         .order-item { border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -74,6 +82,7 @@
         .close-modal { float: right; cursor: pointer; font-size: 24px; }
         .notification-bell { position: relative; display: inline-block; cursor: pointer; }
         .badge-count { position: absolute; top: -8px; right: -12px; background: red; color: white; font-size: 10px; border-radius: 20px; padding: 2px 6px; }
+        .theme-preview { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -220,6 +229,38 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
+            // ---------- Theme with color picker ----------
+            function applyTheme(themeName, customColor = null) {
+                if (themeName === 'light') {
+                    document.body.classList.remove('dark', 'custom');
+                    document.body.style.setProperty('--primary', '#0088cc');
+                } else if (themeName === 'dark') {
+                    document.body.classList.add('dark');
+                    document.body.classList.remove('custom');
+                    document.body.style.setProperty('--primary', '#38bdf8');
+                } else if (themeName === 'custom' && customColor) {
+                    document.body.classList.add('custom');
+                    document.body.classList.remove('dark');
+                    document.body.style.setProperty('--primary', customColor);
+                }
+                localStorage.setItem('theme', themeName);
+                if (customColor) localStorage.setItem('customColor', customColor);
+                if (currentUser) supabase.from('users').update({ theme: themeName, custom_color: customColor }).eq('id', userId);
+            }
+            
+            function getCurrentTheme() {
+                if (document.body.classList.contains('dark')) return 'dark';
+                if (document.body.classList.contains('custom')) return 'custom';
+                return 'light';
+            }
+            
+            // Load saved theme
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const savedColor = localStorage.getItem('customColor') || '#bb86fc';
+            if (savedTheme === 'dark') applyTheme('dark');
+            else if (savedTheme === 'custom') applyTheme('custom', savedColor);
+            else applyTheme('light');
+            
             // ---------- Chart ----------
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
@@ -305,7 +346,7 @@
                             <div id="chart-container" class="chart-container"></div>
                             <div id="ticker" class="ticker"></div>
                         </div>
-                        <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1"><input type="number" id="sellPrice" step="0.01" min="1"><button id="sellBtn">➕ Выставить</button></div>
+                        <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (мин 1)"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена за 1 акцию (мин 1 Star)"><button id="sellBtn">➕ Выставить</button></div>
                         <div class="card"><div class="filter-bar"><button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button><button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои</button><button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена выше</button><button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена ниже</button></div><h3>📋 Ордера</h3><div id="ordersList"></div></div>
                     `;
                     document.getElementById('app').innerHTML = html;
@@ -349,7 +390,7 @@
                     if (sellBtn) sellBtn.addEventListener('click', async () => {
                         let amount = parseFloat(document.getElementById('sellAmount').value);
                         let price = parseFloat(document.getElementById('sellPrice').value);
-                        if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { alert('Введите количество и цену'); return; }
+                        if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { alert('Введите количество не менее 1 и цену не менее 1'); return; }
                         try { await createOrder(amount, price); alert('Ордер создан'); await refreshAll(); } catch (err) { alert(err.message); }
                     });
                 } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
@@ -440,31 +481,51 @@
             
             async function renderSettingsTab() {
                 const hideRating = currentUser.hide_rating || false;
-                const currentTheme = localStorage.getItem('theme') || 'light';
-                const html = `<div class="card"><h2>⚙️ Настройки</h2>
-                    <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br>
-                    <div><label>Тема:</label><button id="themeLight" class="${currentTheme==='light'?'active':''}">Светлая</button><button id="themeDark" class="${currentTheme==='dark'?'active':''}">Тёмная</button></div>
-                    <label><input type="checkbox" id="notifCheckbox" ${currentUser.notifications_enabled?'checked':''}> Уведомления от бота</label>
-                    <button id="saveSettings">Сохранить</button></div>`;
+                const currentTheme = getCurrentTheme();
+                const customColor = localStorage.getItem('customColor') || '#bb86fc';
+                const html = `
+                    <div class="card">
+                        <h2>⚙️ Настройки</h2>
+                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label>
+                        <div style="margin-bottom:12px;">
+                            <label>Тема:</label><br>
+                            <select id="themeSelect">
+                                <option value="light" ${currentTheme==='light'?'selected':''}>Светлая</option>
+                                <option value="dark" ${currentTheme==='dark'?'selected':''}>Тёмная</option>
+                                <option value="custom" ${currentTheme==='custom'?'selected':''}>Кастомная</option>
+                            </select>
+                            <div id="customColorPicker" style="margin-top:8px; display: ${currentTheme==='custom'?'block':'none'};">
+                                <input type="color" id="colorPicker" value="${customColor}">
+                                <span>Выберите основной цвет</span>
+                            </div>
+                        </div>
+                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="notifCheckbox" ${currentUser.notifications_enabled?'checked':''}> Уведомления от бота</label>
+                        <button id="saveSettings">Сохранить</button>
+                    </div>
+                `;
                 document.getElementById('app').innerHTML = html;
-                document.getElementById('themeLight').onclick = () => setTheme('light');
-                document.getElementById('themeDark').onclick = () => setTheme('dark');
+                const themeSelect = document.getElementById('themeSelect');
+                const customDiv = document.getElementById('customColorPicker');
+                const colorPicker = document.getElementById('colorPicker');
+                themeSelect.addEventListener('change', () => {
+                    if (themeSelect.value === 'custom') customDiv.style.display = 'block';
+                    else customDiv.style.display = 'none';
+                });
                 document.getElementById('saveSettings').onclick = async () => {
                     const newHide = document.getElementById('hideRatingCheckbox').checked;
                     const newNotif = document.getElementById('notifCheckbox').checked;
-                    await supabase.from('users').update({ hide_rating: newHide, notifications_enabled: newNotif }).eq('id', userId);
+                    const newTheme = themeSelect.value;
+                    let newColor = null;
+                    if (newTheme === 'custom') newColor = colorPicker.value;
+                    applyTheme(newTheme, newColor);
+                    await supabase.from('users').update({ hide_rating: newHide, notifications_enabled: newNotif, theme: newTheme, custom_color: newColor }).eq('id', userId);
                     currentUser.hide_rating = newHide;
                     currentUser.notifications_enabled = newNotif;
-                    alert('Сохранено');
+                    alert('Настройки сохранены');
+                    await renderSettingsTab(); // refresh to show correct selection
                 };
             }
             
-            function setTheme(theme) {
-                if (theme === 'dark') document.body.classList.add('dark');
-                else document.body.classList.remove('dark');
-                localStorage.setItem('theme', theme);
-                if (currentUser) supabase.from('users').update({ theme }).eq('id', userId);
-            }
             async function updateNotificationBell() {
                 const count = await getUnreadCount();
                 const bell = document.querySelector('#notifBell');
@@ -484,7 +545,6 @@
             
             // ---------- Start ----------
             currentUser = await getOrCreateUser();
-            setTheme(localStorage.getItem('theme') || 'light');
             await renderStocksTab();
             await updateNotificationBell();
             document.querySelectorAll('.tab').forEach(tab => {
