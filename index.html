@@ -44,7 +44,7 @@
             margin: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        /* Контейнер вкладок с прокруткой */
+        /* Контейнер вкладок с прокруткой и drag-to-scroll */
         .tabs-wrapper {
             position: fixed;
             bottom: 0;
@@ -58,6 +58,10 @@
             white-space: nowrap;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
+            cursor: grab;
+        }
+        .tabs-wrapper:active {
+            cursor: grabbing;
         }
         .tabs {
             display: inline-flex;
@@ -296,6 +300,30 @@
     </div>
     <script>
         (async () => {
+            // Drag to scroll для вкладок (чтобы можно было зажать мышью и двигать)
+            const tabsWrapper = document.getElementById('tabsWrapper');
+            let isDragging = false;
+            let startX = 0;
+            let scrollLeft = 0;
+            tabsWrapper.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.pageX - tabsWrapper.offsetLeft;
+                scrollLeft = tabsWrapper.scrollLeft;
+                tabsWrapper.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                tabsWrapper.style.cursor = 'grab';
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const x = e.pageX - tabsWrapper.offsetLeft;
+                const walk = (x - startX) * 1.5;
+                tabsWrapper.scrollLeft = scrollLeft - walk;
+            });
+            tabsWrapper.addEventListener('dragstart', (e) => e.preventDefault());
+            
             let progress = 0;
             const progressBar = document.getElementById('loadingProgress');
             function setProgress(value) {
@@ -323,7 +351,6 @@
             let currentUser = null;
             setProgress(40);
 
-            // Вспомогательная функция для работы с дробными числами (умножение на 100)
             function toCents(value) { return Math.round(parseFloat(value) * 100); }
             function fromCents(cents) { return (cents / 100).toFixed(2); }
 
@@ -331,7 +358,7 @@
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 10000, stars_balance: 5000 }]).select().single(); // в копейках 100.00 акций и 50.00 Stars
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 10000 }]).select().single(); // 100.00 Stars
                     if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                     return newUser;
                 }
@@ -359,7 +386,7 @@
             async function getCurrentPrice() {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
                 if (error) throw new Error(`Ошибка загрузки сделок для цены: ${error.message}`);
-                if (!data || data.length === 0) return 100; // 1.00 Star
+                if (!data || data.length === 0) return 100;
                 let totalAmount = 0, totalStars = 0;
                 for (let trade of data) {
                     totalAmount += trade.amount;
@@ -383,6 +410,9 @@
             }
 
             async function createOrder(amount, price) {
+                // Проверка: количество должно быть целым >=1, цена целая >=1
+                if (!Number.isInteger(amount) || amount <= 0) throw new Error('Количество акций должно быть целым положительным числом (минимум 1)');
+                if (!Number.isInteger(price) || price <= 0) throw new Error('Цена за акцию должна быть целым положительным числом (минимум 1 Star)');
                 const amountCents = toCents(amount);
                 const priceCents = toCents(price);
                 const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amountCents, p_price: priceCents });
@@ -392,36 +422,13 @@
                 return true;
             }
 
-            async function executeTrade(orderId, buyAmountCents) {
+            async function executeTradePartial(orderId, buyAmountCents) {
                 const { data, error } = await supabase.rpc('execute_trade_partial', { p_order_id: orderId, p_buyer_id: userId, p_buy_amount: buyAmountCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
-                // Обновляем локального пользователя – суммарно (будет перезагружено)
                 return true;
             }
 
-            // RPC-функции должны быть созданы в Supabase. Для работы с дробными я добавляю новую функцию execute_trade_partial.
-            // Временно оставим execute_trade, но позже нужно будет создать новую. Для простоты пока буду использовать старую execute_trade,
-            // но с преобразованием количества в целое. Однако она не поддерживает частичные покупки. Добавим в интерфейс логику проверки остатка.
-            // Вместо создания новой RPC, реализуем логику на клиенте: перед покупкой проверяем актуальный остаток ордера, затем вызываем старую функцию execute_trade,
-            // которая выкупит весь ордер. Если пользователь хочет купить часть, мы создадим новый ордер на оставшуюся часть? Сложно.
-            // Для MVP оставлю покупку всего ордера целиком. Но сделаем проверку, что ордер ещё не куплен.
-
-            // Пока оставим старую execute_trade, но добавим предупреждение, что покупается весь ордер.
-            // В будущем нужно реализовать частичную покупку через новую RPC.
-            
-            // Для демонстрации я реализую частичную покупку на клиенте: сначала получаем актуальный ордер, проверяем, что запрашиваемое количество <= остатку,
-            // затем вызываем старую RPC execute_trade, но передаём только часть? Нет, execute_trade не умеет частично. 
-            // Поэтому в целях простоты пока оставлю покупку только всего ордера. Но добавлю поле ввода количества с проверкой на <= остатка и вызов
-            // специальной новой RPC execute_trade_partial. Я приведу код для создания этой RPC в инструкции.
-
-            // Для надёжности я перепишу execute_trade_partial в SQL-скрипте позже. Здесь я сделаю фронтенд, который при покупке запрашивает количество,
-            // и если оно меньше остатка, вызывает новую RPC (которая должна быть создана). Пользователь увидит сообщение, если RPC отсутствует.
-            
-            // Упростим: пока оставим покупку только всего ордера, но добавим возможность указать количество, если оно равно остатку.
-            
-            // Ниже я напишу функцию buyOrder с проверкой остатка и частичной покупкой (если RPC существует). Если нет – сообщим.
-            
             let chartDataPoints = [];
             function drawInteractiveChart(history) {
                 const container = document.getElementById('chart-container');
@@ -607,8 +614,8 @@
                         </div>
                         <div class="card">
                             <h3>📈 Продать акции</h3>
-                            <input type="number" id="sellAmount" placeholder="Количество (минимум 0.01)" step="0.01" min="0.01">
-                            <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars)" step="0.01" min="0.01">
+                            <input type="number" id="sellAmount" placeholder="Количество (целое, мин 1)" step="1" min="1">
+                            <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars, мин 1)" step="1" min="1">
                             <button id="sellBtn">➕ Выставить на продажу</button>
                         </div>
                         <div class="card">
@@ -642,16 +649,15 @@
                             btn.addEventListener('click', async () => {
                                 const order = JSON.parse(btn.dataset.order);
                                 const maxShares = fromCents(order.amount);
-                                let buyAmount = prompt(`Введите количество акций для покупки (до ${maxShares}):`, maxShares);
+                                let buyAmount = prompt(`Введите количество акций для покупки (от 0.01 до ${maxShares}):`, maxShares);
                                 if (buyAmount === null) return;
                                 buyAmount = parseFloat(buyAmount);
-                                if (isNaN(buyAmount) || buyAmount <= 0 || buyAmount > maxShares) {
+                                if (isNaN(buyAmount) || buyAmount <= 0 || buyAmount > parseFloat(maxShares)) {
                                     alert('Некорректное количество');
                                     return;
                                 }
                                 const buyAmountCents = toCents(buyAmount);
                                 try {
-                                    // Проверяем, не изменился ли ордер (остаток)
                                     const { data: freshOrder, error: freshErr } = await supabase
                                         .from('orders')
                                         .select('amount, status')
@@ -659,15 +665,8 @@
                                         .single();
                                     if (freshErr) throw new Error('Ошибка проверки ордера');
                                     if (freshOrder.status !== 'active') throw new Error('Ордер уже не активен');
-                                    if (freshOrder.amount < buyAmountCents) throw new Error('Количество превышает доступное. Кто-то уже купил часть.');
-                                    // Вызываем RPC для частичной покупки (требуется создание функции в Supabase)
-                                    const { data, error } = await supabase.rpc('execute_trade_partial', {
-                                        p_order_id: order.id,
-                                        p_buyer_id: userId,
-                                        p_buy_amount: buyAmountCents
-                                    });
-                                    if (error) throw new Error(error.message);
-                                    if (!data.success) throw new Error(data.error);
+                                    if (freshOrder.amount < buyAmountCents) throw new Error('Недостаточно акций в продаже. Кто-то купил часть.');
+                                    await executeTradePartial(order.id, buyAmountCents);
                                     alert('Сделка успешно завершена!');
                                     await refreshAll();
                                 } catch (err) {
@@ -683,6 +682,14 @@
                             let price = parseFloat(document.getElementById('sellPrice').value);
                             if (isNaN(amount) || isNaN(price) || amount <= 0 || price <= 0) {
                                 alert('Введите корректные количество и цену');
+                                return;
+                            }
+                            if (!Number.isInteger(amount)) {
+                                alert('Количество акций должно быть целым числом');
+                                return;
+                            }
+                            if (!Number.isInteger(price)) {
+                                alert('Цена должна быть целым числом (минимум 1 Star)');
                                 return;
                             }
                             try {
