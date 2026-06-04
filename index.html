@@ -5,76 +5,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Акции – биржа</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto; margin: 0; padding: 12px; background: #f0f2f5; }
+        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto; margin: 0; padding: 16px; background: #f0f2f5; }
         .card { background: white; border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .error { color: red; background: #ffe0e0; padding: 12px; border-radius: 12px; }
         button { background: #0088cc; color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; }
-        button:active { transform: scale(0.97); }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 40px; font-size: 16px; background: #fafafa; }
-        .order { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
-        .buy-btn { background: #2ecc71; width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
+        .buy-btn { background: #2ecc71; width: auto; padding: 6px 16px; margin: 0; }
+        .order-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
     <div id="app">Загрузка...</div>
     <script>
-        // 1. Telegram WebApp
+        // Telegram
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
         let userId = tg.initDataUnsafe?.user?.id;
         const username = tg.initDataUnsafe?.user?.username || "player";
         if (!userId) {
-            console.warn("⚠️ Telegram ID не найден, используем тестовый 123456");
+            console.warn("⚠️ Нет ID Telegram, используем тестовый 123456");
             userId = 123456;
         }
 
-        // 2. Supabase Edge Functions base URL (замените на ваш проект)
-        const FUNCTIONS_URL = "https://gsutnhhklidxmewdkcvk.supabase.co/functions/v1";
-
-        // Вспомогательная функция для вызова Edge Functions
-        async function callFunction(name, body = null) {
-            const url = `${FUNCTIONS_URL}/${name}`;
-            const options = { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json" } };
-            if (body) options.body = JSON.stringify(body);
-            const res = await fetch(url, options);
-            if (!res.ok) throw new Error(await res.text());
-            return res.json();
-        }
+        // Supabase
+        const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = null;
 
         async function loadData() {
             try {
-                // Получаем баланс через Edge Function
-                const balance = await callFunction(`get-balance?user_id=${userId}`);
-                currentUser = { shares: balance.shares, stars_balance: balance.stars, id: userId };
+                // 1. Получить или создать пользователя
+                let { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+                if (error && error.code === 'PGRST116') {
+                    const { data: newUser, error: insertError } = await supabase
+                        .from('users')
+                        .insert([{ id: userId, username: username, shares: 100, stars_balance: 50 }])
+                        .select()
+                        .single();
+                    if (insertError) throw insertError;
+                    data = newUser;
+                } else if (error) {
+                    throw error;
+                }
+                currentUser = data;
 
-                // Получаем активные ордера через Edge Function (можно создать функцию get-orders, но пока сделаем прямой запрос с service_role? 
-                // Для простоты добавим временную функцию get-orders, но пока используем прямую? Нет, лучше через Edge Function. 
-                // Создадим отдельную функцию get-orders в Supabase (код ниже). 
-                // Пока оставим заглушку: orders = [].
-                // Но чтобы не усложнять, я добавлю функцию get-orders прямо сейчас.
-                // Я написал её в инструкции, но для полного кода добавлю ещё один fetch.
-                // Для краткости здесь будем использовать прямую таблицу с RLS выключенным? Нет, сделаем правильно.
-                // Допишем функцию get-orders в Supabase. Я включу её в ответе.
-                // Предположим, что она уже есть. Вызовем:
-                const ordersData = await callFunction("get-orders");
-                renderUI(balance, ordersData.orders);
+                // 2. Загрузить активные ордера
+                const { data: orders, error: ordersErr } = await supabase
+                    .from('orders')
+                    .select('*')
+                    .eq('status', 'active')
+                    .order('price_per_share', { ascending: true });
+                if (ordersErr) throw ordersErr;
+
+                // 3. Отрисовать интерфейс
+                renderUI(orders);
             } catch (err) {
                 console.error(err);
-                document.getElementById('app').innerHTML = `<div class="card error">Ошибка загрузки: ${err.message}</div>`;
+                document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
             }
         }
 
-        function renderUI(balance, orders) {
+        function renderUI(orders) {
             const html = `
                 <div class="card">
                     <h2>💰 Мой баланс</h2>
-                    <p>📊 Акций: <strong>${balance.shares}</strong></p>
-                    <p>⭐ Stars: <strong>${balance.stars_balance}</strong></p>
+                    <p>📊 Акций: <strong>${currentUser.shares}</strong></p>
+                    <p>⭐ Stars: <strong>${currentUser.stars_balance}</strong></p>
                     <hr />
                     <p style="font-size:12px; color:gray;">ID: ${userId}</p>
                 </div>
@@ -82,40 +88,30 @@
                     <h3>📈 Продать акции</h3>
                     <input type="number" id="sellAmount" placeholder="Количество" min="1">
                     <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars)" min="1">
-                    <button id="sellBtn">➕ Выставить на продажу</button>
+                    <button id="sellBtn">Выставить на продажу</button>
                 </div>
                 <div class="card">
-                    <h3>📋 Книга ордеров (продажа)</h3>
-                    <div id="ordersList">${orders.length ? '' : '<p>Нет активных ордеров.</p>'}</div>
+                    <h3>📋 Активные ордера на продажу</h3>
+                    <div id="ordersList">${orders.length ? '' : '<p>Нет активных ордеров</p>'}</div>
                 </div>
             `;
             document.getElementById('app').innerHTML = html;
 
             if (orders.length) {
                 const ordersDiv = document.getElementById('ordersList');
-                ordersDiv.innerHTML = orders.map(order => `
-                    <div class="order">
-                        <div>${order.amount} шт. по ${order.price_per_share} ⭐</div>
-                        <button class="buy-btn" data-id="${order.id}" data-price="${order.price_per_share}" data-amount="${order.amount}" data-seller="${order.seller_id}">Купить</button>
-                    </div>
-                `).join('');
+                orders.forEach(order => {
+                    const div = document.createElement('div');
+                    div.className = 'order-item';
+                    div.innerHTML = `
+                        <div>${order.amount} шт. по ${order.price_per_share} ⭐ (всего ${order.amount * order.price_per_share})</div>
+                        <button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>
+                    `;
+                    ordersDiv.appendChild(div);
+                });
                 document.querySelectorAll('.buy-btn').forEach(btn => {
                     btn.addEventListener('click', async () => {
-                        const orderId = parseInt(btn.dataset.id);
-                        const price = parseInt(btn.dataset.price);
-                        const amount = parseInt(btn.dataset.amount);
-                        const total = price * amount;
-                        if (currentUser.stars_balance < total) {
-                            alert(`Недостаточно Stars. Нужно ${total}, у вас ${currentUser.stars_balance}`);
-                            return;
-                        }
-                        try {
-                            await callFunction("execute-trade", { order_id: orderId, buyer_id: userId });
-                            alert("Сделка завершена!");
-                            location.reload();
-                        } catch (err) {
-                            alert("Ошибка: " + err.message);
-                        }
+                        const order = JSON.parse(btn.dataset.order);
+                        await buyOrder(order);
                     });
                 });
             }
@@ -128,17 +124,47 @@
                     return;
                 }
                 if (currentUser.shares < amount) {
-                    alert(`Недостаточно акций. У вас только ${currentUser.shares}`);
+                    alert(`Недостаточно акций. У вас ${currentUser.shares}`);
                     return;
                 }
-                try {
-                    await callFunction("create-order", { seller_id: userId, amount, price_per_share: price });
-                    alert("Ордер создан");
-                    location.reload();
-                } catch (err) {
-                    alert("Ошибка: " + err.message);
+                // Создаём ордер
+                const { error } = await supabase
+                    .from('orders')
+                    .insert([{ seller_id: userId, amount: amount, price_per_share: price, status: 'active' }]);
+                if (error) {
+                    alert('Ошибка создания ордера');
+                } else {
+                    // Списываем акции
+                    const newShares = currentUser.shares - amount;
+                    await supabase.from('users').update({ shares: newShares }).eq('id', userId);
+                    currentUser.shares = newShares;
+                    loadData(); // перезагрузить
                 }
             });
+        }
+
+        async function buyOrder(order) {
+            const totalStars = order.amount * order.price_per_share;
+            if (currentUser.stars_balance < totalStars) {
+                alert(`Недостаточно Stars. Нужно ${totalStars}, у вас ${currentUser.stars_balance}`);
+                return;
+            }
+            try {
+                // Начинаем транзакцию (вручную последовательно)
+                // 1. Списываем Stars у покупателя
+                await supabase.from('users').update({ stars_balance: currentUser.stars_balance - totalStars }).eq('id', userId);
+                // 2. Добавляем акции покупателю
+                await supabase.from('users').update({ shares: currentUser.shares + order.amount }).eq('id', userId);
+                // 3. Зачисляем Stars продавцу
+                const { data: seller } = await supabase.from('users').select('stars_balance').eq('id', order.seller_id).single();
+                await supabase.from('users').update({ stars_balance: seller.stars_balance + totalStars }).eq('id', order.seller_id);
+                // 4. Закрываем ордер
+                await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
+                alert('Сделка завершена');
+                loadData();
+            } catch (err) {
+                alert('Ошибка при покупке: ' + err.message);
+            }
         }
 
         loadData();
