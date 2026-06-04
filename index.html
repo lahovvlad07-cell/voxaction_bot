@@ -100,7 +100,7 @@
             window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
             window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
             
-            // Telegram
+            // Telegram user
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
@@ -116,7 +116,7 @@
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
             
-            // DB helpers
+            // ---------- Database ----------
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -127,6 +127,7 @@
                 }
                 return data;
             }
+            
             async function getActiveOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
                 if (error) throw new Error(error.message);
@@ -159,6 +160,7 @@
                 if (!data.success) throw new Error(data.error);
                 return true;
             }
+            
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(error.message);
@@ -218,7 +220,7 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
-            // Chart with timeframes
+            // ---------- Chart ----------
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
                 let startDate = new Date();
@@ -276,7 +278,7 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
             
-            // Stocks tab
+            // ---------- Rendering tabs ----------
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -355,7 +357,6 @@
             
             async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); await updateNotificationBell(); }
             
-            // Profile tab
             async function renderProfileTab() {
                 const stats = await getUserStats();
                 const achievements = await getAchievements();
@@ -481,7 +482,7 @@
             document.querySelector('.close-modal')?.addEventListener('click', () => document.getElementById('notificationModal').style.display = 'none');
             document.getElementById('markReadBtn')?.addEventListener('click', async () => { await markNotificationsRead(); showNotificationsModal(); await updateNotificationBell(); });
             
-            // Initialization
+            // ---------- Start ----------
             currentUser = await getOrCreateUser();
             setTheme(localStorage.getItem('theme') || 'light');
             await renderStocksTab();
