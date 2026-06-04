@@ -8,90 +8,52 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        input, button, textarea, .order-actions button { user-select: text; }
-        :root {
-            --bg: #f0f2f5;
-            --card-bg: white;
-            --text: #1e293b;
-            --text-secondary: #64748b;
-            --border: #e0e0e0;
-            --primary: #0088cc;
-            --primary-dark: #006699;
-            --success: #2ecc71;
-            --danger: #e67e22;
-            --accent: #ffaa00;
-        }
-        body.dark {
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border: #334155;
-            --primary: #38bdf8;
-            --primary-dark: #0284c7;
-            --success: #10b981;
-            --danger: #f97316;
-            --accent: #fbbf24;
-        }
+        input, button, textarea { user-select: text; }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
-            background: var(--bg);
-            color: var(--text);
+            background: #f0f2f5;
             padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-            transition: background 0.2s, color 0.2s;
         }
         .loading-bar { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: #e0e0e0; z-index: 1000; }
-        .loading-progress { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s ease; }
-        .card { background: var(--card-bg); border-radius: 24px; padding: 16px; margin: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: background 0.2s; }
-        .tabs-wrapper { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); border-top: 1px solid var(--border); padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px)); z-index: 100; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: thin; cursor: grab; }
+        .loading-progress { width: 0%; height: 100%; background: #0088cc; transition: width 0.2s ease; }
+        .card { background: white; border-radius: 24px; padding: 16px; margin: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .tabs-wrapper { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e0e0e0; padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px)); z-index: 100; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: thin; cursor: grab; }
         .tabs-wrapper:active { cursor: grabbing; }
         .tabs { display: inline-flex; gap: 8px; padding: 0 12px; }
-        .tab { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 40px; background: var(--border); transition: all 0.2s; cursor: pointer; min-width: 70px; }
-        .tab.active { background: var(--primary); color: white; }
+        .tab { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 40px; background: #e0e0e0; transition: all 0.2s; cursor: pointer; min-width: 70px; }
+        .tab.active { background: #0088cc; color: white; }
         .tab-icon { font-size: 22px; margin-bottom: 4px; }
         .tab-label { font-size: 12px; font-weight: 500; }
-        .tabs-wrapper::-webkit-scrollbar { height: 4px; }
-        .tabs-wrapper::-webkit-scrollbar-track { background: var(--border); border-radius: 4px; }
-        .tabs-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
         h2, h3 { font-size: 18px; margin-bottom: 12px; }
         p { margin: 6px 0; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
+        button { background: #0088cc; color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
         button:active { transform: scale(0.97); }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 40px; font-size: 16px; background: #fafafa; }
         .buy-btn, .cancel-btn { width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
-        .cancel-btn { background: var(--danger); }
-        .order-item { border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .cancel-btn { background: #e67e22; }
+        .order-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .order-info { flex: 2; }
         .order-actions { display: flex; gap: 8px; align-items: center; }
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .price { font-size: 24px; font-weight: bold; color: var(--primary); }
-        .small-text { font-size: 12px; color: var(--text-secondary); }
-        .chart-container { position: relative; width: 100%; height: 250px; margin: 12px 0; background: var(--card-bg); border-radius: 12px; overflow: hidden; }
-        .volume-chart-container { position: relative; width: 100%; height: 150px; margin: 12px 0; background: var(--card-bg); border-radius: 12px; overflow: hidden; cursor: crosshair; }
+        .price { font-size: 24px; font-weight: bold; color: #0088cc; }
+        .small-text { font-size: 12px; color: #666; }
+        .chart-container { width: 100%; height: 250px; margin: 12px 0; background: white; border-radius: 12px; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
-        .tooltip { position: absolute; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 8px; font-size: 12px; pointer-events: none; z-index: 10; display: none; }
-        .ticker { background: var(--bg); border-radius: 20px; padding: 8px 12px; overflow: hidden; white-space: nowrap; margin-bottom: 12px; font-size: 14px; color: var(--text); }
+        .ticker { background: #f8f9fa; border-radius: 20px; padding: 8px 12px; overflow: hidden; white-space: nowrap; margin-bottom: 12px; font-size: 14px; }
         .ticker-content { display: inline-block; animation: scroll 20s linear infinite; }
         @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         .trade-item { display: inline-block; margin-right: 30px; }
         .info-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        .info-card { background: var(--bg); border-radius: 16px; padding: 12px; text-align: center; }
-        .info-label { font-size: 12px; color: var(--text-secondary); }
+        .info-card { background: #f8f9fa; border-radius: 16px; padding: 12px; text-align: center; }
+        .info-label { font-size: 12px; color: #666; }
         .info-value { font-size: 20px; font-weight: bold; margin-top: 4px; }
-        .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
         .rank { font-weight: bold; width: 40px; }
         .user-name { flex: 2; }
         .user-shares { font-weight: bold; }
-        .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-        .filter-btn, .sort-btn, .timeframe-btn { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
-        .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .history-item, .achievement-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
-        .stars-rating { color: var(--accent); }
-        .ref-link { background: var(--bg); padding: 8px; border-radius: 12px; margin-top: 8px; }
-        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--card-bg); border-radius: 24px; max-width: 90%; width: 400px; max-height: 70%; overflow-y: auto; padding: 20px; }
-        .close-modal { float: right; cursor: pointer; font-size: 24px; }
-        .notification-bell { display: inline-block; margin-left: 8px; cursor: pointer; background: var(--primary); border-radius: 30px; padding: 2px 8px; font-size: 12px; }
+        .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .filter-btn, .sort-btn { background: #e9ecef; color: #333; margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; }
+        .filter-btn.active, .sort-btn.active { background: #0088cc; color: white; }
     </style>
 </head>
 <body>
@@ -107,16 +69,9 @@
             <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
         </div>
     </div>
-    <div id="notificationModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h3>Уведомления</h3>
-            <div id="notificationsList">Загрузка...</div>
-            <button id="markReadBtn">Отметить все как прочитанные</button>
-        </div>
-    </div>
     <script>
         (async () => {
+            // Drag scroll
             const tabsWrapper = document.getElementById('tabsWrapper');
             let isDown = false, startX, scrollLeft;
             tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
@@ -127,24 +82,19 @@
             const progressBar = document.getElementById('loadingProgress');
             function setProgress(v) { progress = v; if (progressBar) progressBar.style.width = progress + '%'; }
             setProgress(10);
+            
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             setProgress(20);
             let userId = tg.initDataUnsafe?.user?.id;
-            const rawUsername = tg.initDataUnsafe?.user?.username || "";
-            let finalUsername = rawUsername;
-            if (!rawUsername || rawUsername === "player") {
-                const firstName = tg.initDataUnsafe?.user?.first_name || "Пользователь";
-                const lastName = tg.initDataUnsafe?.user?.last_name || "";
-                finalUsername = (firstName + " " + lastName).trim();
-                if (!finalUsername) finalUsername = `user_${userId}`;
-            }
+            const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) {
-                document.getElementById('app').innerHTML = '<div class="card error">Ошибка: не удалось определить пользователя. Запустите приложение через Telegram.</div>';
+                document.getElementById('app').innerHTML = '<div class="card error">Ошибка: не удалось определить пользователя. Запустите через Telegram.</div>';
                 setProgress(100);
                 return;
             }
             setProgress(30);
+            
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -154,107 +104,48 @@
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
             
-            function loadTheme() {
-                const savedTheme = localStorage.getItem('theme');
-                if (savedTheme === 'dark') document.body.classList.add('dark');
-                else if (savedTheme === 'light') document.body.classList.remove('dark');
-                else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
-            }
-            function setTheme(theme) {
-                if (theme === 'dark') document.body.classList.add('dark');
-                else document.body.classList.remove('dark');
-                localStorage.setItem('theme', theme);
-                if (currentUser) supabase.from('users').update({ theme }).eq('id', userId);
-            }
-            loadTheme();
-            
-            let notificationsEnabled = true;
-            function loadNotificationSetting() {
-                const saved = localStorage.getItem('notifications_enabled');
-                if (saved !== null) notificationsEnabled = saved === 'true';
-            }
-            function setNotificationsEnabled(enabled) {
-                notificationsEnabled = enabled;
-                localStorage.setItem('notifications_enabled', enabled);
-                if (currentUser) supabase.from('users').update({ notifications_enabled: enabled }).eq('id', userId);
-            }
-            loadNotificationSetting();
-            
-            async function fetchUnreadCount() {
-                const { data, error } = await supabase.rpc('get_unread_notifications', { p_user_id: userId });
-                if (error) return 0;
-                return data.length;
-            }
-            async function loadNotifications() {
-                const { data, error } = await supabase.rpc('get_unread_notifications', { p_user_id: userId });
-                if (error) throw error;
-                return data;
-            }
-            async function markAllRead() {
-                await supabase.rpc('mark_notifications_read', { p_user_id: userId });
-                await updateNotificationBell();
-                if (modal.style.display === 'flex') showNotificationsModal();
-            }
-            async function showNotificationsModal() {
-                const modal = document.getElementById('notificationModal');
-                const listDiv = document.getElementById('notificationsList');
-                listDiv.innerHTML = 'Загрузка...';
-                modal.style.display = 'flex';
-                const notifications = await loadNotifications();
-                if (notifications.length === 0) listDiv.innerHTML = '<p>Нет новых уведомлений</p>';
-                else {
-                    listDiv.innerHTML = notifications.map(n => `<div class="notification-item" style="padding:8px 0; border-bottom:1px solid var(--border);">${n.text}<br><span class="small-text">${new Date(n.created_at).toLocaleString()}</span></div>`).join('');
-                }
-            }
-            document.querySelector('.close-modal').addEventListener('click', () => {
-                document.getElementById('notificationModal').style.display = 'none';
-            });
-            document.getElementById('markReadBtn').addEventListener('click', async () => {
-                await markAllRead();
-                showNotificationsModal();
-            });
-            
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username: finalUsername, shares: 0, stars_balance: 0, hide_rating: false, theme: localStorage.getItem('theme') || 'light', notifications_enabled: true }]).select().single();
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0 }]).select().single();
                     if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                     return newUser;
                 }
                 return data;
             }
+            
             async function getActiveOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
                 if (error) throw new Error(`Ошибка загрузки ордеров: ${error.message}`);
                 return data || [];
             }
+            
             async function getUserOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('seller_id', userId).eq('status', 'active');
                 if (error) throw new Error(`Ошибка загрузки моих ордеров: ${error.message}`);
                 return data || [];
             }
+            
             async function cancelOrder(orderId) {
                 const { data, error } = await supabase.rpc('cancel_order', { p_order_id: orderId, p_user_id: userId });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
                 return true;
             }
+            
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(`Ошибка загрузки истории цен: ${error.message}`);
                 return data || [];
             }
+            
             async function getRecentTrades(limit = 10) {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
                 if (error) throw new Error(`Ошибка загрузки сделок: ${error.message}`);
                 return data || [];
             }
-            async function getVolumeHistory(days = 30) {
-                const { data, error } = await supabase.rpc('get_volume_history', { days_limit: days });
-                if (error) { console.warn('RPC get_volume_history не найдена'); return []; }
-                return data || [];
-            }
+            
             async function getCurrentPrice() {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
                 if (error) throw new Error(`Ошибка загрузки сделок для цены: ${error.message}`);
@@ -263,6 +154,7 @@
                 for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
                 return totalAmount > 0 ? totalStars / totalAmount : 100;
             }
+            
             async function getTotalMarketCap() {
                 const { data, error } = await supabase.from('users').select('shares');
                 if (error) throw new Error(`Ошибка подсчёта акций: ${error.message}`);
@@ -271,69 +163,27 @@
                 const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
                 return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
             }
-            async function getLeaderboard(limit = 20) {
-                const { data, error } = await supabase.from('users').select('username, shares').eq('hide_rating', false).order('shares', { ascending: false }).limit(limit);
-                if (error) throw new Error(`Ошибка загрузки рейтинга: ${error.message}`);
-                return data;
-            }
+            
             async function createOrder(amount, price) {
                 const amountCents = toCents(amount);
                 const priceCents = toCents(price);
-                if (amountCents < 100) throw new Error('Минимальное количество акций для продажи – 1');
-                if (priceCents < 100) throw new Error('Минимальная цена за акцию – 1 Star');
+                if (amountCents < 100) throw new Error('Минимальное количество – 1');
+                if (priceCents < 100) throw new Error('Минимальная цена – 1 Star');
                 const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amountCents, p_price: priceCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
                 currentUser.shares -= amountCents;
                 return true;
             }
+            
             async function executePartialTrade(orderId, buyAmountCents) {
                 const { data, error } = await supabase.rpc('execute_trade_partial', { p_order_id: orderId, p_buyer_id: userId, p_buy_amount: buyAmountCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
                 return true;
             }
-            async function getAchievements() {
-                const { data, error } = await supabase.from('user_achievements').select('achievement_id, achievements(name, description, icon)').eq('user_id', userId);
-                if (error) throw error;
-                return data;
-            }
-            async function getSellerRating(sellerId) {
-                const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
-                if (error) return null;
-                if (!data.length) return null;
-                const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
-                return avg;
-            }
-            async function getUserStats() {
-                const { data: trades, error } = await supabase
-                    .from('trades')
-                    .select('amount, price_per_share, total_stars')
-                    .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
-                if (error) return { totalTrades: 0, totalVolume: 0 };
-                const totalTrades = trades.length;
-                const totalVolume = trades.reduce((sum, t) => sum + (t.total_stars / 100), 0);
-                return { totalTrades, totalVolume };
-            }
             
-            let currentTimeframe = '30d';
-            let chartDataPoints = [];
-            async function fetchPriceHistoryForTimeframe() {
-                let limit = 100;
-                let startDate = new Date();
-                if (currentTimeframe === '1d') startDate.setDate(startDate.getDate() - 1);
-                else if (currentTimeframe === '7d') startDate.setDate(startDate.getDate() - 7);
-                else startDate.setDate(startDate.getDate() - 30);
-                const { data, error } = await supabase
-                    .from('price_history')
-                    .select('price, created_at')
-                    .gte('created_at', startDate.toISOString())
-                    .order('created_at', { ascending: true })
-                    .limit(limit);
-                if (error) throw new Error(`Ошибка загрузки истории цен: ${error.message}`);
-                return data || [];
-            }
-            function drawInteractiveChart(history) {
+            function drawCanvasChart(history) {
                 const container = document.getElementById('chart-container');
                 if (!container) return;
                 container.innerHTML = '';
@@ -341,177 +191,47 @@
                     container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных для графика</p>';
                     return;
                 }
-                chartDataPoints = history.map((h, idx) => ({ price: h.price / 100, time: new Date(h.created_at).getTime(), dateStr: new Date(h.created_at).toLocaleString() }));
                 const canvas = document.createElement('canvas');
                 const width = container.clientWidth, height = 250;
                 canvas.width = width; canvas.height = height;
                 canvas.style.width = '100%'; canvas.style.height = 'auto';
                 container.appendChild(canvas);
-                const tooltip = document.createElement('div');
-                tooltip.className = 'tooltip';
-                container.appendChild(tooltip);
                 const ctx = canvas.getContext('2d');
-                const values = chartDataPoints.map(p => p.price);
+                const values = history.map(h => h.price / 100);
                 const max = Math.max(...values), min = Math.min(...values), range = max - min;
                 const padding = { top: 20, bottom: 30, left: 40, right: 20 };
-                const graphWidth = width - padding.left - padding.right, graphHeight = height - padding.top - padding.bottom;
+                const graphWidth = width - padding.left - padding.right;
+                const graphHeight = height - padding.top - padding.bottom;
                 const stepX = graphWidth / (values.length - 1);
-                function draw() {
-                    ctx.clearRect(0, 0, width, height);
-                    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--card-bg').trim() || '#ffffff';
-                    ctx.fillRect(0, 0, width, height);
-                    ctx.beginPath();
-                    ctx.strokeStyle = '#ccc';
-                    ctx.lineWidth = 1;
-                    ctx.moveTo(padding.left, padding.top);
-                    ctx.lineTo(padding.left, height - padding.bottom);
-                    ctx.lineTo(width - padding.right, height - padding.bottom);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--primary').trim() || '#0088cc';
-                    ctx.lineWidth = 2;
-                    for (let i = 0; i < values.length; i++) {
-                        const x = padding.left + i * stepX;
-                        let y = (range === 0) ? padding.top + graphHeight/2 : padding.top + graphHeight - ((values[i] - min) / range) * graphHeight;
-                        if (i === 0) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.stroke();
-                    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text').trim() || '#333';
-                    ctx.font = '11px sans-serif';
-                    ctx.fillText(max.toFixed(2), padding.left - 30, padding.top + 10);
-                    ctx.fillText(min.toFixed(2), padding.left - 30, height - padding.bottom - 5);
-                    if (history.length > 0) {
-                        const firstDate = new Date(history[0].created_at).toLocaleDateString();
-                        const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
-                        ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
-                        ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
-                    }
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.beginPath();
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 1;
+                ctx.moveTo(padding.left, padding.top);
+                ctx.lineTo(padding.left, height - padding.bottom);
+                ctx.lineTo(width - padding.right, height - padding.bottom);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.strokeStyle = '#0088cc';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < values.length; i++) {
+                    const x = padding.left + i * stepX;
+                    let y = (range === 0) ? padding.top + graphHeight/2 : padding.top + graphHeight - ((values[i] - min) / range) * graphHeight;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
                 }
-                draw();
-                function getMousePos(e) {
-                    const rect = canvas.getBoundingClientRect();
-                    const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
-                    let clientX, clientY;
-                    if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
-                    else { clientX = e.clientX; clientY = e.clientY; }
-                    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+                ctx.stroke();
+                ctx.fillStyle = '#333';
+                ctx.font = '11px sans-serif';
+                ctx.fillText(max.toFixed(2), padding.left - 30, padding.top + 10);
+                ctx.fillText(min.toFixed(2), padding.left - 30, height - padding.bottom - 5);
+                if (history.length > 0) {
+                    const firstDate = new Date(history[0].created_at).toLocaleDateString();
+                    const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
+                    ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
+                    ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
                 }
-                function findNearestPoint(mouseX) {
-                    let minDist = Infinity, index = -1;
-                    for (let i = 0; i < values.length; i++) {
-                        const pointX = padding.left + i * stepX;
-                        const dist = Math.abs(mouseX - pointX);
-                        if (dist < minDist) { minDist = dist; index = i; }
-                    }
-                    return (minDist < 30) ? index : -1;
-                }
-                function showTooltip(e) {
-                    const { x: mouseX, y: mouseY } = getMousePos(e);
-                    const idx = findNearestPoint(mouseX);
-                    if (idx !== -1) {
-                        const point = chartDataPoints[idx];
-                        tooltip.style.display = 'block';
-                        tooltip.innerHTML = `💰 ${point.price.toFixed(2)} ⭐<br>${point.dateStr}`;
-                        let left = mouseX + 10, top = mouseY + 10;
-                        if (left + tooltip.offsetWidth > width) left = mouseX - tooltip.offsetWidth - 10;
-                        if (top + tooltip.offsetHeight > height) top = mouseY - tooltip.offsetHeight - 10;
-                        tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
-                        const pointX = padding.left + idx * stepX;
-                        const pointY = padding.top + graphHeight - ((values[idx] - min) / range) * graphHeight;
-                        ctx.beginPath(); ctx.arc(pointX, pointY, 6, 0, 2*Math.PI); ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--primary').trim() || '#0088cc'; ctx.fill();
-                        ctx.beginPath(); ctx.arc(pointX, pointY, 3, 0, 2*Math.PI); ctx.fillStyle = 'white'; ctx.fill();
-                    } else { tooltip.style.display = 'none'; draw(); }
-                }
-                canvas.addEventListener('mousemove', (e) => { draw(); showTooltip(e); });
-                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(); showTooltip(e); });
-                canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; draw(); });
-                canvas.addEventListener('touchend', () => { tooltip.style.display = 'none'; draw(); });
-                window.addEventListener('resize', () => { canvas.width = container.clientWidth; canvas.height = 250; draw(); });
-            }
-            
-            function drawVolumeChart(volumes, days = 30) {
-                const container = document.getElementById('volume-chart');
-                if (!container) return;
-                container.innerHTML = '';
-                const today = new Date();
-                const dates = [];
-                for (let i = days-1; i >= 0; i--) {
-                    const d = new Date();
-                    d.setDate(today.getDate() - i);
-                    dates.push(d.toISOString().slice(0,10));
-                }
-                const volumeMap = {};
-                if (volumes) volumes.forEach(v => { volumeMap[v.day] = v.total_amount / 100; });
-                const chartData = dates.map(date => ({ date, volume: volumeMap[date] || 0 }));
-                const canvas = document.createElement('canvas');
-                const width = container.clientWidth, height = 150;
-                canvas.width = width; canvas.height = height;
-                canvas.style.width = '100%'; canvas.style.height = 'auto';
-                container.appendChild(canvas);
-                const tooltip = document.createElement('div');
-                tooltip.className = 'tooltip';
-                container.appendChild(tooltip);
-                const ctx = canvas.getContext('2d');
-                const maxVolume = Math.max(...chartData.map(d => d.volume), 0.001);
-                const barWidth = (width - 40) / days - 2;
-                function draw() {
-                    ctx.clearRect(0, 0, width, height);
-                    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#f8f9fa';
-                    ctx.fillRect(0, 0, width, height);
-                    for (let i = 0; i < chartData.length; i++) {
-                        const barHeight = (chartData[i].volume / maxVolume) * (height - 20);
-                        const x = 20 + i * (barWidth + 2);
-                        const y = height - 10 - barHeight;
-                        ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--primary').trim() || '#0088cc';
-                        ctx.fillRect(x, y, barWidth, barHeight);
-                    }
-                    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text').trim() || '#333';
-                    ctx.font = '10px sans-serif';
-                    if (chartData.length > 0) {
-                        ctx.fillText(chartData[0].date.slice(5), 20, height - 2);
-                        ctx.fillText(chartData[chartData.length-1].date.slice(5), width - 40, height - 2);
-                    }
-                }
-                draw();
-                function getMousePos(e) {
-                    const rect = canvas.getBoundingClientRect();
-                    const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
-                    let clientX, clientY;
-                    if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
-                    else { clientX = e.clientX; clientY = e.clientY; }
-                    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
-                }
-                function findBarIndex(mouseX) {
-                    for (let i = 0; i < chartData.length; i++) {
-                        const x = 20 + i * (barWidth + 2);
-                        if (mouseX >= x && mouseX <= x + barWidth) return i;
-                    }
-                    return -1;
-                }
-                function showTooltip(e) {
-                    const { x: mouseX, y: mouseY } = getMousePos(e);
-                    const idx = findBarIndex(mouseX);
-                    if (idx !== -1) {
-                        const data = chartData[idx];
-                        tooltip.style.display = 'block';
-                        tooltip.innerHTML = `${data.date}<br>📊 ${data.volume.toFixed(2)} ⭐`;
-                        let left = mouseX + 10, top = mouseY + 10;
-                        if (left + tooltip.offsetWidth > width) left = mouseX - tooltip.offsetWidth - 10;
-                        if (top + tooltip.offsetHeight > height) top = mouseY - tooltip.offsetHeight - 10;
-                        tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
-                        ctx.fillStyle = '#ffaa00';
-                        const x = 20 + idx * (barWidth + 2);
-                        const barHeight = (data.volume / maxVolume) * (height - 20);
-                        const y = height - 10 - barHeight;
-                        ctx.fillRect(x, y, barWidth, barHeight);
-                    } else { tooltip.style.display = 'none'; draw(); }
-                }
-                canvas.addEventListener('mousemove', (e) => { draw(); showTooltip(e); });
-                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(); showTooltip(e); });
-                canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; draw(); });
-                canvas.addEventListener('touchend', () => { tooltip.style.display = 'none'; draw(); });
-                window.addEventListener('resize', () => { canvas.width = container.clientWidth; canvas.height = 150; draw(); });
             }
             
             function renderTicker(trades) {
@@ -522,17 +242,6 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
             
-            async function getUserTradeHistory(limit = 50) {
-                const { data, error } = await supabase
-                    .from('trades')
-                    .select('*')
-                    .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
-                    .order('created_at', { ascending: false })
-                    .limit(limit);
-                if (error) throw new Error(`Ошибка загрузки истории: ${error.message}`);
-                return data || [];
-            }
-            
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -541,11 +250,8 @@
                     let orders = [];
                     if (currentOrdersFilter === 'all') orders = await getActiveOrders();
                     else orders = await getUserOrders();
-                    for (let o of orders) {
-                        o.seller_rating = await getSellerRating(o.seller_id);
-                    }
                     orders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
-                    const priceHistory = await fetchPriceHistoryForTimeframe();
+                    const priceHistory = await getPriceHistory();
                     const recentTrades = await getRecentTrades(10);
                     const { totalShares, currentPrice, marketCap } = await getTotalMarketCap();
                     setProgress(80);
@@ -555,11 +261,6 @@
                         </div>
                         <div class="card">
                             <div class="info-panel"><div class="info-card"><div class="info-label">Рыночная капитализация</div><div class="info-value">${Math.round(marketCap)} ⭐</div></div><div class="info-card"><div class="info-label">Всего акций</div><div class="info-value">${(totalShares/100).toFixed(2)}</div></div></div>
-                            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                                <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
-                                <button class="timeframe-btn ${currentTimeframe === '7d' ? 'active' : ''}" data-tf="7d">7д</button>
-                                <button class="timeframe-btn ${currentTimeframe === '30d' ? 'active' : ''}" data-tf="30d">30д</button>
-                            </div>
                             <div id="chart-container" class="chart-container"></div>
                             <div id="ticker" class="ticker"></div>
                         </div>
@@ -567,14 +268,8 @@
                         <div class="card"><div class="filter-bar"><button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все ордера</button><button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои ордера</button><button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена выше</button><button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена ниже</button></div><h3>📋 Активные ордера на продажу</h3><div id="ordersList"></div></div>
                     `;
                     document.getElementById('app').innerHTML = html;
-                    drawInteractiveChart(priceHistory);
+                    drawCanvasChart(priceHistory);
                     renderTicker(recentTrades);
-                    document.querySelectorAll('.timeframe-btn').forEach(btn => {
-                        btn.addEventListener('click', async () => {
-                            currentTimeframe = btn.dataset.tf;
-                            await renderStocksTab();
-                        });
-                    });
                     document.querySelectorAll('.filter-btn').forEach(btn => {
                         btn.addEventListener('click', () => { currentOrdersFilter = btn.dataset.filter; renderStocksTab(); });
                     });
@@ -587,13 +282,7 @@
                         orders.forEach(order => {
                             const div = document.createElement('div'); div.className = 'order-item';
                             const isOwn = order.seller_id === userId;
-                            let ratingHtml = '';
-                            if (order.seller_rating) {
-                                const fullStars = Math.floor(order.seller_rating);
-                                const half = (order.seller_rating % 1) >= 0.5;
-                                ratingHtml = '<span class="stars-rating">' + '★'.repeat(fullStars) + (half ? '½' : '') + '⭐'.repeat(5 - Math.ceil(order.seller_rating)) + '</span>';
-                            }
-                            div.innerHTML = `<div class="order-info"><div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐</div><div class="small-text">Продавец ID: ${order.seller_id} ${ratingHtml}</div></div><div class="order-actions">${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>` : `<button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`}</div>`;
+                            div.innerHTML = `<div class="order-info"><div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐</div><div class="small-text">Продавец ID: ${order.seller_id}</div></div><div class="order-actions">${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>` : `<button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`}</div>`;
                             ordersDiv.appendChild(div);
                         });
                         document.querySelectorAll('.buy-btn').forEach(btn => {
@@ -613,7 +302,6 @@
                                     await executePartialTrade(order.id, buyAmountCents);
                                     alert('Сделка успешно завершена!');
                                     await refreshAll();
-                                    await updateNotificationBell();
                                 } catch (err) { alert(err.message); }
                             });
                         });
@@ -637,150 +325,38 @@
                 } catch (err) { console.error(err); document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`; setProgress(100); }
             }
             
-            async function renderAnalyticsTab() {
+            async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
+            
+            function renderProfileTab() {
+                document.getElementById('app').innerHTML = `<div class="card"><h2>👤 Профиль</h2><p><strong>${currentUser.username}</strong></p><p>ID: ${userId}</p><p>📌 Акций: ${fromCents(currentUser.shares)}</p><p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p><hr><p class="small-text">Виртуальная биржа акций за Telegram Stars.</p></div>`;
+                const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
+            }
+            async function renderRatingTab() { 
                 try {
-                    const volumeData = await getVolumeHistory(30);
-                    const tradeHistory = await getUserTradeHistory(50);
-                    const html = `
-                        <div class="card">
-                            <h2>📊 Объёмы торгов</h2>
-                            <div id="volume-chart" class="volume-chart-container"></div>
-                            <p class="small-text">График показывает количество акций (в звёздах), проданных за последние 30 дней. Наведите на столбец для просмотра значения.</p>
-                        </div>
-                        <div class="card">
-                            <h2>📜 История ваших сделок</h2>
-                            <div id="tradeHistoryList"></div>
-                        </div>
-                    `;
-                    document.getElementById('app').innerHTML = html;
-                    drawVolumeChart(volumeData, 30);
-                    const historyDiv = document.getElementById('tradeHistoryList');
-                    if (tradeHistory.length === 0) historyDiv.innerHTML = '<p>Нет сделок</p>';
+                    const { data, error } = await supabase.from('users').select('username, shares').order('shares', { ascending: false }).limit(20);
+                    if (error) throw error;
+                    let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2><div id="leaderboardList">`;
+                    if (data.length === 0) html += '<p>Нет данных</p>';
                     else {
-                        tradeHistory.forEach(trade => {
-                            const isBuy = trade.buyer_id === userId;
-                            const div = document.createElement('div');
-                            div.className = 'history-item';
-                            div.innerHTML = `
-                                <div>${isBuy ? 'Покупка' : 'Продажа'} ${fromCents(trade.amount)} шт. по ${fromCents(trade.price_per_share)} ⭐</div>
-                                <div class="small-text">${new Date(trade.created_at).toLocaleString()}</div>
-                            `;
-                            historyDiv.appendChild(div);
+                        data.forEach((user, idx) => {
+                            html += `<div class="leaderboard-item" style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;"><div class="rank">${idx+1}</div><div class="user-name">${user.username || "Аноним"}</div><div class="user-shares">${fromCents(user.shares)} акций</div></div>`;
                         });
                     }
+                    html += `</div></div>`;
+                    document.getElementById('app').innerHTML = html;
                     const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
-                } catch (err) {
-                    document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`;
-                }
+                } catch(err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
             }
-            
-            async function renderWalletTab() {
-                const html = `
-                    <div class="card">
-                        <h2>💳 Кошелёк</h2>
-                        <p>⭐ Баланс Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p>
-                        <p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p>
-                        <hr>
-                        <p>Пополнение Stars через Telegram Stars API.</p>
-                        <button id="realTopupBtn">💸 Пополнить Stars (10 ⭐)</button>
-                        <button id="withdrawGiftBtn">🎁 Вывести через подарки</button>
-                    </div>
-                `;
-                document.getElementById('app').innerHTML = html;
-                const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
-                document.getElementById('realTopupBtn')?.addEventListener('click', () => {
-                    tg.openTelegramLink(`https://t.me/${tg.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'bot'}?start=topup_10`);
-                });
-                document.getElementById('withdrawGiftBtn')?.addEventListener('click', () => {
-                    tg.openTelegramLink(`https://t.me/${tg.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'bot'}?start=withdraw`);
-                });
-            }
-            
-            async function renderProfileTab() {
-                const stats = await getUserStats();
-                const achievements = await getAchievements();
-                const unreadCount = await fetchUnreadCount();
-                const refCode = currentUser.referral_code || (await supabase.from('users').select('referral_code').eq('id', userId).single()).data.referral_code;
-                const refLink = `https://t.me/${tg.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'bot'}?start=${refCode}`;
-                const html = `
-                    <div class="card">
-                        <div class="flex-between">
-                            <h2>👤 Профиль</h2>
-                            <div class="notification-bell" id="notifBell">🔔 ${unreadCount > 0 ? `<span style="background:red; border-radius:20px; padding:0 5px; margin-left:4px;">${unreadCount}</span>` : ''}</div>
-                        </div>
-                        <p><strong>${currentUser.username || finalUsername}</strong></p>
-                        <p>ID: ${userId}</p>
-                        <p>📌 Акций: ${fromCents(currentUser.shares)}</p>
-                        <p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p>
-                        <hr>
-                        <h3>📊 Статистика</h3>
-                        <p>📈 Всего сделок: ${stats.totalTrades}</p>
-                        <p>💰 Объём торгов: ${stats.totalVolume.toFixed(2)} ⭐</p>
-                        <hr>
-                        <h3>🏆 Достижения</h3>
-                        <div id="achievementsList"></div>
-                        <hr>
-                        <h3>🔗 Реферальная ссылка</h3>
-                        <div class="ref-link"><code>${refLink}</code></div>
-                        <p class="small-text">Приглашайте друзей – получайте бонусы!</p>
-                    </div>
-                `;
-                document.getElementById('app').innerHTML = html;
-                const achievementsDiv = document.getElementById('achievementsList');
-                if (achievements.length === 0) achievementsDiv.innerHTML = '<p>Нет достижений</p>';
-                else {
-                    achievementsDiv.innerHTML = achievements.map(a => `<div class="achievement-item"><span>${a.achievements.icon} ${a.achievements.name}</span><span class="small-text">${a.achievements.description}</span></div>`).join('');
-                }
-                document.getElementById('notifBell')?.addEventListener('click', showNotificationsModal);
+            function renderWalletTab() { 
+                document.getElementById('app').innerHTML = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><p>Пополнение и вывод – через бота.</p><button onclick="window.Telegram.WebApp.openTelegramLink('https://t.me/ваш_бот?start=topup')">💸 Пополнить Stars</button></div>`;
                 const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
             }
-            
-            async function renderRatingTab() { try { const leaders = await getLeaderboard(20); let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2><div id="leaderboardList">`; if (leaders.length === 0) html += '<p>Нет данных</p>'; else { leaders.forEach((user, idx) => { html += `<div class="leaderboard-item"><div class="rank">${idx+1}</div><div class="user-name">${user.username || "Аноним"}</div><div class="user-shares">${fromCents(user.shares)} акций</div></div>`; }); } html += `</div></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; } }
-            
-            async function renderSettingsTab() {
-                const hideRating = currentUser.hide_rating || false;
-                const currentTheme = localStorage.getItem('theme') || (document.body.classList.contains('dark') ? 'dark' : 'light');
-                const html = `
-                    <div class="card">
-                        <h2>⚙️ Настройки</h2>
-                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="hideRatingCheckbox" ${hideRating ? 'checked' : ''}> Скрыть меня из рейтинга</label>
-                        <div style="margin-bottom:12px;">
-                            <label>Тема:</label>
-                            <div style="display:flex; gap:8px; margin-top:4px;">
-                                <button id="themeLight" class="filter-btn ${currentTheme === 'light' ? 'active' : ''}">Светлая</button>
-                                <button id="themeDark" class="filter-btn ${currentTheme === 'dark' ? 'active' : ''}">Тёмная</button>
-                            </div>
-                        </div>
-                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="notificationsEnabledCheckbox" ${notificationsEnabled ? 'checked' : ''}> Получать уведомления от бота</label>
-                        <button id="saveSettingsBtn">Сохранить</button>
-                    </div>
-                `;
-                document.getElementById('app').innerHTML = html;
-                const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
-                document.getElementById('hideRatingCheckbox').addEventListener('change', () => {});
-                document.getElementById('themeLight').addEventListener('click', () => { setTheme('light'); renderSettingsTab(); });
-                document.getElementById('themeDark').addEventListener('click', () => { setTheme('dark'); renderSettingsTab(); });
-                document.getElementById('notificationsEnabledCheckbox').addEventListener('change', (e) => { setNotificationsEnabled(e.target.checked); });
-                document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
-                    const newHideRating = document.getElementById('hideRatingCheckbox').checked;
-                    const newNotifications = document.getElementById('notificationsEnabledCheckbox').checked;
-                    await supabase.from('users').update({ hide_rating: newHideRating, notifications_enabled: newNotifications }).eq('id', userId);
-                    currentUser.hide_rating = newHideRating;
-                    alert('Настройки сохранены');
-                });
-            }
-            
-            async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); await updateNotificationBell(); }
-            async function updateNotificationBell() {
-                const count = await fetchUnreadCount();
-                const bell = document.querySelector('#notifBell');
-                if (bell) bell.innerHTML = `🔔 ${count > 0 ? `<span style="background:red; border-radius:20px; padding:0 5px; margin-left:4px;">${count}</span>` : ''}`;
-            }
+            function renderAnalyticsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>📊 Аналитика</h2><p>Графики и статистика в разработке</p></div>'; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; }
+            function renderSettingsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>⚙️ Настройки</h2><p>Тема и уведомления скоро</p></div>'; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; }
             
             currentUser = await getOrCreateUser();
             let activeTab = 'stocks';
             await renderStocksTab();
-            await updateNotificationBell();
             
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', async () => {
@@ -790,13 +366,12 @@
                     tab.classList.add('active');
                     const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'block';
                     setProgress(30);
-                    if (tabName === 'profile') await renderProfileTab();
+                    if (tabName === 'profile') renderProfileTab();
                     else if (tabName === 'stocks') await renderStocksTab();
-                    else if (tabName === 'analytics') await renderAnalyticsTab();
+                    else if (tabName === 'analytics') renderAnalyticsTab();
                     else if (tabName === 'rating') await renderRatingTab();
-                    else if (tabName === 'wallet') await renderWalletTab();
-                    else if (tabName === 'settings') await renderSettingsTab();
-                    await updateNotificationBell();
+                    else if (tabName === 'wallet') renderWalletTab();
+                    else if (tabName === 'settings') renderSettingsTab();
                 });
             });
         })();
