@@ -6,8 +6,6 @@
     <title>Акции – биржа</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Используем альтернативный CDN для lightweight-charts -->
-    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
     <style>
         * { box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto; margin: 0; padding: 16px; background: #f0f2f5; }
@@ -19,7 +17,8 @@
         .buy-btn { background: #2ecc71; width: auto; padding: 6px 16px; margin: 0; }
         .order-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
         .status { font-size: 12px; color: gray; margin-top: 8px; }
-        #price-chart { width: 100%; height: 300px; margin-top: 8px; }
+        #price-chart { width: 100%; height: 300px; margin-top: 8px; background: white; border-radius: 12px; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
@@ -44,7 +43,7 @@
 
             let currentUser = null;
 
-            // ----------------------------- 3. Получение/создание пользователя -----------------------------
+            // ----------------------------- 3. Пользователь -----------------------------
             async function getOrCreateUser() {
                 const { data, error } = await supabase
                     .from('users')
@@ -64,7 +63,7 @@
                 return data;
             }
 
-            // ----------------------------- 4. Получение активных ордеров -----------------------------
+            // ----------------------------- 4. Ордера -----------------------------
             async function getActiveOrders() {
                 const { data, error } = await supabase
                     .from('orders')
@@ -75,7 +74,7 @@
                 return data || [];
             }
 
-            // ----------------------------- 5. Получение истории цен -----------------------------
+            // ----------------------------- 5. История цен -----------------------------
             async function getPriceHistory() {
                 const { data, error } = await supabase
                     .from('price_history')
@@ -107,7 +106,6 @@
             async function executeTrade(order) {
                 const totalStars = order.amount * order.price_per_share;
                 if (currentUser.stars_balance < totalStars) throw new Error(`Недостаточно Stars. Нужно ${totalStars}, у вас ${currentUser.stars_balance}`);
-                // Транзакция
                 const newBuyerStars = currentUser.stars_balance - totalStars;
                 const newBuyerShares = currentUser.shares + order.amount;
                 await supabase.from('users').update({ stars_balance: newBuyerStars }).eq('id', userId);
@@ -121,39 +119,68 @@
                 return true;
             }
 
-            // ----------------------------- 8. Отрисовка графика -----------------------------
-            function renderChart(history) {
+            // ----------------------------- 8. Отрисовка графика (Canvas) -----------------------------
+            function drawCanvasChart(history) {
                 const container = document.getElementById('price-chart');
                 if (!container) return;
+                // Удаляем старый canvas, если есть
+                container.innerHTML = '';
                 if (!history || history.length === 0) {
                     container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных для графика</p>';
                     return;
                 }
-                // Проверка, что библиотека загружена
-                if (typeof LightweightCharts === 'undefined') {
-                    console.error("LightweightCharts не загрузилась");
-                    container.innerHTML = '<p style="text-align:center; padding:20px;">Ошибка загрузки графика</p>';
-                    return;
+                const canvas = document.createElement('canvas');
+                const width = container.clientWidth;
+                const height = 300;
+                canvas.width = width;
+                canvas.height = height;
+                canvas.style.width = '100%';
+                canvas.style.height = 'auto';
+                container.appendChild(canvas);
+                const ctx = canvas.getContext('2d');
+                const values = history.map(h => h.price);
+                const max = Math.max(...values);
+                const min = Math.min(...values);
+                const range = max - min;
+                const padding = { top: 20, bottom: 30, left: 40, right: 20 };
+                const graphWidth = width - padding.left - padding.right;
+                const graphHeight = height - padding.top - padding.bottom;
+                const stepX = graphWidth / (values.length - 1);
+                // Очистка
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                // Оси
+                ctx.beginPath();
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 1;
+                ctx.moveTo(padding.left, padding.top);
+                ctx.lineTo(padding.left, height - padding.bottom);
+                ctx.lineTo(width - padding.right, height - padding.bottom);
+                ctx.stroke();
+                // Линия
+                ctx.beginPath();
+                ctx.strokeStyle = '#0088cc';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < values.length; i++) {
+                    const x = padding.left + i * stepX;
+                    let y;
+                    if (range === 0) y = padding.top + graphHeight / 2;
+                    else y = padding.top + graphHeight - ((values[i] - min) / range) * graphHeight;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
                 }
-                try {
-                    const chart = LightweightCharts.createChart(container, {
-                        width: container.clientWidth,
-                        height: 300,
-                        layout: { backgroundColor: '#ffffff', textColor: '#333' },
-                        grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
-                        priceScale: { borderColor: '#cccccc' },
-                        timeScale: { borderColor: '#cccccc', timeVisible: true, secondsVisible: false },
-                    });
-                    const lineSeries = chart.addLineSeries({ color: '#0088cc', lineWidth: 2 });
-                    const chartData = history.map(h => ({
-                        time: Math.floor(new Date(h.created_at).getTime() / 1000),
-                        value: h.price
-                    }));
-                    lineSeries.setData(chartData);
-                    window.addEventListener('resize', () => chart.applyOptions({ width: container.clientWidth }));
-                } catch (err) {
-                    console.error("Ошибка создания графика:", err);
-                    container.innerHTML = '<p style="text-align:center; padding:20px;">Ошибка отображения графика</p>';
+                ctx.stroke();
+                // Подписи
+                ctx.fillStyle = '#333';
+                ctx.font = '11px sans-serif';
+                ctx.fillText(max.toFixed(1), padding.left - 30, padding.top + 10);
+                ctx.fillText(min.toFixed(1), padding.left - 30, height - padding.bottom - 5);
+                // Подписи по оси X (первые и последние)
+                if (history.length > 0) {
+                    const firstDate = new Date(history[0].created_at).toLocaleDateString();
+                    const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
+                    ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
+                    ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
                 }
             }
 
@@ -182,8 +209,8 @@
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
-                // График
-                renderChart(priceHistory);
+                // Отрисовка графика
+                drawCanvasChart(priceHistory);
                 // Ордера
                 const ordersDiv = document.getElementById('ordersList');
                 if (orders.length === 0) {
