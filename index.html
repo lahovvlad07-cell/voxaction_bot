@@ -19,114 +19,97 @@
         .status { font-size: 12px; color: gray; margin-top: 8px; }
         #price-chart { width: 100%; height: 300px; margin-top: 8px; background: white; border-radius: 12px; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; }
+        /* Вкладки */
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .tab { flex: 1; text-align: center; padding: 10px; background: #e0e0e0; border-radius: 30px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .tab.active { background: #0088cc; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .history-item { border-bottom: 1px solid #eee; padding: 8px 0; font-size: 14px; }
     </style>
 </head>
 <body>
     <div id="app">Загрузка...</div>
     <script>
         (async () => {
-            // ----------------------------- 1. Telegram -----------------------------
+            // ---------- Telegram ----------
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || "player";
-            if (!userId) {
-                console.warn("⚠️ Не удалось получить ID из Telegram, используем тестовый 123456");
-                userId = 123456;
-            }
+            if (!userId) userId = 123456;
 
-            // ----------------------------- 2. Supabase -----------------------------
+            // ---------- Supabase ----------
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
             let currentUser = null;
 
-            // ----------------------------- 3. Пользователь -----------------------------
+            // ---------- Пользователь ----------
             async function getOrCreateUser() {
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', userId)
-                    .maybeSingle();
-                if (error) throw new Error(`Ошибка запроса: ${error.message}`);
+                const { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+                if (error) throw error;
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase
-                        .from('users')
-                        .insert([{ id: userId, username: username, shares: 100, stars_balance: 50 }])
-                        .select()
-                        .single();
-                    if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 100, stars_balance: 50 }]).select().single();
+                    if (insertError) throw insertError;
                     return newUser;
                 }
                 return data;
             }
 
-            // ----------------------------- 4. Ордера -----------------------------
+            // ---------- Данные ----------
             async function getActiveOrders() {
-                const { data, error } = await supabase
-                    .from('orders')
-                    .select('*')
-                    .eq('status', 'active')
-                    .order('price_per_share', { ascending: true });
-                if (error) throw new Error(`Ошибка загрузки ордеров: ${error.message}`);
+                const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
+                if (error) throw error;
                 return data || [];
             }
 
-            // ----------------------------- 5. История цен -----------------------------
             async function getPriceHistory() {
-                const { data, error } = await supabase
-                    .from('price_history')
-                    .select('price, created_at')
-                    .order('created_at', { ascending: true })
-                    .limit(100);
-                if (error) throw new Error(`Ошибка загрузки истории цен: ${error.message}`);
+                const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
+                if (error) throw error;
                 return data || [];
             }
 
-            // ----------------------------- 6. Создание ордера -----------------------------
-            async function createOrder(amount, price) {
-                if (currentUser.shares < amount) throw new Error(`Недостаточно акций. У вас ${currentUser.shares}`);
-                const { error: orderError } = await supabase
+            async function getUserTrades() {
+                const { data, error } = await supabase
                     .from('orders')
-                    .insert([{ seller_id: userId, amount, price_per_share: price, status: 'active' }]);
-                if (orderError) throw new Error(`Ошибка создания ордера: ${orderError.message}`);
-                const newShares = currentUser.shares - amount;
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ shares: newShares })
-                    .eq('id', userId);
-                if (updateError) throw new Error(`Ошибка списания акций: ${updateError.message}`);
-                currentUser.shares = newShares;
+                    .select('*, seller:users!seller_id(username), buyer:users!seller_id(username)')
+                    .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
+                    .eq('status', 'completed')
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                if (error) throw error;
+                return data || [];
+            }
+
+            // ---------- RPC операции ----------
+            async function createOrder(amount, price) {
+                const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amount, p_price: price });
+                if (error) throw new Error(error.message);
+                if (!data.success) throw new Error(data.error);
+                currentUser.shares -= amount;
                 return true;
             }
 
-            // ----------------------------- 7. Покупка -----------------------------
             async function executeTrade(order) {
+                const { data, error } = await supabase.rpc('execute_trade', { p_order_id: order.id, p_buyer_id: userId });
+                if (error) throw new Error(error.message);
+                if (!data.success) throw new Error(data.error);
                 const totalStars = order.amount * order.price_per_share;
-                if (currentUser.stars_balance < totalStars) throw new Error(`Недостаточно Stars. Нужно ${totalStars}, у вас ${currentUser.stars_balance}`);
-                const newBuyerStars = currentUser.stars_balance - totalStars;
-                const newBuyerShares = currentUser.shares + order.amount;
-                await supabase.from('users').update({ stars_balance: newBuyerStars }).eq('id', userId);
-                await supabase.from('users').update({ shares: newBuyerShares }).eq('id', userId);
-                const { data: seller } = await supabase.from('users').select('stars_balance').eq('id', order.seller_id).single();
-                const newSellerStars = seller.stars_balance + totalStars;
-                await supabase.from('users').update({ stars_balance: newSellerStars }).eq('id', order.seller_id);
-                await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
-                currentUser.stars_balance = newBuyerStars;
-                currentUser.shares = newBuyerShares;
+                currentUser.stars_balance -= totalStars;
+                currentUser.shares += order.amount;
                 return true;
             }
 
-            // ----------------------------- 8. Отрисовка графика (Canvas) -----------------------------
+            // ---------- График (Canvas) ----------
             function drawCanvasChart(history) {
                 const container = document.getElementById('price-chart');
                 if (!container) return;
-                // Удаляем старый canvas, если есть
                 container.innerHTML = '';
                 if (!history || history.length === 0) {
-                    container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных для графика</p>';
+                    container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных</p>';
                     return;
                 }
                 const canvas = document.createElement('canvas');
@@ -146,10 +129,8 @@
                 const graphWidth = width - padding.left - padding.right;
                 const graphHeight = height - padding.top - padding.bottom;
                 const stepX = graphWidth / (values.length - 1);
-                // Очистка
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, width, height);
-                // Оси
                 ctx.beginPath();
                 ctx.strokeStyle = '#ccc';
                 ctx.lineWidth = 1;
@@ -157,7 +138,6 @@
                 ctx.lineTo(padding.left, height - padding.bottom);
                 ctx.lineTo(width - padding.right, height - padding.bottom);
                 ctx.stroke();
-                // Линия
                 ctx.beginPath();
                 ctx.strokeStyle = '#0088cc';
                 ctx.lineWidth = 2;
@@ -170,12 +150,10 @@
                     else ctx.lineTo(x, y);
                 }
                 ctx.stroke();
-                // Подписи
                 ctx.fillStyle = '#333';
                 ctx.font = '11px sans-serif';
                 ctx.fillText(max.toFixed(1), padding.left - 30, padding.top + 10);
                 ctx.fillText(min.toFixed(1), padding.left - 30, height - padding.bottom - 5);
-                // Подписи по оси X (первые и последние)
                 if (history.length > 0) {
                     const firstDate = new Date(history[0].created_at).toLocaleDateString();
                     const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
@@ -184,34 +162,66 @@
                 }
             }
 
-            // ----------------------------- 9. Отрисовка UI -----------------------------
-            function renderUI(orders, priceHistory) {
+            // ---------- Рендер вкладок ----------
+            function renderUI(orders, priceHistory, tradesHistory) {
                 const html = `
                     <div class="card">
                         <h2>💰 Мой баланс</h2>
-                        <p>📊 Акций: <strong>${currentUser.shares}</strong></p>
-                        <p>⭐ Stars: <strong>${currentUser.stars_balance}</strong></p>
+                        <p>📊 Акций: <strong id="sharesDisplay">${currentUser.shares}</strong></p>
+                        <p>⭐ Stars: <strong id="starsDisplay">${currentUser.stars_balance}</strong></p>
                         <p class="status">ID: ${userId}</p>
                     </div>
-                    <div class="card">
-                        <h3>📈 График цены акции</h3>
-                        <div id="price-chart"></div>
+                    <div class="tabs">
+                        <div class="tab active" data-tab="trade">Торги</div>
+                        <div class="tab" data-tab="orders">Мои ордера</div>
+                        <div class="tab" data-tab="history">История</div>
+                        <div class="tab" data-tab="chart">График</div>
                     </div>
-                    <div class="card">
-                        <h3>📈 Продать акции</h3>
-                        <input type="number" id="sellAmount" placeholder="Количество" min="1">
-                        <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars)" min="1">
-                        <button id="sellBtn">➕ Выставить на продажу</button>
+                    <div id="tab-trade" class="tab-content active">
+                        <div class="card">
+                            <h3>📈 Продать акции</h3>
+                            <input type="number" id="sellAmount" placeholder="Количество" min="1">
+                            <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars)" min="1">
+                            <button id="sellBtn">➕ Выставить на продажу</button>
+                        </div>
+                        <div class="card">
+                            <h3>📋 Активные ордера на продажу</h3>
+                            <div id="ordersList"></div>
+                        </div>
                     </div>
-                    <div class="card">
-                        <h3>📋 Активные ордера на продажу</h3>
-                        <div id="ordersList"></div>
+                    <div id="tab-orders" class="tab-content">
+                        <div class="card">
+                            <h3>Мои активные ордера</h3>
+                            <div id="myOrdersList">Загрузка...</div>
+                        </div>
+                    </div>
+                    <div id="tab-history" class="tab-content">
+                        <div class="card">
+                            <h3>История сделок</h3>
+                            <div id="historyList">Загрузка...</div>
+                        </div>
+                    </div>
+                    <div id="tab-chart" class="tab-content">
+                        <div class="card">
+                            <h3>График цены акции</h3>
+                            <div id="price-chart"></div>
+                        </div>
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
-                // Отрисовка графика
-                drawCanvasChart(priceHistory);
-                // Ордера
+
+                // Переключение вкладок
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        tab.classList.add('active');
+                        const tabId = tab.getAttribute('data-tab');
+                        document.getElementById(`tab-${tabId}`).classList.add('active');
+                    });
+                });
+
+                // Заполнение активных ордеров (продажа)
                 const ordersDiv = document.getElementById('ordersList');
                 if (orders.length === 0) {
                     ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
@@ -238,6 +248,34 @@
                         });
                     });
                 }
+
+                // Мои ордера
+                const myOrders = orders.filter(o => o.seller_id === userId);
+                const myOrdersDiv = document.getElementById('myOrdersList');
+                if (myOrders.length === 0) {
+                    myOrdersDiv.innerHTML = '<p>У вас нет активных ордеров</p>';
+                } else {
+                    myOrdersDiv.innerHTML = myOrders.map(o => `<div class="order-item">${o.amount} шт. по ${o.price_per_share} ⭐</div>`).join('');
+                }
+
+                // История сделок
+                const historyDiv = document.getElementById('historyList');
+                if (tradesHistory.length === 0) {
+                    historyDiv.innerHTML = '<p>История пуста</p>';
+                } else {
+                    historyDiv.innerHTML = tradesHistory.map(t => {
+                        const isBuyer = t.buyer_id === userId;
+                        return `<div class="history-item">
+                            ${isBuyer ? 'Купили' : 'Продали'} ${t.amount} шт. по ${t.price_per_share} ⭐ 
+                            (${new Date(t.created_at).toLocaleString()})
+                        </div>`;
+                    }).join('');
+                }
+
+                // График
+                drawCanvasChart(priceHistory);
+
+                // Обработчик продажи
                 document.getElementById('sellBtn').addEventListener('click', async () => {
                     const amount = parseInt(document.getElementById('sellAmount').value);
                     const price = parseInt(document.getElementById('sellPrice').value);
@@ -260,7 +298,8 @@
                     currentUser = await getOrCreateUser();
                     const orders = await getActiveOrders();
                     const priceHistory = await getPriceHistory();
-                    renderUI(orders, priceHistory);
+                    const tradesHistory = await getUserTrades();
+                    renderUI(orders, priceHistory, tradesHistory);
                 } catch (err) {
                     console.error(err);
                     document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
