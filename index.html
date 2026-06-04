@@ -7,191 +7,31 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #f8f9fc;
-            padding-bottom: 70px; /* пространство для нижнего меню */
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 16px;
-        }
-        .card {
-            background: white;
-            border-radius: 24px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            transition: 0.2s;
-        }
-        .error {
-            color: #d32f2f;
-            background: #ffebee;
-            padding: 12px;
-            border-radius: 16px;
-            margin-bottom: 16px;
-        }
-        button {
-            background: #2a72b4;
-            color: white;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 40px;
-            font-size: 16px;
-            font-weight: 600;
-            width: 100%;
-            margin-top: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        button:active { transform: scale(0.97); background: #1e5a8f; }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border: 1px solid #e0e0e0;
-            border-radius: 40px;
-            font-size: 16px;
-            background: white;
-        }
-        .buy-btn {
-            background: #2ecc71;
-            width: auto;
-            padding: 6px 16px;
-            margin: 0;
-        }
-        .order-item, .trade-item {
-            border-bottom: 1px solid #eee;
-            padding: 12px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .status {
-            font-size: 12px;
-            color: #888;
-            margin-top: 4px;
-        }
-        #price-chart {
-            width: 100%;
-            height: 240px;
-            margin-top: 8px;
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-        }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto; margin: 0; padding: 16px; background: #f0f2f5; }
+        .card { background: white; border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .error { color: red; background: #ffe0e0; padding: 12px; border-radius: 12px; }
+        button { background: #0088cc; color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.97); }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 40px; font-size: 16px; background: #fafafa; }
+        .buy-btn { background: #2ecc71; width: auto; padding: 6px 16px; margin: 0; }
+        .order-item, .trade-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+        .status { font-size: 12px; color: gray; margin-top: 8px; }
+        #price-chart { width: 100%; height: 300px; margin-top: 8px; background: white; border-radius: 12px; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; }
-
-        /* Нижнее меню (таб-бар) */
-        .tab-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 16px 20px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-            border-top: 1px solid #eef2f6;
-            z-index: 100;
-        }
-        .tab-item {
-            flex: 1;
-            text-align: center;
-            padding: 6px 0;
-            font-size: 12px;
-            font-weight: 500;
-            color: #8e9aaf;
-            transition: 0.2s;
-            cursor: pointer;
-            border-radius: 20px;
-        }
-        .tab-item.active {
-            color: #2a72b4;
-            background: #eef3fc;
-        }
-        .tab-icon {
-            font-size: 24px;
-            display: block;
-            margin-bottom: 2px;
-        }
-        .tab-label {
-            font-size: 11px;
-        }
-        .balance-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-        }
-        .balance-value {
-            font-weight: bold;
-            font-size: 18px;
-        }
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin: 16px 0 12px;
-        }
-        .inline-stats {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .stat-card {
-            background: #f0f4f9;
-            border-radius: 20px;
-            padding: 12px;
-            flex: 1;
-            min-width: 100px;
-            text-align: center;
-        }
-        hr {
-            margin: 16px 0;
-            border: none;
-            border-top: 1px solid #eef2f6;
-        }
-        .project-description {
-            background: #f0f4f9;
-            border-radius: 24px;
-            padding: 16px;
-            text-align: center;
-            color: #445566;
-            font-size: 14px;
-            line-height: 1.4;
-        }
+        .ticker { background: #f8f9fa; border-radius: 40px; padding: 8px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .current-price { font-size: 24px; font-weight: bold; color: #0088cc; }
+        .capitalization { font-size: 14px; color: #555; }
+        .marquee { background: #f0f2f5; border-radius: 20px; padding: 8px 12px; margin-bottom: 16px; white-space: nowrap; overflow-x: auto; font-size: 13px; scrollbar-width: thin; }
+        .marquee span { display: inline-block; background: white; padding: 4px 12px; border-radius: 20px; margin-right: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .balance-inline { font-size: 14px; color: #2c3e50; margin-top: 8px; margin-bottom: 8px; font-weight: 500; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
-    <div class="container" id="app">Загрузка...</div>
-    <div class="tab-bar" id="tabBar">
-        <div class="tab-item" data-tab="profile">
-            <span class="tab-icon">👤</span>
-            <span class="tab-label">Профиль</span>
-        </div>
-        <div class="tab-item" data-tab="trade">
-            <span class="tab-icon">📊</span>
-            <span class="tab-label">Торги</span>
-        </div>
-        <div class="tab-item" data-tab="history">
-            <span class="tab-icon">📜</span>
-            <span class="tab-label">История</span>
-        </div>
-        <div class="tab-item" data-tab="info">
-            <span class="tab-icon">ℹ️</span>
-            <span class="tab-label">О проекте</span>
-        </div>
-    </div>
+    <div id="app">Загрузка...</div>
     <script>
         (async () => {
-            // ---- Telegram ----
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
@@ -202,17 +42,12 @@
                 userId = 123456;
             }
 
-            // ---- Supabase ----
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             let currentUser = null;
-            let activeOrders = [];
-            let priceHistory = [];
-            let userTrades = [];
-            let currentTab = 'profile'; // profile, trade, history, info
 
-            // ---- Вспомогательные функции ----
+            // ---------- Пользователь ----------
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -224,29 +59,54 @@
                 return data;
             }
 
+            // ---------- Активные ордера ----------
             async function getActiveOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
                 if (error) throw new Error(`Ошибка загрузки ордеров: ${error.message}`);
                 return data || [];
             }
 
+            // ---------- История цен ----------
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(`Ошибка загрузки истории цен: ${error.message}`);
                 return data || [];
             }
 
-            async function getUserTrades() {
+            // ---------- Последние сделки (для бегущей строки) ----------
+            async function getLastTrades(limit = 10) {
                 const { data, error } = await supabase
                     .from('trades')
-                    .select('*')
-                    .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
+                    .select('price_per_share, created_at')
                     .order('created_at', { ascending: false })
-                    .limit(50);
-                if (error) throw new Error(`Ошибка загрузки истории: ${error.message}`);
+                    .limit(limit);
+                if (error) throw new Error(`Ошибка загрузки последних сделок: ${error.message}`);
                 return data || [];
             }
 
+            // ---------- Текущая цена (последняя цена из price_history) ----------
+            async function getCurrentPrice() {
+                const { data, error } = await supabase
+                    .from('price_history')
+                    .select('price')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                if (error) throw new Error(`Ошибка загрузки текущей цены: ${error.message}`);
+                if (data && data.length > 0) return data[0].price;
+                return null;
+            }
+
+            // ---------- Капитализация (price * количество выпущенных акций) ----------
+            async function getMarketCap() {
+                const price = await getCurrentPrice();
+                if (!price) return 0;
+                const { data, error } = await supabase.from('users').select('shares');
+                if (error) throw new Error(`Ошибка загрузки капитализации: ${error.message}`);
+                const totalShares = data.reduce((acc, u) => acc + u.shares, 0);
+                return price * totalShares;
+            }
+
+            // ---------- RPC-функции ----------
             async function createOrder(amount, price) {
                 const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amount, p_price: price });
                 if (error) throw new Error(error.message);
@@ -265,7 +125,7 @@
                 return true;
             }
 
-            // ---- График (canvas) ----
+            // ---------- График (Canvas) ----------
             function drawCanvasChart(history) {
                 const container = document.getElementById('price-chart');
                 if (!container) return;
@@ -276,7 +136,7 @@
                 }
                 const canvas = document.createElement('canvas');
                 const width = container.clientWidth;
-                const height = 240;
+                const height = 300;
                 canvas.width = width;
                 canvas.height = height;
                 canvas.style.width = '100%';
@@ -301,7 +161,7 @@
                 ctx.lineTo(width - padding.right, height - padding.bottom);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.strokeStyle = '#2a72b4';
+                ctx.strokeStyle = '#0088cc';
                 ctx.lineWidth = 2;
                 for (let i = 0; i < values.length; i++) {
                     const x = padding.left + i * stepX;
@@ -320,48 +180,35 @@
                     const firstDate = new Date(history[0].created_at).toLocaleDateString();
                     const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
                     ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
-                    ctx.fillText(lastDate, width - padding.right - 40, height - padding.bottom + 15);
+                    ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
                 }
             }
 
-            // ---- Отрисовка вкладки "Профиль" ----
-            function renderProfile() {
-                const avgPrice = priceHistory.length ? priceHistory[priceHistory.length-1].price : '—';
-                return `
-                    <div class="card">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="background: #2a72b4; width: 48px; height: 48px; border-radius: 48px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">${username.charAt(0).toUpperCase()}</div>
-                            <div>
-                                <h3 style="margin:0">${username}</h3>
-                                <div class="status">ID: ${userId}</div>
-                            </div>
-                        </div>
-                        <div class="balance-row" style="margin-top: 16px;">
-                            <span>📊 Акции</span>
-                            <span class="balance-value">${currentUser.shares}</span>
-                        </div>
-                        <div class="balance-row">
-                            <span>⭐ Stars</span>
-                            <span class="balance-value">${currentUser.stars_balance}</span>
-                        </div>
-                        <div class="balance-row">
-                            <span>💹 Текущая цена</span>
-                            <span class="balance-value">${avgPrice === '—' ? '—' : avgPrice + ' ⭐'}</span>
-                        </div>
-                    </div>
-                    <div class="project-description">
-                        <strong>О проекте</strong><br>
-                        Виртуальная биржа акций за Telegram Stars. Торгуйте, создавайте ордера, смотрите график цены.
-                    </div>
-                `;
+            // ---------- Бегущая строка последних сделок ----------
+            function renderMarquee(trades) {
+                const container = document.getElementById('marqueeTrades');
+                if (!container) return;
+                if (!trades || trades.length === 0) {
+                    container.innerHTML = '<span>Нет сделок</span>';
+                    return;
+                }
+                container.innerHTML = trades.map(t => `<span>${t.price_per_share}⭐ ${new Date(t.created_at).toLocaleTimeString()}</span>`).join('');
             }
 
-            // ---- Вкладка "Торги" ----
-            function renderTrade() {
-                return `
+            // ---------- Отрисовка UI (баланс, капитализация, цена) ----------
+            async function renderUI(orders, priceHistory, currentPrice, marketCap, lastTrades) {
+                const html = `
                     <div class="card">
+                        <div class="flex-between">
+                            <div>
+                                <div class="current-price">${currentPrice !== null ? currentPrice + ' ⭐' : '—'}</div>
+                                <div class="capitalization">Рыночная капитализация: ${marketCap} ⭐</div>
+                            </div>
+                        </div>
+                        <div class="balance-inline">📊 Акций: ${currentUser.shares} &nbsp;|&nbsp; ⭐ Stars: ${currentUser.stars_balance}</div>
                         <div id="price-chart"></div>
                     </div>
+                    <div class="marquee" id="marqueeTrades"></div>
                     <div class="card">
                         <h3>📈 Продать акции</h3>
                         <input type="number" id="sellAmount" placeholder="Количество" min="1">
@@ -373,50 +220,15 @@
                         <div id="ordersList"></div>
                     </div>
                 `;
-            }
+                document.getElementById('app').innerHTML = html;
+                drawCanvasChart(priceHistory);
+                renderMarquee(lastTrades);
 
-            function bindTradeEvents() {
-                const sellBtn = document.getElementById('sellBtn');
-                if (sellBtn) {
-                    sellBtn.addEventListener('click', async () => {
-                        const amount = parseInt(document.getElementById('sellAmount').value);
-                        const price = parseInt(document.getElementById('sellPrice').value);
-                        if (isNaN(amount) || isNaN(price) || amount <= 0 || price <= 0) {
-                            alert('Введите корректные количество и цену');
-                            return;
-                        }
-                        try {
-                            await createOrder(amount, price);
-                            alert('Ордер создан');
-                            refreshAll();
-                        } catch (err) {
-                            alert(err.message);
-                        }
-                    });
-                }
-                // Обработчики кнопок покупки
-                document.querySelectorAll('.buy-btn').forEach(btn => {
-                    btn.addEventListener('click', async () => {
-                        const order = JSON.parse(btn.dataset.order);
-                        try {
-                            await executeTrade(order);
-                            alert('Сделка успешно завершена!');
-                            refreshAll();
-                        } catch (err) {
-                            alert(err.message);
-                        }
-                    });
-                });
-            }
-
-            function renderOrdersList() {
                 const ordersDiv = document.getElementById('ordersList');
-                if (!ordersDiv) return;
-                if (activeOrders.length === 0) {
+                if (orders.length === 0) {
                     ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
                 } else {
-                    ordersDiv.innerHTML = '';
-                    activeOrders.forEach(order => {
+                    orders.forEach(order => {
                         const div = document.createElement('div');
                         div.className = 'order-item';
                         div.innerHTML = `
@@ -425,115 +237,52 @@
                         `;
                         ordersDiv.appendChild(div);
                     });
-                    bindTradeEvents(); // перепривязываем обработчики покупки
+                    document.querySelectorAll('.buy-btn').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const order = JSON.parse(btn.dataset.order);
+                            try {
+                                await executeTrade(order);
+                                alert('Сделка успешно завершена!');
+                                loadPage();
+                            } catch (err) {
+                                alert(err.message);
+                            }
+                        });
+                    });
                 }
-            }
-
-            // ---- Вкладка "История" ----
-            function renderHistory() {
-                if (!userTrades.length) {
-                    return `<div class="card"><p>Нет сделок</p></div>`;
-                }
-                let html = `<div class="card"><h3>📜 История сделок</h3>`;
-                userTrades.forEach(trade => {
-                    const isBuy = trade.buyer_id === userId;
-                    html += `
-                        <div class="trade-item">
-                            <div>
-                                ${isBuy ? 'Покупка' : 'Продажа'} ${trade.amount} шт. по ${trade.price_per_share} ⭐ (всего ${trade.total_stars} ⭐)
-                                <div class="status">${new Date(trade.created_at).toLocaleString()}</div>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += `</div>`;
-                return html;
-            }
-
-            // ---- Вкладка "О проекте" ----
-            function renderInfo() {
-                return `
-                    <div class="card">
-                        <h3>ℹ️ О бирже VoxAction</h3>
-                        <p>Виртуальная биржа, где вы можете торговать акциями за Telegram Stars. Каждая сделка фиксируется в блокчейне (нашей базе данных). Цена формируется спросом и предложением.</p>
-                        <hr>
-                        <h4>Как это работает</h4>
-                        <p>1. Выставляйте ордера на продажу акций.<br>2. Покупайте акции у других пользователей.<br>3. Следите за графиком цены.<br>4. История всех сделок доступна во вкладке «История».</p>
-                        <hr>
-                        <p>📧 Связь: @voxaction_support<br>🌐 Сайт: https://voxaction-bot.vercel.app</p>
-                    </div>
-                `;
-            }
-
-            // ---- Обновление всех данных ----
-            async function refreshAll() {
-                try {
-                    currentUser = await getOrCreateUser();
-                    activeOrders = await getActiveOrders();
-                    priceHistory = await getPriceHistory();
-                    userTrades = await getUserTrades();
-                    renderCurrentTab();
-                } catch (err) {
-                    console.error(err);
-                    document.getElementById('app').innerHTML = `<div class="error">Ошибка: ${err.message}</div>`;
-                }
-            }
-
-            // ---- Переключение вкладки ----
-            function renderCurrentTab() {
-                let content = '';
-                if (currentTab === 'profile') {
-                    content = renderProfile();
-                } else if (currentTab === 'trade') {
-                    content = renderTrade();
-                } else if (currentTab === 'history') {
-                    content = renderHistory();
-                } else if (currentTab === 'info') {
-                    content = renderInfo();
-                }
-                document.getElementById('app').innerHTML = content;
-
-                if (currentTab === 'trade') {
-                    drawCanvasChart(priceHistory);
-                    renderOrdersList();
-                }
-                // Подсветка активной вкладки
-                document.querySelectorAll('.tab-item').forEach(tab => {
-                    if (tab.dataset.tab === currentTab) {
-                        tab.classList.add('active');
-                    } else {
-                        tab.classList.remove('active');
+                document.getElementById('sellBtn').addEventListener('click', async () => {
+                    const amount = parseInt(document.getElementById('sellAmount').value);
+                    const price = parseInt(document.getElementById('sellPrice').value);
+                    if (isNaN(amount) || isNaN(price) || amount <= 0 || price <= 0) {
+                        alert('Введите корректные количество и цену');
+                        return;
+                    }
+                    try {
+                        await createOrder(amount, price);
+                        alert('Ордер создан');
+                        loadPage();
+                    } catch (err) {
+                        alert(err.message);
                     }
                 });
             }
 
-            // ---- Инициализация и слушатели вкладок ----
-            function initTabs() {
-                const tabs = document.querySelectorAll('.tab-item');
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', (e) => {
-                        const newTab = tab.dataset.tab;
-                        if (newTab === currentTab) return;
-                        currentTab = newTab;
-                        renderCurrentTab();
-                    });
-                });
+            async function loadPage() {
+                try {
+                    currentUser = await getOrCreateUser();
+                    const orders = await getActiveOrders();
+                    const priceHistory = await getPriceHistory();
+                    const currentPrice = await getCurrentPrice();
+                    const marketCap = await getMarketCap();
+                    const lastTrades = await getLastTrades(8);
+                    await renderUI(orders, priceHistory, currentPrice, marketCap, lastTrades);
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
+                }
             }
 
-            // ---- Загрузка данных и старт ----
-            await refreshAll();
-            initTabs();
-            // Автообновление истории каждые 10 секунд (только если на вкладке история)
-            setInterval(async () => {
-                if (currentTab === 'history') {
-                    userTrades = await getUserTrades();
-                    renderCurrentTab();
-                } else {
-                    // можно обновлять в фоне, но не обязательно
-                    userTrades = await getUserTrades();
-                }
-                // также можно обновлять активные ордера и цену, но для простоты оставим так
-            }, 10000);
+            loadPage();
         })();
     </script>
 </body>
