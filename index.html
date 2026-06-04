@@ -16,6 +16,7 @@
             --text-secondary: #64748b;
             --border: #e0e0e0;
             --primary: #0088cc;
+            --primary-dark: #006699;
             --success: #2ecc71;
             --danger: #e67e22;
         }
@@ -26,14 +27,7 @@
             --text-secondary: #94a3b8;
             --border: #334155;
             --primary: #38bdf8;
-        }
-        body.custom {
-            --bg: #1e1e2f;
-            --card-bg: #2d2d44;
-            --text: #f0f0f0;
-            --text-secondary: #c0c0c0;
-            --border: #444;
-            --primary: #bb86fc;
+            --primary-dark: #0284c7;
         }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
@@ -50,8 +44,9 @@
         .tab.active { background: var(--primary); color: white; }
         .tab-icon { font-size: 22px; margin-bottom: 4px; }
         .tab-label { font-size: 12px; font-weight: 500; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
+        button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.97); }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
         .buy-btn, .cancel-btn { width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
         .cancel-btn { background: var(--danger); }
         .order-item { border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -73,8 +68,8 @@
         .user-name { flex: 2; }
         .user-shares { font-weight: bold; }
         .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-        .filter-btn, .sort-btn, .timeframe-btn { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
-        .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: var(--primary); color: white; }
+        .filter-btn, .sort-btn, .timeframe-btn, .theme-option { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
+        .filter-btn.active, .sort-btn.active, .timeframe-btn.active, .theme-option.active { background: var(--primary); color: white; }
         .history-item, .achievement-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
         .stars-rating { color: #fbbf24; }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
@@ -82,7 +77,10 @@
         .close-modal { float: right; cursor: pointer; font-size: 24px; }
         .notification-bell { position: relative; display: inline-block; cursor: pointer; }
         .badge-count { position: absolute; top: -8px; right: -12px; background: red; color: white; font-size: 10px; border-radius: 20px; padding: 2px 6px; }
-        .theme-preview { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: middle; }
+        .color-preview { width: 30px; height: 30px; border-radius: 30px; display: inline-block; margin-left: 8px; vertical-align: middle; border: 1px solid var(--border); }
+        .setting-row { margin-bottom: 16px; }
+        .setting-label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .flex-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     </style>
 </head>
 <body>
@@ -155,8 +153,8 @@
             }
             async function createOrder(amount, price) {
                 const amountCents = toCents(amount), priceCents = toCents(price);
-                if (amountCents < 100) throw new Error('Минимум 1 акция');
-                if (priceCents < 100) throw new Error('Минимум 1 Star');
+                if (amountCents < 100) throw new Error('Минимальное количество – 1 акция');
+                if (priceCents < 100) throw new Error('Минимальная цена – 1 Star');
                 const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amountCents, p_price: priceCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
@@ -229,38 +227,6 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
-            // ---------- Theme with color picker ----------
-            function applyTheme(themeName, customColor = null) {
-                if (themeName === 'light') {
-                    document.body.classList.remove('dark', 'custom');
-                    document.body.style.setProperty('--primary', '#0088cc');
-                } else if (themeName === 'dark') {
-                    document.body.classList.add('dark');
-                    document.body.classList.remove('custom');
-                    document.body.style.setProperty('--primary', '#38bdf8');
-                } else if (themeName === 'custom' && customColor) {
-                    document.body.classList.add('custom');
-                    document.body.classList.remove('dark');
-                    document.body.style.setProperty('--primary', customColor);
-                }
-                localStorage.setItem('theme', themeName);
-                if (customColor) localStorage.setItem('customColor', customColor);
-                if (currentUser) supabase.from('users').update({ theme: themeName, custom_color: customColor }).eq('id', userId);
-            }
-            
-            function getCurrentTheme() {
-                if (document.body.classList.contains('dark')) return 'dark';
-                if (document.body.classList.contains('custom')) return 'custom';
-                return 'light';
-            }
-            
-            // Load saved theme
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            const savedColor = localStorage.getItem('customColor') || '#bb86fc';
-            if (savedTheme === 'dark') applyTheme('dark');
-            else if (savedTheme === 'custom') applyTheme('custom', savedColor);
-            else applyTheme('light');
-            
             // ---------- Chart ----------
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
@@ -319,7 +285,36 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
             
-            // ---------- Rendering tabs ----------
+            // ---------- Theme and color ----------
+            let currentTheme = 'dark'; // dark, light, custom
+            let customColor = '#0088cc';
+            function applyTheme() {
+                const root = document.documentElement;
+                if (currentTheme === 'dark') {
+                    document.body.classList.add('dark');
+                    document.body.classList.remove('light');
+                    root.style.setProperty('--primary', customColor);
+                } else if (currentTheme === 'light') {
+                    document.body.classList.remove('dark');
+                    document.body.classList.add('light');
+                    root.style.setProperty('--primary', customColor);
+                } else if (currentTheme === 'custom') {
+                    document.body.classList.remove('dark', 'light');
+                    root.style.setProperty('--primary', customColor);
+                }
+                localStorage.setItem('theme', currentTheme);
+                localStorage.setItem('customColor', customColor);
+            }
+            function loadTheme() {
+                const savedTheme = localStorage.getItem('theme');
+                const savedColor = localStorage.getItem('customColor');
+                if (savedTheme) currentTheme = savedTheme;
+                if (savedColor) customColor = savedColor;
+                applyTheme();
+            }
+            loadTheme();
+            
+            // ---------- Rendering tabs (only Settings tab changed) ----------
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -346,7 +341,12 @@
                             <div id="chart-container" class="chart-container"></div>
                             <div id="ticker" class="ticker"></div>
                         </div>
-                        <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (мин 1)"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена за 1 акцию (мин 1 Star)"><button id="sellBtn">➕ Выставить</button></div>
+                        <div class="card">
+                            <h3>📈 Продать акции</h3>
+                            <input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (минимум 1)">
+                            <input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (минимум 1 Star)">
+                            <button id="sellBtn">➕ Выставить</button>
+                        </div>
                         <div class="card"><div class="filter-bar"><button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button><button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои</button><button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена выше</button><button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена ниже</button></div><h3>📋 Ордера</h3><div id="ordersList"></div></div>
                     `;
                     document.getElementById('app').innerHTML = html;
@@ -481,51 +481,63 @@
             
             async function renderSettingsTab() {
                 const hideRating = currentUser.hide_rating || false;
-                const currentTheme = getCurrentTheme();
-                const customColor = localStorage.getItem('customColor') || '#bb86fc';
+                const notifEnabled = currentUser.notifications_enabled !== false;
+                const themeOptions = ['light', 'dark', 'custom'];
                 const html = `
                     <div class="card">
                         <h2>⚙️ Настройки</h2>
-                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label>
-                        <div style="margin-bottom:12px;">
-                            <label>Тема:</label><br>
-                            <select id="themeSelect">
-                                <option value="light" ${currentTheme==='light'?'selected':''}>Светлая</option>
-                                <option value="dark" ${currentTheme==='dark'?'selected':''}>Тёмная</option>
-                                <option value="custom" ${currentTheme==='custom'?'selected':''}>Кастомная</option>
-                            </select>
-                            <div id="customColorPicker" style="margin-top:8px; display: ${currentTheme==='custom'?'block':'none'};">
-                                <input type="color" id="colorPicker" value="${customColor}">
-                                <span>Выберите основной цвет</span>
+                        <div class="setting-row">
+                            <div class="setting-label">🎨 Тема</div>
+                            <div class="flex-row">
+                                <button class="theme-option ${currentTheme === 'light' ? 'active' : ''}" data-theme="light">Светлая</button>
+                                <button class="theme-option ${currentTheme === 'dark' ? 'active' : ''}" data-theme="dark">Тёмная</button>
+                                <button class="theme-option ${currentTheme === 'custom' ? 'active' : ''}" data-theme="custom">Кастомная</button>
                             </div>
+                            ${currentTheme === 'custom' ? `<div class="flex-row" style="margin-top: 12px;"><label style="margin-right: 8px;">Акцентный цвет:</label><input type="color" id="customColorPicker" value="${customColor}"><span class="color-preview" style="background: ${customColor};"></span></div>` : ''}
                         </div>
-                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="notifCheckbox" ${currentUser.notifications_enabled?'checked':''}> Уведомления от бота</label>
+                        <div class="setting-row">
+                            <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть меня из рейтинга</label>
+                        </div>
+                        <div class="setting-row">
+                            <label><input type="checkbox" id="notifCheckbox" ${notifEnabled?'checked':''}> Уведомления от бота</label>
+                        </div>
                         <button id="saveSettings">Сохранить</button>
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
-                const themeSelect = document.getElementById('themeSelect');
-                const customDiv = document.getElementById('customColorPicker');
-                const colorPicker = document.getElementById('colorPicker');
-                themeSelect.addEventListener('change', () => {
-                    if (themeSelect.value === 'custom') customDiv.style.display = 'block';
-                    else customDiv.style.display = 'none';
+                // Theme buttons
+                document.querySelectorAll('.theme-option').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const theme = btn.dataset.theme;
+                        currentTheme = theme;
+                        applyTheme();
+                        renderSettingsTab(); // обновить, чтобы показать/скрыть палитру
+                    });
                 });
+                const colorPicker = document.getElementById('customColorPicker');
+                if (colorPicker) {
+                    colorPicker.addEventListener('input', (e) => {
+                        customColor = e.target.value;
+                        applyTheme();
+                        document.querySelector('.color-preview')?.setAttribute('style', `background: ${customColor};`);
+                    });
+                }
+                document.getElementById('hideRatingCheckbox').checked = hideRating;
+                document.getElementById('notifCheckbox').checked = notifEnabled;
                 document.getElementById('saveSettings').onclick = async () => {
                     const newHide = document.getElementById('hideRatingCheckbox').checked;
                     const newNotif = document.getElementById('notifCheckbox').checked;
-                    const newTheme = themeSelect.value;
-                    let newColor = null;
-                    if (newTheme === 'custom') newColor = colorPicker.value;
-                    applyTheme(newTheme, newColor);
-                    await supabase.from('users').update({ hide_rating: newHide, notifications_enabled: newNotif, theme: newTheme, custom_color: newColor }).eq('id', userId);
+                    await supabase.from('users').update({ hide_rating: newHide, notifications_enabled: newNotif }).eq('id', userId);
                     currentUser.hide_rating = newHide;
                     currentUser.notifications_enabled = newNotif;
                     alert('Настройки сохранены');
-                    await renderSettingsTab(); // refresh to show correct selection
                 };
             }
             
+            function setTheme(theme) {
+                currentTheme = theme;
+                applyTheme();
+            }
             async function updateNotificationBell() {
                 const count = await getUnreadCount();
                 const bell = document.querySelector('#notifBell');
@@ -545,6 +557,7 @@
             
             // ---------- Start ----------
             currentUser = await getOrCreateUser();
+            loadTheme();
             await renderStocksTab();
             await updateNotificationBell();
             document.querySelectorAll('.tab').forEach(tab => {
