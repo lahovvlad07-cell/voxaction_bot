@@ -2,37 +2,181 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Акции – биржа</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto; background: #f0f2f5; padding-bottom: 70px; }
-        .card { background: white; border-radius: 24px; padding: 16px; margin: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .tabs { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #e0e0e0; z-index: 100; }
-        .tab { flex: 1; text-align: center; padding: 8px; font-size: 14px; font-weight: 500; color: #666; transition: 0.2s; cursor: pointer; }
-        .tab.active { color: #0088cc; }
-        h2, h3 { font-size: 18px; margin-bottom: 12px; }
-        p { margin: 6px 0; }
-        button { background: #0088cc; color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
-        button:active { transform: scale(0.97); }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 40px; font-size: 16px; background: #fafafa; }
-        .buy-btn { background: #2ecc71; width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
-        .order-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .price { font-size: 24px; font-weight: bold; color: #0088cc; }
-        .small-text { font-size: 12px; color: #666; }
-        #price-chart { width: 100%; height: 250px; margin: 12px 0; background: white; border-radius: 12px; overflow: hidden; }
-        canvas { width: 100%; height: 100%; display: block; }
-        .ticker { background: #f8f9fa; border-radius: 20px; padding: 8px 12px; overflow: hidden; white-space: nowrap; margin-bottom: 12px; font-size: 14px; color: #333; }
-        .ticker-content { display: inline-block; animation: scroll 20s linear infinite; }
-        @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        .trade-item { display: inline-block; margin-right: 30px; }
-        .info-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        .info-card { background: #f8f9fa; border-radius: 16px; padding: 12px; text-align: center; }
-        .info-label { font-size: 12px; color: #666; }
-        .info-value { font-size: 20px; font-weight: bold; margin-top: 4px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
+            background: #f0f2f5;
+            padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 16px;
+            margin: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+            border-top: 1px solid #e0e0e0;
+            z-index: 100;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .tab.active {
+            color: #0088cc;
+        }
+        h2, h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        p {
+            margin: 6px 0;
+        }
+        button {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:active {
+            transform: scale(0.97);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 40px;
+            font-size: 16px;
+            background: #fafafa;
+        }
+        .buy-btn {
+            background: #2ecc71;
+            width: auto;
+            padding: 6px 16px;
+            margin: 0;
+            font-size: 14px;
+        }
+        .order-item {
+            border-bottom: 1px solid #eee;
+            padding: 12px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0088cc;
+        }
+        .small-text {
+            font-size: 12px;
+            color: #666;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            margin: 12px 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+        }
+        .ticker {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 8px 12px;
+            overflow: hidden;
+            white-space: nowrap;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #333;
+        }
+        .ticker-content {
+            display: inline-block;
+            animation: scroll 20s linear infinite;
+        }
+        @keyframes scroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .trade-item {
+            display: inline-block;
+            margin-right: 30px;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .info-value {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -117,15 +261,22 @@
                 return true;
             }
 
-            function drawCanvasChart(history) {
-                const container = document.getElementById('price-chart');
+            let chartDataPoints = [];
+            function drawInteractiveChart(history) {
+                const container = document.getElementById('chart-container');
                 if (!container) return;
                 container.innerHTML = '';
                 if (!history || history.length === 0) {
                     container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных для графика</p>';
                     return;
                 }
+                chartDataPoints = history.map((h, idx) => ({
+                    price: h.price,
+                    time: new Date(h.created_at).getTime(),
+                    dateStr: new Date(h.created_at).toLocaleString()
+                }));
                 const canvas = document.createElement('canvas');
+                canvas.id = 'price-canvas';
                 const width = container.clientWidth;
                 const height = 250;
                 canvas.width = width;
@@ -133,8 +284,11 @@
                 canvas.style.width = '100%';
                 canvas.style.height = 'auto';
                 container.appendChild(canvas);
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                container.appendChild(tooltip);
                 const ctx = canvas.getContext('2d');
-                const values = history.map(h => h.price);
+                const values = chartDataPoints.map(p => p.price);
                 const max = Math.max(...values);
                 const min = Math.min(...values);
                 const range = max - min;
@@ -142,37 +296,98 @@
                 const graphWidth = width - padding.left - padding.right;
                 const graphHeight = height - padding.top - padding.bottom;
                 const stepX = graphWidth / (values.length - 1);
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, width, height);
-                ctx.beginPath();
-                ctx.strokeStyle = '#ccc';
-                ctx.lineWidth = 1;
-                ctx.moveTo(padding.left, padding.top);
-                ctx.lineTo(padding.left, height - padding.bottom);
-                ctx.lineTo(width - padding.right, height - padding.bottom);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.strokeStyle = '#0088cc';
-                ctx.lineWidth = 2;
-                for (let i = 0; i < values.length; i++) {
-                    const x = padding.left + i * stepX;
-                    let y;
-                    if (range === 0) y = padding.top + graphHeight / 2;
-                    else y = padding.top + graphHeight - ((values[i] - min) / range) * graphHeight;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
+                function draw() {
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#ccc';
+                    ctx.lineWidth = 1;
+                    ctx.moveTo(padding.left, padding.top);
+                    ctx.lineTo(padding.left, height - padding.bottom);
+                    ctx.lineTo(width - padding.right, height - padding.bottom);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#0088cc';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < values.length; i++) {
+                        const x = padding.left + i * stepX;
+                        let y;
+                        if (range === 0) y = padding.top + graphHeight / 2;
+                        else y = padding.top + graphHeight - ((values[i] - min) / range) * graphHeight;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    ctx.fillStyle = '#333';
+                    ctx.font = '11px sans-serif';
+                    ctx.fillText(max.toFixed(1), padding.left - 30, padding.top + 10);
+                    ctx.fillText(min.toFixed(1), padding.left - 30, height - padding.bottom - 5);
+                    if (history.length > 0) {
+                        const firstDate = new Date(history[0].created_at).toLocaleDateString();
+                        const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
+                        ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
+                        ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
+                    }
                 }
-                ctx.stroke();
-                ctx.fillStyle = '#333';
-                ctx.font = '11px sans-serif';
-                ctx.fillText(max.toFixed(1), padding.left - 30, padding.top + 10);
-                ctx.fillText(min.toFixed(1), padding.left - 30, height - padding.bottom - 5);
-                if (history.length > 0) {
-                    const firstDate = new Date(history[0].created_at).toLocaleDateString();
-                    const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
-                    ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
-                    ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
+                draw();
+                function getMousePos(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    let clientX, clientY;
+                    if (e.touches) {
+                        clientX = e.touches[0].clientX;
+                        clientY = e.touches[0].clientY;
+                    } else {
+                        clientX = e.clientX;
+                        clientY = e.clientY;
+                    }
+                    const x = (clientX - rect.left) * scaleX;
+                    const y = (clientY - rect.top) * scaleY;
+                    return { x, y };
                 }
+                function findNearestPoint(mouseX) {
+                    let minDist = Infinity;
+                    let index = -1;
+                    for (let i = 0; i < values.length; i++) {
+                        const pointX = padding.left + i * stepX;
+                        const dist = Math.abs(mouseX - pointX);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            index = i;
+                        }
+                    }
+                    if (minDist < 20) return index;
+                    return -1;
+                }
+                function showTooltip(e) {
+                    const { x: mouseX, y: mouseY } = getMousePos(e);
+                    const idx = findNearestPoint(mouseX);
+                    if (idx !== -1) {
+                        const point = chartDataPoints[idx];
+                        tooltip.style.display = 'block';
+                        tooltip.innerHTML = `💰 ${point.price} ⭐<br>${point.dateStr}`;
+                        let left = mouseX + 10;
+                        let top = mouseY + 10;
+                        if (left + tooltip.offsetWidth > width) left = mouseX - tooltip.offsetWidth - 10;
+                        if (top + tooltip.offsetHeight > height) top = mouseY - tooltip.offsetHeight - 10;
+                        tooltip.style.left = left + 'px';
+                        tooltip.style.top = top + 'px';
+                    } else {
+                        tooltip.style.display = 'none';
+                    }
+                }
+                canvas.addEventListener('mousemove', showTooltip);
+                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); showTooltip(e); });
+                canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+                canvas.addEventListener('touchend', () => { tooltip.style.display = 'none'; });
+                window.addEventListener('resize', () => {
+                    const newWidth = container.clientWidth;
+                    canvas.width = newWidth;
+                    canvas.height = 250;
+                    draw();
+                });
             }
 
             function renderTicker(trades) {
@@ -214,7 +429,7 @@
                                     <div class="info-value">${totalShares}</div>
                                 </div>
                             </div>
-                            <div id="price-chart"></div>
+                            <div id="chart-container" class="chart-container"></div>
                             <div id="ticker" class="ticker"></div>
                         </div>
                         <div class="card">
@@ -229,7 +444,7 @@
                         </div>
                     `;
                     document.getElementById('app').innerHTML = html;
-                    drawCanvasChart(priceHistory);
+                    drawInteractiveChart(priceHistory);
                     renderTicker(recentTrades);
 
                     const ordersDiv = document.getElementById('ordersList');
