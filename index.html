@@ -65,19 +65,21 @@
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: var(--card-bg); border-radius: 24px; max-width: 90%; width: 400px; max-height: 80%; overflow-y: auto; padding: 20px; }
         .close-modal { float: right; cursor: pointer; font-size: 24px; }
-        .achievement-icons { display: flex; justify-content: center; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
-        .achi-icon { width: 50px; height: 50px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-secondary); cursor: pointer; transition: 0.2s; }
-        .achi-icon.earned { background: var(--primary); color: white; }
-        .profile-avatar { display: flex; flex-direction: column; align-items: center; margin-bottom: 16px; cursor: pointer; }
-        .avatar-circle { width: 80px; height: 80px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 8px; }
-        .admin-only { display: none; }
+        .notification-bell { position: relative; display: inline-block; cursor: pointer; }
+        .badge-count { position: absolute; top: -8px; right: -12px; background: red; color: white; font-size: 10px; border-radius: 20px; padding: 2px 6px; }
+        .color-preview { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-left: 10px; border: 1px solid #ccc; }
         .topup-amounts { display: flex; justify-content: space-around; margin: 15px 0; flex-wrap: wrap; gap: 12px; }
         .amount-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 30px; width: auto; margin: 0; flex: 1; text-align: center; cursor: pointer; transition: 0.2s; }
         .amount-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
         .fee-info { background: var(--bg); padding: 12px; border-radius: 16px; margin: 12px 0; text-align: center; font-size: 14px; }
         .custom-amount { display: flex; gap: 8px; align-items: center; margin: 12px 0; }
         .custom-amount input { flex: 2; margin: 0; }
-        .color-preview { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-left: 10px; border: 1px solid #ccc; }
+        .profile-avatar { display: flex; flex-direction: column; align-items: center; margin-bottom: 16px; cursor: pointer; }
+        .avatar-circle { width: 80px; height: 80px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 8px; }
+        .achievement-icons { display: flex; justify-content: center; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
+        .achi-icon { width: 50px; height: 50px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-secondary); cursor: pointer; transition: 0.2s; }
+        .achi-icon.earned { background: var(--primary); color: white; }
+        .admin-only { display: none; }
     </style>
 </head>
 <body>
@@ -136,7 +138,7 @@
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0, referral_count: 0, total_topup: 0 }]).select().single();
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0 }]).select().single();
                     if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                     return newUser;
                 }
@@ -211,10 +213,15 @@
                 if (error) return { totalTrades: 0, totalVolume: 0 };
                 return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
             }
-            async function getUserAchievements() {
+            async function getAchievements() {
                 const { data, error } = await supabase.from('user_achievements').select('achievements(id, name, description, icon)').eq('user_id', userId);
                 if (error) return [];
-                return data.map(ua => ua.achievements);
+                return data.map(a => a.achievements);
+            }
+            async function getAllAchievements() {
+                const { data, error } = await supabase.from('achievements').select('*');
+                if (error) return [];
+                return data;
             }
             async function getSellerRating(sellerId) {
                 const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
@@ -361,25 +368,20 @@
             
             async function renderProfileTab() {
                 const stats = await getUserStats();
-                const achievements = await getUserAchievements();
+                const userAchievements = await getAchievements();
+                const allAchievements = await getAllAchievements();
                 const refCode = currentUser.referral_code;
                 const refLink = `https://t.me/VoxAction_Bot?start=${refCode}`;
                 const referralCount = currentUser.referral_count || 0;
                 const referralBonusShares = referralCount * 5;
                 const isAdmin = (userId === 6048486427);
                 const adminHtml = isAdmin ? `<hr><div class="admin-only" style="display: block;"><h3>Админ-панель</h3><p>Здесь будут инструменты управления. В разработке.</p></div>` : '';
-                
-                // Список всех возможных ачивок (5 иконок, но показываем только те, что есть)
-                let achievementsHtml = '';
-                for (let i = 0; i < 5; i++) {
-                    const ach = achievements[i];
-                    if (ach) {
-                        achievementsHtml += `<div class="achi-icon earned" data-achi='${JSON.stringify(ach)}' style="background: var(--primary);">${ach.icon}</div>`;
-                    } else {
-                        achievementsHtml += `<div class="achi-icon" data-achi="null">?</div>`;
-                    }
-                }
-                
+                // Формируем иконки ачивок (до 5 штук, показываем последние полученные)
+                const earnedIds = new Set(userAchievements.map(a => a.id));
+                const displayedAchievements = allAchievements.filter(a => earnedIds.has(a.id)).slice(0,5);
+                const achievementIconsHtml = displayedAchievements.map(ach => `<div class="achi-icon earned" title="${ach.name}: ${ach.description}">${ach.icon}</div>`).join('');
+                const missingCount = Math.max(0, 5 - displayedAchievements.length);
+                const missingHtml = '?'.repeat(missingCount).split('').map(() => `<div class="achi-icon">?</div>`).join('');
                 const html = `
                     <div class="card" style="text-align: center;">
                         <div class="profile-avatar" id="avatarClick">
@@ -388,7 +390,7 @@
                         <p style="font-size: 24px; font-weight: bold;">${currentUser.username}</p>
                         <p>ID: ${userId}</p>
                         <div class="achievement-icons" id="achievementIcons">
-                            ${achievementsHtml}
+                            ${achievementIconsHtml}${missingHtml}
                         </div>
                         <div style="display: flex; justify-content: space-around; margin: 20px 0;">
                             <div><p style="font-size: 28px;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
@@ -418,13 +420,8 @@
                 });
                 document.querySelectorAll('.achi-icon').forEach(icon => {
                     icon.addEventListener('click', () => {
-                        const achiData = icon.dataset.achi;
-                        if (achiData && achiData !== 'null') {
-                            const ach = JSON.parse(achiData);
-                            alert(`${ach.icon} ${ach.name}\n${ach.description}`);
-                        } else {
-                            alert('Достижение ещё не получено. Выполняйте условия, чтобы открыть его!');
-                        }
+                        const all = allAchievements.map(a => `${a.icon} ${a.name}: ${a.description}`).join('\n');
+                        alert(`Ваши достижения:\n${all}`);
                     });
                 });
             }
