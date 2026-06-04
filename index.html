@@ -38,6 +38,7 @@
         .price { font-size: 24px; font-weight: bold; color: #0088cc; }
         .small-text { font-size: 12px; color: #666; }
         .chart-container { position: relative; width: 100%; height: 250px; margin: 12px 0; background: white; border-radius: 12px; overflow: hidden; }
+        .volume-chart-container { position: relative; width: 100%; height: 150px; margin: 12px 0; background: white; border-radius: 12px; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
         .tooltip { position: absolute; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 8px; font-size: 12px; pointer-events: none; z-index: 10; display: none; }
         .ticker { background: #f8f9fa; border-radius: 20px; padding: 8px 12px; overflow: hidden; white-space: nowrap; margin-bottom: 12px; font-size: 14px; color: #333; }
@@ -132,6 +133,11 @@
                 if (error) throw new Error(`Ошибка загрузки сделок: ${error.message}`);
                 return data || [];
             }
+            async function getVolumeHistory(days = 30) {
+                const { data, error } = await supabase.rpc('get_volume_history', { days_limit: days });
+                if (error) { console.warn('RPC get_volume_history не найдена'); return []; }
+                return data || [];
+            }
             async function getCurrentPrice() {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
                 if (error) throw new Error(`Ошибка загрузки сделок для цены: ${error.message}`);
@@ -145,7 +151,6 @@
                 if (error) throw new Error(`Ошибка подсчёта акций: ${error.message}`);
                 const totalSharesCents = data.reduce((sum, u) => sum + u.shares, 0);
                 const currentPriceCents = await getCurrentPrice();
-                // Рыночная капитализация в звёздах = (общее количество акций в звёздах) * (цена в звёздах)
                 const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
                 return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
             }
@@ -252,7 +257,7 @@
                     if (idx !== -1) {
                         const point = chartDataPoints[idx];
                         tooltip.style.display = 'block';
-                        tooltip.innerHTML = `💰 ${point.price} ⭐<br>${point.dateStr}`;
+                        tooltip.innerHTML = `💰 ${point.price.toFixed(2)} ⭐<br>${point.dateStr}`;
                         let left = mouseX + 10, top = mouseY + 10;
                         if (left + tooltip.offsetWidth > width) left = mouseX - tooltip.offsetWidth - 10;
                         if (top + tooltip.offsetHeight > height) top = mouseY - tooltip.offsetHeight - 10;
@@ -268,6 +273,41 @@
                 canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; draw(); });
                 canvas.addEventListener('touchend', () => { tooltip.style.display = 'none'; draw(); });
                 window.addEventListener('resize', () => { canvas.width = container.clientWidth; canvas.height = 250; draw(); });
+            }
+
+            function drawVolumeChart(volumes) {
+                const container = document.getElementById('volume-chart');
+                if (!container) return;
+                container.innerHTML = '';
+                if (!volumes || volumes.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных об объёмах</p>';
+                    return;
+                }
+                const canvas = document.createElement('canvas');
+                const width = container.clientWidth, height = 150;
+                canvas.width = width; canvas.height = height;
+                canvas.style.width = '100%'; canvas.style.height = 'auto';
+                container.appendChild(canvas);
+                const ctx = canvas.getContext('2d');
+                const maxVolume = Math.max(...volumes.map(v => v.total_amount));
+                const barWidth = (width - 40) / volumes.length - 2;
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, width, height);
+                for (let i = 0; i < volumes.length; i++) {
+                    const barHeight = (volumes[i].total_amount / maxVolume) * (height - 20);
+                    const x = 20 + i * (barWidth + 2);
+                    const y = height - 10 - barHeight;
+                    ctx.fillStyle = '#0088cc';
+                    ctx.fillRect(x, y, barWidth, barHeight);
+                }
+                ctx.fillStyle = '#333';
+                ctx.font = '10px sans-serif';
+                if (volumes.length > 0) {
+                    const firstDate = new Date(volumes[0].day).toLocaleDateString();
+                    const lastDate = new Date(volumes[volumes.length-1].day).toLocaleDateString();
+                    ctx.fillText(firstDate, 20, height - 2);
+                    ctx.fillText(lastDate, width - 60, height - 2);
+                }
             }
 
             function renderTicker(trades) {
@@ -364,9 +404,19 @@
             function renderProfileTab() { document.getElementById('app').innerHTML = `<div class="card"><h2>👤 Профиль</h2><p><strong>${username}</strong></p><p>ID: ${userId}</p><p>📌 Акций: ${fromCents(currentUser.shares)}</p><p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p><hr><p class="small-text">Виртуальная биржа акций за Telegram Stars. Торгуйте, создавайте ордера, смотрите график.</p></div>`; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; }
             async function renderRatingTab() { try { const leaders = await getLeaderboard(20); let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2><div id="leaderboardList">`; if (leaders.length === 0) html += '<p>Нет данных</p>'; else { leaders.forEach((user, idx) => { html += `<div class="leaderboard-item"><div class="rank">${idx+1}</div><div class="user-name">${user.username || "Аноним"}</div><div class="user-shares">${fromCents(user.shares)} акций</div></div>`; }); } html += `</div></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; } }
             function renderWalletTab() { const html = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><p>В ближайшее время: пополнение Stars через Telegram Stars API.</p><button id="fakeTopup">➕ Тестовое пополнение (10 Stars)</button></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; document.getElementById('fakeTopup')?.addEventListener('click', async () => { currentUser.stars_balance += 1000; await supabase.from('users').update({ stars_balance: currentUser.stars_balance }).eq('id', userId); alert('Баланс пополнен на 10 Stars (тестово)'); renderWalletTab(); }); }
-            function renderAnalyticsTab() { 
-                document.getElementById('app').innerHTML = `<div class="card"><h2>📊 Аналитика</h2><p>Здесь будут размещены графики объёмов торгов и другая статистика.</p></div>`;
-                const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
+            async function renderAnalyticsTab() {
+                const volumeData = await getVolumeHistory(30);
+                const html = `
+                    <div class="card">
+                        <h2>📊 Объёмы торгов</h2>
+                        <div id="volume-chart" class="volume-chart-container"></div>
+                        <p class="small-text">График показывает количество акций, проданных за последние 30 дней (в звёздах).</p>
+                    </div>
+                `;
+                document.getElementById('app').innerHTML = html;
+                const bar = document.getElementById('loadingBar');
+                if (bar) bar.style.display = 'none';
+                drawVolumeChart(volumeData);
             }
             async function renderSettingsTab() { const hideRating = currentUser.hide_rating || false; const html = `<div class="card"><h2>⚙️ Настройки</h2><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="hideRatingCheckbox" ${hideRating ? 'checked' : ''}> Скрыть меня из рейтинга</label><button id="saveSettingsBtn">Сохранить</button></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; document.getElementById('saveSettingsBtn')?.addEventListener('click', async () => { const newValue = document.getElementById('hideRatingCheckbox').checked; const { error } = await supabase.from('users').update({ hide_rating: newValue }).eq('id', userId); if (error) alert('Ошибка сохранения'); else { currentUser.hide_rating = newValue; alert('Настройки сохранены'); } }); }
             currentUser = await getOrCreateUser();
@@ -382,7 +432,7 @@
                     setProgress(30);
                     if (tabName === 'profile') renderProfileTab();
                     else if (tabName === 'stocks') await renderStocksTab();
-                    else if (tabName === 'analytics') renderAnalyticsTab();
+                    else if (tabName === 'analytics') await renderAnalyticsTab();
                     else if (tabName === 'rating') await renderRatingTab();
                     else if (tabName === 'wallet') renderWalletTab();
                     else if (tabName === 'settings') await renderSettingsTab();
