@@ -15,99 +15,75 @@
         button:active { transform: scale(0.97); }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 40px; font-size: 16px; background: #fafafa; }
         .buy-btn { background: #2ecc71; width: auto; padding: 6px 16px; margin: 0; }
-        .order-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+        .order-item, .trade-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
         .status { font-size: 12px; color: gray; margin-top: 8px; }
         #price-chart { width: 100%; height: 300px; margin-top: 8px; background: white; border-radius: 12px; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; }
-        /* Стили для вкладок */
         .tabs { display: flex; gap: 8px; margin-bottom: 16px; background: white; border-radius: 40px; padding: 4px; }
         .tab { flex: 1; text-align: center; padding: 12px; border-radius: 40px; cursor: pointer; background: #f0f2f5; transition: 0.2s; font-weight: 500; }
         .tab.active { background: #0088cc; color: white; }
+        .small-text { font-size: 12px; color: #666; }
     </style>
 </head>
 <body>
     <div id="app">Загрузка...</div>
     <script>
         (async () => {
-            // ----------------------------- 1. Telegram -----------------------------
+            // ---- Telegram ----
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || "player";
             if (!userId) {
-                console.warn("⚠️ Не удалось получить ID из Telegram, используем тестовый 123456");
+                console.warn("⚠️ Тестовый режим, используем ID 123456");
                 userId = 123456;
             }
 
-            // ----------------------------- 2. Supabase -----------------------------
+            // ---- Supabase ----
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
             let currentUser = null;
 
-            // ----------------------------- 3. Пользователь -----------------------------
+            // ---- Пользователь ----
             async function getOrCreateUser() {
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', userId)
-                    .maybeSingle();
+                let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
                 if (!data) {
-                    const { data: newUser, error: insertError } = await supabase
-                        .from('users')
-                        .insert([{ id: userId, username: username, shares: 100, stars_balance: 50 }])
-                        .select()
-                        .single();
+                    const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 100, stars_balance: 50 }]).select().single();
                     if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                     return newUser;
                 }
                 return data;
             }
 
-            // ----------------------------- 4. Ордера -----------------------------
+            // ---- Ордера ----
             async function getActiveOrders() {
-                const { data, error } = await supabase
-                    .from('orders')
-                    .select('*')
-                    .eq('status', 'active')
-                    .order('price_per_share', { ascending: true });
+                const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
                 if (error) throw new Error(`Ошибка загрузки ордеров: ${error.message}`);
                 return data || [];
             }
 
-            // ----------------------------- 5. История цен -----------------------------
+            // ---- История цен ----
             async function getPriceHistory() {
-                const { data, error } = await supabase
-                    .from('price_history')
-                    .select('price, created_at')
-                    .order('created_at', { ascending: true })
-                    .limit(100);
+                const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(`Ошибка загрузки истории цен: ${error.message}`);
                 return data || [];
             }
 
-            // ----------------------------- 6. Создание ордера через RPC -----------------------------
+            // ---- Создание ордера через RPC ----
             async function createOrder(amount, price) {
-                const { data, error } = await supabase.rpc('create_sell_order', {
-                    p_user_id: userId,
-                    p_amount: amount,
-                    p_price: price
-                });
+                const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amount, p_price: price });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
                 currentUser.shares -= amount;
                 return true;
             }
 
-            // ----------------------------- 7. Покупка через RPC -----------------------------
+            // ---- Покупка через RPC ----
             async function executeTrade(order) {
-                const { data, error } = await supabase.rpc('execute_trade', {
-                    p_order_id: order.id,
-                    p_buyer_id: userId
-                });
+                const { data, error } = await supabase.rpc('execute_trade', { p_order_id: order.id, p_buyer_id: userId });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
                 const totalStars = order.amount * order.price_per_share;
@@ -116,20 +92,19 @@
                 return true;
             }
 
-            // ----------------------------- 8. История сделок пользователя -----------------------------
+            // ---- История сделок (покупки и продажи) ----
             async function getUserTrades() {
                 const { data, error } = await supabase
-                    .from('orders')
-                    .select('*, buyer_id')
+                    .from('trades')
+                    .select('*')
                     .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
-                    .eq('status', 'completed')
                     .order('created_at', { ascending: false })
                     .limit(50);
                 if (error) throw new Error(`Ошибка загрузки истории: ${error.message}`);
                 return data || [];
             }
 
-            // ----------------------------- 9. Отрисовка графика (Canvas) -----------------------------
+            // ---- График (Canvas) ----
             function drawCanvasChart(history) {
                 const container = document.getElementById('price-chart');
                 if (!container) return;
@@ -188,8 +163,8 @@
                 }
             }
 
-            // ----------------------------- 10. Отрисовка UI с вкладками -----------------------------
-            function renderUI(orders, priceHistory, activeTab = 'trade') {
+            // ---- Отрисовка UI с вкладками ----
+            function renderUI(orders, priceHistory, trades, activeTab = 'trade') {
                 const html = `
                     <div class="card">
                         <h2>💰 Мой баланс</h2>
@@ -207,7 +182,7 @@
                 `;
                 document.getElementById('app').innerHTML = html;
 
-                // Обработчики вкладок
+                // Переключение вкладок
                 document.querySelectorAll('.tab').forEach(tab => {
                     tab.addEventListener('click', () => {
                         const tabName = tab.dataset.tab;
@@ -216,7 +191,6 @@
                     });
                 });
 
-                // Отображение содержимого вкладки
                 if (activeTab === 'trade') {
                     const tradeHtml = `
                         <div id="price-chart"></div>
@@ -229,7 +203,6 @@
                     `;
                     document.getElementById('tabContent').innerHTML = tradeHtml;
                     drawCanvasChart(priceHistory);
-                    // Ордера
                     const ordersDiv = document.getElementById('ordersList');
                     if (orders.length === 0) {
                         ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
@@ -277,22 +250,21 @@
             async function loadHistoryPage() {
                 try {
                     const trades = await getUserTrades();
-                    const historyHtml = `
-                        <h3>📜 История сделок</h3>
-                        <div id="historyList"></div>
-                    `;
+                    const historyHtml = `<h3>📜 История сделок</h3><div id="historyList"></div>`;
                     document.getElementById('tabContent').innerHTML = historyHtml;
                     const historyDiv = document.getElementById('historyList');
                     if (trades.length === 0) {
-                        historyDiv.innerHTML = '<p>Нет завершённых сделок</p>';
+                        historyDiv.innerHTML = '<p>Нет сделок</p>';
                     } else {
                         trades.forEach(trade => {
                             const isBuy = trade.buyer_id === userId;
                             const div = document.createElement('div');
-                            div.className = 'order-item';
+                            div.className = 'trade-item';
                             div.innerHTML = `
-                                <div>${isBuy ? 'Покупка' : 'Продажа'} ${trade.amount} шт. по ${trade.price_per_share} ⭐ (всего ${trade.amount * trade.price_per_share})</div>
-                                <div style="font-size:12px;">${new Date(trade.created_at).toLocaleString()}</div>
+                                <div>
+                                    ${isBuy ? 'Покупка' : 'Продажа'} ${trade.amount} шт. по ${trade.price_per_share} ⭐ (всего ${trade.total_stars} ⭐)
+                                    <div class="small-text">${new Date(trade.created_at).toLocaleString()}</div>
+                                </div>
                             `;
                             historyDiv.appendChild(div);
                         });
@@ -307,7 +279,8 @@
                     currentUser = await getOrCreateUser();
                     const orders = await getActiveOrders();
                     const priceHistory = await getPriceHistory();
-                    renderUI(orders, priceHistory, activeTab);
+                    const trades = await getUserTrades(); // предзагрузим, но используем только в истории
+                    renderUI(orders, priceHistory, trades, activeTab);
                 } catch (err) {
                     console.error(err);
                     document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
