@@ -9,47 +9,21 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         input, button, textarea { user-select: text; }
-        :root {
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border: #334155;
-            --primary: #38bdf8;
-            --primary-dark: #0284c7;
-            --success: #10b981;
-            --danger: #f97316;
-        }
-        body.light {
-            --bg: #f0f2f5;
-            --card-bg: white;
-            --text: #1e293b;
-            --text-secondary: #64748b;
-            --border: #e0e0e0;
-            --primary: #0088cc;
-            --primary-dark: #006699;
-        }
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
-            background: var(--bg);
-            color: var(--text);
-            padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-            transition: background 0.2s, color 0.2s;
-        }
+        :root { --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155; --primary: #38bdf8; --primary-dark: #0284c7; }
+        body.light { --bg: #f0f2f5; --card-bg: white; --text: #1e293b; --text-secondary: #64748b; --border: #e0e0e0; --primary: #0088cc; --primary-dark: #006699; }
+        body { font-family: system-ui; background: var(--bg); color: var(--text); padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transition: 0.2s; }
         .card { background: var(--card-bg); border-radius: 24px; padding: 16px; margin: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .tabs-wrapper { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); border-top: 1px solid var(--border); padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px)); z-index: 100; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; cursor: grab; }
-        .tabs-wrapper:active { cursor: grabbing; }
+        .tabs-wrapper { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); border-top: 1px solid var(--border); padding: 4px 0; overflow-x: auto; white-space: nowrap; cursor: grab; }
         .tabs { display: inline-flex; gap: 8px; padding: 0 12px; }
-        .tab { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 40px; background: var(--border); transition: all 0.2s; cursor: pointer; min-width: 70px; }
+        .tab { display: inline-flex; flex-direction: column; align-items: center; padding: 8px 12px; border-radius: 40px; background: var(--border); cursor: pointer; min-width: 70px; }
         .tab.active { background: var(--primary); color: white; }
-        .tab-icon { font-size: 22px; margin-bottom: 4px; }
-        .tab-label { font-size: 12px; font-weight: 500; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
-        button:active { transform: scale(0.97); }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
+        .tab-icon { font-size: 22px; }
+        .tab-label { font-size: 12px; margin-top: 4px; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; background: var(--bg); color: var(--text); }
         .buy-btn, .cancel-btn { width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
         .cancel-btn { background: var(--danger); }
-        .order-item { border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .order-item { border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
         .price { font-size: 24px; font-weight: bold; color: var(--primary); }
         .small-text { font-size: 12px; color: var(--text-secondary); }
@@ -70,19 +44,17 @@
         .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
         .filter-btn, .sort-btn, .timeframe-btn { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
         .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: var(--primary); color: white; }
-        .history-item, .achievement-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
-        .stars-rating { color: #fbbf24; }
+        .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--card-bg); border-radius: 24px; max-width: 90%; width: 400px; max-height: 80%; overflow-y: auto; padding: 20px; }
+        .modal-content { background: var(--card-bg); border-radius: 24px; max-width: 90%; width: 400px; padding: 20px; }
         .close-modal { float: right; cursor: pointer; font-size: 24px; }
         .notification-bell { position: relative; display: inline-block; cursor: pointer; }
         .badge-count { position: absolute; top: -8px; right: -12px; background: red; color: white; font-size: 10px; border-radius: 20px; padding: 2px 6px; }
         .color-preview { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-left: 10px; border: 1px solid #ccc; }
         .radio-group { display: flex; gap: 20px; margin: 10px 0; align-items: center; }
-        .radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
         .topup-amounts { display: flex; justify-content: space-around; margin: 15px 0; flex-wrap: wrap; gap: 12px; }
-        .amount-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 30px; width: auto; margin: 0; flex: 1; text-align: center; cursor: pointer; transition: 0.2s; }
-        .amount-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
+        .amount-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 30px; flex: 1; text-align: center; cursor: pointer; }
+        .amount-btn.selected { background: var(--primary); color: white; }
         .fee-info { background: var(--bg); padding: 12px; border-radius: 16px; margin: 12px 0; text-align: center; }
         .custom-amount { display: flex; gap: 8px; align-items: center; margin: 12px 0; }
         .custom-amount input { flex: 2; margin: 0; }
@@ -101,9 +73,6 @@
             <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
         </div>
     </div>
-    <div id="notificationModal" class="modal">
-        <div class="modal-content"><span class="close-modal">&times;</span><h3>Уведомления</h3><div id="notificationsList"></div><button id="markReadBtn">Отметить все</button></div>
-    </div>
     <div id="topupModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" id="closeTopupModal">&times;</span>
@@ -117,33 +86,25 @@
                 <input type="number" id="customTopupAmount" placeholder="Своя сумма" min="1" step="1">
                 <button id="setCustomAmount">OK</button>
             </div>
-            <div class="fee-info" id="topupFeeInfo">Комиссия 5%: 0 ⭐, к зачислению: 0 ⭐</div>
+            <div class="fee-info" id="topupFeeInfo">Комиссия 5%, к зачислению: 0 ⭐</div>
             <button id="confirmTopupBtn">Пополнить</button>
-        </div>
-    </div>
-    <div id="withdrawModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" id="closeWithdrawModal">&times;</span>
-            <h3>Вывод средств</h3>
-            <p>Функция вывода временно недоступна. Работаем над этим!</p>
-            <button id="closeWithdrawBtn">Закрыть</button>
         </div>
     </div>
     <script>
         (async () => {
             // Drag tabs
-            const tabsWrapper = document.querySelector('.tabs-wrapper');
+            const wrapper = document.querySelector('.tabs-wrapper');
             let isDown = false, startX, scrollLeft;
-            tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
-            window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
-            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
+            wrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - wrapper.offsetLeft; scrollLeft = wrapper.scrollLeft; wrapper.style.cursor = 'grabbing'; });
+            window.addEventListener('mouseup', () => { isDown = false; wrapper.style.cursor = 'grab'; });
+            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - wrapper.offsetLeft; const walk = (x - startX) * 2; wrapper.scrollLeft = scrollLeft - walk; });
             
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
-
+            
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -195,7 +156,6 @@
                 if (!data.success) throw new Error(data.error);
                 return true;
             }
-            
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(error.message);
@@ -226,19 +186,6 @@
                 if (error) throw new Error(error.message);
                 return data;
             }
-            async function getUnreadCount() {
-                const { data, error } = await supabase.rpc('get_unread_notifications', { p_user_id: userId });
-                if (error) return 0;
-                return data.length;
-            }
-            async function getNotifications() {
-                const { data, error } = await supabase.rpc('get_unread_notifications', { p_user_id: userId });
-                if (error) throw error;
-                return data;
-            }
-            async function markNotificationsRead() {
-                await supabase.rpc('mark_notifications_read', { p_user_id: userId });
-            }
             async function getUserStats() {
                 const { data, error } = await supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
                 if (error) return { totalTrades: 0, totalVolume: 0 };
@@ -255,6 +202,7 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
+            // ----------------------------- Chart -----------------------------
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
                 let startDate = new Date();
@@ -388,43 +336,35 @@
                 } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
             }
             
-            async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); await updateNotificationBell(); }
+            async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
             
             async function renderProfileTab() {
                 const stats = await getUserStats();
                 const achievements = await getAchievements();
-                const unread = await getUnreadCount();
                 const refCode = currentUser.referral_code;
                 const refLink = `https://t.me/VoxAction_Bot?start=${refCode}`;
                 const html = `
                     <div class="card" style="text-align: center;">
-                        <div class="flex-between" style="justify-content: space-between; align-items: center;">
-                            <h2>👤 Профиль</h2>
-                            <div class="notification-bell" id="notifBell" style="cursor:pointer;">🔔 ${unread>0?`<span class="badge-count">${unread>9?'9+':unread}</span>`:''}</div>
-                        </div>
-                        <p style="font-size: 24px; font-weight: bold; margin: 8px 0;">${currentUser.username}</p>
-                        <p style="color: var(--text-secondary);">ID: ${userId}</p>
+                        <div class="flex-between"><h2>👤 Профиль</h2></div>
+                        <p style="font-size: 24px; font-weight: bold;">${currentUser.username}</p>
+                        <p>ID: ${userId}</p>
                         <div style="display: flex; justify-content: space-around; margin: 20px 0;">
-                            <div><p style="font-size: 28px; font-weight: bold;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
-                            <div><p style="font-size: 28px; font-weight: bold;">${fromCents(currentUser.stars_balance)}</p><p class="small-text">Stars</p></div>
+                            <div><p style="font-size: 28px;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
+                            <div><p style="font-size: 28px;">${fromCents(currentUser.stars_balance)}</p><p class="small-text">Stars</p></div>
                         </div>
-                        <hr>
-                        <h3>📊 Статистика</h3>
+                        <hr><h3>📊 Статистика</h3>
                         <div style="display: flex; justify-content: space-around;">
                             <div><p style="font-size: 20px;">${stats.totalTrades}</p><p class="small-text">Сделок</p></div>
                             <div><p style="font-size: 20px;">${stats.totalVolume.toFixed(2)} ⭐</p><p class="small-text">Объём</p></div>
                         </div>
-                        <hr>
-                        <h3>🏆 Достижения</h3>
+                        <hr><h3>🏆 Достижения</h3>
                         <div id="achievementsList">${achievements.length ? achievements.map(a=>`<div class="achievement-item">${a.achievements.icon || '🏅'} ${a.achievements.name}<span class="small-text"> - ${a.achievements.description}</span></div>`).join('') : '<p>Нет достижений</p>'}</div>
-                        <hr>
-                        <h3>🔗 Реферальная ссылка</h3>
+                        <hr><h3>🔗 Реферальная ссылка</h3>
                         <div class="small-text" style="background: var(--bg); padding: 8px; border-radius: 12px; word-break: break-all;">${refLink}</div>
                         <p class="small-text" style="margin-top: 8px;">Приглашайте друзей – получайте бонусы!</p>
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
-                document.getElementById('notifBell')?.addEventListener('click', showNotificationsModal);
             }
             
             async function renderRatingTab() {
@@ -434,6 +374,17 @@
                 else leaders.forEach((u,i) => { html += `<div class="leaderboard-item"><div class="rank">${i+1}</div><div class="user-name">${u.username||'Аноним'}</div><div class="user-shares">${fromCents(u.shares)} акций</div></div>`; });
                 html += `</div>`;
                 document.getElementById('app').innerHTML = html;
+            }
+            
+            async function renderWalletTab() {
+                document.getElementById('app').innerHTML = `
+                    <div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr>
+                    <button id="topupBtn">💸 Пополнить Stars</button>
+                    </div>`;
+                document.getElementById('topupBtn')?.addEventListener('click', () => {
+                    document.getElementById('topupModal').style.display = 'flex';
+                    updateTopupFee(0);
+                });
             }
             
             async function renderAnalyticsTab() {
@@ -462,20 +413,6 @@
                 } else historyDiv.innerHTML = '<p>Нет сделок</p>';
             }
             
-            async function renderWalletTab() {
-                document.getElementById('app').innerHTML = `
-                    <div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr>
-                    <button id="topupBtn">💸 Пополнить Stars</button>
-                    <button id="withdrawBtn">💸 Вывести средства</button></div>`;
-                document.getElementById('topupBtn')?.addEventListener('click', () => {
-                    document.getElementById('topupModal').style.display = 'flex';
-                    updateTopupFee(0);
-                });
-                document.getElementById('withdrawBtn')?.addEventListener('click', () => {
-                    document.getElementById('withdrawModal').style.display = 'flex';
-                });
-            }
-            
             async function renderSettingsTab() {
                 const hideRating = currentUser.hide_rating || false;
                 const currentTheme = document.body.classList.contains('light') ? 'light' : 'dark';
@@ -488,7 +425,7 @@
                         <label><input type="radio" name="theme" value="dark" ${currentTheme==='dark'?'checked':''}> 🌙 Тёмная</label>
                         <label><input type="radio" name="theme" value="light" ${currentTheme==='light'?'checked':''}> ☀️ Светлая</label>
                     </div>
-                    <div style="margin: 12px 0;"><strong>Цвет акцента (кнопки, график):</strong></div>
+                    <div style="margin: 12px 0;"><strong>Цвет акцента:</strong></div>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <input type="color" id="colorPicker" value="${customColor}">
                         <span id="colorPreview" class="color-preview" style="background: ${customColor};"></span>
@@ -538,28 +475,11 @@
                 if (currentUser) supabase.from('users').update({ theme }).eq('id', userId);
             }
             
-            async function updateNotificationBell() {
-                const count = await getUnreadCount();
-                const bell = document.querySelector('#notifBell');
-                if (bell) bell.innerHTML = `🔔${count>0?`<span class="badge-count">${count>9?'9+':count}</span>`:''}`;
-            }
-            async function showNotificationsModal() {
-                const modal = document.getElementById('notificationModal');
-                const listDiv = document.getElementById('notificationsList');
-                listDiv.innerHTML = 'Загрузка...';
-                modal.style.display = 'flex';
-                const notifs = await getNotifications();
-                if (notifs.length === 0) listDiv.innerHTML = '<p>Нет уведомлений</p>';
-                else listDiv.innerHTML = notifs.map(n => `<div>${n.text}<br><span class="small-text">${new Date(n.created_at).toLocaleString()}</span></div>`).join('');
-            }
-            document.querySelector('.close-modal')?.addEventListener('click', () => document.getElementById('notificationModal').style.display = 'none');
-            document.getElementById('markReadBtn')?.addEventListener('click', async () => { await markNotificationsRead(); showNotificationsModal(); await updateNotificationBell(); });
-            
+            // ---------- Topup modal ----------
             let selectedAmount = null;
             function updateTopupFee(amount) {
-                const fee = Math.floor(amount * 0.05);
-                const receive = amount - fee;
-                document.getElementById('topupFeeInfo').innerHTML = `Комиссия 5%: ${fee} ⭐<br>К зачислению: ${receive} ⭐`;
+                const receive = amount; // без дополнительной комиссии, комиссию берёт Telegram
+                document.getElementById('topupFeeInfo').innerHTML = `Комиссия 5% (Telegram)<br>К зачислению: ${receive} ⭐`;
             }
             document.querySelectorAll('#topupModal .amount-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -586,7 +506,7 @@
                     return;
                 }
                 document.getElementById('topupModal').style.display = 'none';
-                const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // <-- замените на ваш реальный адрес бэкенда
+                const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // замените на ваш URL бота
                 try {
                     const response = await fetch(`${BACKEND_URL}/create-invoice`, {
                         method: 'POST',
@@ -613,19 +533,12 @@
                 document.getElementById('topupModal').style.display = 'none';
             });
             
-            document.getElementById('closeWithdrawModal')?.addEventListener('click', () => {
-                document.getElementById('withdrawModal').style.display = 'none';
-            });
-            document.getElementById('closeWithdrawBtn')?.addEventListener('click', () => {
-                document.getElementById('withdrawModal').style.display = 'none';
-            });
-            
+            // ---------- Start ----------
             currentUser = await getOrCreateUser();
             const savedTheme = localStorage.getItem('theme') || 'dark';
             const savedColor = localStorage.getItem('custom_color') || (savedTheme === 'light' ? '#0088cc' : '#38bdf8');
             setTheme(savedTheme, savedColor);
             await renderStocksTab();
-            await updateNotificationBell();
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', async () => {
                     const tabName = tab.dataset.tab;
@@ -637,7 +550,6 @@
                     else if (tabName === 'rating') await renderRatingTab();
                     else if (tabName === 'wallet') await renderWalletTab();
                     else if (tabName === 'settings') await renderSettingsTab();
-                    await updateNotificationBell();
                 });
             });
         })();
