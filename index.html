@@ -121,23 +121,31 @@
             <button id="confirmTopupBtn">Пополнить</button>
         </div>
     </div>
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeWithdrawModal">&times;</span>
+            <h3>Вывод средств</h3>
+            <p>Функция вывода временно недоступна. Работаем над этим!</p>
+            <button id="closeWithdrawBtn">Закрыть</button>
+        </div>
+    </div>
     <script>
         (async () => {
-            // Drag tabs
+            // ======================== DRAG TABS ========================
             const tabsWrapper = document.querySelector('.tabs-wrapper');
             let isDown = false, startX, scrollLeft;
             tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
             window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
             window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
             
-            // Telegram user
+            // ======================== TELEGRAM ========================
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
-
-            // Supabase
+            
+            // ======================== SUPABASE ========================
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -146,7 +154,7 @@
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
             
-            // ---------- Database functions (unchanged) ----------
+            // ======================== USER & DB ========================
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -250,7 +258,7 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
-            // ---------- Chart ----------
+            // ======================== CHART ========================
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
                 let startDate = new Date();
@@ -308,7 +316,7 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
             
-            // ---------- Rendering tabs ----------
+            // ======================== RENDERING ========================
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -433,20 +441,6 @@
                 document.getElementById('app').innerHTML = html;
             }
             
-            function renderWalletTab() {
-                document.getElementById('app').innerHTML = `
-                    <div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr>
-                    <button id="topupBtn">💸 Пополнить Stars</button>
-                    <button id="withdrawBtn">💸 Вывести средства</button></div>`;
-                document.getElementById('topupBtn')?.addEventListener('click', () => {
-                    document.getElementById('topupModal').style.display = 'flex';
-                    updateTopupFee(0);
-                });
-                document.getElementById('withdrawBtn')?.addEventListener('click', () => {
-                    alert("Вывод средств временно недоступен");
-                });
-            }
-            
             async function renderAnalyticsTab() {
                 const volume = await supabase.rpc('get_volume_history', { days_limit: 30 });
                 const trades = await supabase.from('trades').select('*').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`).order('created_at', { ascending: false }).limit(50);
@@ -471,6 +465,20 @@
                 if (trades.data && trades.data.length) {
                     historyDiv.innerHTML = trades.data.map(t => `<div class="history-item">${t.buyer_id===userId?'Покупка':'Продажа'} ${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐<span class="small-text">${new Date(t.created_at).toLocaleString()}</span></div>`).join('');
                 } else historyDiv.innerHTML = '<p>Нет сделок</p>';
+            }
+            
+            async function renderWalletTab() {
+                document.getElementById('app').innerHTML = `
+                    <div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr>
+                    <button id="topupBtn">💸 Пополнить Stars</button>
+                    <button id="withdrawBtn">💸 Вывести средства</button></div>`;
+                document.getElementById('topupBtn')?.addEventListener('click', () => {
+                    document.getElementById('topupModal').style.display = 'flex';
+                    updateTopupFee(0);
+                });
+                document.getElementById('withdrawBtn')?.addEventListener('click', () => {
+                    document.getElementById('withdrawModal').style.display = 'flex';
+                });
             }
             
             async function renderSettingsTab() {
@@ -552,7 +560,7 @@
             document.querySelector('.close-modal')?.addEventListener('click', () => document.getElementById('notificationModal').style.display = 'none');
             document.getElementById('markReadBtn')?.addEventListener('click', async () => { await markNotificationsRead(); showNotificationsModal(); await updateNotificationBell(); });
             
-            // Модальное окно пополнения
+            // ======================== TOPUP LOGIC ========================
             let selectedAmount = null;
             function updateTopupFee(amount) {
                 const fee = Math.floor(amount * 0.05);
@@ -570,29 +578,56 @@
             });
             document.getElementById('setCustomAmount')?.addEventListener('click', () => {
                 const val = parseInt(document.getElementById('customTopupAmount').value);
-                if (!isNaN(val) && val >= 1 && val <= 10000) {
+                if (!isNaN(val) && val >= 1) {
                     selectedAmount = val;
                     document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected'));
                     updateTopupFee(selectedAmount);
                 } else {
-                    alert('Введите сумму от 1 до 10000');
+                    alert('Введите положительное число');
                 }
             });
-            document.getElementById('confirmTopupBtn')?.addEventListener('click', () => {
+            document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => {
                 if (!selectedAmount || selectedAmount < 1) {
                     alert('Выберите или введите сумму');
                     return;
                 }
                 document.getElementById('topupModal').style.display = 'none';
-                // Открываем чат с ботом и передаём параметр start=topup_XXX
-                const link = `https://t.me/VoxAction_Bot?start=topup_${selectedAmount}`;
-                tg.openTelegramLink(link);
+                // Вызываем правильную оплату через openInvoice
+                try {
+                    const response = await fetch('https://voxaction-bot.onrender.com/create-invoice', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, amount: selectedAmount })
+                    });
+                    const data = await response.json();
+                    if (data.ok && data.invoice_link) {
+                        tg.openInvoice(data.invoice_link, (status) => {
+                            if (status === 'paid') {
+                                alert('Баланс пополнен!');
+                                refreshAll();
+                            }
+                        });
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'Не удалось создать счёт'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Ошибка соединения. Попробуйте позже.');
+                }
             });
             document.getElementById('closeTopupModal')?.addEventListener('click', () => {
                 document.getElementById('topupModal').style.display = 'none';
             });
             
-            // ---------- Start ----------
+            // ======================== WITHDRAW ========================
+            document.getElementById('closeWithdrawModal')?.addEventListener('click', () => {
+                document.getElementById('withdrawModal').style.display = 'none';
+            });
+            document.getElementById('closeWithdrawBtn')?.addEventListener('click', () => {
+                document.getElementById('withdrawModal').style.display = 'none';
+            });
+            
+            // ======================== START ========================
             currentUser = await getOrCreateUser();
             const savedTheme = localStorage.getItem('theme') || 'dark';
             const savedColor = localStorage.getItem('custom_color') || (savedTheme === 'light' ? '#0088cc' : '#38bdf8');
@@ -608,7 +643,7 @@
                     else if (tabName === 'stocks') await renderStocksTab();
                     else if (tabName === 'analytics') await renderAnalyticsTab();
                     else if (tabName === 'rating') await renderRatingTab();
-                    else if (tabName === 'wallet') renderWalletTab();
+                    else if (tabName === 'wallet') await renderWalletTab();
                     else if (tabName === 'settings') await renderSettingsTab();
                     await updateNotificationBell();
                 });
