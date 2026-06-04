@@ -93,21 +93,21 @@
     </div>
     <script>
         (async () => {
-            // ----------------------------- Drag tabs -----------------------------
+            // Drag tabs
             const tabsWrapper = document.querySelector('.tabs-wrapper');
             let isDown = false, startX, scrollLeft;
             tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
             window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
             window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
             
-            // ----------------------------- Telegram user -----------------------------
+            // Telegram
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
 
-            // ----------------------------- Supabase -----------------------------
+            // Supabase
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -116,7 +116,7 @@
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
             
-            // ----------------------------- User & DB -----------------------------
+            // DB helpers
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -127,7 +127,6 @@
                 }
                 return data;
             }
-            
             async function getActiveOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
                 if (error) throw new Error(error.message);
@@ -160,7 +159,6 @@
                 if (!data.success) throw new Error(data.error);
                 return true;
             }
-            
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(error.message);
@@ -220,7 +218,7 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
-            // ----------------------------- Chart with timeframes -----------------------------
+            // Chart with timeframes
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
                 let startDate = new Date();
@@ -278,7 +276,7 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
             
-            // ----------------------------- Tabs rendering -----------------------------
+            // Stocks tab
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -357,13 +355,40 @@
             
             async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); await updateNotificationBell(); }
             
+            // Profile tab
             async function renderProfileTab() {
                 const stats = await getUserStats();
                 const achievements = await getAchievements();
                 const unread = await getUnreadCount();
                 const refCode = currentUser.referral_code;
-                const refLink = `https://t.me/ваш_бот?start=${refCode}`;
-                const html = `<div class="card"><div class="flex-between"><h2>👤 Профиль</h2><div class="notification-bell" id="notifBell">🔔${unread>0?`<span class="badge-count">${unread>9?'9+':unread}</span>`:''}</div></div><p><strong>${currentUser.username}</strong></p><p>ID: ${userId}</p><p>📌 Акций: ${fromCents(currentUser.shares)}</p><p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p><hr><h3>📊 Статистика</h3><p>📈 Всего сделок: ${stats.totalTrades}</p><p>💰 Объём: ${stats.totalVolume.toFixed(2)} ⭐</p><hr><h3>🏆 Достижения</h3><div id="achievementsList">${achievements.length?achievements.map(a=>`<div class="achievement-item">${a.achievements.icon} ${a.achievements.name} - ${a.achievements.description}</div>`).join(''):'<p>Нет</p>'}</div><hr><h3>🔗 Реферальная ссылка</h3><div class="small-text" style="background:var(--bg); padding:8px; border-radius:12px;">${refLink}</div><p class="small-text">Приглашайте друзей – получайте бонусы!</p></div>`;
+                const refLink = `https://t.me/VoxAction_Bot?start=${refCode}`;
+                const html = `
+                    <div class="card" style="text-align: center;">
+                        <div class="flex-between" style="justify-content: space-between; align-items: center;">
+                            <h2>👤 Профиль</h2>
+                            <div class="notification-bell" id="notifBell" style="cursor:pointer;">🔔 ${unread>0?`<span class="badge-count">${unread>9?'9+':unread}</span>`:''}</div>
+                        </div>
+                        <p style="font-size: 24px; font-weight: bold; margin: 8px 0;">${currentUser.username}</p>
+                        <p style="color: var(--text-secondary);">ID: ${userId}</p>
+                        <div style="display: flex; justify-content: space-around; margin: 20px 0;">
+                            <div><p style="font-size: 28px; font-weight: bold;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
+                            <div><p style="font-size: 28px; font-weight: bold;">${fromCents(currentUser.stars_balance)}</p><p class="small-text">Stars</p></div>
+                        </div>
+                        <hr>
+                        <h3>📊 Статистика</h3>
+                        <div style="display: flex; justify-content: space-around;">
+                            <div><p style="font-size: 20px;">${stats.totalTrades}</p><p class="small-text">Сделок</p></div>
+                            <div><p style="font-size: 20px;">${stats.totalVolume.toFixed(2)} ⭐</p><p class="small-text">Объём</p></div>
+                        </div>
+                        <hr>
+                        <h3>🏆 Достижения</h3>
+                        <div id="achievementsList">${achievements.length ? achievements.map(a=>`<div class="achievement-item">${a.achievements.icon || '🏅'} ${a.achievements.name}<span class="small-text"> - ${a.achievements.description}</span></div>`).join('') : '<p>Нет достижений</p>'}</div>
+                        <hr>
+                        <h3>🔗 Реферальная ссылка</h3>
+                        <div class="small-text" style="background: var(--bg); padding: 8px; border-radius: 12px; word-break: break-all;">${refLink}</div>
+                        <p class="small-text" style="margin-top: 8px;">Приглашайте друзей – получайте бонусы!</p>
+                    </div>
+                `;
                 document.getElementById('app').innerHTML = html;
                 document.getElementById('notifBell')?.addEventListener('click', showNotificationsModal);
             }
@@ -382,8 +407,8 @@
                     <div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr>
                     <button id="topupBtn">💸 Пополнить Stars (10 ⭐)</button>
                     <button id="withdrawGiftBtn">🎁 Вывести через подарки</button></div>`;
-                document.getElementById('topupBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/ваш_бот?start=topup_10'));
-                document.getElementById('withdrawGiftBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/ваш_бот?start=withdraw'));
+                document.getElementById('topupBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/VoxAction_Bot?start=topup_10'));
+                document.getElementById('withdrawGiftBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw'));
             }
             
             async function renderAnalyticsTab() {
@@ -392,7 +417,6 @@
                 let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%; height:150px;"></canvas><p class="small-text">Объём за 30 дней</p></div>
                            <div class="card"><h2>📜 История сделок</h2><div id="historyList"></div></div>`;
                 document.getElementById('app').innerHTML = html;
-                // Простой canvas для объёмов
                 if (volume.data && volume.data.length) {
                     const canvas = document.getElementById('volCanvas');
                     const ctx = canvas.getContext('2d');
@@ -457,7 +481,7 @@
             document.querySelector('.close-modal')?.addEventListener('click', () => document.getElementById('notificationModal').style.display = 'none');
             document.getElementById('markReadBtn')?.addEventListener('click', async () => { await markNotificationsRead(); showNotificationsModal(); await updateNotificationBell(); });
             
-            // ----------------------------- Startup -----------------------------
+            // Initialization
             currentUser = await getOrCreateUser();
             setTheme(localStorage.getItem('theme') || 'light');
             await renderStocksTab();
