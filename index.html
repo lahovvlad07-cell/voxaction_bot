@@ -6,7 +6,8 @@
     <title>Акции – биржа</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.js"></script>
+    <!-- Используем альтернативный CDN для lightweight-charts -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
     <style>
         * { box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto; margin: 0; padding: 16px; background: #f0f2f5; }
@@ -16,7 +17,6 @@
         button:active { transform: scale(0.97); }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 40px; font-size: 16px; background: #fafafa; }
         .buy-btn { background: #2ecc71; width: auto; padding: 6px 16px; margin: 0; }
-        .sell-btn { background: #e67e22; width: auto; padding: 6px 16px; margin: 0; }
         .order-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
         .status { font-size: 12px; color: gray; margin-top: 8px; }
         #price-chart { width: 100%; height: 300px; margin-top: 8px; }
@@ -51,11 +51,8 @@
                     .select('*')
                     .eq('id', userId)
                     .maybeSingle();
-
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
-
                 if (!data) {
-                    // Пользователя нет – создаём
                     const { data: newUser, error: insertError } = await supabase
                         .from('users')
                         .insert([{ id: userId, username: username, shares: 100, stars_balance: 50 }])
@@ -92,12 +89,10 @@
             // ----------------------------- 6. Создание ордера -----------------------------
             async function createOrder(amount, price) {
                 if (currentUser.shares < amount) throw new Error(`Недостаточно акций. У вас ${currentUser.shares}`);
-                // Создаём ордер
                 const { error: orderError } = await supabase
                     .from('orders')
                     .insert([{ seller_id: userId, amount, price_per_share: price, status: 'active' }]);
                 if (orderError) throw new Error(`Ошибка создания ордера: ${orderError.message}`);
-                // Списываем акции у продавца
                 const newShares = currentUser.shares - amount;
                 const { error: updateError } = await supabase
                     .from('users')
@@ -108,51 +103,19 @@
                 return true;
             }
 
-            // ----------------------------- 7. Покупка (сделка) -----------------------------
+            // ----------------------------- 7. Покупка -----------------------------
             async function executeTrade(order) {
                 const totalStars = order.amount * order.price_per_share;
                 if (currentUser.stars_balance < totalStars) throw new Error(`Недостаточно Stars. Нужно ${totalStars}, у вас ${currentUser.stars_balance}`);
-
-                // Начинаем транзакцию (последовательно)
-                // 1. Списать Stars у покупателя
+                // Транзакция
                 const newBuyerStars = currentUser.stars_balance - totalStars;
-                const { error: buyerStarsErr } = await supabase
-                    .from('users')
-                    .update({ stars_balance: newBuyerStars })
-                    .eq('id', userId);
-                if (buyerStarsErr) throw new Error(`Ошибка списания Stars: ${buyerStarsErr.message}`);
-
-                // 2. Добавить акции покупателю
                 const newBuyerShares = currentUser.shares + order.amount;
-                const { error: buyerSharesErr } = await supabase
-                    .from('users')
-                    .update({ shares: newBuyerShares })
-                    .eq('id', userId);
-                if (buyerSharesErr) throw new Error(`Ошибка начисления акций: ${buyerSharesErr.message}`);
-
-                // 3. Получить текущий баланс продавца и зачислить Stars
-                const { data: seller, error: sellerFetchErr } = await supabase
-                    .from('users')
-                    .select('stars_balance')
-                    .eq('id', order.seller_id)
-                    .single();
-                if (sellerFetchErr) throw new Error(`Ошибка получения продавца: ${sellerFetchErr.message}`);
-
+                await supabase.from('users').update({ stars_balance: newBuyerStars }).eq('id', userId);
+                await supabase.from('users').update({ shares: newBuyerShares }).eq('id', userId);
+                const { data: seller } = await supabase.from('users').select('stars_balance').eq('id', order.seller_id).single();
                 const newSellerStars = seller.stars_balance + totalStars;
-                const { error: sellerStarsErr } = await supabase
-                    .from('users')
-                    .update({ stars_balance: newSellerStars })
-                    .eq('id', order.seller_id);
-                if (sellerStarsErr) throw new Error(`Ошибка перевода Stars продавцу: ${sellerStarsErr.message}`);
-
-                // 4. Закрыть ордер
-                const { error: orderUpdateErr } = await supabase
-                    .from('orders')
-                    .update({ status: 'completed' })
-                    .eq('id', order.id);
-                if (orderUpdateErr) throw new Error(`Ошибка закрытия ордера: ${orderUpdateErr.message}`);
-
-                // Обновляем локального пользователя
+                await supabase.from('users').update({ stars_balance: newSellerStars }).eq('id', order.seller_id);
+                await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
                 currentUser.stars_balance = newBuyerStars;
                 currentUser.shares = newBuyerShares;
                 return true;
@@ -160,29 +123,38 @@
 
             // ----------------------------- 8. Отрисовка графика -----------------------------
             function renderChart(history) {
-                const chartContainer = document.getElementById('price-chart');
-                if (!chartContainer) return;
+                const container = document.getElementById('price-chart');
+                if (!container) return;
                 if (!history || history.length === 0) {
-                    chartContainer.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных для графика</p>';
+                    container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных для графика</p>';
                     return;
                 }
-                const chart = LightweightCharts.createChart(chartContainer, {
-                    width: chartContainer.clientWidth,
-                    height: 300,
-                    layout: { backgroundColor: '#ffffff', textColor: '#333' },
-                    grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
-                    priceScale: { borderColor: '#cccccc' },
-                    timeScale: { borderColor: '#cccccc', timeVisible: true, secondsVisible: false },
-                });
-                const lineSeries = chart.addLineSeries({ color: '#0088cc', lineWidth: 2 });
-                const chartData = history.map(h => ({
-                    time: Math.floor(new Date(h.created_at).getTime() / 1000),
-                    value: h.price
-                }));
-                lineSeries.setData(chartData);
-                window.addEventListener('resize', () => {
-                    chart.applyOptions({ width: chartContainer.clientWidth });
-                });
+                // Проверка, что библиотека загружена
+                if (typeof LightweightCharts === 'undefined') {
+                    console.error("LightweightCharts не загрузилась");
+                    container.innerHTML = '<p style="text-align:center; padding:20px;">Ошибка загрузки графика</p>';
+                    return;
+                }
+                try {
+                    const chart = LightweightCharts.createChart(container, {
+                        width: container.clientWidth,
+                        height: 300,
+                        layout: { backgroundColor: '#ffffff', textColor: '#333' },
+                        grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
+                        priceScale: { borderColor: '#cccccc' },
+                        timeScale: { borderColor: '#cccccc', timeVisible: true, secondsVisible: false },
+                    });
+                    const lineSeries = chart.addLineSeries({ color: '#0088cc', lineWidth: 2 });
+                    const chartData = history.map(h => ({
+                        time: Math.floor(new Date(h.created_at).getTime() / 1000),
+                        value: h.price
+                    }));
+                    lineSeries.setData(chartData);
+                    window.addEventListener('resize', () => chart.applyOptions({ width: container.clientWidth }));
+                } catch (err) {
+                    console.error("Ошибка создания графика:", err);
+                    container.innerHTML = '<p style="text-align:center; padding:20px;">Ошибка отображения графика</p>';
+                }
             }
 
             // ----------------------------- 9. Отрисовка UI -----------------------------
@@ -210,16 +182,9 @@
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
-
-                // Отрисовка графика
-                if (priceHistory && priceHistory.length) {
-                    renderChart(priceHistory);
-                } else {
-                    const chartDiv = document.getElementById('price-chart');
-                    if (chartDiv) chartDiv.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных для графика</p>';
-                }
-
-                // Список ордеров
+                // График
+                renderChart(priceHistory);
+                // Ордера
                 const ordersDiv = document.getElementById('ordersList');
                 if (orders.length === 0) {
                     ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
@@ -246,8 +211,6 @@
                         });
                     });
                 }
-
-                // Обработчик создания ордера
                 document.getElementById('sellBtn').addEventListener('click', async () => {
                     const amount = parseInt(document.getElementById('sellAmount').value);
                     const price = parseInt(document.getElementById('sellPrice').value);
