@@ -85,27 +85,17 @@
         .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
         .filter-btn, .sort-btn, .timeframe-btn { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
         .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .history-item, .achievement-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .stars-rating { color: var(--accent); }
+        .ref-link { background: var(--bg); padding: 8px; border-radius: 12px; margin-top: 8px; }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: var(--card-bg); border-radius: 24px; max-width: 90%; width: 400px; max-height: 70%; overflow-y: auto; padding: 20px; }
-        .notification-item { padding: 8px 0; border-bottom: 1px solid var(--border); }
         .close-modal { float: right; cursor: pointer; font-size: 24px; }
+        .notification-bell { display: inline-block; margin-left: 8px; cursor: pointer; background: var(--primary); border-radius: 30px; padding: 2px 8px; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="loading-bar" id="loadingBar"><div class="loading-progress" id="loadingProgress"></div></div>
-    <div id="notificationBell" style="position: fixed; top: 12px; right: 12px; background: var(--primary); border-radius: 30px; padding: 6px 10px; z-index: 200; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-        <span>🔔</span>
-        <span id="notifCount" style="background: red; border-radius: 20px; padding: 2px 6px; font-size: 12px; color: white; display: none;">0</span>
-    </div>
-    <div id="notificationModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h3>Уведомления</h3>
-            <div id="notificationsList">Загрузка...</div>
-            <button id="markReadBtn">Отметить все как прочитанные</button>
-        </div>
-    </div>
     <div id="app">Загрузка...</div>
     <div class="tabs-wrapper" id="tabsWrapper">
         <div class="tabs" id="tabs">
@@ -115,6 +105,14 @@
             <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
             <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
             <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
+        </div>
+    </div>
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Уведомления</h3>
+            <div id="notificationsList">Загрузка...</div>
+            <button id="markReadBtn">Отметить все как прочитанные</button>
         </div>
     </div>
     <script>
@@ -187,16 +185,6 @@
                 if (error) return 0;
                 return data.length;
             }
-            async function updateNotificationBell() {
-                const count = await fetchUnreadCount();
-                const notifSpan = document.getElementById('notifCount');
-                if (count > 0) {
-                    notifSpan.textContent = count > 9 ? '9+' : count;
-                    notifSpan.style.display = 'inline-block';
-                } else {
-                    notifSpan.style.display = 'none';
-                }
-            }
             async function loadNotifications() {
                 const { data, error } = await supabase.rpc('get_unread_notifications', { p_user_id: userId });
                 if (error) throw error;
@@ -205,7 +193,6 @@
             async function markAllRead() {
                 await supabase.rpc('mark_notifications_read', { p_user_id: userId });
                 await updateNotificationBell();
-                const modal = document.getElementById('notificationModal');
                 if (modal.style.display === 'flex') showNotificationsModal();
             }
             async function showNotificationsModal() {
@@ -216,7 +203,7 @@
                 const notifications = await loadNotifications();
                 if (notifications.length === 0) listDiv.innerHTML = '<p>Нет новых уведомлений</p>';
                 else {
-                    listDiv.innerHTML = notifications.map(n => `<div class="notification-item">${n.text}<br><span class="small-text">${new Date(n.created_at).toLocaleString()}</span></div>`).join('');
+                    listDiv.innerHTML = notifications.map(n => `<div class="notification-item" style="padding:8px 0; border-bottom:1px solid var(--border);">${n.text}<br><span class="small-text">${new Date(n.created_at).toLocaleString()}</span></div>`).join('');
                 }
             }
             document.querySelector('.close-modal').addEventListener('click', () => {
@@ -226,7 +213,6 @@
                 await markAllRead();
                 showNotificationsModal();
             });
-            document.getElementById('notificationBell').addEventListener('click', showNotificationsModal);
             
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
@@ -306,6 +292,28 @@
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
                 return true;
+            }
+            async function getAchievements() {
+                const { data, error } = await supabase.from('user_achievements').select('achievement_id, achievements(name, description, icon)').eq('user_id', userId);
+                if (error) throw error;
+                return data;
+            }
+            async function getSellerRating(sellerId) {
+                const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
+                if (error) return null;
+                if (!data.length) return null;
+                const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+                return avg;
+            }
+            async function getUserStats() {
+                const { data: trades, error } = await supabase
+                    .from('trades')
+                    .select('amount, price_per_share, total_stars')
+                    .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+                if (error) return { totalTrades: 0, totalVolume: 0 };
+                const totalTrades = trades.length;
+                const totalVolume = trades.reduce((sum, t) => sum + (t.total_stars / 100), 0);
+                return { totalTrades, totalVolume };
             }
             
             let currentTimeframe = '30d';
@@ -533,6 +541,9 @@
                     let orders = [];
                     if (currentOrdersFilter === 'all') orders = await getActiveOrders();
                     else orders = await getUserOrders();
+                    for (let o of orders) {
+                        o.seller_rating = await getSellerRating(o.seller_id);
+                    }
                     orders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
                     const priceHistory = await fetchPriceHistoryForTimeframe();
                     const recentTrades = await getRecentTrades(10);
@@ -576,7 +587,13 @@
                         orders.forEach(order => {
                             const div = document.createElement('div'); div.className = 'order-item';
                             const isOwn = order.seller_id === userId;
-                            div.innerHTML = `<div class="order-info"><div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐</div><div class="small-text">Продавец ID: ${order.seller_id}</div></div><div class="order-actions">${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>` : `<button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`}</div>`;
+                            let ratingHtml = '';
+                            if (order.seller_rating) {
+                                const fullStars = Math.floor(order.seller_rating);
+                                const half = (order.seller_rating % 1) >= 0.5;
+                                ratingHtml = '<span class="stars-rating">' + '★'.repeat(fullStars) + (half ? '½' : '') + '⭐'.repeat(5 - Math.ceil(order.seller_rating)) + '</span>';
+                            }
+                            div.innerHTML = `<div class="order-info"><div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐</div><div class="small-text">Продавец ID: ${order.seller_id} ${ratingHtml}</div></div><div class="order-actions">${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>` : `<button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`}</div>`;
                             ordersDiv.appendChild(div);
                         });
                         document.querySelectorAll('.buy-btn').forEach(btn => {
@@ -664,19 +681,61 @@
                         <p>⭐ Баланс Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p>
                         <p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p>
                         <hr>
-                        <p>Пополнение Stars через Telegram Stars API. Нажмите кнопку ниже, чтобы пополнить баланс.</p>
+                        <p>Пополнение Stars через Telegram Stars API.</p>
                         <button id="realTopupBtn">💸 Пополнить Stars (10 ⭐)</button>
+                        <button id="withdrawGiftBtn">🎁 Вывести через подарки</button>
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
                 const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
-                document.getElementById('realTopupBtn')?.addEventListener('click', async () => {
-                    // Создаём инвойс на 10 звёзд (1000 копеек)
-                    const tg = window.Telegram.WebApp;
-                    // Временно покажем alert
-                    alert('Функция пополнения в разработке. Бот должен обрабатывать команду /topup и создавать инвойс.');
+                document.getElementById('realTopupBtn')?.addEventListener('click', () => {
+                    tg.openTelegramLink(`https://t.me/${tg.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'bot'}?start=topup_10`);
+                });
+                document.getElementById('withdrawGiftBtn')?.addEventListener('click', () => {
+                    tg.openTelegramLink(`https://t.me/${tg.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'bot'}?start=withdraw`);
                 });
             }
+            
+            async function renderProfileTab() {
+                const stats = await getUserStats();
+                const achievements = await getAchievements();
+                const unreadCount = await fetchUnreadCount();
+                const refCode = currentUser.referral_code || (await supabase.from('users').select('referral_code').eq('id', userId).single()).data.referral_code;
+                const refLink = `https://t.me/${tg.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'bot'}?start=${refCode}`;
+                const html = `
+                    <div class="card">
+                        <div class="flex-between">
+                            <h2>👤 Профиль</h2>
+                            <div class="notification-bell" id="notifBell">🔔 ${unreadCount > 0 ? `<span style="background:red; border-radius:20px; padding:0 5px; margin-left:4px;">${unreadCount}</span>` : ''}</div>
+                        </div>
+                        <p><strong>${currentUser.username || finalUsername}</strong></p>
+                        <p>ID: ${userId}</p>
+                        <p>📌 Акций: ${fromCents(currentUser.shares)}</p>
+                        <p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p>
+                        <hr>
+                        <h3>📊 Статистика</h3>
+                        <p>📈 Всего сделок: ${stats.totalTrades}</p>
+                        <p>💰 Объём торгов: ${stats.totalVolume.toFixed(2)} ⭐</p>
+                        <hr>
+                        <h3>🏆 Достижения</h3>
+                        <div id="achievementsList"></div>
+                        <hr>
+                        <h3>🔗 Реферальная ссылка</h3>
+                        <div class="ref-link"><code>${refLink}</code></div>
+                        <p class="small-text">Приглашайте друзей – получайте бонусы!</p>
+                    </div>
+                `;
+                document.getElementById('app').innerHTML = html;
+                const achievementsDiv = document.getElementById('achievementsList');
+                if (achievements.length === 0) achievementsDiv.innerHTML = '<p>Нет достижений</p>';
+                else {
+                    achievementsDiv.innerHTML = achievements.map(a => `<div class="achievement-item"><span>${a.achievements.icon} ${a.achievements.name}</span><span class="small-text">${a.achievements.description}</span></div>`).join('');
+                }
+                document.getElementById('notifBell')?.addEventListener('click', showNotificationsModal);
+                const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none';
+            }
+            
+            async function renderRatingTab() { try { const leaders = await getLeaderboard(20); let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2><div id="leaderboardList">`; if (leaders.length === 0) html += '<p>Нет данных</p>'; else { leaders.forEach((user, idx) => { html += `<div class="leaderboard-item"><div class="rank">${idx+1}</div><div class="user-name">${user.username || "Аноним"}</div><div class="user-shares">${fromCents(user.shares)} акций</div></div>`; }); } html += `</div></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; } }
             
             async function renderSettingsTab() {
                 const hideRating = currentUser.hide_rating || false;
@@ -712,8 +771,11 @@
             }
             
             async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); await updateNotificationBell(); }
-            function renderProfileTab() { document.getElementById('app').innerHTML = `<div class="card"><h2>👤 Профиль</h2><p><strong>${currentUser.username || finalUsername}</strong></p><p>ID: ${userId}</p><p>📌 Акций: ${fromCents(currentUser.shares)}</p><p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p><hr><p class="small-text">Виртуальная биржа акций за Telegram Stars. Торгуйте, создавайте ордера, смотрите график.</p></div>`; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; }
-            async function renderRatingTab() { try { const leaders = await getLeaderboard(20); let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2><div id="leaderboardList">`; if (leaders.length === 0) html += '<p>Нет данных</p>'; else { leaders.forEach((user, idx) => { html += `<div class="leaderboard-item"><div class="rank">${idx+1}</div><div class="user-name">${user.username || "Аноним"}</div><div class="user-shares">${fromCents(user.shares)} акций</div></div>`; }); } html += `</div></div>`; document.getElementById('app').innerHTML = html; const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'none'; } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; } }
+            async function updateNotificationBell() {
+                const count = await fetchUnreadCount();
+                const bell = document.querySelector('#notifBell');
+                if (bell) bell.innerHTML = `🔔 ${count > 0 ? `<span style="background:red; border-radius:20px; padding:0 5px; margin-left:4px;">${count}</span>` : ''}`;
+            }
             
             currentUser = await getOrCreateUser();
             let activeTab = 'stocks';
@@ -728,7 +790,7 @@
                     tab.classList.add('active');
                     const bar = document.getElementById('loadingBar'); if (bar) bar.style.display = 'block';
                     setProgress(30);
-                    if (tabName === 'profile') renderProfileTab();
+                    if (tabName === 'profile') await renderProfileTab();
                     else if (tabName === 'stocks') await renderStocksTab();
                     else if (tabName === 'analytics') await renderAnalyticsTab();
                     else if (tabName === 'rating') await renderRatingTab();
