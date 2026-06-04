@@ -7,44 +7,73 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto; background: #f0f2f5; padding-bottom: 80px; }
-        .card { background: white; border-radius: 24px; padding: 16px; margin: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .tabs-wrapper {
-            position: fixed; bottom: 0; left: 0; right: 0; background: white;
-            border-top: 1px solid #e0e0e0; padding: 4px 0; z-index: 100;
-            overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        input, button, textarea { user-select: text; }
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: white;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e0e0e0;
+            --primary: #0088cc;
+            --success: #2ecc71;
+            --danger: #e67e22;
         }
+        body.dark {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --primary: #38bdf8;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
+            background: var(--bg);
+            color: var(--text);
+            padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+            transition: background 0.2s, color 0.2s;
+        }
+        .card { background: var(--card-bg); border-radius: 24px; padding: 16px; margin: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .tabs-wrapper { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); border-top: 1px solid var(--border); padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px)); z-index: 100; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; cursor: grab; }
+        .tabs-wrapper:active { cursor: grabbing; }
         .tabs { display: inline-flex; gap: 8px; padding: 0 12px; }
-        .tab {
-            display: inline-flex; flex-direction: column; align-items: center;
-            padding: 8px 12px; border-radius: 40px; background: #e0e0e0;
-            cursor: pointer; min-width: 70px;
-        }
-        .tab.active { background: #0088cc; color: white; }
-        .tab-icon { font-size: 22px; }
-        .tab-label { font-size: 12px; font-weight: 500; margin-top: 4px; }
-        button, .buy-btn { background: #0088cc; color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; }
-        .buy-btn { width: auto; padding: 6px 16px; margin: 0; }
-        .cancel-btn { background: #e67e22; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 40px; font-size: 16px; background: #fafafa; }
-        .order-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .tab { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 40px; background: var(--border); transition: all 0.2s; cursor: pointer; min-width: 70px; }
+        .tab.active { background: var(--primary); color: white; }
+        .tab-icon { font-size: 22px; margin-bottom: 4px; }
+        .tab-label { font-size: 12px; font-weight: 500; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
+        .buy-btn, .cancel-btn { width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
+        .cancel-btn { background: var(--danger); }
+        .order-item { border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .price { font-size: 24px; font-weight: bold; color: #0088cc; }
-        .info-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        .info-card { background: #f8f9fa; border-radius: 16px; padding: 12px; text-align: center; }
-        .info-label { font-size: 12px; color: #666; }
-        .info-value { font-size: 20px; font-weight: bold; }
-        .chart-container { width: 100%; height: 250px; margin: 12px 0; background: white; border-radius: 12px; overflow: hidden; }
+        .price { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .small-text { font-size: 12px; color: var(--text-secondary); }
+        .chart-container { width: 100%; height: 250px; margin: 12px 0; background: var(--card-bg); border-radius: 12px; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
-        .leaderboard-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .ticker { background: var(--bg); border-radius: 20px; padding: 8px 12px; overflow: hidden; white-space: nowrap; margin-bottom: 12px; }
+        .ticker-content { display: inline-block; animation: scroll 20s linear infinite; }
+        @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .trade-item { display: inline-block; margin-right: 30px; }
+        .info-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .info-card { background: var(--bg); border-radius: 16px; padding: 12px; text-align: center; }
+        .info-label { font-size: 12px; color: var(--text-secondary); }
+        .info-value { font-size: 20px; font-weight: bold; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
         .rank { font-weight: bold; width: 40px; }
         .user-name { flex: 2; }
         .user-shares { font-weight: bold; }
         .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-        .filter-btn, .sort-btn { background: #e9ecef; color: #333; margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; }
-        .filter-btn.active, .sort-btn.active { background: #0088cc; color: white; }
-        .error { color: red; background: #ffe0e0; padding: 12px; border-radius: 12px; }
+        .filter-btn, .sort-btn, .timeframe-btn { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
+        .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: var(--primary); color: white; }
+        .history-item, .achievement-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .stars-rating { color: #fbbf24; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--card-bg); border-radius: 24px; max-width: 90%; width: 400px; max-height: 70%; overflow-y: auto; padding: 20px; }
+        .close-modal { float: right; cursor: pointer; font-size: 24px; }
+        .notification-bell { position: relative; display: inline-block; cursor: pointer; }
+        .badge-count { position: absolute; top: -8px; right: -12px; background: red; color: white; font-size: 10px; border-radius: 20px; padding: 2px 6px; }
     </style>
 </head>
 <body>
@@ -59,35 +88,35 @@
             <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
         </div>
     </div>
-
+    <div id="notificationModal" class="modal">
+        <div class="modal-content"><span class="close-modal">&times;</span><h3>Уведомления</h3><div id="notificationsList"></div><button id="markReadBtn">Отметить все</button></div>
+    </div>
     <script>
         (async () => {
-            // ------------------------------------------------------------------
-            // 1. Telegram user
+            // ----------------------------- Drag tabs -----------------------------
+            const tabsWrapper = document.querySelector('.tabs-wrapper');
+            let isDown = false, startX, scrollLeft;
+            tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
+            window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
+            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
+            
+            // ----------------------------- Telegram user -----------------------------
             const tg = window.Telegram.WebApp;
-            tg.ready();
-            tg.expand();
+            tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
-            if (!userId) {
-                document.getElementById('app').innerHTML = '<div class="card error">Ошибка: не удалось определить пользователя. Запустите через Telegram.</div>';
-                return;
-            }
+            if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
 
-            // ------------------------------------------------------------------
-            // 2. Supabase client
+            // ----------------------------- Supabase -----------------------------
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
             let currentUser = null;
-
-            // helpers
+            
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
-
-            // ------------------------------------------------------------------
-            // 3. Database functions (no RPC dependencies)
+            
+            // ----------------------------- User & DB -----------------------------
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -98,143 +127,115 @@
                 }
                 return data;
             }
-
+            
             async function getActiveOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
-                if (error) throw new Error(`Ошибка загрузки ордеров: ${error.message}`);
+                if (error) throw new Error(error.message);
                 return data || [];
             }
-
             async function getUserOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('seller_id', userId).eq('status', 'active');
-                if (error) throw new Error(`Ошибка загрузки моих ордеров: ${error.message}`);
+                if (error) throw new Error(error.message);
                 return data || [];
             }
-
-            async function createOrder(amount, price) {
-                const amountCents = toCents(amount);
-                const priceCents = toCents(price);
-                if (amountCents < 100) throw new Error('Минимальное количество – 1');
-                if (priceCents < 100) throw new Error('Минимальная цена – 1 Star');
-                if (currentUser.shares < amountCents) throw new Error('Недостаточно акций');
-
-                // Начинаем транзакцию (вручную)
-                const { error: orderError } = await supabase.from('orders').insert([{ seller_id: userId, amount: amountCents, price_per_share: priceCents, status: 'active' }]);
-                if (orderError) throw new Error(`Ошибка создания ордера: ${orderError.message}`);
-                const newShares = currentUser.shares - amountCents;
-                const { error: updateError } = await supabase.from('users').update({ shares: newShares }).eq('id', userId);
-                if (updateError) throw new Error(`Ошибка списания акций: ${updateError.message}`);
-                currentUser.shares = newShares;
-                return true;
-            }
-
             async function cancelOrder(orderId) {
-                // Сначала получаем ордер
-                const { data: order, error: fetchErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
-                if (fetchErr) throw new Error(`Ошибка получения ордера: ${fetchErr.message}`);
-                if (order.status !== 'active') throw new Error('Ордер уже не активен');
-                if (order.seller_id !== userId) throw new Error('Вы не владелец ордера');
-                // Возвращаем акции продавцу
-                const newShares = currentUser.shares + order.amount;
-                const { error: updateErr } = await supabase.from('users').update({ shares: newShares }).eq('id', userId);
-                if (updateErr) throw new Error(`Ошибка возврата акций: ${updateErr.message}`);
-                // Закрываем ордер
-                const { error: closeErr } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
-                if (closeErr) throw new Error(`Ошибка отмены ордера: ${closeErr.message}`);
-                currentUser.shares = newShares;
+                const { data, error } = await supabase.rpc('cancel_order', { p_order_id: orderId, p_user_id: userId });
+                if (error) throw new Error(error.message);
+                if (!data.success) throw new Error(data.error);
                 return true;
             }
-
-            async function executeTrade(orderId, buyAmountCents) {
-                // Получаем ордер
-                const { data: order, error: fetchErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
-                if (fetchErr) throw new Error(`Ошибка получения ордера: ${fetchErr.message}`);
-                if (order.status !== 'active') throw new Error('Ордер уже не активен');
-                if (order.seller_id === userId) throw new Error('Нельзя купить свой ордер');
-                const actualBuy = Math.min(buyAmountCents, order.amount);
-                if (actualBuy <= 0) throw new Error('Некорректное количество');
-                const totalStars = actualBuy * order.price_per_share / 100;
-                if (currentUser.stars_balance < totalStars) throw new Error(`Недостаточно Stars. Нужно ${totalStars.toFixed(2)}`);
-
-                // Обновляем баланс покупателя
-                const newBuyerStars = currentUser.stars_balance - totalStars;
-                const newBuyerShares = currentUser.shares + actualBuy;
-                // Получаем продавца
-                const { data: seller, error: sellerErr } = await supabase.from('users').select('stars_balance').eq('id', order.seller_id).single();
-                if (sellerErr) throw new Error(`Ошибка получения продавца: ${sellerErr.message}`);
-                const newSellerStars = seller.stars_balance + totalStars;
-
-                // Выполняем обновления
-                const { error: buyerStarsErr } = await supabase.from('users').update({ stars_balance: newBuyerStars }).eq('id', userId);
-                if (buyerStarsErr) throw new Error(`Ошибка списания Stars: ${buyerStarsErr.message}`);
-                const { error: buyerSharesErr } = await supabase.from('users').update({ shares: newBuyerShares }).eq('id', userId);
-                if (buyerSharesErr) throw new Error(`Ошибка начисления акций: ${buyerSharesErr.message}`);
-                const { error: sellerStarsErr } = await supabase.from('users').update({ stars_balance: newSellerStars }).eq('id', order.seller_id);
-                if (sellerStarsErr) throw new Error(`Ошибка перевода Stars продавцу: ${sellerStarsErr.message}`);
-
-                // Обновляем ордер
-                if (actualBuy === order.amount) {
-                    await supabase.from('orders').update({ status: 'completed' }).eq('id', orderId);
-                } else {
-                    const remaining = order.amount - actualBuy;
-                    await supabase.from('orders').update({ amount: remaining }).eq('id', orderId);
-                }
-                // Записываем цену в историю
-                await supabase.from('price_history').insert([{ price: order.price_per_share }]);
-                // Записываем сделку в trades
-                await supabase.from('trades').insert([{ order_id: orderId, seller_id: order.seller_id, buyer_id: userId, amount: actualBuy, price_per_share: order.price_per_share, total_stars: totalStars }]);
-
-                currentUser.stars_balance = newBuyerStars;
-                currentUser.shares = newBuyerShares;
+            async function createOrder(amount, price) {
+                const amountCents = toCents(amount), priceCents = toCents(price);
+                if (amountCents < 100) throw new Error('Минимум 1 акция');
+                if (priceCents < 100) throw new Error('Минимум 1 Star');
+                const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amountCents, p_price: priceCents });
+                if (error) throw new Error(error.message);
+                if (!data.success) throw new Error(data.error);
+                currentUser.shares -= amountCents;
                 return true;
             }
-
+            async function executePartialTrade(orderId, buyAmountCents) {
+                const { data, error } = await supabase.rpc('execute_trade_partial', { p_order_id: orderId, p_buyer_id: userId, p_buy_amount: buyAmountCents });
+                if (error) throw new Error(error.message);
+                if (!data.success) throw new Error(data.error);
+                return true;
+            }
+            
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
-                if (error) throw new Error(`Ошибка загрузки истории цен: ${error.message}`);
+                if (error) throw new Error(error.message);
                 return data || [];
             }
-
             async function getRecentTrades(limit = 10) {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
-                if (error) throw new Error(`Ошибка загрузки сделок: ${error.message}`);
+                if (error) throw new Error(error.message);
                 return data || [];
             }
-
             async function getCurrentPrice() {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
-                if (error) throw new Error(`Ошибка загрузки сделок для цены: ${error.message}`);
-                if (!data || data.length === 0) return 100;
+                if (error || !data || data.length === 0) return 100;
                 let totalAmount = 0, totalStars = 0;
                 for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
                 return totalAmount > 0 ? totalStars / totalAmount : 100;
             }
-
             async function getTotalMarketCap() {
                 const { data, error } = await supabase.from('users').select('shares');
-                if (error) throw new Error(`Ошибка подсчёта акций: ${error.message}`);
-                const totalSharesCents = data.reduce((sum, u) => sum + u.shares, 0);
+                if (error) throw new Error(error.message);
+                const totalSharesCents = data.reduce((s,u) => s + u.shares, 0);
                 const currentPriceCents = await getCurrentPrice();
                 const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
                 return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
             }
-
             async function getLeaderboard() {
-                const { data, error } = await supabase.from('users').select('username, shares').order('shares', { ascending: false }).limit(20);
-                if (error) throw new Error(`Ошибка загрузки рейтинга: ${error.message}`);
+                const { data, error } = await supabase.from('users').select('username, shares').eq('hide_rating', false).order('shares', { ascending: false }).limit(20);
+                if (error) throw new Error(error.message);
+                return data;
+            }
+            async function getUnreadCount() {
+                const { data, error } = await supabase.rpc('get_unread_notifications', { p_user_id: userId });
+                if (error) return 0;
+                return data.length;
+            }
+            async function getNotifications() {
+                const { data, error } = await supabase.rpc('get_unread_notifications', { p_user_id: userId });
+                if (error) throw error;
+                return data;
+            }
+            async function markNotificationsRead() {
+                await supabase.rpc('mark_notifications_read', { p_user_id: userId });
+            }
+            async function getUserStats() {
+                const { data, error } = await supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+                if (error) return { totalTrades: 0, totalVolume: 0 };
+                return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
+            }
+            async function getAchievements() {
+                const { data, error } = await supabase.from('user_achievements').select('achievements(name, description, icon)').eq('user_id', userId);
+                if (error) return [];
+                return data;
+            }
+            async function getSellerRating(sellerId) {
+                const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
+                if (error || !data.length) return null;
+                return data.reduce((s,r)=>s+r.rating,0)/data.length;
+            }
+            
+            // ----------------------------- Chart with timeframes -----------------------------
+            let currentTimeframe = '30d';
+            async function fetchPriceHistoryForTimeframe() {
+                let startDate = new Date();
+                if (currentTimeframe === '1d') startDate.setDate(startDate.getDate() - 1);
+                else if (currentTimeframe === '7d') startDate.setDate(startDate.getDate() - 7);
+                else startDate.setDate(startDate.getDate() - 30);
+                const { data, error } = await supabase.from('price_history').select('price, created_at').gte('created_at', startDate.toISOString()).order('created_at', { ascending: true }).limit(100);
+                if (error) throw new Error(error.message);
                 return data || [];
             }
-
-            // ------------------------------------------------------------------
-            // 4. UI helpers
             function drawCanvasChart(history) {
                 const container = document.getElementById('chart-container');
                 if (!container) return;
                 container.innerHTML = '';
-                if (!history || history.length === 0) {
-                    container.innerHTML = '<p style="text-align:center; padding:20px;">Нет данных</p>';
-                    return;
-                }
+                if (!history || history.length === 0) { container.innerHTML = '<p style="padding:20px;">Нет данных</p>'; return; }
                 const canvas = document.createElement('canvas');
                 const width = container.clientWidth, height = 250;
                 canvas.width = width; canvas.height = height;
@@ -247,26 +248,18 @@
                 const graphWidth = width - padding.left - padding.right;
                 const graphHeight = height - padding.top - padding.bottom;
                 const stepX = graphWidth / (values.length - 1);
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--card-bg') || '#fff';
                 ctx.fillRect(0, 0, width, height);
-                ctx.beginPath();
-                ctx.strokeStyle = '#ccc';
-                ctx.lineWidth = 1;
-                ctx.moveTo(padding.left, padding.top);
-                ctx.lineTo(padding.left, height - padding.bottom);
-                ctx.lineTo(width - padding.right, height - padding.bottom);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.strokeStyle = '#0088cc';
-                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+                ctx.moveTo(padding.left, padding.top); ctx.lineTo(padding.left, height - padding.bottom); ctx.lineTo(width - padding.right, height - padding.bottom); ctx.stroke();
+                ctx.beginPath(); ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--primary') || '#0088cc'; ctx.lineWidth = 2;
                 for (let i = 0; i < values.length; i++) {
                     const x = padding.left + i * stepX;
                     let y = (range === 0) ? padding.top + graphHeight/2 : padding.top + graphHeight - ((values[i] - min) / range) * graphHeight;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 }
                 ctx.stroke();
-                ctx.fillStyle = '#333';
+                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text') || '#333';
                 ctx.font = '11px sans-serif';
                 ctx.fillText(max.toFixed(2), padding.left - 30, padding.top + 10);
                 ctx.fillText(min.toFixed(2), padding.left - 30, height - padding.bottom - 5);
@@ -277,7 +270,6 @@
                     ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
                 }
             }
-
             function renderTicker(trades) {
                 const container = document.getElementById('ticker');
                 if (!container) return;
@@ -285,200 +277,203 @@
                 const items = trades.map(t => `<span class="trade-item">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('');
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
-
-            // ------------------------------------------------------------------
-            // 5. Tabs rendering
+            
+            // ----------------------------- Tabs rendering -----------------------------
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
-
             async function renderStocksTab() {
                 try {
                     let orders = [];
                     if (currentOrdersFilter === 'all') orders = await getActiveOrders();
                     else orders = await getUserOrders();
+                    for (let o of orders) o.seller_rating = await getSellerRating(o.seller_id);
                     orders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
-                    const priceHistory = await getPriceHistory();
+                    const priceHistory = await fetchPriceHistoryForTimeframe();
                     const recentTrades = await getRecentTrades(10);
                     const { totalShares, currentPrice, marketCap } = await getTotalMarketCap();
-
                     const html = `
                         <div class="card">
-                            <div class="flex-between">
-                                <div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div>
-                                <div class="price">${(currentPrice/100).toFixed(2)} ⭐</div>
-                            </div>
+                            <div class="flex-between"><div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div><div class="price">${(currentPrice/100).toFixed(2)} ⭐</div></div>
                         </div>
                         <div class="card">
-                            <div class="info-panel">
-                                <div class="info-card"><div class="info-label">Рыночная капитализация</div><div class="info-value">${Math.round(marketCap)} ⭐</div></div>
-                                <div class="info-card"><div class="info-label">Всего акций</div><div class="info-value">${(totalShares/100).toFixed(2)}</div></div>
+                            <div class="info-panel"><div class="info-card"><div class="info-label">Рыночная капитализация</div><div class="info-value">${Math.round(marketCap)} ⭐</div></div><div class="info-card"><div class="info-label">Всего акций</div><div class="info-value">${(totalShares/100).toFixed(2)}</div></div></div>
+                            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                                <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
+                                <button class="timeframe-btn ${currentTimeframe === '7d' ? 'active' : ''}" data-tf="7d">7д</button>
+                                <button class="timeframe-btn ${currentTimeframe === '30d' ? 'active' : ''}" data-tf="30d">30д</button>
                             </div>
                             <div id="chart-container" class="chart-container"></div>
                             <div id="ticker" class="ticker"></div>
                         </div>
-                        <div class="card">
-                            <h3>📈 Продать акции</h3>
-                            <input type="number" id="sellAmount" placeholder="Количество (минимум 1)" step="0.01" min="1">
-                            <input type="number" id="sellPrice" placeholder="Цена за 1 акцию (Stars)" step="0.01" min="1">
-                            <button id="sellBtn">➕ Выставить на продажу</button>
-                        </div>
-                        <div class="card">
-                            <div class="filter-bar">
-                                <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все ордера</button>
-                                <button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои ордера</button>
-                                <button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена выше</button>
-                                <button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена ниже</button>
-                            </div>
-                            <h3>📋 Активные ордера на продажу</h3>
-                            <div id="ordersList"></div>
-                        </div>
+                        <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1"><input type="number" id="sellPrice" step="0.01" min="1"><button id="sellBtn">➕ Выставить</button></div>
+                        <div class="card"><div class="filter-bar"><button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button><button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои</button><button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена выше</button><button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена ниже</button></div><h3>📋 Ордера</h3><div id="ordersList"></div></div>
                     `;
                     document.getElementById('app').innerHTML = html;
                     drawCanvasChart(priceHistory);
                     renderTicker(recentTrades);
-
-                    // Filters
-                    document.querySelectorAll('.filter-btn').forEach(btn => {
-                        btn.addEventListener('click', () => { currentOrdersFilter = btn.dataset.filter; renderStocksTab(); });
-                    });
-                    document.querySelectorAll('.sort-btn').forEach(btn => {
-                        btn.addEventListener('click', () => { currentSortDir = btn.dataset.sort; renderStocksTab(); });
-                    });
-
+                    document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', async () => { currentTimeframe = btn.dataset.tf; await renderStocksTab(); }));
+                    document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => { currentOrdersFilter = btn.dataset.filter; renderStocksTab(); }));
+                    document.querySelectorAll('.sort-btn').forEach(btn => btn.addEventListener('click', () => { currentSortDir = btn.dataset.sort; renderStocksTab(); }));
                     const ordersDiv = document.getElementById('ordersList');
-                    if (orders.length === 0) ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
+                    if (orders.length === 0) ordersDiv.innerHTML = '<p>Нет ордеров</p>';
                     else {
                         orders.forEach(order => {
-                            const div = document.createElement('div'); div.className = 'order-item';
                             const isOwn = order.seller_id === userId;
-                            div.innerHTML = `
-                                <div class="order-info">
-                                    <div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐</div>
-                                    <div class="small-text">Продавец ID: ${order.seller_id}</div>
-                                </div>
-                                <div class="order-actions">
-                                    ${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>` : `<button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`}
-                                </div>
-                            `;
+                            let ratingHtml = order.seller_rating ? `<span class="stars-rating">${'★'.repeat(Math.floor(order.seller_rating))}${order.seller_rating%1>=0.5?'½':''}</span>` : '';
+                            const div = document.createElement('div'); div.className = 'order-item';
+                            div.innerHTML = `<div><div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐</div><div class="small-text">Продавец: ${order.seller_id} ${ratingHtml}</div></div><div>${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>` : `<button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`}</div>`;
                             ordersDiv.appendChild(div);
                         });
-                        // Buy
                         document.querySelectorAll('.buy-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
                                 const order = JSON.parse(btn.dataset.order);
                                 const maxShares = fromCents(order.amount);
-                                let buyAmount = prompt(`Введите количество акций для покупки (до ${maxShares}):`, maxShares);
+                                let buyAmount = prompt(`Введите количество (до ${maxShares}):`, maxShares);
                                 if (!buyAmount) return;
                                 buyAmount = parseFloat(buyAmount);
-                                if (isNaN(buyAmount) || buyAmount <= 0 || buyAmount > maxShares) { alert('Некорректное количество'); return; }
-                                const buyAmountCents = toCents(buyAmount);
+                                if (isNaN(buyAmount) || buyAmount <= 0 || buyAmount > maxShares) { alert('Некорректно'); return; }
                                 try {
-                                    await executeTrade(order.id, buyAmountCents);
-                                    alert('Сделка успешно завершена!');
+                                    await executePartialTrade(order.id, toCents(buyAmount));
+                                    alert('Сделка завершена');
                                     await refreshAll();
                                 } catch (err) { alert(err.message); }
                             });
                         });
-                        // Cancel own order
                         document.querySelectorAll('.cancel-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
-                                const orderId = parseInt(btn.dataset.orderId);
-                                if (confirm('Отменить ордер?')) {
-                                    try { await cancelOrder(orderId); alert('Ордер отменён, акции возвращены'); await refreshAll(); } catch (err) { alert(err.message); }
-                                }
+                                if (confirm('Отменить?')) { try { await cancelOrder(parseInt(btn.dataset.orderId)); alert('Отменено'); await refreshAll(); } catch (err) { alert(err.message); } }
                             });
                         });
                     }
-
                     const sellBtn = document.getElementById('sellBtn');
-                    if (sellBtn) {
-                        sellBtn.addEventListener('click', async () => {
-                            let amount = parseFloat(document.getElementById('sellAmount').value);
-                            let price = parseFloat(document.getElementById('sellPrice').value);
-                            if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { alert('Введите количество не менее 1 и цену не менее 1'); return; }
-                            try { await createOrder(amount, price); alert('Ордер создан'); await refreshAll(); } catch (err) { alert(err.message); }
-                        });
-                    }
-                } catch (err) {
-                    console.error(err);
-                    document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
-                }
+                    if (sellBtn) sellBtn.addEventListener('click', async () => {
+                        let amount = parseFloat(document.getElementById('sellAmount').value);
+                        let price = parseFloat(document.getElementById('sellPrice').value);
+                        if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { alert('Введите количество и цену'); return; }
+                        try { await createOrder(amount, price); alert('Ордер создан'); await refreshAll(); } catch (err) { alert(err.message); }
+                    });
+                } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
             }
-
-            async function refreshAll() {
-                currentUser = await getOrCreateUser();
-                await renderStocksTab();
+            
+            async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); await updateNotificationBell(); }
+            
+            async function renderProfileTab() {
+                const stats = await getUserStats();
+                const achievements = await getAchievements();
+                const unread = await getUnreadCount();
+                const refCode = currentUser.referral_code;
+                const refLink = `https://t.me/ваш_бот?start=${refCode}`;
+                const html = `<div class="card"><div class="flex-between"><h2>👤 Профиль</h2><div class="notification-bell" id="notifBell">🔔${unread>0?`<span class="badge-count">${unread>9?'9+':unread}</span>`:''}</div></div><p><strong>${currentUser.username}</strong></p><p>ID: ${userId}</p><p>📌 Акций: ${fromCents(currentUser.shares)}</p><p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p><hr><h3>📊 Статистика</h3><p>📈 Всего сделок: ${stats.totalTrades}</p><p>💰 Объём: ${stats.totalVolume.toFixed(2)} ⭐</p><hr><h3>🏆 Достижения</h3><div id="achievementsList">${achievements.length?achievements.map(a=>`<div class="achievement-item">${a.achievements.icon} ${a.achievements.name} - ${a.achievements.description}</div>`).join(''):'<p>Нет</p>'}</div><hr><h3>🔗 Реферальная ссылка</h3><div class="small-text" style="background:var(--bg); padding:8px; border-radius:12px;">${refLink}</div><p class="small-text">Приглашайте друзей – получайте бонусы!</p></div>`;
+                document.getElementById('app').innerHTML = html;
+                document.getElementById('notifBell')?.addEventListener('click', showNotificationsModal);
             }
-
-            function renderProfileTab() {
-                document.getElementById('app').innerHTML = `
-                    <div class="card">
-                        <h2>👤 Профиль</h2>
-                        <p><strong>${currentUser.username}</strong></p>
-                        <p>ID: ${userId}</p>
-                        <p>📌 Акций: ${fromCents(currentUser.shares)}</p>
-                        <p>⭐ Stars: ${fromCents(currentUser.stars_balance)}</p>
-                        <hr>
-                        <p class="small-text">Виртуальная биржа акций за Telegram Stars.</p>
-                    </div>
-                `;
-            }
-
+            
             async function renderRatingTab() {
-                try {
-                    const leaders = await getLeaderboard();
-                    let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
-                    if (leaders.length === 0) html += '<p>Нет данных</p>';
-                    else {
-                        leaders.forEach((user, idx) => {
-                            html += `<div class="leaderboard-item"><div class="rank">${idx+1}</div><div class="user-name">${user.username || "Аноним"}</div><div class="user-shares">${fromCents(user.shares)} акций</div></div>`;
-                        });
-                    }
-                    html += `</div>`;
-                    document.getElementById('app').innerHTML = html;
-                } catch (err) {
-                    document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`;
-                }
+                const leaders = await getLeaderboard();
+                let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
+                if (leaders.length === 0) html += '<p>Нет данных</p>';
+                else leaders.forEach((u,i) => { html += `<div class="leaderboard-item"><div class="rank">${i+1}</div><div class="user-name">${u.username||'Аноним'}</div><div class="user-shares">${fromCents(u.shares)} акций</div></div>`; });
+                html += `</div>`;
+                document.getElementById('app').innerHTML = html;
             }
-
+            
             function renderWalletTab() {
                 document.getElementById('app').innerHTML = `
-                    <div class="card">
-                        <h2>💳 Кошелёк</h2>
-                        <p>⭐ Баланс Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p>
-                        <p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p>
-                        <hr>
-                        <p>Пополнение и вывод – через бота.</p>
-                        <button onclick="window.Telegram.WebApp.openTelegramLink('https://t.me/ваш_бот?start=topup')">💸 Пополнить Stars</button>
-                    </div>
-                `;
+                    <div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr>
+                    <button id="topupBtn">💸 Пополнить Stars (10 ⭐)</button>
+                    <button id="withdrawGiftBtn">🎁 Вывести через подарки</button></div>`;
+                document.getElementById('topupBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/ваш_бот?start=topup_10'));
+                document.getElementById('withdrawGiftBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/ваш_бот?start=withdraw'));
             }
-
-            function renderAnalyticsTab() {
-                document.getElementById('app').innerHTML = '<div class="card"><h2>📊 Аналитика</h2><p>Графики и статистика в разработке</p></div>';
+            
+            async function renderAnalyticsTab() {
+                const volume = await supabase.rpc('get_volume_history', { days_limit: 30 });
+                const trades = await supabase.from('trades').select('*').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`).order('created_at', { ascending: false }).limit(50);
+                let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%; height:150px;"></canvas><p class="small-text">Объём за 30 дней</p></div>
+                           <div class="card"><h2>📜 История сделок</h2><div id="historyList"></div></div>`;
+                document.getElementById('app').innerHTML = html;
+                // Простой canvas для объёмов
+                if (volume.data && volume.data.length) {
+                    const canvas = document.getElementById('volCanvas');
+                    const ctx = canvas.getContext('2d');
+                    const w = canvas.clientWidth, h = 150;
+                    canvas.width = w; canvas.height = h;
+                    const maxVol = Math.max(...volume.data.map(v=>v.total_amount/100));
+                    const barW = (w-40)/volume.data.length - 2;
+                    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--primary') || '#0088cc';
+                    volume.data.forEach((v,i)=>{
+                        const barH = (v.total_amount/100 / maxVol) * (h-20);
+                        const x = 20 + i*(barW+2);
+                        ctx.fillRect(x, h-10-barH, barW, barH);
+                    });
+                }
+                const historyDiv = document.getElementById('historyList');
+                if (trades.data && trades.data.length) {
+                    historyDiv.innerHTML = trades.data.map(t => `<div class="history-item">${t.buyer_id===userId?'Покупка':'Продажа'} ${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐<span class="small-text">${new Date(t.created_at).toLocaleString()}</span></div>`).join('');
+                } else historyDiv.innerHTML = '<p>Нет сделок</p>';
             }
-
-            function renderSettingsTab() {
-                document.getElementById('app').innerHTML = '<div class="card"><h2>⚙️ Настройки</h2><p>Тема и уведомления скоро</p></div>';
+            
+            async function renderSettingsTab() {
+                const hideRating = currentUser.hide_rating || false;
+                const currentTheme = localStorage.getItem('theme') || 'light';
+                const html = `<div class="card"><h2>⚙️ Настройки</h2>
+                    <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br>
+                    <div><label>Тема:</label><button id="themeLight" class="${currentTheme==='light'?'active':''}">Светлая</button><button id="themeDark" class="${currentTheme==='dark'?'active':''}">Тёмная</button></div>
+                    <label><input type="checkbox" id="notifCheckbox" ${currentUser.notifications_enabled?'checked':''}> Уведомления от бота</label>
+                    <button id="saveSettings">Сохранить</button></div>`;
+                document.getElementById('app').innerHTML = html;
+                document.getElementById('themeLight').onclick = () => setTheme('light');
+                document.getElementById('themeDark').onclick = () => setTheme('dark');
+                document.getElementById('saveSettings').onclick = async () => {
+                    const newHide = document.getElementById('hideRatingCheckbox').checked;
+                    const newNotif = document.getElementById('notifCheckbox').checked;
+                    await supabase.from('users').update({ hide_rating: newHide, notifications_enabled: newNotif }).eq('id', userId);
+                    currentUser.hide_rating = newHide;
+                    currentUser.notifications_enabled = newNotif;
+                    alert('Сохранено');
+                };
             }
-
-            // ------------------------------------------------------------------
-            // 6. Initialization
+            
+            function setTheme(theme) {
+                if (theme === 'dark') document.body.classList.add('dark');
+                else document.body.classList.remove('dark');
+                localStorage.setItem('theme', theme);
+                if (currentUser) supabase.from('users').update({ theme }).eq('id', userId);
+            }
+            async function updateNotificationBell() {
+                const count = await getUnreadCount();
+                const bell = document.querySelector('#notifBell');
+                if (bell) bell.innerHTML = `🔔${count>0?`<span class="badge-count">${count>9?'9+':count}</span>`:''}`;
+            }
+            async function showNotificationsModal() {
+                const modal = document.getElementById('notificationModal');
+                const listDiv = document.getElementById('notificationsList');
+                listDiv.innerHTML = 'Загрузка...';
+                modal.style.display = 'flex';
+                const notifs = await getNotifications();
+                if (notifs.length === 0) listDiv.innerHTML = '<p>Нет уведомлений</p>';
+                else listDiv.innerHTML = notifs.map(n => `<div>${n.text}<br><span class="small-text">${new Date(n.created_at).toLocaleString()}</span></div>`).join('');
+            }
+            document.querySelector('.close-modal')?.addEventListener('click', () => document.getElementById('notificationModal').style.display = 'none');
+            document.getElementById('markReadBtn')?.addEventListener('click', async () => { await markNotificationsRead(); showNotificationsModal(); await updateNotificationBell(); });
+            
+            // ----------------------------- Startup -----------------------------
             currentUser = await getOrCreateUser();
+            setTheme(localStorage.getItem('theme') || 'light');
             await renderStocksTab();
-
-            // Tab switching
+            await updateNotificationBell();
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', async () => {
                     const tabName = tab.dataset.tab;
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    if (tabName === 'profile') renderProfileTab();
+                    if (tabName === 'profile') await renderProfileTab();
                     else if (tabName === 'stocks') await renderStocksTab();
-                    else if (tabName === 'analytics') renderAnalyticsTab();
+                    else if (tabName === 'analytics') await renderAnalyticsTab();
                     else if (tabName === 'rating') await renderRatingTab();
                     else if (tabName === 'wallet') renderWalletTab();
-                    else if (tabName === 'settings') renderSettingsTab();
+                    else if (tabName === 'settings') await renderSettingsTab();
+                    await updateNotificationBell();
                 });
             });
         })();
