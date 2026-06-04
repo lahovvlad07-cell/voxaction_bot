@@ -29,6 +29,20 @@
             --primary: #38bdf8;
             --primary-dark: #0284c7;
         }
+        body.custom-light {
+            --bg: #fef9e4;
+            --card-bg: #fffef7;
+            --text: #2d3e50;
+            --text-secondary: #6c7a89;
+            --border: #f3e5c3;
+        }
+        body.custom-dark {
+            --bg: #1a1a2e;
+            --card-bg: #16213e;
+            --text: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border: #2c3e50;
+        }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
             background: var(--bg);
@@ -68,8 +82,8 @@
         .user-name { flex: 2; }
         .user-shares { font-weight: bold; }
         .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-        .filter-btn, .sort-btn, .timeframe-btn, .theme-option { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
-        .filter-btn.active, .sort-btn.active, .timeframe-btn.active, .theme-option.active { background: var(--primary); color: white; }
+        .filter-btn, .sort-btn, .timeframe-btn { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
+        .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: var(--primary); color: white; }
         .history-item, .achievement-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
         .stars-rating { color: #fbbf24; }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
@@ -77,10 +91,7 @@
         .close-modal { float: right; cursor: pointer; font-size: 24px; }
         .notification-bell { position: relative; display: inline-block; cursor: pointer; }
         .badge-count { position: absolute; top: -8px; right: -12px; background: red; color: white; font-size: 10px; border-radius: 20px; padding: 2px 6px; }
-        .color-preview { width: 30px; height: 30px; border-radius: 30px; display: inline-block; margin-left: 8px; vertical-align: middle; border: 1px solid var(--border); }
-        .setting-row { margin-bottom: 16px; }
-        .setting-label { display: block; margin-bottom: 8px; font-weight: 500; }
-        .flex-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .color-preview { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-left: 10px; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
@@ -153,8 +164,8 @@
             }
             async function createOrder(amount, price) {
                 const amountCents = toCents(amount), priceCents = toCents(price);
-                if (amountCents < 100) throw new Error('Минимальное количество – 1 акция');
-                if (priceCents < 100) throw new Error('Минимальная цена – 1 Star');
+                if (amountCents < 100) throw new Error('Минимум 1 акция');
+                if (priceCents < 100) throw new Error('Минимум 1 Star');
                 const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amountCents, p_price: priceCents });
                 if (error) throw new Error(error.message);
                 if (!data.success) throw new Error(data.error);
@@ -285,36 +296,7 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
             
-            // ---------- Theme and color ----------
-            let currentTheme = 'dark'; // dark, light, custom
-            let customColor = '#0088cc';
-            function applyTheme() {
-                const root = document.documentElement;
-                if (currentTheme === 'dark') {
-                    document.body.classList.add('dark');
-                    document.body.classList.remove('light');
-                    root.style.setProperty('--primary', customColor);
-                } else if (currentTheme === 'light') {
-                    document.body.classList.remove('dark');
-                    document.body.classList.add('light');
-                    root.style.setProperty('--primary', customColor);
-                } else if (currentTheme === 'custom') {
-                    document.body.classList.remove('dark', 'light');
-                    root.style.setProperty('--primary', customColor);
-                }
-                localStorage.setItem('theme', currentTheme);
-                localStorage.setItem('customColor', customColor);
-            }
-            function loadTheme() {
-                const savedTheme = localStorage.getItem('theme');
-                const savedColor = localStorage.getItem('customColor');
-                if (savedTheme) currentTheme = savedTheme;
-                if (savedColor) customColor = savedColor;
-                applyTheme();
-            }
-            loadTheme();
-            
-            // ---------- Rendering tabs (only Settings tab changed) ----------
+            // ---------- Rendering tabs ----------
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -341,12 +323,7 @@
                             <div id="chart-container" class="chart-container"></div>
                             <div id="ticker" class="ticker"></div>
                         </div>
-                        <div class="card">
-                            <h3>📈 Продать акции</h3>
-                            <input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (минимум 1)">
-                            <input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (минимум 1 Star)">
-                            <button id="sellBtn">➕ Выставить</button>
-                        </div>
+                        <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)"><button id="sellBtn">➕ Выставить</button></div>
                         <div class="card"><div class="filter-bar"><button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button><button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои</button><button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена выше</button><button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена ниже</button></div><h3>📋 Ордера</h3><div id="ordersList"></div></div>
                     `;
                     document.getElementById('app').innerHTML = html;
@@ -369,10 +346,10 @@
                             btn.addEventListener('click', async () => {
                                 const order = JSON.parse(btn.dataset.order);
                                 const maxShares = fromCents(order.amount);
-                                let buyAmount = prompt(`Введите количество (до ${maxShares}):`, maxShares);
+                                let buyAmount = prompt(`Введите количество (от 1 до ${maxShares}):`, maxShares);
                                 if (!buyAmount) return;
                                 buyAmount = parseFloat(buyAmount);
-                                if (isNaN(buyAmount) || buyAmount <= 0 || buyAmount > maxShares) { alert('Некорректно'); return; }
+                                if (isNaN(buyAmount) || buyAmount < 1 || buyAmount > maxShares) { alert('Некорректное количество'); return; }
                                 try {
                                     await executePartialTrade(order.id, toCents(buyAmount));
                                     alert('Сделка завершена');
@@ -481,63 +458,70 @@
             
             async function renderSettingsTab() {
                 const hideRating = currentUser.hide_rating || false;
-                const notifEnabled = currentUser.notifications_enabled !== false;
-                const themeOptions = ['light', 'dark', 'custom'];
+                const savedTheme = localStorage.getItem('theme') || 'dark';
+                const customColor = localStorage.getItem('custom_color') || '#0088cc';
                 const html = `
-                    <div class="card">
-                        <h2>⚙️ Настройки</h2>
-                        <div class="setting-row">
-                            <div class="setting-label">🎨 Тема</div>
-                            <div class="flex-row">
-                                <button class="theme-option ${currentTheme === 'light' ? 'active' : ''}" data-theme="light">Светлая</button>
-                                <button class="theme-option ${currentTheme === 'dark' ? 'active' : ''}" data-theme="dark">Тёмная</button>
-                                <button class="theme-option ${currentTheme === 'custom' ? 'active' : ''}" data-theme="custom">Кастомная</button>
-                            </div>
-                            ${currentTheme === 'custom' ? `<div class="flex-row" style="margin-top: 12px;"><label style="margin-right: 8px;">Акцентный цвет:</label><input type="color" id="customColorPicker" value="${customColor}"><span class="color-preview" style="background: ${customColor};"></span></div>` : ''}
-                        </div>
-                        <div class="setting-row">
-                            <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть меня из рейтинга</label>
-                        </div>
-                        <div class="setting-row">
-                            <label><input type="checkbox" id="notifCheckbox" ${notifEnabled?'checked':''}> Уведомления от бота</label>
-                        </div>
-                        <button id="saveSettings">Сохранить</button>
+                    <div class="card"><h2>⚙️ Настройки</h2>
+                    <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br>
+                    <div style="margin: 12px 0;"><strong>Тема интерфейса:</strong></div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button id="themeDarkBtn" class="${savedTheme==='dark'?'active':''}">🌙 Тёмная</button>
+                        <button id="themeLightBtn" class="${savedTheme==='light'?'active':''}">☀️ Светлая</button>
+                        <button id="themeCustomLightBtn" class="${savedTheme==='custom-light'?'active':''}">🎨 Кастомная светлая</button>
+                        <button id="themeCustomDarkBtn" class="${savedTheme==='custom-dark'?'active':''}">🎨 Кастомная тёмная</button>
                     </div>
+                    <div style="margin: 12px 0;"><strong>Цвет акцента (кнопки, график):</strong></div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="color" id="colorPicker" value="${customColor}">
+                        <span id="colorPreview" class="color-preview" style="background: ${customColor};"></span>
+                    </div>
+                    <label><input type="checkbox" id="notifCheckbox" ${currentUser.notifications_enabled?'checked':''}> Уведомления от бота</label>
+                    <button id="saveSettings">Сохранить</button></div>
                 `;
                 document.getElementById('app').innerHTML = html;
-                // Theme buttons
-                document.querySelectorAll('.theme-option').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const theme = btn.dataset.theme;
-                        currentTheme = theme;
-                        applyTheme();
-                        renderSettingsTab(); // обновить, чтобы показать/скрыть палитру
-                    });
+                // Предпросмотр цвета
+                document.getElementById('colorPicker')?.addEventListener('input', (e) => {
+                    document.getElementById('colorPreview').style.background = e.target.value;
                 });
-                const colorPicker = document.getElementById('customColorPicker');
-                if (colorPicker) {
-                    colorPicker.addEventListener('input', (e) => {
-                        customColor = e.target.value;
-                        applyTheme();
-                        document.querySelector('.color-preview')?.setAttribute('style', `background: ${customColor};`);
-                    });
-                }
-                document.getElementById('hideRatingCheckbox').checked = hideRating;
-                document.getElementById('notifCheckbox').checked = notifEnabled;
+                // Кнопки тем
+                document.getElementById('themeDarkBtn')?.addEventListener('click', () => setTheme('dark', document.getElementById('colorPicker').value));
+                document.getElementById('themeLightBtn')?.addEventListener('click', () => setTheme('light', document.getElementById('colorPicker').value));
+                document.getElementById('themeCustomLightBtn')?.addEventListener('click', () => setTheme('custom-light', document.getElementById('colorPicker').value));
+                document.getElementById('themeCustomDarkBtn')?.addEventListener('click', () => setTheme('custom-dark', document.getElementById('colorPicker').value));
                 document.getElementById('saveSettings').onclick = async () => {
                     const newHide = document.getElementById('hideRatingCheckbox').checked;
                     const newNotif = document.getElementById('notifCheckbox').checked;
+                    const newColor = document.getElementById('colorPicker').value;
+                    localStorage.setItem('custom_color', newColor);
                     await supabase.from('users').update({ hide_rating: newHide, notifications_enabled: newNotif }).eq('id', userId);
                     currentUser.hide_rating = newHide;
                     currentUser.notifications_enabled = newNotif;
+                    // Обновляем текущую тему с новым цветом
+                    const currentTheme = localStorage.getItem('theme') || 'dark';
+                    setTheme(currentTheme, newColor);
                     alert('Настройки сохранены');
                 };
             }
             
-            function setTheme(theme) {
-                currentTheme = theme;
-                applyTheme();
+            function setTheme(theme, customColor = null) {
+                document.body.classList.remove('dark', 'custom-light', 'custom-dark');
+                if (theme === 'dark') document.body.classList.add('dark');
+                else if (theme === 'light') document.body.classList.remove('dark');
+                else if (theme === 'custom-light') document.body.classList.add('custom-light');
+                else if (theme === 'custom-dark') document.body.classList.add('custom-dark');
+                localStorage.setItem('theme', theme);
+                if (customColor) {
+                    localStorage.setItem('custom_color', customColor);
+                    document.documentElement.style.setProperty('--primary', customColor);
+                    // Вычисляем тёмный оттенок для primary-dark
+                    document.documentElement.style.setProperty('--primary-dark', customColor);
+                } else {
+                    const savedColor = localStorage.getItem('custom_color');
+                    if (savedColor) document.documentElement.style.setProperty('--primary', savedColor);
+                }
+                if (currentUser) supabase.from('users').update({ theme }).eq('id', userId);
             }
+            
             async function updateNotificationBell() {
                 const count = await getUnreadCount();
                 const bell = document.querySelector('#notifBell');
@@ -557,7 +541,9 @@
             
             // ---------- Start ----------
             currentUser = await getOrCreateUser();
-            loadTheme();
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const savedColor = localStorage.getItem('custom_color') || '#0088cc';
+            setTheme(savedTheme, savedColor);
             await renderStocksTab();
             await updateNotificationBell();
             document.querySelectorAll('.tab').forEach(tab => {
