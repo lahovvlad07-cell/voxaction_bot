@@ -46,7 +46,6 @@
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             let currentUser = null;
 
-            // ---- Пользователь ----
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -58,21 +57,18 @@
                 return data;
             }
 
-            // ---- Ордера ----
             async function getActiveOrders() {
                 const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
                 if (error) throw new Error(`Ошибка загрузки ордеров: ${error.message}`);
                 return data || [];
             }
 
-            // ---- История цен ----
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(`Ошибка загрузки истории цен: ${error.message}`);
                 return data || [];
             }
 
-            // ---- Создание ордера через RPC ----
             async function createOrder(amount, price) {
                 const { data, error } = await supabase.rpc('create_sell_order', { p_user_id: userId, p_amount: amount, p_price: price });
                 if (error) throw new Error(error.message);
@@ -81,7 +77,6 @@
                 return true;
             }
 
-            // ---- Покупка через RPC ----
             async function executeTrade(order) {
                 const { data, error } = await supabase.rpc('execute_trade', { p_order_id: order.id, p_buyer_id: userId });
                 if (error) throw new Error(error.message);
@@ -92,7 +87,6 @@
                 return true;
             }
 
-            // ---- История сделок (покупки и продажи) ----
             async function getUserTrades() {
                 const { data, error } = await supabase
                     .from('trades')
@@ -104,7 +98,6 @@
                 return data || [];
             }
 
-            // ---- График (Canvas) ----
             function drawCanvasChart(history) {
                 const container = document.getElementById('price-chart');
                 if (!container) return;
@@ -163,8 +156,7 @@
                 }
             }
 
-            // ---- Отрисовка UI с вкладками ----
-            function renderUI(orders, priceHistory, trades, activeTab = 'trade') {
+            function renderUI(orders, priceHistory, activeTab = 'trade') {
                 const html = `
                     <div class="card">
                         <h2>💰 Мой баланс</h2>
@@ -182,7 +174,6 @@
                 `;
                 document.getElementById('app').innerHTML = html;
 
-                // Переключение вкладок
                 document.querySelectorAll('.tab').forEach(tab => {
                     tab.addEventListener('click', () => {
                         const tabName = tab.dataset.tab;
@@ -204,9 +195,8 @@
                     document.getElementById('tabContent').innerHTML = tradeHtml;
                     drawCanvasChart(priceHistory);
                     const ordersDiv = document.getElementById('ordersList');
-                    if (orders.length === 0) {
-                        ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
-                    } else {
+                    if (orders.length === 0) ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
+                    else {
                         orders.forEach(order => {
                             const div = document.createElement('div');
                             div.className = 'order-item';
@@ -253,9 +243,8 @@
                     const historyHtml = `<h3>📜 История сделок</h3><div id="historyList"></div>`;
                     document.getElementById('tabContent').innerHTML = historyHtml;
                     const historyDiv = document.getElementById('historyList');
-                    if (trades.length === 0) {
-                        historyDiv.innerHTML = '<p>Нет сделок</p>';
-                    } else {
+                    if (trades.length === 0) historyDiv.innerHTML = '<p>Нет сделок</p>';
+                    else {
                         trades.forEach(trade => {
                             const isBuy = trade.buyer_id === userId;
                             const div = document.createElement('div');
@@ -279,8 +268,7 @@
                     currentUser = await getOrCreateUser();
                     const orders = await getActiveOrders();
                     const priceHistory = await getPriceHistory();
-                    const trades = await getUserTrades(); // предзагрузим, но используем только в истории
-                    renderUI(orders, priceHistory, trades, activeTab);
+                    renderUI(orders, priceHistory, activeTab);
                 } catch (err) {
                     console.error(err);
                     document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
