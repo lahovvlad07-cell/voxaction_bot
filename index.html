@@ -15,7 +15,7 @@
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
             background: #f0f2f5;
-            padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
         }
         .card {
             background: white;
@@ -24,33 +24,83 @@
             margin: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        .tabs {
+        /* Контейнер вкладок с прокруткой и стрелками-индикаторами */
+        .tabs-wrapper {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             background: white;
+            border-top: 1px solid #e0e0e0;
+            padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
+            z-index: 100;
+        }
+        .tabs {
             display: flex;
             overflow-x: auto;
+            scroll-behavior: smooth;
             white-space: nowrap;
-            padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
-            border-top: 1px solid #e0e0e0;
-            z-index: 100;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
+            padding: 0 8px;
+            gap: 8px;
         }
         .tab {
-            display: inline-block;
-            text-align: center;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            color: #666;
-            transition: 0.2s;
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            border-radius: 40px;
+            background: #f0f2f5;
+            transition: all 0.2s;
             cursor: pointer;
+            min-width: 70px;
         }
         .tab.active {
-            color: #0088cc;
+            background: #0088cc;
+            color: white;
+        }
+        .tab-icon {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+        .tab-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .tab.active .tab-label {
+            color: white;
+        }
+        /* Индикаторы прокрутки (стрелки) - только визуальные, не кликабельные */
+        .scroll-indicator {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 101;
+            opacity: 0.6;
+        }
+        .scroll-left {
+            left: 4px;
+        }
+        .scroll-right {
+            right: 4px;
+        }
+        @media (max-width: 600px) {
+            .scroll-indicator {
+                display: none; /* на телефонах пользователи знают про свайп, стрелки скроем */
+            }
         }
         h2, h3 {
             font-size: 18px;
@@ -201,13 +251,36 @@
 </head>
 <body>
     <div id="app">Загрузка...</div>
-    <div class="tabs" id="tabs">
-        <div class="tab" data-tab="profile">👤 Профиль</div>
-        <div class="tab active" data-tab="stocks">📈 Акции</div>
-        <div class="tab" data-tab="analytics">📊 Аналитика</div>
-        <div class="tab" data-tab="rating">🏆 Рейтинг</div>
-        <div class="tab" data-tab="wallet">💳 Кошелёк</div>
-        <div class="tab" data-tab="settings">⚙️ Настройки</div>
+    <div class="tabs-wrapper">
+        <div class="tabs" id="tabs">
+            <div class="tab" data-tab="profile">
+                <div class="tab-icon">👤</div>
+                <div class="tab-label">Профиль</div>
+            </div>
+            <div class="tab active" data-tab="stocks">
+                <div class="tab-icon">📈</div>
+                <div class="tab-label">Акции</div>
+            </div>
+            <div class="tab" data-tab="analytics">
+                <div class="tab-icon">📊</div>
+                <div class="tab-label">Аналитика</div>
+            </div>
+            <div class="tab" data-tab="rating">
+                <div class="tab-icon">🏆</div>
+                <div class="tab-label">Рейтинг</div>
+            </div>
+            <div class="tab" data-tab="wallet">
+                <div class="tab-icon">💳</div>
+                <div class="tab-label">Кошелёк</div>
+            </div>
+            <div class="tab" data-tab="settings">
+                <div class="tab-icon">⚙️</div>
+                <div class="tab-label">Настройки</div>
+            </div>
+        </div>
+        <!-- Декоративные стрелки (скрываются на телефонах) -->
+        <div class="scroll-indicator scroll-left">◀</div>
+        <div class="scroll-indicator scroll-right">▶</div>
     </div>
     <script>
         (async () => {
@@ -616,6 +689,7 @@
             let activeTab = 'stocks';
             await renderStocksTab();
 
+            const tabsContainer = document.getElementById('tabs');
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', async () => {
                     const tabName = tab.dataset.tab;
