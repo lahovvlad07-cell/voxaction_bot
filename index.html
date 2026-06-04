@@ -92,7 +92,7 @@
             <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
             <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
             <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
-            <div class="tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
+            <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
         </div>
     </div>
     <div id="topupModal" class="modal">
@@ -120,28 +120,17 @@
             window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
             window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
             
-            // TELEGRAM
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
             
-            // Показываем админ-вкладку только для нужного ID
+            // Показываем админ-вкладку, если пользователь – админ
             if (userId === 6048486427) {
-                const adminTab = document.querySelector('.tab[data-tab="admin"]');
-                if (adminTab) adminTab.style.display = 'inline-flex';
+                document.querySelector('.admin-tab').style.display = 'inline-flex';
             }
             
-            // SUPABASE
-            const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
-            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            let currentUser = null;
-            
-            // HELPERS
-            function toCents(v) { return Math.round(parseFloat(v) * 100); }
-            function fromCents(c) { return (c / 100).toFixed(2); }
             function showMessage(title, message) {
                 tg.showPopup({
                     title: title,
@@ -149,7 +138,16 @@
                     buttons: [{ type: 'ok' }]
                 });
             }
-                        // ----------------------------- DATABASE FUNCTIONS -----------------------------
+            
+            const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
+            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            let currentUser = null;
+            
+            function toCents(v) { return Math.round(parseFloat(v) * 100); }
+            function fromCents(c) { return (c / 100).toFixed(2); }
+            
+            // ----------------------------- USER -----------------------------
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -193,6 +191,7 @@
                 if (!data.success) throw new Error(data.error);
                 return true;
             }
+            
             async function getPriceHistory() {
                 const { data, error } = await supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
                 if (error) throw new Error(error.message);
@@ -244,7 +243,7 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
-            // ----------------------------- CHART & TICKER -----------------------------
+            // ----------------------------- CHART -----------------------------
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
                 let startDate = new Date();
@@ -301,7 +300,8 @@
                 const items = trades.map(t => `<span class="trade-item">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('');
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
-                        // ----------------------------- RENDER STOCKS -----------------------------
+            
+            // ----------------------------- RENDERING -----------------------------
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -364,10 +364,7 @@
                         });
                         document.querySelectorAll('.cancel-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
-                                if (confirm('Отменить?')) {
-                                    try { await cancelOrder(parseInt(btn.dataset.orderId)); showMessage('Успех', 'Ордер отменён'); await refreshAll(); }
-                                    catch (err) { showMessage('Ошибка', err.message); }
-                                }
+                                if (confirm('Отменить?')) { try { await cancelOrder(parseInt(btn.dataset.orderId)); showMessage('Успех', 'Ордер отменён'); await refreshAll(); } catch (err) { showMessage('Ошибка', err.message); } }
                             });
                         });
                     }
@@ -376,15 +373,13 @@
                         let amount = parseFloat(document.getElementById('sellAmount').value);
                         let price = parseFloat(document.getElementById('sellPrice').value);
                         if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { showMessage('Ошибка', 'Введите количество не менее 1 и цену не менее 1'); return; }
-                        try { await createOrder(amount, price); showMessage('Успех', 'Ордер создан'); await refreshAll(); }
-                        catch (err) { showMessage('Ошибка', err.message); }
+                        try { await createOrder(amount, price); showMessage('Успех', 'Ордер создан'); await refreshAll(); } catch (err) { showMessage('Ошибка', err.message); }
                     });
                 } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
             }
             
             async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
             
-            // ----------------------------- RENDER PROFILE (with achievements selection) -----------------------------
             async function renderProfileTab() {
                 const stats = await getUserStats();
                 const userAchievements = await getAchievements();
@@ -394,8 +389,6 @@
                 const refLink = `https://t.me/VoxAction_Bot?start=${refCode}`;
                 const referralCount = currentUser.referral_count || 0;
                 const referralBonusShares = referralCount * 5;
-                const isAdmin = (userId === 6048486427);
-                const adminHtml = isAdmin ? `<hr><div><h3>Админ-панель</h3><p>Полный доступ через вкладку «Админ»</p></div>` : '';
                 const selectedAchievements = allAchievements.filter(a => selectedIds.includes(a.id));
                 const displayedAchievements = selectedAchievements.slice(0,5);
                 const achievementIconsHtml = displayedAchievements.map(ach => `<div class="achi-icon earned" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>`).join('');
@@ -431,20 +424,15 @@
                         <h3>🔗 Реферальная ссылка</h3>
                         <div class="small-text" style="background: var(--bg); padding: 8px; border-radius: 12px; word-break: break-all;">${refLink}</div>
                         <p class="small-text" style="margin-top: 8px;">Приглашайте друзей – они получат бонус, а вы 5 акций, когда друг пополнит на 10 ⭐ 🎁.</p>
-                        ${adminHtml}
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
                 document.getElementById('avatarClick')?.addEventListener('click', () => {
                     showMessage('Аватар', 'Аватар можно изменить через @BotFather командой /setuserpic');
                 });
-                document.getElementById('customizeAchievementsBtn')?.addEventListener('click', async () => {
+                document.getElementById('customizeAchievementsBtn')?.addEventListener('click', () => {
                     const earnedAchievements = allAchievements.filter(a => userAchievements.some(ua => ua.id === a.id));
-                    if (earnedAchievements.length === 0) {
-                        showMessage('Информация', 'У вас пока нет достижений. Совершайте сделки, приглашайте друзей, пополняйте баланс, чтобы получать их!');
-                        return;
-                    }
-                    const checkboxes = earnedAchievements.map(ach => `<label style="display:block; margin:5px 0;"><input type="checkbox" value="${ach.id}" ${selectedIds.includes(ach.id) ? 'checked' : ''}> ${ach.icon} ${ach.name}</label>`).join('');
+                    const checkboxes = earnedAchievements.map(ach => `<label><input type="checkbox" value="${ach.id}" ${selectedIds.includes(ach.id) ? 'checked' : ''}> ${ach.icon} ${ach.name}</label><br>`).join('');
                     const modalHtml = `
                         <div class="modal" id="achievementsSelectModal" style="display: flex;">
                             <div class="modal-content">
@@ -474,12 +462,11 @@
                 document.querySelectorAll('.achi-icon').forEach(icon => {
                     icon.addEventListener('click', () => {
                         const all = allAchievements.map(a => `${a.icon} ${a.name}: ${a.description}`).join('\n');
-                        showMessage('Достижения', all);
+                        showMessage('Ваши достижения', all);
                     });
                 });
             }
             
-            // ----------------------------- OTHER TABS -----------------------------
             async function renderRatingTab() {
                 const leaders = await getLeaderboard();
                 let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
@@ -574,25 +561,34 @@
                     showMessage('Успех', 'Настройки сохранены');
                 };
             }
-                        // ----------------------------- ADMIN PANEL -----------------------------
-            const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ЗАМЕНИТЕ НА ВАШ URL
+            
+            // ----------------------------- ADMIN PANEL -----------------------------
+            const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // замените на ваш URL
             async function renderAdminTab() {
                 if (userId !== 6048486427) {
                     document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>';
                     return;
                 }
                 try {
-                    const statsRes = await fetch(`${BACKEND_URL}/admin/stats?admin_id=${userId}`);
+                    const statsRes = await fetch(`${BACKEND_URL}/admin/stats`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ admin_id: userId })
+                    });
                     const stats = await statsRes.json();
-                    const usersRes = await fetch(`${BACKEND_URL}/admin/users?admin_id=${userId}`);
+                    const usersRes = await fetch(`${BACKEND_URL}/admin/users`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ admin_id: userId })
+                    });
                     const usersData = await usersRes.json();
                     const orders = await getActiveOrders();
                     const html = `
                         <div class="card">
                             <h2>👑 Админ-панель</h2>
                             <h3>Статистика</h3>
-                            <p>Акций в обращении: ${stats.total_shares}</p>
-                            <p>Резерв (акции): ${stats.reserve}</p>
+                            <p>Акций в обращении: ${stats.total_shares || 0}</p>
+                            <p>Резерв (акции): ${stats.reserve || 0}</p>
                             <hr>
                             <h3>Выдать акции/звёзды</h3>
                             <input type="number" id="targetUserId" placeholder="ID пользователя">
@@ -609,48 +605,73 @@
                         </div>
                     `;
                     document.getElementById('app').innerHTML = html;
+                    // Ордера
                     const ordersDiv = document.getElementById('adminOrdersList');
                     if (orders.length === 0) ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
                     else {
                         orders.forEach(order => {
                             const div = document.createElement('div');
                             div.className = 'order-item';
-                            div.innerHTML = `<div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐ (продавец ${order.seller_id})</div><button class="cancel-btn" data-order-id="${order.id}">Отменить ордер</button>`;
+                            div.innerHTML = `
+                                <div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐ (продавец ${order.seller_id})</div>
+                                <button class="cancel-btn" data-order-id="${order.id}">Отменить ордер</button>
+                            `;
                             ordersDiv.appendChild(div);
                         });
                         document.querySelectorAll('.cancel-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
                                 const orderId = btn.dataset.orderId;
-                                const res = await fetch(`${BACKEND_URL}/admin/cancel-order`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin_id: userId, order_id: orderId }) });
+                                const res = await fetch(`${BACKEND_URL}/admin/cancel-order`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ admin_id: userId, order_id: orderId })
+                                });
                                 const data = await res.json();
-                                if (data.ok) { showMessage('Успех', 'Ордер отменён'); renderAdminTab(); }
-                                else showMessage('Ошибка', data.error);
+                                if (data.ok) {
+                                    showMessage('Успех', 'Ордер отменён');
+                                    renderAdminTab();
+                                } else {
+                                    showMessage('Ошибка', data.error);
+                                }
                             });
                         });
                     }
+                    // Пользователи
                     const usersDiv = document.getElementById('usersList');
                     if (usersData.users) {
                         usersDiv.innerHTML = usersData.users.map(u => `<div>ID: ${u.id} | ${u.username || 'Аноним'} | Акций: ${fromCents(u.shares)} | Stars: ${fromCents(u.stars_balance)}</div>`).join('');
                     }
+                    // Выдача акций
                     document.getElementById('giveSharesBtn')?.addEventListener('click', async () => {
                         const targetId = parseInt(document.getElementById('targetUserId').value);
                         const shares = parseInt(document.getElementById('giveShares').value);
                         if (!targetId || !shares) { showMessage('Ошибка', 'Заполните поля'); return; }
-                        const res = await fetch(`${BACKEND_URL}/admin/add-shares`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin_id: userId, target_id: targetId, shares: shares }) });
+                        const res = await fetch(`${BACKEND_URL}/admin/add-shares`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ admin_id: userId, target_id: targetId, shares: shares })
+                        });
                         const data = await res.json();
                         if (data.ok) showMessage('Успех', 'Акции выданы');
                         else showMessage('Ошибка', data.error);
                     });
+                    // Выдача звёзд
                     document.getElementById('giveStarsBtn')?.addEventListener('click', async () => {
                         const targetId = parseInt(document.getElementById('targetUserId').value);
                         const stars = parseInt(document.getElementById('giveStars').value);
                         if (!targetId || !stars) { showMessage('Ошибка', 'Заполните поля'); return; }
-                        const res = await fetch(`${BACKEND_URL}/admin/add-stars`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin_id: userId, target_id: targetId, stars: stars }) });
+                        const res = await fetch(`${BACKEND_URL}/admin/add-stars`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ admin_id: userId, target_id: targetId, stars: stars })
+                        });
                         const data = await res.json();
                         if (data.ok) showMessage('Успех', 'Stars выданы');
                         else showMessage('Ошибка', data.error);
                     });
-                } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">Ошибка загрузки админ-панели: ${err.message}</div>`; }
+                } catch (err) {
+                    document.getElementById('app').innerHTML = `<div class="card error">Ошибка загрузки админ-панели: ${err.message}</div>`;
+                }
             }
             
             // ----------------------------- TOPUP LOGIC -----------------------------
@@ -658,7 +679,11 @@
             function updateTopupFee(amount) {
                 const fee = Math.floor(amount * 0.05);
                 const receive = amount - fee;
-                document.getElementById('topupFeeInfo').innerHTML = `💸 Вы платите: <strong>${amount} ⭐</strong><br>📉 Комиссия Telegram (5%): <strong>${fee} ⭐</strong><br>✅ Получите на баланс: <strong style="color: var(--success);">${receive} ⭐</strong>`;
+                document.getElementById('topupFeeInfo').innerHTML = `
+                    💸 Вы платите: <strong>${amount} ⭐</strong><br>
+                    📉 Комиссия Telegram (5%): <strong>${fee} ⭐</strong><br>
+                    ✅ Получите на баланс: <strong style="color: var(--success);">${receive} ⭐</strong>
+                `;
             }
             document.querySelectorAll('#topupModal .amount-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
