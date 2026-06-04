@@ -81,8 +81,8 @@
         .radio-group { display: flex; gap: 20px; margin: 10px 0; align-items: center; }
         .radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
         .topup-amounts { display: flex; justify-content: space-around; margin: 15px 0; flex-wrap: wrap; gap: 12px; }
-        .amount-btn, .method-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 30px; width: auto; margin: 0; flex: 1; text-align: center; cursor: pointer; transition: 0.2s; }
-        .amount-btn.selected, .method-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
+        .amount-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 30px; width: auto; margin: 0; flex: 1; text-align: center; cursor: pointer; transition: 0.2s; }
+        .amount-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
         .fee-info { background: var(--bg); padding: 12px; border-radius: 16px; margin: 12px 0; text-align: center; }
         .custom-amount { display: flex; gap: 8px; align-items: center; margin: 12px 0; }
         .custom-amount input { flex: 2; margin: 0; }
@@ -121,19 +121,6 @@
             <button id="confirmTopupBtn">Пополнить</button>
         </div>
     </div>
-    <div id="withdrawModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" id="closeWithdrawModal">&times;</span>
-            <h3>Вывод средств</h3>
-            <div class="withdraw-methods">
-                <div class="method-btn" data-method="stars">⭐ Stars</div>
-                <div class="method-btn" data-method="gifts">🎁 Подарки</div>
-                <div class="method-btn" data-method="ton">💰 TON</div>
-            </div>
-            <div class="fee-info" id="withdrawFeeInfo">Комиссия 5%</div>
-            <button id="confirmWithdrawBtn">Вывести</button>
-        </div>
-    </div>
     <script>
         (async () => {
             // Drag tabs
@@ -159,7 +146,7 @@
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
             
-            // ---------- Database ----------
+            // ---------- Database functions (unchanged) ----------
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -456,7 +443,7 @@
                     updateTopupFee(0);
                 });
                 document.getElementById('withdrawBtn')?.addEventListener('click', () => {
-                    document.getElementById('withdrawModal').style.display = 'flex';
+                    alert("Вывод средств временно недоступен");
                 });
             }
             
@@ -565,7 +552,7 @@
             document.querySelector('.close-modal')?.addEventListener('click', () => document.getElementById('notificationModal').style.display = 'none');
             document.getElementById('markReadBtn')?.addEventListener('click', async () => { await markNotificationsRead(); showNotificationsModal(); await updateNotificationBell(); });
             
-            // Модальное окно пополнения с произвольной суммой
+            // Модальное окно пополнения
             let selectedAmount = null;
             function updateTopupFee(amount) {
                 const fee = Math.floor(amount * 0.05);
@@ -583,12 +570,12 @@
             });
             document.getElementById('setCustomAmount')?.addEventListener('click', () => {
                 const val = parseInt(document.getElementById('customTopupAmount').value);
-                if (!isNaN(val) && val >= 1) {
+                if (!isNaN(val) && val >= 1 && val <= 10000) {
                     selectedAmount = val;
                     document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected'));
                     updateTopupFee(selectedAmount);
                 } else {
-                    alert('Введите положительное число');
+                    alert('Введите сумму от 1 до 10000');
                 }
             });
             document.getElementById('confirmTopupBtn')?.addEventListener('click', () => {
@@ -598,34 +585,11 @@
                 }
                 document.getElementById('topupModal').style.display = 'none';
                 // Открываем чат с ботом и передаём параметр start=topup_XXX
-                tg.openTelegramLink(`https://t.me/VoxAction_Bot?start=topup_${selectedAmount}`);
+                const link = `https://t.me/VoxAction_Bot?start=topup_${selectedAmount}`;
+                tg.openTelegramLink(link);
             });
             document.getElementById('closeTopupModal')?.addEventListener('click', () => {
                 document.getElementById('topupModal').style.display = 'none';
-            });
-            
-            // Модальное окно вывода
-            let selectedMethod = null;
-            document.querySelectorAll('#withdrawModal .method-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('#withdrawModal .method-btn').forEach(b => b.classList.remove('selected'));
-                    btn.classList.add('selected');
-                    selectedMethod = btn.dataset.method;
-                });
-            });
-            document.getElementById('confirmWithdrawBtn')?.addEventListener('click', () => {
-                if (!selectedMethod) { alert('Выберите способ вывода'); return; }
-                document.getElementById('withdrawModal').style.display = 'none';
-                if (selectedMethod === 'stars') {
-                    alert('Вывод Stars в разработке. Комиссия 5%');
-                } else if (selectedMethod === 'gifts') {
-                    tg.openTelegramLink(`https://t.me/VoxAction_Bot?start=withdraw_gifts`);
-                } else if (selectedMethod === 'ton') {
-                    tg.openTelegramLink(`https://t.me/VoxAction_Bot?start=withdraw_ton`);
-                }
-            });
-            document.getElementById('closeWithdrawModal')?.addEventListener('click', () => {
-                document.getElementById('withdrawModal').style.display = 'none';
             });
             
             // ---------- Start ----------
