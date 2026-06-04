@@ -592,9 +592,9 @@
                     return;
                 }
                 document.getElementById('topupModal').style.display = 'none';
-                // Вызываем правильную оплату через openInvoice
+                const BACKEND_URL = 'https://voxaction-bot.onrender.com'; // <---!!! Укажите ВАШ URL бэкенда на Render (без кавычек внутри кавычек)
                 try {
-                    const response = await fetch('https://voxaction-bot.onrender.com/create-invoice', {
+                    const response = await fetch(`${BACKEND_URL}/create-invoice`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: userId, amount: selectedAmount })
