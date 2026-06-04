@@ -31,15 +31,18 @@
             right: 0;
             background: white;
             display: flex;
-            justify-content: space-around;
+            overflow-x: auto;
+            white-space: nowrap;
             padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
             border-top: 1px solid #e0e0e0;
             z-index: 100;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
         }
         .tab {
-            flex: 1;
+            display: inline-block;
             text-align: center;
-            padding: 8px;
+            padding: 8px 16px;
             font-size: 14px;
             font-weight: 500;
             color: #666;
@@ -177,6 +180,23 @@
             font-weight: bold;
             margin-top: 4px;
         }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .rank {
+            font-weight: bold;
+            width: 40px;
+        }
+        .user-name {
+            flex: 2;
+        }
+        .user-shares {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -185,6 +205,8 @@
         <div class="tab" data-tab="profile">👤 Профиль</div>
         <div class="tab active" data-tab="stocks">📈 Акции</div>
         <div class="tab" data-tab="analytics">📊 Аналитика</div>
+        <div class="tab" data-tab="rating">🏆 Рейтинг</div>
+        <div class="tab" data-tab="wallet">💳 Кошелёк</div>
         <div class="tab" data-tab="settings">⚙️ Настройки</div>
     </div>
     <script>
@@ -233,13 +255,11 @@
                 return data || [];
             }
 
-            // Функция для расчёта средневзвешенной цены
             async function getCurrentPrice() {
                 const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
                 if (error) throw new Error(`Ошибка загрузки сделок для цены: ${error.message}`);
                 if (!data || data.length === 0) return 1;
-                let totalAmount = 0;
-                let totalStars = 0;
+                let totalAmount = 0, totalStars = 0;
                 for (let trade of data) {
                     totalAmount += trade.amount;
                     totalStars += trade.amount * trade.price_per_share;
@@ -253,6 +273,12 @@
                 const totalShares = data.reduce((sum, u) => sum + u.shares, 0);
                 const currentPrice = await getCurrentPrice();
                 return { totalShares, currentPrice, marketCap: totalShares * currentPrice };
+            }
+
+            async function getLeaderboard(limit = 20) {
+                const { data, error } = await supabase.from('users').select('username, shares').order('shares', { ascending: false }).limit(limit);
+                if (error) throw new Error(`Ошибка загрузки рейтинга: ${error.message}`);
+                return data;
             }
 
             async function createOrder(amount, price) {
@@ -386,7 +412,6 @@
                         if (top + tooltip.offsetHeight > height) top = mouseY - tooltip.offsetHeight - 10;
                         tooltip.style.left = left + 'px';
                         tooltip.style.top = top + 'px';
-                        // Рисуем точку на графике
                         const pointX = padding.left + idx * stepX;
                         const pointY = padding.top + graphHeight - ((values[idx] - min) / range) * graphHeight;
                         ctx.beginPath();
@@ -399,7 +424,7 @@
                         ctx.fill();
                     } else {
                         tooltip.style.display = 'none';
-                        draw(); // перерисовываем без точки
+                        draw();
                     }
                 }
                 canvas.addEventListener('mousemove', (e) => { draw(); showTooltip(e); });
@@ -540,8 +565,52 @@
                 `;
                 document.getElementById('app').innerHTML = html;
             }
-            function renderAnalyticsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>Аналитика</h2><p>В разработке</p></div>'; }
-            function renderSettingsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>Настройки</h2><p>В разработке</p></div>'; }
+
+            async function renderRatingTab() {
+                try {
+                    const leaders = await getLeaderboard(20);
+                    let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2><div id="leaderboardList">`;
+                    if (leaders.length === 0) html += '<p>Нет данных</p>';
+                    else {
+                        leaders.forEach((user, idx) => {
+                            html += `
+                                <div class="leaderboard-item">
+                                    <div class="rank">${idx+1}</div>
+                                    <div class="user-name">${user.username || "Аноним"}</div>
+                                    <div class="user-shares">${user.shares} акций</div>
+                                </div>
+                            `;
+                        });
+                    }
+                    html += `</div></div>`;
+                    document.getElementById('app').innerHTML = html;
+                } catch (err) {
+                    document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`;
+                }
+            }
+
+            function renderWalletTab() {
+                const html = `
+                    <div class="card">
+                        <h2>💳 Кошелёк</h2>
+                        <p>⭐ Баланс Stars: <strong>${currentUser.stars_balance}</strong></p>
+                        <p>📊 Акций: <strong>${currentUser.shares}</strong></p>
+                        <hr>
+                        <p>В ближайшее время: пополнение Stars через Telegram Stars API.</p>
+                        <button id="fakeTopup">➕ Тестовое пополнение (10 Stars)</button>
+                    </div>
+                `;
+                document.getElementById('app').innerHTML = html;
+                document.getElementById('fakeTopup')?.addEventListener('click', async () => {
+                    currentUser.stars_balance += 10;
+                    await supabase.from('users').update({ stars_balance: currentUser.stars_balance }).eq('id', userId);
+                    alert('Баланс пополнен на 10 Stars (тестово)');
+                    renderWalletTab();
+                });
+            }
+
+            function renderAnalyticsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>📊 Аналитика</h2><p>В разработке</p></div>'; }
+            function renderSettingsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>⚙️ Настройки</h2><p>В разработке</p></div>'; }
 
             currentUser = await getOrCreateUser();
             let activeTab = 'stocks';
@@ -556,6 +625,8 @@
                     if (tabName === 'profile') renderProfileTab();
                     else if (tabName === 'stocks') await renderStocksTab();
                     else if (tabName === 'analytics') renderAnalyticsTab();
+                    else if (tabName === 'rating') await renderRatingTab();
+                    else if (tabName === 'wallet') renderWalletTab();
                     else if (tabName === 'settings') renderSettingsTab();
                 });
             });
