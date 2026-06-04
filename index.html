@@ -151,7 +151,9 @@
                 if (error) throw new Error(`Ошибка подсчёта акций: ${error.message}`);
                 const totalShares = data.reduce((sum, u) => sum + u.shares, 0);
                 const currentPrice = await getCurrentPrice();
-                return { totalShares, currentPrice, marketCap: totalShares * currentPrice };
+                // Капитализация в звёздах = (totalShares / 100) * (currentPrice / 100) = totalShares * currentPrice / 10000
+                const marketCapStars = totalShares * currentPrice / 10000;
+                return { totalShares, currentPrice, marketCap: Math.round(marketCapStars) };
             }
             async function getLeaderboard(limit = 20) {
                 const { data, error } = await supabase.from('users').select('username, shares').eq('hide_rating', false).order('shares', { ascending: false }).limit(limit);
@@ -336,7 +338,7 @@
                             <div class="flex-between"><div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div><div class="price">${(currentPrice/100).toFixed(2)} ⭐</div></div>
                         </div>
                         <div class="card">
-                            <div class="info-panel"><div class="info-card"><div class="info-label">Рыночная капитализация</div><div class="info-value">${Math.round(marketCap/100)} ⭐</div></div><div class="info-card"><div class="info-label">Всего акций</div><div class="info-value">${(totalShares/100).toFixed(2)}</div></div></div>
+                            <div class="info-panel"><div class="info-card"><div class="info-label">Рыночная капитализация</div><div class="info-value">${marketCap} ⭐</div></div><div class="info-card"><div class="info-label">Всего акций</div><div class="info-value">${(totalShares/100).toFixed(2)}</div></div></div>
                             <div id="chart-container" class="chart-container"></div>
                             <div id="volume-chart" class="volume-chart-container"></div>
                             <div id="ticker" class="ticker"></div>
