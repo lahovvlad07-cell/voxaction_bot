@@ -266,6 +266,7 @@
             gap: 8px;
             margin-bottom: 12px;
             flex-wrap: wrap;
+            align-items: center;
         }
         .filter-btn {
             background: #e9ecef;
@@ -309,7 +310,7 @@
     </div>
     <script>
         (async () => {
-            // Drag-to-scroll
+            // Drag-to-scroll for tabs on PC
             const tabsWrapper = document.getElementById('tabsWrapper');
             let isDown = false;
             let startX;
@@ -398,12 +399,8 @@
                 return data || [];
             }
 
-            async function getRecentTrades(limit = 10, excludeUserId = null) {
-                let query = supabase.from('trades').select('amount, price_per_share, seller_id, buyer_id').order('created_at', { ascending: false }).limit(limit);
-                if (excludeUserId) {
-                    query = query.not('seller_id', 'eq', excludeUserId).not('buyer_id', 'eq', excludeUserId);
-                }
-                const { data, error } = await query;
+            async function getRecentTrades(limit = 10) {
+                const { data, error } = await supabase.from('trades').select('amount, price_per_share, seller_id, buyer_id').order('created_at', { ascending: false }).limit(limit);
                 if (error) throw new Error(`Ошибка загрузки сделок: ${error.message}`);
                 return data || [];
             }
@@ -603,8 +600,9 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
 
-            let currentOrdersFilter = 'all';
-            let currentSortDir = 'asc';
+            let currentOrdersFilter = 'all'; // 'all' or 'my'
+            let currentSortDir = 'asc'; // 'asc' or 'desc'
+            let sortButtonState = false; // false = asc, true = desc
             
             async function renderStocksTab() {
                 try {
@@ -615,11 +613,11 @@
                     } else {
                         orders = await getUserOrders();
                     }
+                    // сортировка по цене
                     orders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
                     
                     const priceHistory = await getPriceHistory();
-                    // показываем все последние сделки (включая свои)
-                    const recentTrades = await getRecentTrades(10, null);
+                    const recentTrades = await getRecentTrades(10); // все сделки, включая свои
                     const { totalShares, currentPrice, marketCap } = await getTotalMarketCap();
                     setProgress(80);
                     
@@ -651,8 +649,7 @@
                             <div class="filter-bar">
                                 <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все ордера</button>
                                 <button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои ордера</button>
-                                <button class="sort-btn" data-sort="asc">↑ Цена ↑</button>
-                                <button class="sort-btn" data-sort="desc">↓ Цена ↓</button>
+                                <button class="sort-btn" id="sortPriceBtn">${currentSortDir === 'asc' ? '↑ Цена ↑' : '↓ Цена ↓'}</button>
                             </div>
                             <h3>📋 Активные ордера на продажу</h3>
                             <div id="ordersList"></div>
@@ -662,18 +659,21 @@
                     drawInteractiveChart(priceHistory);
                     renderTicker(recentTrades);
                     
+                    // фильтры
                     document.querySelectorAll('.filter-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
                             currentOrdersFilter = btn.dataset.filter;
                             renderStocksTab();
                         });
                     });
-                    document.querySelectorAll('.sort-btn').forEach(btn => {
-                        btn.addEventListener('click', () => {
-                            currentSortDir = btn.dataset.sort;
+                    // сортировка переключателем
+                    const sortBtn = document.getElementById('sortPriceBtn');
+                    if (sortBtn) {
+                        sortBtn.addEventListener('click', () => {
+                            currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
                             renderStocksTab();
                         });
-                    });
+                    }
                     
                     const ordersDiv = document.getElementById('ordersList');
                     if (orders.length === 0) {
@@ -694,6 +694,7 @@
                             `;
                             ordersDiv.appendChild(div);
                         });
+                        // Покупка
                         document.querySelectorAll('.buy-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
                                 const order = JSON.parse(btn.dataset.order);
@@ -719,6 +720,7 @@
                                 }
                             });
                         });
+                        // Отмена своего ордера
                         document.querySelectorAll('.cancel-btn').forEach(btn => {
                             btn.addEventListener('click', async () => {
                                 const orderId = parseInt(btn.dataset.orderId);
