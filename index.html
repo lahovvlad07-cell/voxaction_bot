@@ -76,8 +76,9 @@
         .custom-amount input { flex: 2; margin: 0; }
         .profile-avatar { display: flex; flex-direction: column; align-items: center; margin-bottom: 16px; cursor: pointer; }
         .avatar-circle { width: 80px; height: 80px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 8px; }
-        .achievement-icons { display: flex; justify-content: center; gap: 12px; margin: 12px 0; }
-        .achi-icon { width: 50px; height: 50px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-secondary); cursor: pointer; }
+        .achievement-icons { display: flex; justify-content: center; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
+        .achi-icon { width: 60px; height: 60px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--text-secondary); cursor: pointer; transition: 0.2s; }
+        .achi-icon.earned { background: var(--primary); color: white; }
         .admin-only { display: none; }
     </style>
 </head>
@@ -212,14 +213,61 @@
                 if (error) return { totalTrades: 0, totalVolume: 0 };
                 return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
             }
-            async function getAchievements() {
-                // Заглушка – пока возвращаем пустой массив
-                return [];
-            }
             async function getSellerRating(sellerId) {
                 const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
                 if (error || !data.length) return null;
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
+            }
+            
+            // ----------------------------- ACHIEVEMENTS -----------------------------
+            async function checkAndUpdateAchievements() {
+                // Получаем статистику пользователя
+                const tradesCount = (await getUserStats()).totalTrades;
+                const sharesAmount = currentUser.shares / 100;
+                const referralsCount = currentUser.referral_count || 0;
+                // Получаем сумму пополнений (можно из таблицы, пока заглушка)
+                const topupAmount = 0; // позже реализуем
+
+                // Список возможных ачивок (временный)
+                const achievementsList = [
+                    { id: 1, name: 'Новичок', condition: tradesCount >= 1, icon: '🎩' },
+                    { id: 2, name: 'Трейдер', condition: tradesCount >= 10, icon: '📈' },
+                    { id: 3, name: 'Акционер', condition: sharesAmount >= 1000, icon: '📊' },
+                    { id: 4, name: 'Лидер', condition: referralsCount >= 5, icon: '👥' },
+                    { id: 5, name: 'Инвестор', condition: topupAmount >= 1000, icon: '💰' }
+                ];
+
+                for (const ach of achievementsList) {
+                    if (ach.condition) {
+                        // Проверяем, есть ли уже эта ачивка у пользователя
+                        const { data, error } = await supabase
+                            .from('user_achievements')
+                            .select('achievement_id')
+                            .eq('user_id', userId)
+                            .eq('achievement_id', ach.id)
+                            .maybeSingle();
+                        if (!data && !error) {
+                            // Добавляем ачивку
+                            await supabase.from('user_achievements').insert([{ user_id: userId, achievement_id: ach.id }]);
+                            // Отправляем уведомление
+                            await sendLocalNotification(`🏆 Вы получили достижение "${ach.name}"!`);
+                        }
+                    }
+                }
+            }
+
+            async function getUserAchievements() {
+                const { data, error } = await supabase
+                    .from('user_achievements')
+                    .select('achievements(id, name, description, icon)')
+                    .eq('user_id', userId);
+                if (error) return [];
+                return data.map(item => item.achievements);
+            }
+
+            async function sendLocalNotification(text) {
+                // Просто alert, можно заменить на красивое всплывающее уведомление
+                alert(text);
             }
             
             // ----------------------------- CHART -----------------------------
@@ -357,25 +405,40 @@
                 } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
             }
             
-            async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
+            async function refreshAll() { 
+                currentUser = await getOrCreateUser(); 
+                await renderStocksTab(); 
+                await checkAndUpdateAchievements(); 
+            }
             
             async function renderProfileTab() {
                 const stats = await getUserStats();
-                const achievements = await getAchievements(); // пока пусто
+                const achievements = await getUserAchievements();
                 const refCode = currentUser.referral_code;
                 const refLink = `https://t.me/VoxAction_Bot?start=${refCode}`;
-                const isAdmin = (userId === 6048486427); // ваш ID
+                const referralCount = currentUser.referral_count || 0;
+                const referralBonusShares = referralCount * 5;
+                const isAdmin = (userId === 6048486427);
                 const adminHtml = isAdmin ? `<hr><div class="admin-only" style="display: block;"><h3>Админ-панель</h3><p>Здесь будут инструменты управления. В разработке.</p></div>` : '';
+                // Создаём иконки ачивок (максимум 5)
+                let achievementIconsHtml = '';
+                for (let i = 0; i < 5; i++) {
+                    const ach = achievements[i];
+                    if (ach) {
+                        achievementIconsHtml += `<div class="achi-icon earned" data-name="${ach.name}" data-desc="${ach.description}">${ach.icon}</div>`;
+                    } else {
+                        achievementIconsHtml += `<div class="achi-icon">?</div>`;
+                    }
+                }
                 const html = `
                     <div class="card" style="text-align: center;">
                         <div class="profile-avatar" id="avatarClick">
-                            <div class="avatar-circle">${username.charAt(0).toUpperCase()}</div>
-                            <div class="small-text">Нажмите, чтобы изменить аватар</div>
+                            <div class="avatar-circle">${currentUser.username.charAt(0).toUpperCase()}</div>
                         </div>
-                        <p style="font-size: 24px; font-weight: bold;">${username}</p>
+                        <p style="font-size: 24px; font-weight: bold;">${currentUser.username}</p>
                         <p>ID: ${userId}</p>
                         <div class="achievement-icons" id="achievementIcons">
-                            ${'<div class="achi-icon">?</div>'.repeat(5)}
+                            ${achievementIconsHtml}
                         </div>
                         <div style="display: flex; justify-content: space-around; margin: 20px 0;">
                             <div><p style="font-size: 28px;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
@@ -388,6 +451,11 @@
                             <div><p style="font-size: 20px;">${stats.totalVolume.toFixed(2)} ⭐</p><p class="small-text">Объём</p></div>
                         </div>
                         <hr>
+                        <h3>👥 Рефералы</h3>
+                        <div style="display: flex; justify-content: space-around; margin-bottom: 16px;">
+                            <div><p style="font-size: 24px;">${referralCount}</p><p class="small-text">Приглашено друзей</p></div>
+                            <div><p style="font-size: 24px;">${referralBonusShares}</p><p class="small-text">Заработано акций</p></div>
+                        </div>
                         <h3>🔗 Реферальная ссылка</h3>
                         <div class="small-text" style="background: var(--bg); padding: 8px; border-radius: 12px; word-break: break-all;">${refLink}</div>
                         <p class="small-text" style="margin-top: 8px;">Приглашайте друзей – они получат бонус, а вы 5 акций, когда друг пополнит на 10 ⭐ 🎁.</p>
@@ -395,14 +463,19 @@
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
-                // Обработка нажатия на аватар – пока просто алерт
                 document.getElementById('avatarClick')?.addEventListener('click', () => {
-                    alert('Загрузка аватаров будет доступна позже. Можно установить через @BotFather команду /setuserpic');
+                    alert('Аватар можно изменить через @BotFather командой /setuserpic');
                 });
-                // При нажатии на иконку ачивки – показываем заглушку
-                document.querySelectorAll('.achi-icon').forEach(icon => {
+                document.querySelectorAll('.achi-icon.earned').forEach(icon => {
                     icon.addEventListener('click', () => {
-                        alert('Достижения появятся после выполнения условий. Следите за обновлениями!');
+                        const name = icon.dataset.name;
+                        const desc = icon.dataset.desc;
+                        alert(`🏆 ${name}\n${desc}`);
+                    });
+                });
+                document.querySelectorAll('.achi-icon:not(.earned)').forEach(icon => {
+                    icon.addEventListener('click', () => {
+                        alert('Достижение ещё не получено. Продолжайте торговать!');
                     });
                 });
             }
@@ -574,6 +647,7 @@
             document.documentElement.style.setProperty('--primary', savedColor);
             document.documentElement.style.setProperty('--primary-dark', savedColor);
             await renderStocksTab();
+            await checkAndUpdateAchievements();
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', async () => {
                     const tabName = tab.dataset.tab;
