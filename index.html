@@ -17,6 +17,22 @@
             background: #f0f2f5;
             padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
         }
+        /* Анимация загрузки */
+        .loading-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #e0e0e0;
+            z-index: 1000;
+        }
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: #0088cc;
+            transition: width 0.2s ease;
+        }
         .card {
             background: white;
             border-radius: 24px;
@@ -24,7 +40,7 @@
             margin: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        /* Контейнер вкладок с прокруткой и стрелками-индикаторами */
+        /* Контейнер вкладок с прокруткой */
         .tabs-wrapper {
             position: fixed;
             bottom: 0;
@@ -42,7 +58,7 @@
             white-space: nowrap;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
-            padding: 0 8px;
+            padding: 0 12px;
             gap: 8px;
         }
         .tab {
@@ -73,34 +89,35 @@
         .tab.active .tab-label {
             color: white;
         }
-        /* Индикаторы прокрутки (стрелки) - только визуальные, не кликабельные */
-        .scroll-indicator {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 24px;
-            height: 24px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 14px;
+        /* Индикаторы прокрутки (тени) */
+        .tabs::before,
+        .tabs::after {
+            content: '';
+            position: sticky;
+            width: 20px;
+            height: 100%;
             pointer-events: none;
-            z-index: 101;
-            opacity: 0.6;
+            z-index: 2;
         }
-        .scroll-left {
-            left: 4px;
+        .tabs::before {
+            left: 0;
+            background: linear-gradient(to right, white, transparent);
         }
-        .scroll-right {
-            right: 4px;
+        .tabs::after {
+            right: 0;
+            background: linear-gradient(to left, white, transparent);
         }
-        @media (max-width: 600px) {
-            .scroll-indicator {
-                display: none; /* на телефонах пользователи знают про свайп, стрелки скроем */
-            }
+        /* Стилизация скроллбара (для вебкит) */
+        .tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+        .tabs::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        .tabs::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
         }
         h2, h3 {
             font-size: 18px;
@@ -250,6 +267,10 @@
     </style>
 </head>
 <body>
+    <!-- Анимированная полоска загрузки -->
+    <div class="loading-bar" id="loadingBar">
+        <div class="loading-progress" id="loadingProgress"></div>
+    </div>
     <div id="app">Загрузка...</div>
     <div class="tabs-wrapper">
         <div class="tabs" id="tabs">
@@ -278,26 +299,36 @@
                 <div class="tab-label">Настройки</div>
             </div>
         </div>
-        <!-- Декоративные стрелки (скрываются на телефонах) -->
-        <div class="scroll-indicator scroll-left">◀</div>
-        <div class="scroll-indicator scroll-right">▶</div>
     </div>
     <script>
         (async () => {
+            // Функция для обновления прогресса загрузки
+            let progress = 0;
+            const progressBar = document.getElementById('loadingProgress');
+            function setProgress(value) {
+                progress = value;
+                if (progressBar) progressBar.style.width = progress + '%';
+            }
+            setProgress(10);
+            
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
+            setProgress(20);
+            
             let userId = tg.initDataUnsafe?.user?.id;
             const username = tg.initDataUnsafe?.user?.username || "player";
             if (!userId) {
                 console.warn("Тестовый режим, ID=123456");
                 userId = 123456;
             }
+            setProgress(30);
 
             const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             let currentUser = null;
+            setProgress(40);
 
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
@@ -525,11 +556,13 @@
 
             async function renderStocksTab() {
                 try {
+                    setProgress(60);
                     const orders = await getActiveOrders();
                     const priceHistory = await getPriceHistory();
                     const recentTrades = await getRecentTrades(10);
                     const { totalShares, currentPrice, marketCap } = await getTotalMarketCap();
-
+                    setProgress(80);
+                    
                     const html = `
                         <div class="card">
                             <div class="flex-between">
@@ -613,9 +646,15 @@
                             }
                         });
                     }
+                    setProgress(100);
+                    setTimeout(() => {
+                        const loadingBar = document.getElementById('loadingBar');
+                        if (loadingBar) loadingBar.style.display = 'none';
+                    }, 500);
                 } catch (err) {
                     console.error(err);
                     document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
+                    setProgress(100);
                 }
             }
 
@@ -637,6 +676,8 @@
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
+                const bar = document.getElementById('loadingBar');
+                if (bar) bar.style.display = 'none';
             }
 
             async function renderRatingTab() {
@@ -657,6 +698,8 @@
                     }
                     html += `</div></div>`;
                     document.getElementById('app').innerHTML = html;
+                    const bar = document.getElementById('loadingBar');
+                    if (bar) bar.style.display = 'none';
                 } catch (err) {
                     document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`;
                 }
@@ -674,6 +717,8 @@
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
+                const bar = document.getElementById('loadingBar');
+                if (bar) bar.style.display = 'none';
                 document.getElementById('fakeTopup')?.addEventListener('click', async () => {
                     currentUser.stars_balance += 10;
                     await supabase.from('users').update({ stars_balance: currentUser.stars_balance }).eq('id', userId);
@@ -682,20 +727,31 @@
                 });
             }
 
-            function renderAnalyticsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>📊 Аналитика</h2><p>В разработке</p></div>'; }
-            function renderSettingsTab() { document.getElementById('app').innerHTML = '<div class="card"><h2>⚙️ Настройки</h2><p>В разработке</p></div>'; }
+            function renderAnalyticsTab() { 
+                document.getElementById('app').innerHTML = '<div class="card"><h2>📊 Аналитика</h2><p>В разработке</p></div>';
+                const bar = document.getElementById('loadingBar');
+                if (bar) bar.style.display = 'none';
+            }
+            function renderSettingsTab() { 
+                document.getElementById('app').innerHTML = '<div class="card"><h2>⚙️ Настройки</h2><p>В разработке</p></div>';
+                const bar = document.getElementById('loadingBar');
+                if (bar) bar.style.display = 'none';
+            }
 
             currentUser = await getOrCreateUser();
             let activeTab = 'stocks';
             await renderStocksTab();
 
-            const tabsContainer = document.getElementById('tabs');
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', async () => {
                     const tabName = tab.dataset.tab;
                     activeTab = tabName;
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
+                    // Показать полоску загрузки при смене вкладки
+                    const bar = document.getElementById('loadingBar');
+                    if (bar) bar.style.display = 'block';
+                    setProgress(30);
                     if (tabName === 'profile') renderProfileTab();
                     else if (tabName === 'stocks') await renderStocksTab();
                     else if (tabName === 'analytics') renderAnalyticsTab();
