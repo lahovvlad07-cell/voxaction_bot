@@ -1,30 +1,28 @@
 // profile.js — современный профиль с прогресс-барами достижений
 window.renderProfile = async () => {
     const stats = await window.getUserStats();
-    const earned = await window.getEarnedAchievements(); // список заработанных достижений (из БД)
+    const earned = await window.getEarnedAchievements();
     const selectedIds = window.currentUser.selected_achievements || [];
     
-    // Три слота для выбранных достижений (иконки)
+    // Три слота выбранных достижений
     const icons = [];
     for(let i = 0; i < 3; i++) {
         const ach = earned.find(a => a.id === selectedIds[i]);
         icons.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
     }
     
-    // Рейтинг
     const rank = await window.getUserRank();
-    const rankHtml = rank ? `<div class="rank-badge" style="background:rgba(0,0,0,0.4); border-radius:40px; padding:6px 16px; display:inline-block; margin:8px auto; color:#f97316; border:1px solid #f97316;">🔴 Рейтинг #${rank}</div>` : '';
+    const rankHtml = rank ? `<div class="rank-badge">🔴 Рейтинг #${rank}</div>` : '';
     
-    // ----- Достижения с прогресс-барами (три основных) -----
+    // Основные достижения с прогрессом
     const mainAchievements = [
         { name: 'Сделки', icon: '📈', type: 'trades_count', need: 1, desc: 'Совершить 1 сделку' },
         { name: 'Трейдер', icon: '🔄', type: 'trades_count', need: 10, desc: 'Совершить 10 сделок' },
-        { name: 'Капиталист', icon: '🏦', type: 'shares_held', need: 10000, desc: 'Накопить 100 акций' } // 10000 центов = 100 акций
+        { name: 'Капиталист', icon: '🏦', type: 'shares_held', need: 10000, desc: 'Накопить 100 акций' }
     ];
     
-    // Текущие значения
     let currentTrades = stats.totalTrades;
-    let currentShares = window.currentUser.shares / 100; // в штуках
+    let currentShares = window.currentUser.shares / 100;
     
     function getProgress(ach) {
         let cur = 0, need = ach.need;
@@ -56,7 +54,7 @@ window.renderProfile = async () => {
         achievementsHtml = `<div class="achievements-list-vertical">`;
         for (let ach of achievementsWithProgress) {
             const checkMark = ach.completed ? '✅' : '❌';
-            const curDisplay = ach.type === 'trades_count' ? Math.floor(ach.cur) : ach.cur.toFixed(2);
+            const curDisplay = ach.type === 'trades_count' ? ach.cur : ach.cur.toFixed(2);
             const needDisplay = ach.type === 'trades_count' ? ach.need : ach.need.toFixed(2);
             const unit = ach.type === 'trades_count' ? 'сделок' : 'акций';
             achievementsHtml += `
@@ -74,24 +72,18 @@ window.renderProfile = async () => {
         achievementsHtml += `</div>`;
     }
     
-    // Аватар (временно статический, но можно расширить)
-    let avatarClass = 'avatar-circle';
-    let avatarBg = '';
-    if (window.currentUser.avatar_bg) {
-        if (window.currentUser.avatar_bg.startsWith('#')) avatarBg = `background: ${window.currentUser.avatar_bg};`;
-        else avatarBg = ''; // можно добавить градиент
-    }
+    const avatarLetter = window.currentUser.username ? window.currentUser.username.charAt(0).toUpperCase() : '👤';
     const regDate = window.currentUser.registered_at ? new Date(window.currentUser.registered_at).toLocaleDateString() : 'неизвестно';
     
     const html = `
         <div class="card profile-card" style="text-align:center;">
             <div class="profile-avatar" id="avatarClick">
-                <div class="${avatarClass}" style="${avatarBg}"><span class="avatar-emoji">👤</span></div>
-                <div class="small-text hint-text">Нажмите, чтобы сменить аватар и фон</div>
+                <div class="avatar-circle">${avatarLetter}</div>
+                <div class="small-text" style="margin-top:6px;">Нажмите, чтобы сменить аватар и фон</div>
             </div>
-            <p class="username">${window.currentUser.username}</p>
+            <p style="font-size:20px; font-weight:bold;">${window.currentUser.username}</p>
             <p class="small-text">ID: ${window.userId} | 📅 Регистрация: ${regDate}</p>
-            <div class="selected-achievements-area">
+            <div style="margin:12px 0;">
                 <div class="small-text" style="margin-bottom:8px;">Нажмите на значок, чтобы выбрать/убрать достижение</div>
                 <div class="achievement-icons">${icons.join('')}</div>
             </div>
@@ -112,25 +104,22 @@ window.renderProfile = async () => {
             </div>
         </div>
     `;
+    
     document.getElementById('app').innerHTML = html;
     
-    // Обработчики
     document.getElementById('avatarClick')?.addEventListener('click', () => {
-        // Здесь можно открыть выбор аватара/фона (если реализовано в common.js)
         if (window.openAvatar) window.openAvatar();
-        else window.showModal('Аватар', 'Изменить аватар можно позже');
+        else window.showModal('Аватар', 'Функция смены аватара появится позже');
     });
     
-    // Клик по иконкам выбранных достижений (открыть модалку выбора)
     document.querySelectorAll('.achi-icon').forEach(icon => {
         icon.addEventListener('click', async () => {
             const slot = parseInt(icon.dataset.slot);
             const curId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null;
-            // Используем функцию из common.js (openAchievementSelector)
             if (window.openAchievementSelector) {
                 await window.openAchievementSelector(slot, earned, selectedIds, curId);
             } else {
-                window.showModal('Достижения', 'Функция выбора временно недоступна');
+                window.showModal('Достижения', 'Выбор достижений временно недоступен');
             }
         });
     });
