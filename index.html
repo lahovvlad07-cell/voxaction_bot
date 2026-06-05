@@ -219,6 +219,37 @@
         .achievement-icon { font-size: 28px; margin-bottom: 4px; }
         .achievement-name { font-weight: 600; font-size: 13px; }
         .achievement-desc, .achievement-condition, .achievement-date { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+        .progress-bar {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            height: 6px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #2b6e9e, #60a5fa);
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+        }
+        .next-achievements {
+            margin-top: 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            padding: 12px;
+        }
+        .next-achievement-item {
+            margin-bottom: 12px;
+        }
+        .rank-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            padding: 12px;
+            margin-top: 12px;
+        }
         .avatars-grid, .bg-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -471,9 +502,15 @@
             return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
         }
         async function getLeaderboard() {
-            const { data, error } = await supabase.from('users').select('username, shares').eq('hide_rating', false).order('shares', { ascending: false }).limit(20);
+            const { data, error } = await supabase.from('users').select('username, shares').eq('hide_rating', false).order('shares', { ascending: false });
             if (error) throw new Error(error.message);
-            return data;
+            return data || [];
+        }
+        async function getUserRank() {
+            const leaders = await getLeaderboard();
+            const idx = leaders.findIndex(u => u.id === userId);
+            if (idx === -1) return null;
+            return idx + 1;
         }
         async function getUserStats() {
             const { data, error } = await supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
@@ -496,10 +533,75 @@
                 condition_value: ua.achievements.condition_value
             }));
         }
+        async function getAllAchievements() {
+            const { data, error } = await supabase.from('achievements').select('*');
+            if (error) return [];
+            return data;
+        }
         async function getSellerRating(sellerId) {
             const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
             if (error || !data.length) return null;
             return data.reduce((s,r)=>s+r.rating,0)/data.length;
+        }
+        
+        // ---------- Прогресс следующих достижений ----------
+        async function getNextAchievementsProgress() {
+            const allAchievements = await getAllAchievements();
+            const earned = await getEarnedAchievements();
+            const earnedIds = new Set(earned.map(a => a.id));
+            const notEarned = allAchievements.filter(a => !earnedIds.has(a.id) && a.name !== '🌟 Первый шаг'); // исключаем приветственное
+            if (notEarned.length === 0) return [];
+            
+            // Получаем текущую статистику пользователя
+            const tradesCount = (await getUserStats()).totalTrades;
+            const sharesCents = currentUser.shares;
+            const referralsCount = currentUser.referral_count || 0;
+            const totalTopupCents = currentUser.total_topup || 0;
+            
+            const nextAchievements = [];
+            for (let ach of notEarned) {
+                let current = 0, needed = ach.condition_value;
+                switch (ach.condition_type) {
+                    case 'trades_count': current = tradesCount; break;
+                    case 'shares_held': current = sharesCents; break;
+                    case 'referrals_count': current = referralsCount; break;
+                    case 'total_topup': current = totalTopupCents; break;
+                }
+                if (current < needed) {
+                    nextAchievements.push({
+                        ...ach,
+                        current,
+                        needed,
+                        progress: Math.min(100, (current / needed) * 100)
+                    });
+                }
+                if (nextAchievements.length >= 3) break;
+            }
+            return nextAchievements;
+        }
+        
+        // ---------- Выдача ачивки за аватар ----------
+        async function awardAvatarAchievement() {
+            try {
+                const { data: achData } = await supabase
+                    .from('achievements')
+                    .select('id')
+                    .eq('name', '🎨 Стилист')
+                    .single();
+                if (!achData) return;
+                const achId = achData.id;
+                const { data: existing } = await supabase
+                    .from('user_achievements')
+                    .select('achievement_id')
+                    .eq('user_id', userId)
+                    .eq('achievement_id', achId)
+                    .maybeSingle();
+                if (!existing) {
+                    await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: achId, earned_at: new Date().toISOString() });
+                    // Показываем уведомление о новом достижении
+                    showCustomModal('🎉 Новое достижение!', 'Вы получили достижение "🎨 Стилист" за выбор аватарки или фона!');
+                }
+            } catch(e) { console.error(e); }
         }
         
         // ---------- График и вкладка акций ----------
@@ -633,14 +735,12 @@
             await renderStocksTab(); 
         }
         
-        // ---------- Выбор аватарки и фона ----------
+        // ---------- Выбор аватарки и фона (с выдачей ачивки) ----------
         const avatarEmojis = [
             '👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽',
             '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆',
             '🎨', '📷', '⚡', '🔮'
         ];
-        
-        // Вертикальное смещение (отрицательное – поднимаем)
         const avatarAdjustments = {
             '🐱': -8, '🐶': -8, '🐼': -7, '🦊': -5,
             '⚽': -3, '💎': -3, '🌸': -3, '🔥': -3,
@@ -648,23 +748,11 @@
             '🎨': -3, '📷': -3, '⚡': -3, '🔮': -3,
             '🚀': -3, '🎮': -3
         };
-        
-        // Размер шрифта для мелких эмодзи
         const avatarFontSizes = {
-            '⚡': '56px',
-            '🔮': '56px',
-            '🎮': '56px',
-            '🚀': '56px',
-            '⭐': '56px',
-            '🌟': '56px',
-            '🔥': '56px',
-            '💎': '56px',
-            '🎉': '56px',
-            '⚽': '56px',
-            '📷': '56px',
-            '🎨': '56px'
+            '⚡': '56px', '🔮': '56px', '🎮': '56px', '🚀': '56px',
+            '⭐': '56px', '🌟': '56px', '🔥': '56px', '💎': '56px',
+            '🎉': '56px', '⚽': '56px', '📷': '56px', '🎨': '56px'
         };
-        
         function getAvatarStyle(emoji) {
             const adjust = avatarAdjustments[emoji] || 0;
             const fontSize = avatarFontSizes[emoji] || '48px';
@@ -708,6 +796,7 @@
                 await supabase.from('users').update({ avatar_url: selectedAvatar }).eq('id', userId);
                 currentUser.avatar_url = selectedAvatar;
                 document.getElementById('avatarModal').remove();
+                await awardAvatarAchievement(); // выдаём ачивку за смену аватарки
                 await openBackgroundSelector();
             };
         }
@@ -761,11 +850,12 @@
                 await supabase.from('users').update({ avatar_bg: selectedBgValue }).eq('id', userId);
                 currentUser.avatar_bg = selectedBgValue;
                 document.getElementById('bgModal').remove();
+                await awardAvatarAchievement(); // выдаём ачивку за смену фона
                 await renderProfileTab();
             };
         }
         
-        // ---------- Профиль (сдвигается только эмодзи) ----------
+        // ---------- Профиль (с местом в рейтинге и прогрессом) ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
@@ -776,6 +866,36 @@
                 const ach = earnedAchievements.find(a => a.id === achId);
                 iconsHtml.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
             }
+            // Рейтинг
+            const rank = await getUserRank();
+            const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px; font-weight:bold;">#${rank}</span></div>` : '';
+            
+            // Прогресс следующих достижений
+            const nextAchievements = await getNextAchievementsProgress();
+            let nextHtml = '';
+            if (nextAchievements.length > 0) {
+                nextHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px;">📋 Ближайшие достижения:</div>`;
+                for (let ach of nextAchievements) {
+                    let conditionStr = '';
+                    switch (ach.condition_type) {
+                        case 'trades_count': conditionStr = `${ach.current}/${ach.needed} сделок`; break;
+                        case 'shares_held': conditionStr = `${ach.current/100}/${ach.needed/100} акций`; break;
+                        case 'referrals_count': conditionStr = `${ach.current}/${ach.needed} приглашений`; break;
+                        case 'total_topup': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐`; break;
+                    }
+                    nextHtml += `
+                        <div class="next-achievement-item">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>${ach.icon} ${ach.name}</span>
+                                <span class="small-text">${conditionStr}</span>
+                            </div>
+                            <div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div>
+                        </div>
+                    `;
+                }
+                nextHtml += `</div>`;
+            }
+            
             // Фон аватарки
             let avatarClass = 'avatar-circle';
             let avatarStyle = '';
@@ -785,9 +905,8 @@
                 const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
                 avatarClass += ` ${found ? found.class : 'bg-gradient1'}`;
             }
-            // Сдвиг и размер для эмодзи
             const emojiStyle = getAvatarStyle(currentUser.avatar_url);
-            const html = `<div class="card" style="text-align: center;"><div class="profile-avatar" id="avatarClick"><div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div><div class="small-text">Нажмите, чтобы сменить аватар и фон</div></div><p style="font-size:20px; font-weight:bold;">${currentUser.username}</p><p class="small-text">ID: ${userId}</p><div class="achievement-icons">${iconsHtml.join('')}</div><div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div><div class="stats-container"><div class="stats-row"><div class="stat-card"><div class="stat-value">${fromCents(currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div><div class="stat-card"><div class="stat-value">${fromCents(currentUser.shares)}</div><div class="stat-label">Акций</div></div></div><div class="stats-row"><div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div><div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div></div></div></div>`;
+            const html = `<div class="card" style="text-align: center;"><div class="profile-avatar" id="avatarClick"><div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div><div class="small-text">Нажмите, чтобы сменить аватар и фон</div></div><p style="font-size:20px; font-weight:bold;">${currentUser.username}</p><p class="small-text">ID: ${userId}</p><div class="achievement-icons">${iconsHtml.join('')}</div><div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div><div class="stats-container"><div class="stats-row"><div class="stat-card"><div class="stat-value">${fromCents(currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div><div class="stat-card"><div class="stat-value">${fromCents(currentUser.shares)}</div><div class="stat-label">Акций</div></div></div><div class="stats-row"><div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div><div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div></div></div>${rankHtml}${nextHtml}</div>`;
             document.getElementById('app').innerHTML = html;
             document.getElementById('avatarClick')?.addEventListener('click', openAvatarSelector);
             document.querySelectorAll('.achi-icon').forEach(icon => {
@@ -799,7 +918,7 @@
             });
         }
         
-        // ---------- Выбор достижения для слота ----------
+        // ---------- Выбор достижения для слота (без изменений) ----------
         async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId) {
             if (!earnedAchievements.length) {
                 showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
