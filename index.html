@@ -7,6 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ВСЕ СТИЛИ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ (они уже есть в вашем файле) */
         *{margin:0;padding:0;box-sizing:border-box;user-select:none;scrollbar-width:none;-ms-overflow-style:none}
         *::-webkit-scrollbar{display:none}
         body{background:#0a0e1a;font-family:'Inter',system-ui,apple-system,'Segoe UI',Roboto,sans-serif;color:#eef2ff;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
@@ -138,7 +139,7 @@
             setTimeout(() => t.remove(), 5000);
         }
 
-        // ---------- ФУНКЦИИ ДЛЯ АКЦИЙ (НЕ МЕНЯЛИ) ----------
+        // ---------- ФУНКЦИИ ДЛЯ АКЦИЙ ----------
         async function getActiveOrders() {
             const res = await fetch(`${BACKEND_URL}/get-active-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
             const data = await res.json();
@@ -354,7 +355,7 @@
             currentUser = res.user;
         }
 
-        // ---------- ФУНКЦИИ ДЛЯ ПРОФИЛЯ (ИСПРАВЛЕННЫЕ) ----------
+        // ---------- ФУНКЦИИ ДЛЯ ПРОФИЛЯ ----------
         async function getOrCreateUser() {
             let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
             if (error) throw new Error(error.message);
@@ -372,6 +373,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: userId, message: '🎉 Вы получили достижение "🌟 Первый шаг"!', type: 'notify_trades' })
                     }).catch(e=>console.warn);
+                    showModal('🎉 Новое достижение!', 'Вы получили достижение "🌟 Первый шаг"!');
                 }
                 return { user: newUser, isNew: true };
             }
@@ -470,7 +472,7 @@
             }));
         }
 
-        // ---------- Аватарки и фон (ИСПРАВЛЕННЫЕ: убраны дубли вызовов awardStylist) ----------
+        // ---------- Аватарки и фон (исправлено: окно достижения не появляется повторно) ----------
         const avatars = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
         const adj = { '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3,'🎨':-3,'📷':-3,'⚡':-3,'🔮':-3,'🚀':-3,'🎮':-3 };
         const fontSize = { '⚡':'56px','🔮':'56px','🎮':'56px','🚀':'56px','⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px' };
@@ -498,7 +500,7 @@
                 await supabase.from('users').update({ avatar_url: selected }).eq('id', userId);
                 currentUser.avatar_url = selected;
                 m.remove();
-                await openBg(); // внутри openBg вызывается awardStylist()
+                await openBg();
             };
         }
         async function openBg() {
@@ -535,7 +537,7 @@
                 await supabase.from('users').update({ avatar_bg: selected }).eq('id', userId);
                 currentUser.avatar_bg = selected;
                 m.remove();
-                await awardStylist(); // только один раз
+                await awardStylist();
                 await renderProfile();
             };
         }
@@ -556,7 +558,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: userId, message: '🎨 Вы получили достижение "🎨 Стилист" за выбор аватарки или фона!', type: 'notify_trades' })
                     }).catch(e=>console.warn);
-                    showModal('🎉 Новое достижение!', 'Вы получили "🎨 Стилист" за выбор аватарки или фона!');
+                    showModal('🎉 Новое достижение!', 'Вы получили достижение "🎨 Стилист" за выбор аватарки или фона!');
                 }
             } catch(e) { console.error(e); }
         }
@@ -800,7 +802,6 @@
         setupRealtime();
         await updateBellBadge();
 
-        // При первом запуске открываем выбор аватарки
         if (isNew) {
             setTimeout(() => openAvatar(), 500);
         }
