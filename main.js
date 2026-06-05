@@ -1,25 +1,20 @@
 // main.js
 (async () => {
-    // Инициализация Telegram WebApp
     const tg = window.Telegram.WebApp;
     tg.ready(); tg.expand();
     window.userId = tg.initDataUnsafe?.user?.id;
     window.username = tg.initDataUnsafe?.user?.username || `user_${window.userId}`;
-    if (!window.userId) { document.getElementById('app').innerHTML = '<div class="card">Ошибка: запустите через Telegram</div>'; return; }
+    if (!window.userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
     if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
 
-    // Загрузка пользователя (функция из common.js)
     const { user, isNew } = await window.getOrCreateUser();
     window.currentUser = user;
 
-    // Сохраняем цвет акцента
     const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
     document.documentElement.style.setProperty('--accent', savedColor);
 
-    // Рендерим начальную вкладку
     await window.renderStocks();
 
-    // Автообновление (только для акций)
     let autoRefresh = null;
     function startAuto() {
         if (autoRefresh) clearInterval(autoRefresh);
@@ -33,7 +28,6 @@
     }
     function stopAuto() { if (autoRefresh) clearInterval(autoRefresh); autoRefresh = null; }
 
-    // Переключение вкладок
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', async () => {
             const name = tab.dataset.tab;
@@ -55,10 +49,8 @@
         });
     });
 
-    // Уведомления (Realtime)
     window.setupRealtimeNotifications();
     await window.updateBellBadge();
 
-    // Если новый пользователь – показать выбор аватарки
     if (isNew) setTimeout(() => window.openAvatarSelector(), 500);
 })();
