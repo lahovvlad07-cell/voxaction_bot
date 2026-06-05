@@ -1090,8 +1090,7 @@
                 if(data.ok && data.invoice_link) tg.openInvoice(data.invoice_link, (status) => { if(status === 'paid') { showCustomModal('Успех','Баланс пополнен'); refreshAll(); } });
                 else showCustomModal('Ошибка', data.error || 'Не удалось создать счёт');
             } catch(e) { showCustomModal('Ошибка','Соединение'); }
-        });
-        document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
+                            document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
         
         // ---------- Автообновление ----------
         function startAutoRefresh() {
