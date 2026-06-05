@@ -1,4 +1,4 @@
-// main.js — добавлен drag-to-scroll для горизонтального меню
+// main.js — с drag-to-scroll для горизонтального меню
 (async () => {
     const tg = window.Telegram.WebApp;
     tg.ready(); tg.expand();
@@ -14,10 +14,8 @@
     const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
     document.documentElement.style.setProperty('--accent', savedColor);
 
-    // Рендерим начальную вкладку (акции)
     await window.renderStocks();
 
-    // Автообновление для вкладки акций
     let autoRefresh = null;
     function startAuto() {
         if (autoRefresh) clearInterval(autoRefresh);
@@ -32,7 +30,6 @@
     }
     function stopAuto() { if (autoRefresh) clearInterval(autoRefresh); autoRefresh = null; }
 
-    // Переключение вкладок
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', async () => {
             const name = tab.dataset.tab;
@@ -54,24 +51,17 @@
         });
     });
 
-    // Уведомления
     window.setupRealtime();
     await window.updateBellBadge();
 
-    // Если новый пользователь – открыть выбор аватарки через 0.5 сек
-    if (isNew) {
-        setTimeout(() => window.openAvatar(), 500);
-    }
-
-    // Старт автообновления для акций
+    if (isNew) setTimeout(() => window.openAvatar(), 500);
     startAuto();
 
-    // ---------- DRAG-TO-SCROLL ДЛЯ ГОРИЗОНТАЛЬНОГО МЕНЮ ----------
+    // Drag-to-scroll для горизонтального меню
     function initDragScroll() {
         const wrapper = document.querySelector('.tabs-wrapper');
         if (!wrapper) return;
-        let isDown = false;
-        let startX, scrollLeft;
+        let isDown = false, startX, scrollLeft;
         wrapper.addEventListener('mousedown', (e) => {
             isDown = true;
             wrapper.style.cursor = 'grabbing';
@@ -94,14 +84,12 @@
             const walk = (x - startX) * 1.5;
             wrapper.scrollLeft = scrollLeft - walk;
         });
-        // На случай, если браузер попытается выделить текст
         wrapper.addEventListener('dragstart', (e) => e.preventDefault());
         wrapper.addEventListener('selectstart', (e) => e.preventDefault());
     }
     initDragScroll();
 })();
 
-// Вспомогательная функция для обновления пользователя (используется в stocks.js)
 window.refreshUser = async () => {
     const { user } = await window.getOrCreateUser();
     window.currentUser = user;
