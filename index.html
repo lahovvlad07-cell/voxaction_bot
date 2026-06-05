@@ -7,9 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* --------------------------------------------------------------
-            УНИКАЛЬНЫЙ ДИЗАЙН ДЛЯ ВАШЕГО ПРОЕКТА
-        -------------------------------------------------------------- */
         * {
             margin: 0;
             padding: 0;
@@ -24,10 +21,6 @@
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             color: #eef2ff;
             padding-bottom: calc(76px + env(safe-area-inset-bottom));
-        }
-        .app-container {
-            max-width: 500px;
-            margin: 0 auto;
         }
         .card {
             background: rgba(18, 24, 38, 0.7);
@@ -401,7 +394,7 @@
 </div>
 <script>
     // ======================================================================
-    // ПОЛНАЯ ЛОГИКА ПРОЕКТА (JavaScript)
+    // ПОЛНАЯ ЛОГИКА ПРОЕКТА
     // ======================================================================
     (async () => {
         // ----------------------------- DRAG TABS -----------------------------
@@ -703,6 +696,16 @@
                     <div class="small-text" style="margin-top: 4px;">Нажмите на значок, чтобы выбрать достижение</div>
                     <div class="stats-row">
                         <div class="stat-card">
+                            <div class="stat-value">${fromCents(currentUser.stars_balance)}</div>
+                            <div class="stat-label">⭐ Stars</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${fromCents(currentUser.shares)}</div>
+                            <div class="stat-label">📊 Акций</div>
+                        </div>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stat-card">
                             <div class="stat-value">${stats.totalTrades}</div>
                             <div class="stat-label">Сделок</div>
                         </div>
@@ -719,7 +722,11 @@
             // Обработчик нажатия на иконки ачивок – открытие модалки выбора достижений
             const openAchievementSelector = () => {
                 const earnedAchievements = allAchievements.filter(a => userAchievements.some(ua => ua.id === a.id));
-                const html = earnedAchievements.map(ach => `
+                if (earnedAchievements.length === 0) {
+                    showMessage('Достижения', 'У вас пока нет полученных достижений. Совершайте сделки, пополняйте баланс, приглашайте друзей!');
+                    return;
+                }
+                const gridHtml = earnedAchievements.map(ach => `
                     <div class="achievement-card ${selectedIds.includes(ach.id) ? 'selected' : ''}" data-ach-id="${ach.id}">
                         <div class="achievement-icon">${ach.icon}</div>
                         <div class="achievement-name">${ach.name}</div>
@@ -732,29 +739,33 @@
                         <div class="modal-content">
                             <span class="close-modal" id="closeAchiSelector">&times;</span>
                             <h3>Выберите до 4 ачивок для показа в профиле</h3>
-                            <div class="achievements-grid" id="achiGrid">${html}</div>
+                            <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
                             <button id="saveAchiSelection">Сохранить</button>
                         </div>
                     </div>
                 `;
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
-                document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
+                const modal = document.getElementById('achiSelectorModal');
+                document.getElementById('closeAchiSelector').onclick = () => modal.remove();
+                // Клик по карточке для выбора/снятия
+                document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        card.classList.toggle('selected');
+                    });
+                });
                 document.getElementById('saveAchiSelection').onclick = async () => {
                     const selected = Array.from(document.querySelectorAll('#achiGrid .achievement-card.selected')).map(card => parseInt(card.dataset.achId));
                     if (selected.length > 4) { showMessage('Ошибка', 'Нельзя выбрать больше 4 ачивок'); return; }
                     await supabase.from('users').update({ selected_achievements: selected }).eq('id', userId);
                     currentUser.selected_achievements = selected;
-                    document.getElementById('achiSelectorModal').remove();
-                    await renderProfileTab();
+                    modal.remove();
+                    await renderProfileTab(); // обновляем страницу
                 };
-                document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
-                    card.addEventListener('click', () => {
-                        card.classList.toggle('selected');
-                    });
-                });
             };
-            // Навешиваем на иконки ачивок и на подпись
+            // Навешиваем на иконки ачивок и на область надписи
             document.querySelectorAll('.achi-icon').forEach(icon => icon.addEventListener('click', openAchievementSelector));
+            // Также можно по клику на текст "Нажмите на значок, чтобы выбрать достижение"
             document.querySelector('.achievement-icons')?.addEventListener('click', openAchievementSelector);
         }
         
