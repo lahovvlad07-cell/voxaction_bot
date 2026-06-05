@@ -150,6 +150,10 @@
             transition: 0.2s;
         }
         .avatar-circle:hover { transform: scale(1.02); }
+        .avatar-emoji {
+            display: inline-block;
+            line-height: 1;
+        }
         /* Градиенты */
         .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
         .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
@@ -633,7 +637,7 @@
             '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆',
             '🎨', '📷', '⚡', '🔮'
         ];
-        // Корректировка вертикали (px) для эмодзи
+        // Корректировка вертикали (px) для эмодзи (применяется только к span внутри круга)
         const avatarAdjustments = {
             '🐱': 5, '🐶': 5, '🦊': 3, '🐼': 5, '⚽': 2, '💎': 2, '🌸': 2,
             '🔥': 2, '🎉': 2, '🌟': 2, '🍕': 2, '🏆': 2, '🎨': 2, '📷': 2
@@ -663,6 +667,7 @@
             const optionsHtml = avatarEmojis.map(emoji => {
                 const isSelected = (emoji === currentAvatar);
                 const style = getAvatarStyle(emoji);
+                // В сетке аватарок можно сдвигать весь кружок – там это допустимо
                 return `<div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar="${emoji}" style="${style}">${emoji}</div>`;
             }).join('');
             const modalHtml = `<div class="modal" id="avatarModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAvatarModal">&times;</span><h3>Выберите аватар</h3><div class="avatars-grid">${optionsHtml}</div><button id="nextToBgBtn">Далее → выбор фона</button></div></div>`;
@@ -737,7 +742,7 @@
             };
         }
         
-        // ---------- Профиль (исправленное объединение классов) ----------
+        // ---------- Профиль (сдвигается только эмодзи) ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
@@ -748,18 +753,18 @@
                 const ach = earnedAchievements.find(a => a.id === achId);
                 iconsHtml.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
             }
-            // Формируем классы и стили для аватара
+            // Фон аватарки
             let avatarClass = 'avatar-circle';
-            let avatarStyle = getAvatarStyle(currentUser.avatar_url);
+            let avatarStyle = '';
             if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
-                // Кастомный цвет – через style
-                avatarStyle += `; background: ${currentUser.avatar_bg};`;
+                avatarStyle = `background: ${currentUser.avatar_bg};`;
             } else {
-                // Градиент – добавляем класс
                 const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
                 avatarClass += ` ${found ? found.class : 'bg-gradient1'}`;
             }
-            const html = `<div class="card" style="text-align: center;"><div class="profile-avatar" id="avatarClick"><div class="${avatarClass}" style="${avatarStyle}">${currentUser.avatar_url}</div><div class="small-text">Нажмите, чтобы сменить аватар и фон</div></div><p style="font-size:20px; font-weight:bold;">${currentUser.username}</p><p class="small-text">ID: ${userId}</p><div class="achievement-icons">${iconsHtml.join('')}</div><div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div><div class="stats-container"><div class="stats-row"><div class="stat-card"><div class="stat-value">${fromCents(currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div><div class="stat-card"><div class="stat-value">${fromCents(currentUser.shares)}</div><div class="stat-label">Акций</div></div></div><div class="stats-row"><div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div><div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div></div></div></div>`;
+            // Сдвиг только для эмодзи
+            const emojiStyle = getAvatarStyle(currentUser.avatar_url);
+            const html = `<div class="card" style="text-align: center;"><div class="profile-avatar" id="avatarClick"><div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div><div class="small-text">Нажмите, чтобы сменить аватар и фон</div></div><p style="font-size:20px; font-weight:bold;">${currentUser.username}</p><p class="small-text">ID: ${userId}</p><div class="achievement-icons">${iconsHtml.join('')}</div><div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div><div class="stats-container"><div class="stats-row"><div class="stat-card"><div class="stat-value">${fromCents(currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div><div class="stat-card"><div class="stat-value">${fromCents(currentUser.shares)}</div><div class="stat-label">Акций</div></div></div><div class="stats-row"><div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div><div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div></div></div></div>`;
             document.getElementById('app').innerHTML = html;
             document.getElementById('avatarClick')?.addEventListener('click', openAvatarSelector);
             document.querySelectorAll('.achi-icon').forEach(icon => {
