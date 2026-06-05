@@ -1,4 +1,4 @@
-// main.js (с drag-to-scroll для горизонтального меню)
+// main.js — исправленный drag-to-scroll для горизонтального меню
 (async () => {
     const tg = window.Telegram.WebApp;
     tg.ready();
@@ -38,14 +38,14 @@
         }, 15000);
     }
     function stopAutoRefresh() {
-        if (autoRefresh) {
-            clearInterval(autoRefresh);
-            autoRefresh = null;
-        }
+        if (autoRefresh) clearInterval(autoRefresh);
+        autoRefresh = null;
     }
 
     document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', async () => {
+        tab.addEventListener('click', async (e) => {
+            // Если это был drag, не реагируем (флаг будет установлен ниже)
+            if (e.defaultPrevented) return;
             const name = tab.dataset.tab;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
@@ -63,7 +63,6 @@
                     case 'referral': await window.renderReferral(); break;
                     case 'settings': await window.renderSettings(); break;
                     case 'admin': await window.renderAdmin(); break;
-                    default: break;
                 }
             }
         });
@@ -72,36 +71,45 @@
     window.setupRealtime();
     await window.updateBellBadge();
 
-    if (isNew) {
-        setTimeout(() => window.openAvatar(), 500);
-    }
+    if (isNew) setTimeout(() => window.openAvatar(), 500);
     startAutoRefresh();
 
-    // ---------- DRAG-TO-SCROLL ДЛЯ ГОРИЗОНТАЛЬНОГО МЕНЮ ----------
-    function initHorizontalDragScroll() {
-        const wrapper = document.querySelector('.tabs-wrapper');
-        if (!wrapper) return;
-
+    // ---------- DRAG-TO-SCROLL С ПОРОГОМ И ЗАПРЕТОМ ВЫДЕЛЕНИЯ ----------
+    const wrapper = document.querySelector('.tabs-wrapper');
+    if (wrapper) {
+        let startX = 0, startScrollLeft = 0;
         let isDragging = false;
-        let startX, startScrollLeft;
+        let hasMoved = false;
+        let dragThreshold = 5; // минимальное перемещение для активации скролла
 
         wrapper.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            wrapper.style.cursor = 'grabbing';
+            // Если кликнули на таб, не начинаем drag сразу, но запоминаем позицию
             startX = e.pageX - wrapper.offsetLeft;
             startScrollLeft = wrapper.scrollLeft;
-            e.preventDefault();
+            isDragging = true;
+            hasMoved = false;
+            wrapper.style.cursor = 'grabbing';
+            e.preventDefault(); // запрещаем выделение текста
         });
 
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            e.preventDefault();
             const x = e.pageX - wrapper.offsetLeft;
-            const walk = (x - startX) * 1.2; // скорость прокрутки
-            wrapper.scrollLeft = startScrollLeft - walk;
+            const deltaX = x - startX;
+            if (!hasMoved && Math.abs(deltaX) > dragThreshold) {
+                hasMoved = true;
+            }
+            if (hasMoved) {
+                e.preventDefault();
+                wrapper.scrollLeft = startScrollLeft - deltaX;
+            }
         });
 
         window.addEventListener('mouseup', () => {
+            if (isDragging && !hasMoved) {
+                // Если не было перемещения, значит это клик — эмулируем клик по табу
+                // Но клик уже обрабатывается отдельно, ничего не делаем
+            }
             isDragging = false;
             wrapper.style.cursor = 'grab';
         });
@@ -109,8 +117,6 @@
         wrapper.addEventListener('dragstart', (e) => e.preventDefault());
         wrapper.addEventListener('selectstart', (e) => e.preventDefault());
     }
-
-    initHorizontalDragScroll();
 })();
 
 window.refreshUser = async () => {
