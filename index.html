@@ -677,6 +677,7 @@
         
         async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
         
+        // ---------- ПРОФИЛЬ (с исправленной выдачей достижений) ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
             const userAchievements = await getAchievements();
@@ -726,7 +727,7 @@
             document.getElementById('app').innerHTML = html;
             document.getElementById('avatarClick')?.addEventListener('click', () => showMessage('Аватар', 'Изменить аватар можно через @BotFather командой /setuserpic'));
             
-            // Открытие модалки со всеми достижениями
+            // Открытие модалки со всеми достижениями (без изменений)
             const openAchievementSelector = async () => {
                 const allAchs = allAchievements;
                 if (allAchs.length === 0) {
@@ -780,6 +781,7 @@
             document.querySelectorAll('.achi-icon').forEach(icon => icon.addEventListener('click', openAchievementSelector));
         }
         
+        // ---------- Остальные вкладки (без изменений) ----------
         async function renderRatingTab() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
@@ -895,7 +897,7 @@
             };
         }
         
-        // админка
+        // админка (без изменений)
         const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // замените
         async function renderAdminTab() {
             if (userId !== 6048486427) { document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>'; return; }
