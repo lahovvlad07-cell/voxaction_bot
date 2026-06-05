@@ -23,7 +23,6 @@
             margin: 12px 16px;
             border: 1px solid rgba(56, 189, 248, 0.2);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-            position: relative;
         }
         .tabs-wrapper {
             position: fixed;
@@ -135,7 +134,13 @@
         }
         .modal-content h3 { text-align: center; margin-bottom: 16px; font-size: 18px; }
         .close-modal { float: right; font-size: 28px; cursor: pointer; color: #9ca3af; }
-        .profile-avatar { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; cursor: pointer; }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .profile-avatar { display: flex; flex-direction: column; align-items: center; cursor: pointer; flex: 1; }
         .avatar-circle {
             width: 88px;
             height: 88px;
@@ -156,21 +161,21 @@
             line-height: 1;
         }
         .notification-bell {
-            font-size: 22px;
-            cursor: pointer;
             position: relative;
-            display: inline-block;
+            cursor: pointer;
+            font-size: 32px;
+            margin-left: 8px;
         }
         .notification-badge {
             position: absolute;
-            top: -8px;
-            right: -12px;
+            top: -5px;
+            right: -8px;
             background: #e74c3c;
             color: white;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 10px;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -455,6 +460,7 @@
         if (!userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
+        // ----- Кастомное модальное окно -----
         function showCustomModal(title, message) {
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
@@ -472,6 +478,7 @@
             document.getElementById('customModalOkBtn').onclick = () => modal.remove();
         }
         
+        // ----- Toast уведомление -----
         function showToast(message) {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -488,6 +495,7 @@
         function toCents(v) { return Math.round(parseFloat(v) * 100); }
         function fromCents(c) { return (c / 100).toFixed(2); }
         
+        // ----- Достижения и пользователь -----
         async function ensureWelcomeAchievement(userId) {
             try {
                 const { data: achData } = await supabase
@@ -537,7 +545,7 @@
             return { user: data, isNew: false };
         }
         
-        // ---------- Функции биржи ----------
+        // ----- Функции биржи (сокращённо, без изменений) -----
         async function getActiveOrders() {
             const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
             if (error) throw new Error(error.message);
@@ -638,8 +646,9 @@
             return data.reduce((s,r)=>s+r.rating,0)/data.length;
         }
         
-        // ---------- Уведомления ----------
+        // ----- Уведомления -----
         let notificationsChannel = null;
+        let currentUnreadCount = 0;
         
         async function loadNotifications() {
             const { data, error } = await supabase
@@ -680,6 +689,7 @@
         
         async function updateBellBadge() {
             const unread = await getUnreadCount();
+            currentUnreadCount = unread;
             const badge = document.querySelector('.notification-badge');
             if (badge) {
                 if (unread > 0) {
@@ -759,7 +769,7 @@
                 .subscribe();
         }
         
-        // ---------- Прогресс следующих достижений ----------
+        // ----- Прогресс следующих достижений -----
         async function getNextAchievementsProgress() {
             const allAchievements = await getAllAchievements();
             const earned = await getEarnedAchievements();
@@ -796,7 +806,7 @@
             return nextAchievements;
         }
         
-        // ---------- Ачивка за аватар ----------
+        // ----- Выдача ачивки за аватар -----
         async function awardAvatarAchievement() {
             try {
                 const { data: achData } = await supabase
@@ -818,7 +828,7 @@
             } catch(e) { console.error(e); }
         }
         
-        // ---------- График и вкладка акций ----------
+        // ----- График и вкладка акций -----
         let currentTimeframe = '30d';
         async function fetchPriceHistoryForTimeframe() {
             let startDate = new Date();
@@ -949,7 +959,7 @@
             await renderStocksTab(); 
         }
         
-        // ---------- Аватарки ----------
+        // ----- Аватарки -----
         const avatarEmojis = [
             '👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽',
             '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆',
@@ -1069,7 +1079,7 @@
             };
         }
         
-        // ---------- Профиль (компактный колокольчик) ----------
+        // ----- Профиль с датой регистрации и колокольчиком -----
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
@@ -1120,15 +1130,16 @@
             const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
             
             const html = `<div class="card" style="text-align: center;">
-                <div style="position: absolute; top: 12px; right: 16px;">
+                <div class="profile-header">
+                    <div style="flex:1;"></div>
+                    <div class="profile-avatar" id="avatarClick">
+                        <div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
+                        <div class="small-text">Нажмите, чтобы сменить аватар и фон</div>
+                    </div>
                     <div class="notification-bell" id="notificationBell">
                         🔔
                         <span class="notification-badge" style="display:none;">0</span>
                     </div>
-                </div>
-                <div class="profile-avatar" id="avatarClick">
-                    <div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
-                    <div class="small-text">Нажмите, чтобы сменить аватар и фон</div>
                 </div>
                 <p style="font-size:20px; font-weight:bold;">${currentUser.username}</p>
                 <p class="small-text">ID: ${userId}</p>
@@ -1161,7 +1172,7 @@
             await updateBellBadge();
         }
         
-        // ---------- Выбор достижения для слота (с сохранением в нужный слот) ----------
+        // ----- Выбор достижения для слота -----
         async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId) {
             if (!earnedAchievements.length) {
                 showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
@@ -1225,7 +1236,7 @@
             });
         }
         
-        // ---------- Остальные вкладки ----------
+        // ----- Остальные вкладки (рейтинг, кошелёк и т.д.) -----
         async function renderRatingTab() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
@@ -1306,7 +1317,7 @@
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
         
-        // ---------- Пополнение ----------
+        // ----- Пополнение -----
         let selectedAmount = null;
         function updateTopupFee(amount) { const fee = Math.floor(amount * 0.05); const receive = amount - fee; document.getElementById('topupFeeInfo').innerHTML = `💸 Вы платите: ${amount} ⭐<br>📉 Комиссия (5%): ${fee} ⭐<br>✅ Получите: ${receive} ⭐`; }
         document.querySelectorAll('#topupModal .amount-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); selectedAmount = parseInt(btn.dataset.amount); document.getElementById('customTopupAmount').value = selectedAmount; updateTopupFee(selectedAmount); }));
@@ -1314,7 +1325,7 @@
         document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => { if(!selectedAmount || selectedAmount<1) { showCustomModal('Ошибка','Выберите сумму'); return; } document.getElementById('topupModal').style.display = 'none'; try { const res = await fetch(`${BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount: selectedAmount }) }); const data = await res.json(); if(data.ok && data.invoice_link) tg.openInvoice(data.invoice_link, (status) => { if(status === 'paid') { showCustomModal('Успех','Баланс пополнен'); refreshAll(); } }); else showCustomModal('Ошибка', data.error || 'Не удалось создать счёт'); } catch(e) { showCustomModal('Ошибка','Соединение'); } });
         document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
         
-        // ---------- Запуск ----------
+        // ----- Запуск -----
         const { user, isNew } = await getOrCreateUser();
         currentUser = user;
         const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
