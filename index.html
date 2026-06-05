@@ -639,26 +639,36 @@
             '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆',
             '🎨', '📷', '⚡', '🔮'
         ];
-        // Отрицательные значения – поднимаем эмодзи вверх, чтобы они были по центру
+        
+        // Вертикальное смещение (отрицательное – поднимаем)
         const avatarAdjustments = {
-            '🐱': -8,
-            '🐶': -8,
-            '🐼': -7,
-            '🦊': -5,
-            '⚽': -3,
-            '💎': -3,
-            '🌸': -3,
-            '🔥': -3,
-            '🎉': -3,
-            '🌟': -3,
-            '🍕': -3,
-            '🏆': -3,
-            '🎨': -3,
-            '📷': -3
+            '🐱': -8, '🐶': -8, '🐼': -7, '🦊': -5,
+            '⚽': -3, '💎': -3, '🌸': -3, '🔥': -3,
+            '🎉': -3, '🌟': -3, '🍕': -3, '🏆': -3,
+            '🎨': -3, '📷': -3, '⚡': -3, '🔮': -3,
+            '🚀': -3, '🎮': -3
         };
+        
+        // Размер шрифта для мелких эмодзи
+        const avatarFontSizes = {
+            '⚡': '56px',
+            '🔮': '56px',
+            '🎮': '56px',
+            '🚀': '56px',
+            '⭐': '56px',
+            '🌟': '56px',
+            '🔥': '56px',
+            '💎': '56px',
+            '🎉': '56px',
+            '⚽': '56px',
+            '📷': '56px',
+            '🎨': '56px'
+        };
+        
         function getAvatarStyle(emoji) {
             const adjust = avatarAdjustments[emoji] || 0;
-            return `transform: translateY(${adjust}px);`;
+            const fontSize = avatarFontSizes[emoji] || '48px';
+            return `transform: translateY(${adjust}px); font-size: ${fontSize};`;
         }
         
         const bgOptions = [
@@ -775,7 +785,7 @@
                 const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
                 avatarClass += ` ${found ? found.class : 'bg-gradient1'}`;
             }
-            // Сдвиг только для эмодзи
+            // Сдвиг и размер для эмодзи
             const emojiStyle = getAvatarStyle(currentUser.avatar_url);
             const html = `<div class="card" style="text-align: center;"><div class="profile-avatar" id="avatarClick"><div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div><div class="small-text">Нажмите, чтобы сменить аватар и фон</div></div><p style="font-size:20px; font-weight:bold;">${currentUser.username}</p><p class="small-text">ID: ${userId}</p><div class="achievement-icons">${iconsHtml.join('')}</div><div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div><div class="stats-container"><div class="stats-row"><div class="stat-card"><div class="stat-value">${fromCents(currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div><div class="stat-card"><div class="stat-value">${fromCents(currentUser.shares)}</div><div class="stat-label">Акций</div></div></div><div class="stats-row"><div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div><div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div></div></div></div>`;
             document.getElementById('app').innerHTML = html;
@@ -789,7 +799,7 @@
             });
         }
         
-        // ---------- Выбор достижения для слота (исправленное сохранение) ----------
+        // ---------- Выбор достижения для слота ----------
         async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId) {
             if (!earnedAchievements.length) {
                 showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
