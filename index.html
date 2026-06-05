@@ -249,43 +249,6 @@
             padding: 12px;
             margin-top: 12px;
         }
-        .groups-container {
-            margin-top: 12px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 20px;
-            padding: 12px;
-        }
-        .group-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255,255,255,0.05);
-            border-radius: 14px;
-            padding: 10px 12px;
-            margin-bottom: 8px;
-            transition: 0.2s;
-        }
-        .group-row.completed {
-            background: rgba(46, 204, 113, 0.2);
-            border-left: 3px solid #2ecc71;
-        }
-        .group-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .group-check {
-            font-size: 18px;
-            color: #2ecc71;
-        }
-        .super-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(46, 204, 113, 0.3);
-            border-radius: 14px;
-            padding: 12px;
-            font-weight: bold;
-        }
         .avatars-grid, .bg-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -477,7 +440,7 @@
             return { user: data, isNew: false };
         }
         
-        // ---------- Функции биржи (без изменений) ----------
+        // ---------- Базовые функции (биржи) ----------
         async function getActiveOrders() {
             const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
             if (error) throw new Error(error.message);
@@ -578,42 +541,7 @@
             return data.reduce((s,r)=>s+r.rating,0)/data.length;
         }
         
-        // ---------- Группы достижений (только основные, без приветственного и стилиста) ----------
-        const groups = {
-            "Трейдер": ["📈 Первая сделка", "⚡ Торговый автомат"],
-            "Капиталист": ["💎 Алмазный кулак", "🛳️ Капитан рынка"],
-            "Социальщик": ["👥 Социальная сеть", "👑 Король рефералов", "💸 Первый донат"]
-        };
-        
-        async function checkGroupsCompletion(earnedAchievements) {
-            const earnedNames = new Set(earnedAchievements.map(a => a.name));
-            const completed = {};
-            let allCompleted = true;
-            for (const [groupName, achNames] of Object.entries(groups)) {
-                const groupDone = achNames.every(name => earnedNames.has(name));
-                completed[groupName] = groupDone;
-                if (!groupDone) allCompleted = false;
-            }
-            return { completed, allCompleted };
-        }
-        
-        async function awardChampionAchievement(earnedAchievements) {
-            const { allCompleted } = await checkGroupsCompletion(earnedAchievements);
-            if (!allCompleted) return;
-            const hasChampion = earnedAchievements.some(a => a.name === '✅ Абсолютный чемпион');
-            if (hasChampion) return;
-            const { data: champData } = await supabase
-                .from('achievements')
-                .select('id')
-                .eq('name', '✅ Абсолютный чемпион')
-                .single();
-            if (champData) {
-                await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: champData.id, earned_at: new Date().toISOString() });
-                showCustomModal('🏆 Супер-достижение!', 'Вы получили "✅ Абсолютный чемпион" за выполнение всех коллекций!');
-            }
-        }
-        
-        // ---------- Прогресс следующих достижений (исключаем приветственное, стилист, чемпиона) ----------
+        // ---------- Прогресс следующих достижений (без групп) ----------
         async function getNextAchievementsProgress() {
             const allAchievements = await getAllAchievements();
             const earned = await getEarnedAchievements();
@@ -923,7 +851,7 @@
             };
         }
         
-        // ---------- Профиль ----------
+        // ---------- ПРОФИЛЬ (без отдельного блока коллекций, только ближайшие достижения) ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
@@ -962,31 +890,6 @@
                 nextHtml += `</div>`;
             }
             
-            const { completed, allCompleted } = await checkGroupsCompletion(earnedAchievements);
-            let groupsHtml = '';
-            if (!allCompleted) {
-                groupsHtml = `<div class="groups-container"><div class="small-text" style="margin-bottom:8px;">📚 Коллекции:</div>`;
-                for (const [groupName, done] of Object.entries(completed)) {
-                    groupsHtml += `
-                        <div class="group-row ${done ? 'completed' : ''}">
-                            <span class="group-name">${groupName}</span>
-                            ${done ? '<span class="group-check">✓</span>' : '<span class="small-text">не завершена</span>'}
-                        </div>
-                    `;
-                }
-                groupsHtml += `</div>`;
-            } else {
-                groupsHtml = `
-                    <div class="groups-container">
-                        <div class="super-row">
-                            <span>✅ Абсолютный чемпион</span>
-                            <span class="group-check">✓</span>
-                        </div>
-                    </div>
-                `;
-                await awardChampionAchievement(earnedAchievements);
-            }
-            
             let avatarClass = 'avatar-circle';
             let avatarStyle = '';
             if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
@@ -1017,7 +920,6 @@
                     </div>
                 </div>
                 ${rankHtml}
-                ${groupsHtml}
                 ${nextHtml}
             </div>`;
             document.getElementById('app').innerHTML = html;
@@ -1031,7 +933,7 @@
             });
         }
         
-        // ---------- Выбор достижения для слота ----------
+        // ---------- ВЫБОР ДОСТИЖЕНИЯ ДЛЯ СЛОТА (ИСПРАВЛЕННЫЙ СЛОТ) ----------
         async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId) {
             if (!earnedAchievements.length) {
                 showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
@@ -1076,7 +978,7 @@
                 let newSelectedIds = [...currentSelectedIds];
                 if (selectedCard) {
                     const selectedId = parseInt(selectedCard.dataset.achId);
-                    newSelectedIds[slot] = selectedId;
+                    newSelectedIds[slot] = selectedId;   // <-- ИСПРАВЛЕНО: сохраняем точно в выбранный слот
                 }
                 newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
                 while (newSelectedIds.length < 3) newSelectedIds.push(null);
@@ -1095,7 +997,7 @@
             });
         }
         
-        // ---------- Остальные вкладки (рейтинг, кошелёк, рефералка, аналитика, настройки, админ) ----------
+        // ---------- Остальные вкладки ----------
         async function renderRatingTab() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
