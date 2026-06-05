@@ -440,7 +440,7 @@
             return { user: data, isNew: false };
         }
         
-        // ---------- Базовые функции (биржи) ----------
+        // ---------- Функции биржи ----------
         async function getActiveOrders() {
             const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
             if (error) throw new Error(error.message);
@@ -541,7 +541,7 @@
             return data.reduce((s,r)=>s+r.rating,0)/data.length;
         }
         
-        // ---------- Прогресс следующих достижений (без групп) ----------
+        // ---------- Прогресс следующих достижений ----------
         async function getNextAchievementsProgress() {
             const allAchievements = await getAllAchievements();
             const earned = await getEarnedAchievements();
@@ -851,7 +851,7 @@
             };
         }
         
-        // ---------- ПРОФИЛЬ (без отдельного блока коллекций, только ближайшие достижения) ----------
+        // ---------- Профиль ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
@@ -879,8 +879,8 @@
                     }
                     nextHtml += `
                         <div class="next-achievement-item">
-                            <div style="display:flex; justify-content:space-between;">
-                                <span>${ach.icon} ${ach.name}</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:28px;">${ach.icon}</span>
                                 <span class="small-text">${conditionStr}</span>
                             </div>
                             <div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div>
@@ -933,7 +933,7 @@
             });
         }
         
-        // ---------- ВЫБОР ДОСТИЖЕНИЯ ДЛЯ СЛОТА (ИСПРАВЛЕННЫЙ СЛОТ) ----------
+        // ---------- Выбор достижения для слота (исправлен сохранение в правильный слот) ----------
         async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId) {
             if (!earnedAchievements.length) {
                 showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
@@ -978,7 +978,7 @@
                 let newSelectedIds = [...currentSelectedIds];
                 if (selectedCard) {
                     const selectedId = parseInt(selectedCard.dataset.achId);
-                    newSelectedIds[slot] = selectedId;   // <-- ИСПРАВЛЕНО: сохраняем точно в выбранный слот
+                    newSelectedIds[slot] = selectedId;  // Сохраняем именно в тот слот, на который нажали
                 }
                 newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
                 while (newSelectedIds.length < 3) newSelectedIds.push(null);
