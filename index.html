@@ -7,23 +7,8 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
-        /* Скрываем все полосы прокрутки, но оставляем возможность скролла */
-        * {
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
-        }
-        *::-webkit-scrollbar {
-            display: none; /* Chrome/Safari/Opera */
-        }
-        input, button, textarea, .order-actions button {
-            user-select: text;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
         body {
             background: #0a0e1a;
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -51,10 +36,6 @@
             z-index: 100;
             overflow-x: auto;
             white-space: nowrap;
-            scrollbar-width: none;
-        }
-        .tabs-wrapper::-webkit-scrollbar {
-            display: none;
         }
         .tabs {
             display: inline-flex;
@@ -77,15 +58,8 @@
             background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
             box-shadow: 0 0 12px rgba(43, 110, 158, 0.6);
         }
-        .tab-icon {
-            font-size: 22px;
-            margin-bottom: 4px;
-        }
-        .tab-label {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-        }
+        .tab-icon { font-size: 22px; margin-bottom: 4px; }
+        .tab-label { font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
         button {
             background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
             border: none;
@@ -100,14 +74,8 @@
             transition: 0.2s;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
-        button:active {
-            transform: scale(0.96);
-            opacity: 0.9;
-        }
-        button.secondary {
-            background: rgba(255, 255, 255, 0.1);
-            margin-top: 8px;
-        }
+        button:active { transform: scale(0.96); opacity: 0.9; }
+        button.secondary { background: rgba(255, 255, 255, 0.1); margin-top: 8px; }
         input {
             width: 100%;
             padding: 14px 18px;
@@ -118,12 +86,8 @@
             background: #111827;
             color: #f0f4ff;
             outline: none;
-            transition: 0.2s;
         }
-        input:focus {
-            border-color: #2b6e9e;
-            box-shadow: 0 0 0 2px rgba(43, 110, 158, 0.4);
-        }
+        input:focus { border-color: #2b6e9e; box-shadow: 0 0 0 2px rgba(43, 110, 158, 0.4); }
         .order-item {
             display: flex;
             justify-content: space-between;
@@ -141,22 +105,9 @@
             background-clip: text;
             color: transparent;
         }
-        .small-text {
-            font-size: 12px;
-            color: #9ca3af;
-        }
-        .chart-container {
-            width: 100%;
-            height: 220px;
-            margin: 16px 0;
-            border-radius: 20px;
-            overflow: hidden;
-            background: #0f1320;
-        }
-        canvas {
-            width: 100%;
-            height: 100%;
-        }
+        .small-text { font-size: 12px; color: #9ca3af; }
+        .chart-container { width: 100%; height: 220px; margin: 16px 0; border-radius: 20px; overflow: hidden; background: #0f1320; }
+        canvas { width: 100%; height: 100%; }
         .modal {
             display: none;
             position: fixed;
@@ -180,28 +131,10 @@
             padding: 24px;
             border: 1px solid #2b6e9e;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-            scrollbar-width: none;
         }
-        .modal-content::-webkit-scrollbar {
-            display: none;
-        }
-        .modal-content h3 {
-            text-align: center;
-            margin-bottom: 16px;
-        }
-        .close-modal {
-            float: right;
-            font-size: 28px;
-            cursor: pointer;
-            color: #9ca3af;
-        }
-        .profile-avatar {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 20px;
-            cursor: pointer;
-        }
+        .modal-content h3 { text-align: center; margin-bottom: 16px; }
+        .close-modal { float: right; font-size: 28px; cursor: pointer; color: #9ca3af; }
+        .profile-avatar { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; cursor: pointer; }
         .avatar-circle {
             width: 88px;
             height: 88px;
@@ -217,16 +150,8 @@
             margin-bottom: 12px;
             transition: 0.2s;
         }
-        .avatar-circle:hover {
-            transform: scale(1.02);
-        }
-        .achievement-icons {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            margin: 16px 0;
-            flex-wrap: wrap;
-        }
+        .avatar-circle:hover { transform: scale(1.02); }
+        .achievement-icons { display: flex; justify-content: center; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
         .achi-icon {
             width: 56px;
             height: 56px;
@@ -245,24 +170,9 @@
             border-color: #60a5fa;
             box-shadow: 0 0 10px rgba(43, 110, 158, 0.5);
         }
-        .stats-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin: 16px 0;
-        }
-        .stats-row {
-            display: flex;
-            gap: 12px;
-            justify-content: space-between;
-        }
-        .stat-card {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 24px;
-            padding: 16px;
-            text-align: center;
-            flex: 1;
-        }
+        .stats-container { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+        .stats-row { display: flex; gap: 12px; justify-content: space-between; }
+        .stat-card { background: rgba(0, 0, 0, 0.3); border-radius: 24px; padding: 16px; text-align: center; flex: 1; }
         .stat-value {
             font-size: 28px;
             font-weight: 800;
@@ -271,10 +181,7 @@
             background-clip: text;
             color: transparent;
         }
-        .stat-label {
-            font-size: 12px;
-            margin-top: 4px;
-        }
+        .stat-label { font-size: 12px; margin-top: 4px; }
         .achievements-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -282,10 +189,6 @@
             margin: 16px 0;
             max-height: 400px;
             overflow-y: auto;
-            scrollbar-width: none;
-        }
-        .achievements-grid::-webkit-scrollbar {
-            display: none;
         }
         .achievement-card {
             background: rgba(0, 0, 0, 0.3);
@@ -296,29 +199,11 @@
             transition: 0.2s;
             border: 1px solid transparent;
         }
-        .achievement-card.selected {
-            border-color: #2b6e9e;
-            background: rgba(43, 110, 158, 0.2);
-        }
-        .achievement-card.disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            filter: grayscale(0.3);
-        }
-        .achievement-icon {
-            font-size: 36px;
-            margin-bottom: 8px;
-        }
-        .achievement-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .achievement-desc, .achievement-condition, .achievement-date {
-            font-size: 11px;
-            color: #9ca3af;
-            margin-top: 4px;
-        }
-        /* Сетка аватарок – без скроллбаров */
+        .achievement-card.selected { border-color: #2b6e9e; background: rgba(43, 110, 158, 0.2); }
+        .achievement-card.disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.3); }
+        .achievement-icon { font-size: 36px; margin-bottom: 8px; }
+        .achievement-name { font-weight: 600; font-size: 14px; }
+        .achievement-desc, .achievement-condition, .achievement-date { font-size: 11px; color: #9ca3af; margin-top: 4px; }
         .avatars-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -326,11 +211,6 @@
             margin: 20px 0;
             max-height: 360px;
             overflow-y: auto;
-            padding: 8px;
-            scrollbar-width: none;
-        }
-        .avatars-grid::-webkit-scrollbar {
-            display: none;
         }
         .avatar-option {
             background: rgba(255, 255, 255, 0.05);
@@ -345,17 +225,8 @@
             transition: 0.2s;
             margin: 0 auto;
         }
-        .avatar-option.selected {
-            border: 2px solid #2b6e9e;
-            background: rgba(43, 110, 158, 0.3);
-            transform: scale(1.05);
-        }
-        .topup-amounts {
-            display: flex;
-            gap: 12px;
-            margin: 16px 0;
-            flex-wrap: wrap;
-        }
+        .avatar-option.selected { border: 2px solid #2b6e9e; background: rgba(43, 110, 158, 0.3); transform: scale(1.05); }
+        .topup-amounts { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
         .amount-btn {
             background: rgba(255, 255, 255, 0.05);
             padding: 10px 16px;
@@ -365,46 +236,13 @@
             transition: 0.2s;
             font-weight: 600;
         }
-        .amount-btn.selected {
-            background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-            color: white;
-            box-shadow: 0 0 8px #2b6e9e;
-        }
-        .ticker {
-            background: rgba(0, 0, 0, 0.35);
-            border-radius: 60px;
-            padding: 8px 16px;
-            overflow: hidden;
-            white-space: nowrap;
-            margin: 12px 0;
-            font-size: 14px;
-        }
-        .ticker-content {
-            display: inline-block;
-            animation: scroll 20s linear infinite;
-        }
-        @keyframes scroll {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-        .info-panel {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin: 12px 0;
-        }
-        .info-card {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 20px;
-            padding: 12px;
-            text-align: center;
-        }
-        .filter-bar {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
+        .amount-btn.selected { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); color: white; box-shadow: 0 0 8px #2b6e9e; }
+        .ticker { background: rgba(0, 0, 0, 0.35); border-radius: 60px; padding: 8px 16px; overflow: hidden; white-space: nowrap; margin: 12px 0; font-size: 14px; }
+        .ticker-content { display: inline-block; animation: scroll 20s linear infinite; }
+        @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .info-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+        .info-card { background: rgba(0, 0, 0, 0.3); border-radius: 20px; padding: 12px; text-align: center; }
+        .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .filter-btn, .sort-btn, .timeframe-btn {
             background: rgba(255, 255, 255, 0.05);
             padding: 6px 14px;
@@ -414,32 +252,9 @@
             cursor: pointer;
             transition: 0.2s;
         }
-        .filter-btn.active, .sort-btn.active, .timeframe-btn.active {
-            background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-            color: white;
-        }
-        .leaderboard-item, .history-item, .referral-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        /* Скрываем скроллбар в списке ордеров */
-        #ordersList {
-            max-height: 400px;
-            overflow-y: auto;
-            scrollbar-width: none;
-        }
-        #ordersList::-webkit-scrollbar {
-            display: none;
-        }
-        /* Скрываем скроллбар в админ-панели */
-        #usersList, #adminOrdersList {
-            scrollbar-width: none;
-        }
-        #usersList::-webkit-scrollbar, #adminOrdersList::-webkit-scrollbar {
-            display: none;
-        }
+        .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); color: white; }
+        .leaderboard-item, .history-item, .referral-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        #ordersList, #usersList, #adminOrdersList { max-height: 400px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -459,22 +274,20 @@
 <div id="topupModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" id="closeTopupModal">&times;</span>
-        <h3 style="margin-bottom: 16px;">💸 Пополнение Stars</h3>
+        <h3>💸 Пополнение Stars</h3>
         <div class="topup-amounts">
             <div class="amount-btn" data-amount="200">200 ⭐</div>
             <div class="amount-btn" data-amount="500">500 ⭐</div>
             <div class="amount-btn" data-amount="1000">1000 ⭐</div>
         </div>
-        <div class="custom-amount" style="margin-bottom: 16px;">
-            <input type="number" id="customTopupAmount" placeholder="Своя сумма (1-10000)" min="1" step="1">
-        </div>
+        <div class="custom-amount"><input type="number" id="customTopupAmount" placeholder="Своя сумма (1-10000)" min="1" step="1"></div>
         <div id="topupFeeInfo" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 20px; text-align: center; margin-bottom: 16px;"></div>
         <button id="confirmTopupBtn">Пополнить</button>
     </div>
 </div>
 <script>
     (async () => {
-        // DRAG TABS
+        // Drag tabs
         const tabsWrapper = document.querySelector('.tabs-wrapper');
         let isDown = false, startX, scrollLeft;
         tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
@@ -513,6 +326,39 @@
         function toCents(v) { return Math.round(parseFloat(v) * 100); }
         function fromCents(c) { return (c / 100).toFixed(2); }
         
+        // --- Выдача приветственного достижения, если отсутствует ---
+        async function ensureWelcomeAchievement(userId) {
+            try {
+                // Получаем ID достижения "Добро пожаловать!"
+                const { data: achData, error: achErr } = await supabase
+                    .from('achievements')
+                    .select('id')
+                    .eq('name', 'Добро пожаловать!')
+                    .single();
+                if (achErr || !achData) {
+                    console.warn("Достижение 'Добро пожаловать!' не найдено в таблице achievements");
+                    return;
+                }
+                const achId = achData.id;
+                // Проверяем, есть ли уже у пользователя
+                const { data: existing, error: checkErr } = await supabase
+                    .from('user_achievements')
+                    .select('achievement_id')
+                    .eq('user_id', userId)
+                    .eq('achievement_id', achId)
+                    .maybeSingle();
+                if (checkErr) throw checkErr;
+                if (!existing) {
+                    // Выдаём достижение
+                    const { error: insertErr } = await supabase
+                        .from('user_achievements')
+                        .insert({ user_id: userId, achievement_id: achId, earned_at: new Date().toISOString() });
+                    if (insertErr) console.error("Ошибка выдачи приветственного достижения:", insertErr);
+                    else console.log("✅ Выдано приветственное достижение пользователю", userId);
+                }
+            } catch(e) { console.error("ensureWelcomeAchievement error:", e); }
+        }
+        
         async function getOrCreateUser() {
             let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
             if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -526,17 +372,17 @@
                     avatar_url: '👤'
                 }]).select().single();
                 if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
-                const { data: welcomeAch } = await supabase.from('achievements').select('id').eq('name', 'Добро пожаловать!').single();
-                if (welcomeAch) {
-                    await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: welcomeAch.id });
-                }
+                await ensureWelcomeAchievement(userId);
                 return { user: newUser, isNew: true };
             }
+            // Если пользователь старый, но вдруг нет приветственного достижения – выдаём
+            await ensureWelcomeAchievement(userId);
             if (!data.selected_achievements) data.selected_achievements = [];
             if (!data.avatar_url) data.avatar_url = '👤';
             return { user: data, isNew: false };
         }
         
+        // --- Остальные функции (акции, графики и т.д.) ---
         async function getActiveOrders() {
             const { data, error } = await supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
             if (error) throw new Error(error.message);
@@ -604,7 +450,6 @@
             if (error) return { totalTrades: 0, totalVolume: 0 };
             return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
         }
-        
         async function getEarnedAchievements() {
             const { data, error } = await supabase
                 .from('user_achievements')
@@ -621,14 +466,13 @@
                 condition_value: ua.achievements.condition_value
             }));
         }
-        
         async function getSellerRating(sellerId) {
             const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
             if (error || !data.length) return null;
             return data.reduce((s,r)=>s+r.rating,0)/data.length;
         }
         
-        // ---------- ГРАФИК ----------
+        // --- ГРАФИК ---
         let currentTimeframe = '30d';
         async function fetchPriceHistoryForTimeframe() {
             let startDate = new Date();
@@ -684,7 +528,7 @@
             container.innerHTML = `<div class="ticker-content">${items}</div>`;
         }
         
-        // ---------- ВКЛАДКА АКЦИЙ ----------
+        // --- Вкладка акций ---
         let currentOrdersFilter = 'all';
         let currentSortDir = 'asc';
         async function renderStocksTab() {
@@ -698,41 +542,13 @@
                 const recentTrades = await getRecentTrades(10);
                 const { totalShares, currentPrice, marketCap } = await getTotalMarketCap();
                 const html = `
-                    <div class="card">
-                        <div style="display:flex; justify-content:space-between;">
-                            <div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div>
-                            <div class="price">${(currentPrice/100).toFixed(2)} ⭐</div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="info-panel">
-                            <div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price" style="font-size:20px;">${Math.round(marketCap)} ⭐</div></div>
-                            <div class="info-card"><div class="small-text">Всего акций</div><div class="price" style="font-size:20px;">${(totalShares/100).toFixed(2)}</div></div>
-                        </div>
-                        <div style="display:flex; gap:8px; margin-bottom:12px;">
-                            <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
-                            <button class="timeframe-btn ${currentTimeframe === '7d' ? 'active' : ''}" data-tf="7d">7д</button>
-                            <button class="timeframe-btn ${currentTimeframe === '30d' ? 'active' : ''}" data-tf="30d">30д</button>
-                        </div>
-                        <div id="chart-container" class="chart-container"></div>
-                        <div id="ticker" class="ticker"></div>
-                    </div>
-                    <div class="card">
-                        <h3>📈 Продать акции</h3>
-                        <input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)">
-                        <input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)">
-                        <button id="sellBtn">➕ Выставить</button>
-                    </div>
-                    <div class="card">
-                        <div class="filter-bar">
-                            <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button>
-                            <button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои</button>
-                            <button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена</button>
-                            <button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена</button>
-                        </div>
-                        <h3>📋 Ордера на продажу</h3>
-                        <div id="ordersList"></div>
-                    </div>
+                    <div class="card"><div style="display:flex; justify-content:space-between;"><div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div><div class="price">${(currentPrice/100).toFixed(2)} ⭐</div></div></div>
+                    <div class="card"><div class="info-panel"><div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price" style="font-size:20px;">${Math.round(marketCap)} ⭐</div></div><div class="info-card"><div class="small-text">Всего акций</div><div class="price" style="font-size:20px;">${(totalShares/100).toFixed(2)}</div></div></div>
+                    <div style="display:flex; gap:8px; margin-bottom:12px;"><button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button><button class="timeframe-btn ${currentTimeframe === '7d' ? 'active' : ''}" data-tf="7d">7д</button><button class="timeframe-btn ${currentTimeframe === '30d' ? 'active' : ''}" data-tf="30d">30д</button></div>
+                    <div id="chart-container" class="chart-container"></div><div id="ticker" class="ticker"></div></div>
+                    <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)"><button id="sellBtn">➕ Выставить</button></div>
+                    <div class="card"><div class="filter-bar"><button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button><button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои</button><button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена</button><button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена</button></div>
+                    <h3>📋 Ордера на продажу</h3><div id="ordersList"></div></div>
                 `;
                 document.getElementById('app').innerHTML = html;
                 drawCanvasChart(priceHistory);
@@ -788,34 +604,14 @@
             await renderStocksTab(); 
         }
         
-        // ---------- АВАТАРКИ (24 штуки, стильные) ----------
-        const avatarOptions = [
-            '👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽',
-            '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆',
-            '🎨', '📷', '⚡', '🔮'
-        ];
+        // --- Аватарки (24 шт) ---
+        const avatarOptions = ['👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽', '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆', '🎨', '📷', '⚡', '🔮'];
         async function openAvatarSelector(isFirstTime = false) {
             const currentAvatar = currentUser.avatar_url || '👤';
-            const optionsHtml = avatarOptions.map(emoji => `
-                <div class="avatar-option ${emoji === currentAvatar ? 'selected' : ''}" data-avatar="${emoji}">
-                    ${emoji}
-                </div>
-            `).join('');
-            const modalHtml = `
-                <div class="modal" id="avatarModal" style="display:flex;">
-                    <div class="modal-content">
-                        <span class="close-modal" id="closeAvatarModal">&times;</span>
-                        <h3>Выберите аватар</h3>
-                        <div class="avatars-grid">${optionsHtml}</div>
-                        <button id="saveAvatarBtn">Сохранить</button>
-                    </div>
-                </div>
-            `;
+            const optionsHtml = avatarOptions.map(emoji => `<div class="avatar-option ${emoji === currentAvatar ? 'selected' : ''}" data-avatar="${emoji}">${emoji}</div>`).join('');
+            const modalHtml = `<div class="modal" id="avatarModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAvatarModal">&times;</span><h3>Выберите аватар</h3><div class="avatars-grid">${optionsHtml}</div><button id="saveAvatarBtn">Сохранить</button></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
-            document.getElementById('closeAvatarModal').onclick = () => {
-                document.getElementById('avatarModal').remove();
-            };
-            
+            document.getElementById('closeAvatarModal').onclick = () => document.getElementById('avatarModal').remove();
             let selectedAvatar = currentAvatar;
             document.querySelectorAll('.avatar-option').forEach(opt => {
                 opt.addEventListener('click', () => {
@@ -832,7 +628,7 @@
             };
         }
         
-        // ---------- ПРОФИЛЬ ----------
+        // --- Профиль ---
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
@@ -841,54 +637,13 @@
             for (let i = 0; i < 3; i++) {
                 const achId = selectedIds[i];
                 const ach = earnedAchievements.find(a => a.id === achId);
-                if (ach) {
-                    iconsHtml.push(`<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>`);
-                } else {
-                    iconsHtml.push(`<div class="achi-icon" data-slot="${i}">?</div>`);
-                }
+                iconsHtml.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
             }
-            const html = `
-                <div class="card" style="text-align: center;">
-                    <div class="profile-avatar" id="avatarClick">
-                        <div class="avatar-circle">${currentUser.avatar_url || '👤'}</div>
-                        <div class="small-text" style="margin-top: 6px;">Нажмите, чтобы сменить аватар</div>
-                    </div>
-                    <p style="font-size: 20px; font-weight: bold;">${currentUser.username}</p>
-                    <p class="small-text">ID: ${userId}</p>
-                    <div class="achievement-icons">
-                        ${iconsHtml.join('')}
-                    </div>
-                    <div class="small-text" style="margin-bottom: 12px;">Нажмите на значок, чтобы выбрать/убрать достижение</div>
-                    <div class="stats-container">
-                        <div class="stats-row">
-                            <div class="stat-card">
-                                <div class="stat-value">${fromCents(currentUser.stars_balance)}</div>
-                                <div class="stat-label">Stars</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value">${fromCents(currentUser.shares)}</div>
-                                <div class="stat-label">Акций</div>
-                            </div>
-                        </div>
-                        <div class="stats-row">
-                            <div class="stat-card">
-                                <div class="stat-value">${stats.totalTrades}</div>
-                                <div class="stat-label">Сделок</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value">${stats.totalVolume.toFixed(2)}</div>
-                                <div class="stat-label">Объём (⭐)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            const html = `<div class="card" style="text-align: center;"><div class="profile-avatar" id="avatarClick"><div class="avatar-circle">${currentUser.avatar_url || '👤'}</div><div class="small-text">Нажмите, чтобы сменить аватар</div></div><p style="font-size:20px; font-weight:bold;">${currentUser.username}</p><p class="small-text">ID: ${userId}</p><div class="achievement-icons">${iconsHtml.join('')}</div><div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div><div class="stats-container"><div class="stats-row"><div class="stat-card"><div class="stat-value">${fromCents(currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div><div class="stat-card"><div class="stat-value">${fromCents(currentUser.shares)}</div><div class="stat-label">Акций</div></div></div><div class="stats-row"><div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div><div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div></div></div></div>`;
             document.getElementById('app').innerHTML = html;
-            
             document.getElementById('avatarClick')?.addEventListener('click', () => openAvatarSelector(false));
-            
             document.querySelectorAll('.achi-icon').forEach(icon => {
-                icon.addEventListener('click', async (e) => {
+                icon.addEventListener('click', async () => {
                     const slot = parseInt(icon.dataset.slot);
                     const currentAchId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null;
                     await openAchievementSelectorForSlot(slot, earnedAchievements, selectedIds, currentAchId);
@@ -901,16 +656,14 @@
                 showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
                 return;
             }
-            
             const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
             const isSlotOccupied = currentSlotAchievementId !== null;
-            
             const gridHtml = earnedAchievements.map(ach => {
                 const isSelected = (currentSlotAchievementId === ach.id);
                 const isUsedElsewhere = otherSelected.includes(ach.id);
                 const disabledClass = isUsedElsewhere ? 'disabled' : '';
                 const selectedClass = isSelected ? 'selected' : '';
-                const earnedDate = new Date(ach.earned_at).toLocaleString();
+                const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleString() : 'дата не указана';
                 let conditionText = '';
                 switch(ach.condition_type) {
                     case 'trades_count': conditionText = `Совершено сделок: ${ach.condition_value}`; break;
@@ -918,32 +671,11 @@
                     case 'referrals_count': conditionText = `Приглашено друзей: ${ach.condition_value}`; break;
                     case 'total_topup': conditionText = `Пополнено Stars: ${ach.condition_value/100}`; break;
                 }
-                return `
-                    <div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
-                        <div class="achievement-icon">${ach.icon}</div>
-                        <div class="achievement-name">${ach.name}</div>
-                        <div class="achievement-desc">${ach.description}</div>
-                        <div class="achievement-condition">${conditionText}</div>
-                        <div class="achievement-date">🏅 Получено: ${earnedDate}</div>
-                    </div>
-                `;
+                return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}"><div class="achievement-icon">${ach.icon}</div><div class="achievement-name">${ach.name}</div><div class="achievement-desc">${ach.description}</div><div class="achievement-condition">${conditionText}</div><div class="achievement-date">🏅 Получено: ${earnedDate}</div></div>`;
             }).join('');
-            
-            const modalHtml = `
-                <div class="modal" id="achiSelectorModal" style="display:flex;">
-                    <div class="modal-content">
-                        <span class="close-modal" id="closeAchiSelector">&times;</span>
-                        <h3>Выберите достижение для слота ${slot+1}</h3>
-                        <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
-                        ${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}
-                        <button id="saveAchiSelection">Сохранить</button>
-                    </div>
-                </div>
-            `;
+            const modalHtml = `<div class="modal" id="achiSelectorModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAchiSelector">&times;</span><h3>Выберите достижение для слота ${slot+1}</h3><div class="achievements-grid" id="achiGrid">${gridHtml}</div>${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}<button id="saveAchiSelection">Сохранить</button></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
-            
             document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
-            
             if (isSlotOccupied) {
                 document.getElementById('clearSlotBtn').onclick = async () => {
                     let newSelectedIds = [...currentSelectedIds];
@@ -955,16 +687,10 @@
                     await renderProfileTab();
                 };
             }
-            
             document.getElementById('saveAchiSelection').onclick = async () => {
                 const selectedCard = document.querySelector('#achiGrid .achievement-card.selected:not(.disabled)');
                 let newSelectedIds = [...currentSelectedIds];
-                if (!selectedCard) {
-                    // ничего не меняем
-                } else {
-                    const selectedId = parseInt(selectedCard.dataset.achId);
-                    newSelectedIds[slot] = selectedId;
-                }
+                if (selectedCard) newSelectedIds[slot] = parseInt(selectedCard.dataset.achId);
                 newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
                 while (newSelectedIds.length < 3) newSelectedIds.push(null);
                 const saveArray = newSelectedIds.filter(v => v !== null);
@@ -973,20 +699,16 @@
                 document.getElementById('achiSelectorModal').remove();
                 await renderProfileTab();
             };
-            
             document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
                 card.addEventListener('click', () => {
-                    if (card.dataset.disabled === 'true') {
-                        showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.');
-                        return;
-                    }
+                    if (card.dataset.disabled === 'true') { showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.'); return; }
                     document.querySelectorAll('#achiGrid .achievement-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                 });
             });
         }
         
-        // ---------- ОСТАЛЬНЫЕ ВКЛАДКИ ----------
+        // --- Остальные вкладки (рейтинг, кошелёк, рефералка, аналитика, настройки, админ) ---
         async function renderRatingTab() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
@@ -995,57 +717,24 @@
             html += `</div>`;
             document.getElementById('app').innerHTML = html;
         }
-        
         async function renderWalletTab() {
-            document.getElementById('app').innerHTML = `
-                <div class="card">
-                    <h2>💳 Кошелёк</h2>
-                    <p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p>
-                    <p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p>
-                    <hr>
-                    <button id="topupBtn">💸 Пополнить Stars</button>
-                    <button id="withdrawGiftsBtn" style="margin-top: 12px;">🎁 Вывести через подарки</button>
-                </div>`;
+            document.getElementById('app').innerHTML = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><button id="topupBtn">💸 Пополнить Stars</button><button id="withdrawGiftsBtn" style="margin-top:12px;">🎁 Вывести через подарки</button></div>`;
             document.getElementById('topupBtn')?.addEventListener('click', () => { document.getElementById('topupModal').style.display = 'flex'; updateTopupFee(0); });
             document.getElementById('withdrawGiftsBtn')?.addEventListener('click', () => { tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw_gifts'); });
         }
-        
         async function renderReferralTab() {
             const refCode = currentUser.referral_code;
             const refLink = `https://t.me/VoxAction_Bot?start=${refCode || 'REF0000'}`;
             const referralCount = currentUser.referral_count || 0;
             const earnedShares = referralCount * 5;
-            const html = `
-                <div class="card">
-                    <h2>🔗 Реферальная программа</h2>
-                    <div class="stats-row">
-                        <div class="stat-card">
-                            <div class="stat-value">${referralCount}</div>
-                            <div class="stat-label">Приглашено друзей</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${earnedShares}</div>
-                            <div class="stat-label">Заработано акций</div>
-                        </div>
-                    </div>
-                    <h3>Ваша реферальная ссылка</h3>
-                    <div class="small-text" style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 20px; word-break: break-all;">${refLink}</div>
-                    <p class="small-text" style="margin-top: 12px;">Приглашайте друзей – они получат бонус, а вы 5 акций, когда он пополнит на 10 ⭐.</p>
-                    <button id="copyRefLink">📋 Скопировать ссылку</button>
-                </div>
-            `;
+            const html = `<div class="card"><h2>🔗 Реферальная программа</h2><div class="stats-row"><div class="stat-card"><div class="stat-value">${referralCount}</div><div class="stat-label">Приглашено друзей</div></div><div class="stat-card"><div class="stat-value">${earnedShares}</div><div class="stat-label">Заработано акций</div></div></div><h3>Ваша реферальная ссылка</h3><div class="small-text" style="background:rgba(0,0,0,0.3); padding:8px; border-radius:20px; word-break:break-all;">${refLink}</div><p class="small-text">Приглашайте друзей – они получат бонус, а вы 5 акций, когда он пополнит на 10 ⭐.</p><button id="copyRefLink">📋 Скопировать ссылку</button></div>`;
             document.getElementById('app').innerHTML = html;
-            document.getElementById('copyRefLink')?.addEventListener('click', () => {
-                navigator.clipboard.writeText(refLink);
-                showCustomModal('Скопировано', 'Реферальная ссылка скопирована в буфер обмена');
-            });
+            document.getElementById('copyRefLink')?.addEventListener('click', () => { navigator.clipboard.writeText(refLink); showCustomModal('Скопировано', 'Реферальная ссылка скопирована в буфер обмена'); });
         }
-        
         async function renderAnalyticsTab() {
             const volume = await supabase.rpc('get_volume_history', { days_limit: 30 });
             const trades = await supabase.from('trades').select('*').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`).order('created_at', { ascending: false }).limit(50);
-            let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%; height:130px;"></canvas><p class="small-text">Объём за 30 дней</p></div>
-                        <div class="card"><h2>📜 История сделок</h2><div id="historyList"></div></div>`;
+            let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%; height:130px;"></canvas><p class="small-text">Объём за 30 дней</p></div><div class="card"><h2>📜 История сделок</h2><div id="historyList"></div></div>`;
             document.getElementById('app').innerHTML = html;
             if (volume.data && volume.data.length) {
                 const canvas = document.getElementById('volCanvas');
@@ -1055,35 +744,19 @@
                 const maxVol = Math.max(...volume.data.map(v=>v.total_amount/100));
                 const barW = (w-40)/volume.data.length - 2;
                 ctx.fillStyle = '#2b6e9e';
-                volume.data.forEach((v,i)=>{
-                    const barH = (v.total_amount/100 / maxVol) * (h-20);
-                    ctx.fillRect(20 + i*(barW+2), h-10-barH, barW, barH);
-                });
+                volume.data.forEach((v,i)=>{ const barH = (v.total_amount/100 / maxVol) * (h-20); ctx.fillRect(20 + i*(barW+2), h-10-barH, barW, barH); });
             }
             const historyDiv = document.getElementById('historyList');
-            if (trades.data && trades.data.length) {
-                historyDiv.innerHTML = trades.data.map(t => `<div class="history-item"><span>${t.buyer_id===userId?'Покупка':'Продажа'} ${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span><span class="small-text">${new Date(t.created_at).toLocaleString()}</span></div>`).join('');
-            } else historyDiv.innerHTML = '<p>Нет сделок</p>';
+            if (trades.data && trades.data.length) historyDiv.innerHTML = trades.data.map(t => `<div class="history-item"><span>${t.buyer_id===userId?'Покупка':'Продажа'} ${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span><span class="small-text">${new Date(t.created_at).toLocaleString()}</span></div>`).join('');
+            else historyDiv.innerHTML = '<p>Нет сделок</p>';
         }
-        
         async function renderSettingsTab() {
             const hideRating = currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
             const notifyTrades = currentUser.notify_trades ?? true;
             const notifyTopup = currentUser.notify_topup ?? true;
             const notifyReferral = currentUser.notify_referral ?? true;
-            const html = `
-                <div class="card">
-                    <h2>⚙️ Настройки</h2>
-                    <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br>
-                    <div><strong>Уведомления от бота:</strong></div>
-                    <label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br>
-                    <label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br>
-                    <label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br>
-                    <div><strong>Цвет акцента:</strong></div>
-                    <input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;">
-                    <button id="saveSettings">Сохранить</button>
-                </div>`;
+            const html = `<div class="card"><h2>⚙️ Настройки</h2><label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br><div><strong>Уведомления от бота:</strong></div><label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br><label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br><label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br><div><strong>Цвет акцента:</strong></div><input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;"><button id="saveSettings">Сохранить</button></div>`;
             document.getElementById('app').innerHTML = html;
             document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
             document.getElementById('saveSettings').onclick = async () => {
@@ -1091,107 +764,46 @@
                 const newColor = document.getElementById('colorPicker').value;
                 localStorage.setItem('custom_color', newColor);
                 document.documentElement.style.setProperty('--accent', newColor);
-                await supabase.from('users').update({
-                    hide_rating: newHide,
-                    notify_trades: document.getElementById('notifyTradesCheckbox').checked,
-                    notify_topup: document.getElementById('notifyTopupCheckbox').checked,
-                    notify_referral: document.getElementById('notifyReferralCheckbox').checked,
-                }).eq('id', userId);
+                await supabase.from('users').update({ hide_rating: newHide, notify_trades: document.getElementById('notifyTradesCheckbox').checked, notify_topup: document.getElementById('notifyTopupCheckbox').checked, notify_referral: document.getElementById('notifyReferralCheckbox').checked }).eq('id', userId);
                 currentUser.hide_rating = newHide;
                 showCustomModal('Успех', 'Настройки сохранены');
             };
         }
         
-        // ---------- АДМИНКА ----------
         const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         async function renderAdminTab() {
             if (userId !== 6048486427) { document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>'; return; }
             try {
-                const stats = await fetch(`${BACKEND_URL}/admin/stats`, { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId }) }).then(r=>r.json());
-                const usersData = await fetch(`${BACKEND_URL}/admin/users`, { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId }) }).then(r=>r.json());
+                const stats = await fetch(`${BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId }) }).then(r=>r.json());
+                const usersData = await fetch(`${BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId }) }).then(r=>r.json());
                 const orders = await getActiveOrders();
-                let html = `<div class="card"><h2>👑 Админ-панель</h2>
-                    <h3>Статистика</h3><p>Акций в обращении: ${stats.total_shares || 0}</p><p>Резерв: ${stats.reserve || 0}</p><hr>
-                    <h3>Выдать акции/звёзды</h3>
-                    <input type="number" id="targetUserId" placeholder="ID"><input type="number" id="giveShares" placeholder="Акции"><button id="giveSharesBtn">Выдать акции</button>
-                    <input type="number" id="giveStars" placeholder="Stars"><button id="giveStarsBtn">Выдать Stars</button><hr>
-                    <h3>Активные ордера</h3><div id="adminOrdersList"></div><hr><h3>Пользователи</h3><div id="usersList" style="max-height:300px; overflow-y:auto;"></div></div>`;
+                let html = `<div class="card"><h2>👑 Админ-панель</h2><h3>Статистика</h3><p>Акций в обращении: ${stats.total_shares || 0}</p><p>Резерв: ${stats.reserve || 0}</p><hr><h3>Выдать акции/звёзды</h3><input type="number" id="targetUserId" placeholder="ID"><input type="number" id="giveShares" placeholder="Акции"><button id="giveSharesBtn">Выдать акции</button><input type="number" id="giveStars" placeholder="Stars"><button id="giveStarsBtn">Выдать Stars</button><hr><h3>Активные ордера</h3><div id="adminOrdersList"></div><hr><h3>Пользователи</h3><div id="usersList" style="max-height:300px; overflow-y:auto;"></div></div>`;
                 document.getElementById('app').innerHTML = html;
                 const ordersDiv = document.getElementById('adminOrdersList');
                 if (!orders.length) ordersDiv.innerHTML = '<p>Нет ордеров</p>';
-                else orders.forEach(order => {
-                    const div = document.createElement('div'); div.className = 'order-item';
-                    div.innerHTML = `<div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐ (продавец ${order.seller_id})</div><button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`;
-                    ordersDiv.appendChild(div);
-                });
-                document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', async () => {
-                    const res = await fetch(`${BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, order_id: btn.dataset.orderId }) });
-                    const data = await res.json();
-                    if(data.ok) { showCustomModal('Успех','Ордер отменён'); renderAdminTab(); } else showCustomModal('Ошибка',data.error);
-                }));
+                else orders.forEach(order => { const div = document.createElement('div'); div.className = 'order-item'; div.innerHTML = `<div>${fromCents(order.amount)} шт. по ${fromCents(order.price_per_share)} ⭐ (продавец ${order.seller_id})</div><button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`; ordersDiv.appendChild(div); });
+                document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', async () => { const res = await fetch(`${BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, order_id: btn.dataset.orderId }) }); const data = await res.json(); if(data.ok) { showCustomModal('Успех','Ордер отменён'); renderAdminTab(); } else showCustomModal('Ошибка',data.error); }));
                 if(usersData.users) document.getElementById('usersList').innerHTML = usersData.users.map(u => `<div>ID: ${u.id} | ${u.username||'Аноним'} | Акций: ${fromCents(u.shares)} | Stars: ${fromCents(u.stars_balance)}</div>`).join('');
-                document.getElementById('giveSharesBtn').onclick = async () => {
-                    const target = parseInt(document.getElementById('targetUserId').value);
-                    const shares = parseInt(document.getElementById('giveShares').value);
-                    if(!target||!shares) { showCustomModal('Ошибка','Заполните поля'); return; }
-                    const res = await fetch(`${BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, target_id: target, shares }) });
-                    const data = await res.json();
-                    if(data.ok) showCustomModal('Успех','Акции выданы'); else showCustomModal('Ошибка',data.error);
-                };
-                document.getElementById('giveStarsBtn').onclick = async () => {
-                    const target = parseInt(document.getElementById('targetUserId').value);
-                    const stars = parseInt(document.getElementById('giveStars').value);
-                    if(!target||!stars) { showCustomModal('Ошибка','Заполните поля'); return; }
-                    const res = await fetch(`${BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, target_id: target, stars }) });
-                    const data = await res.json();
-                    if(data.ok) showCustomModal('Успех','Stars выданы'); else showCustomModal('Ошибка',data.error);
-                };
+                document.getElementById('giveSharesBtn').onclick = async () => { const target = parseInt(document.getElementById('targetUserId').value); const shares = parseInt(document.getElementById('giveShares').value); if(!target||!shares) { showCustomModal('Ошибка','Заполните поля'); return; } const res = await fetch(`${BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, target_id: target, shares }) }); const data = await res.json(); if(data.ok) showCustomModal('Успех','Акции выданы'); else showCustomModal('Ошибка',data.error); };
+                document.getElementById('giveStarsBtn').onclick = async () => { const target = parseInt(document.getElementById('targetUserId').value); const stars = parseInt(document.getElementById('giveStars').value); if(!target||!stars) { showCustomModal('Ошибка','Заполните поля'); return; } const res = await fetch(`${BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, target_id: target, stars }) }); const data = await res.json(); if(data.ok) showCustomModal('Успех','Stars выданы'); else showCustomModal('Ошибка',data.error); };
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
         
-        // ---------- ПОПОЛНЕНИЕ ----------
+        // --- Пополнение ---
         let selectedAmount = null;
-        function updateTopupFee(amount) {
-            const fee = Math.floor(amount * 0.05);
-            const receive = amount - fee;
-            document.getElementById('topupFeeInfo').innerHTML = `💸 Вы платите: ${amount} ⭐<br>📉 Комиссия (5%): ${fee} ⭐<br>✅ Получите: ${receive} ⭐`;
-        }
-        document.querySelectorAll('#topupModal .amount-btn').forEach(btn => btn.addEventListener('click', () => {
-            document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedAmount = parseInt(btn.dataset.amount);
-            document.getElementById('customTopupAmount').value = selectedAmount;
-            updateTopupFee(selectedAmount);
-        }));
-        document.getElementById('customTopupAmount')?.addEventListener('input', () => {
-            let val = parseInt(document.getElementById('customTopupAmount').value);
-            if(!isNaN(val) && val>=1) { selectedAmount = val; document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected')); updateTopupFee(selectedAmount); }
-            else document.getElementById('topupFeeInfo').innerHTML = '';
-        });
-        document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => {
-            if(!selectedAmount || selectedAmount<1) { showCustomModal('Ошибка','Выберите сумму'); return; }
-            document.getElementById('topupModal').style.display = 'none';
-            try {
-                const res = await fetch(`${BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount: selectedAmount }) });
-                const data = await res.json();
-                if(data.ok && data.invoice_link) tg.openInvoice(data.invoice_link, (status) => { if(status === 'paid') { showCustomModal('Успех','Баланс пополнен'); refreshAll(); } });
-                else showCustomModal('Ошибка', data.error || 'Не удалось создать счёт');
-            } catch(e) { showCustomModal('Ошибка','Соединение'); }
-        });
+        function updateTopupFee(amount) { const fee = Math.floor(amount * 0.05); const receive = amount - fee; document.getElementById('topupFeeInfo').innerHTML = `💸 Вы платите: ${amount} ⭐<br>📉 Комиссия (5%): ${fee} ⭐<br>✅ Получите: ${receive} ⭐`; }
+        document.querySelectorAll('#topupModal .amount-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); selectedAmount = parseInt(btn.dataset.amount); document.getElementById('customTopupAmount').value = selectedAmount; updateTopupFee(selectedAmount); }));
+        document.getElementById('customTopupAmount')?.addEventListener('input', () => { let val = parseInt(document.getElementById('customTopupAmount').value); if(!isNaN(val) && val>=1) { selectedAmount = val; document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected')); updateTopupFee(selectedAmount); } else document.getElementById('topupFeeInfo').innerHTML = ''; });
+        document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => { if(!selectedAmount || selectedAmount<1) { showCustomModal('Ошибка','Выберите сумму'); return; } document.getElementById('topupModal').style.display = 'none'; try { const res = await fetch(`${BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount: selectedAmount }) }); const data = await res.json(); if(data.ok && data.invoice_link) tg.openInvoice(data.invoice_link, (status) => { if(status === 'paid') { showCustomModal('Успех','Баланс пополнен'); refreshAll(); } }); else showCustomModal('Ошибка', data.error || 'Не удалось создать счёт'); } catch(e) { showCustomModal('Ошибка','Соединение'); } });
         document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
         
-        // ---------- ЗАПУСК ----------
+        // --- Запуск ---
         const { user, isNew } = await getOrCreateUser();
         currentUser = user;
         const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
         document.documentElement.style.setProperty('--accent', savedColor);
         await renderStocksTab();
-        
-        if (isNew) {
-            setTimeout(() => {
-                openAvatarSelector(true);
-            }, 500);
-        }
+        if (isNew) setTimeout(() => openAvatarSelector(true), 500);
         
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
