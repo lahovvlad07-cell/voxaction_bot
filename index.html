@@ -25,12 +25,10 @@
             color: #eef2ff;
             padding-bottom: calc(76px + env(safe-area-inset-bottom));
         }
-        /* основной контейнер */
         .app-container {
             max-width: 500px;
             margin: 0 auto;
         }
-        /* карточки – плавные, с лёгким свечением */
         .card {
             background: rgba(18, 24, 38, 0.7);
             backdrop-filter: blur(16px);
@@ -41,7 +39,6 @@
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        /* вкладки (нижнее меню) */
         .tabs-wrapper {
             position: fixed;
             bottom: 0;
@@ -89,7 +86,6 @@
             font-weight: 600;
             letter-spacing: 0.3px;
         }
-        /* кнопки */
         button {
             background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
             border: none;
@@ -108,7 +104,6 @@
             transform: scale(0.96);
             opacity: 0.9;
         }
-        /* поля ввода */
         input {
             width: 100%;
             padding: 14px 18px;
@@ -125,7 +120,6 @@
             border-color: #2b6e9e;
             box-shadow: 0 0 0 2px rgba(43, 110, 158, 0.4);
         }
-        /* элементы ордеров */
         .order-item {
             display: flex;
             justify-content: space-between;
@@ -147,7 +141,6 @@
             font-size: 12px;
             color: #9ca3af;
         }
-        /* график */
         .chart-container {
             width: 100%;
             height: 220px;
@@ -160,7 +153,6 @@
             width: 100%;
             height: 100%;
         }
-        /* модальное окно */
         .modal {
             display: none;
             position: fixed;
@@ -191,7 +183,6 @@
             cursor: pointer;
             color: #9ca3af;
         }
-        /* аватар и ачивки */
         .profile-avatar {
             display: flex;
             flex-direction: column;
@@ -238,7 +229,67 @@
             border-color: #60a5fa;
             box-shadow: 0 0 10px rgba(43, 110, 158, 0.5);
         }
-        /* кнопки выбора суммы */
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .achievement-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        .achievement-card.selected {
+            border-color: #2b6e9e;
+            background: rgba(43, 110, 158, 0.2);
+        }
+        .achievement-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        .achievement-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .achievement-status {
+            font-size: 11px;
+            margin-top: 6px;
+            color: #9ca3af;
+        }
+        .achievement-desc {
+            font-size: 10px;
+            color: #6b7280;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin: 16px 0;
+        }
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 24px;
+            padding: 12px;
+            text-align: center;
+            flex: 1;
+            margin: 0 6px;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .stat-label {
+            font-size: 12px;
+            margin-top: 4px;
+        }
         .topup-amounts {
             display: flex;
             gap: 12px;
@@ -259,7 +310,6 @@
             color: white;
             box-shadow: 0 0 8px #2b6e9e;
         }
-        /* бегущая строка */
         .ticker {
             background: rgba(0, 0, 0, 0.35);
             border-radius: 60px;
@@ -308,13 +358,12 @@
             background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
             color: white;
         }
-        .leaderboard-item, .history-item {
+        .leaderboard-item, .history-item, .referral-item {
             display: flex;
             justify-content: space-between;
             padding: 10px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-        /* админ-панель */
         .admin-only {
             display: none;
         }
@@ -329,6 +378,7 @@
         <div class="tab" data-tab="analytics"><div class="tab-icon">📊</div><div class="tab-label">Аналитика</div></div>
         <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
         <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
+        <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
         <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
@@ -351,7 +401,7 @@
 </div>
 <script>
     // ======================================================================
-    // ПОЛНАЯ ЛОГИКА ПРОЕКТА (JavaScript) – ТА ЖЕ, ЧТО И В ПРЕДЫДУЩИХ ВЕРСИЯХ
+    // ПОЛНАЯ ЛОГИКА ПРОЕКТА (JavaScript)
     // ======================================================================
     (async () => {
         // ----------------------------- DRAG TABS -----------------------------
@@ -633,71 +683,79 @@
             const userAchievements = await getAchievements();
             const allAchievements = await getAllAchievements();
             const selectedIds = currentUser.selected_achievements || [];
-            const refCode = currentUser.referral_code;
-            const refLink = `https://t.me/VoxAction_Bot?start=${refCode || 'REF0000'}`;
-            const referralCount = currentUser.referral_count || 0;
+            // Показываем 4 выбранные ачивки
             const selectedAchievements = allAchievements.filter(a => selectedIds.includes(a.id));
-            const displayedAchievements = selectedAchievements.slice(0,5);
+            const displayedAchievements = selectedAchievements.slice(0,4);
             const achievementIconsHtml = displayedAchievements.map(ach => `<div class="achi-icon earned" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>`).join('');
-            const missingCount = Math.max(0, 5 - displayedAchievements.length);
+            const missingCount = Math.max(0, 4 - displayedAchievements.length);
             const missingHtml = Array.from({length: missingCount}, () => `<div class="achi-icon">?</div>`).join('');
-            const adminHtml = (userId === 6048486427) ? `<hr><div style="margin-top:12px;"><h3>👑 Админ-панель</h3><p class="small-text">Управление в отдельной вкладке</p></div>` : '';
             const html = `
                 <div class="card" style="text-align: center;">
                     <div class="profile-avatar" id="avatarClick">
                         <div class="avatar-circle">${currentUser.username.charAt(0).toUpperCase()}</div>
-                        <div class="small-text">${currentUser.username}</div>
+                        <div class="small-text" style="margin-top: 6px;">Нажмите, чтобы сменить аватар</div>
                     </div>
-                    <p>ID: ${userId}</p>
+                    <p style="font-size: 20px; font-weight: bold;">${currentUser.username}</p>
+                    <p class="small-text">ID: ${userId}</p>
                     <div class="achievement-icons">
                         ${achievementIconsHtml}${missingHtml}
                     </div>
-                    <button id="customizeAchievementsBtn" style="margin-top: 4px;">🎨 Настроить ачивки</button>
-                    <div style="display: flex; justify-content: space-around; margin: 20px 0;">
-                        <div><p style="font-size: 28px; font-weight:bold;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
-                        <div><p style="font-size: 28px; font-weight:bold;">${fromCents(currentUser.stars_balance)}</p><p class="small-text">Stars</p></div>
+                    <div class="small-text" style="margin-top: 4px;">Нажмите на значок, чтобы выбрать достижение</div>
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.totalTrades}</div>
+                            <div class="stat-label">Сделок</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.totalVolume.toFixed(2)}</div>
+                            <div class="stat-label">Объём (⭐)</div>
+                        </div>
                     </div>
-                    <hr>
-                    <h3>📊 Статистика</h3>
-                    <div style="display: flex; justify-content: space-around;">
-                        <div><p style="font-size: 22px;">${stats.totalTrades}</p><p class="small-text">Сделок</p></div>
-                        <div><p style="font-size: 22px;">${stats.totalVolume.toFixed(2)} ⭐</p><p class="small-text">Объём</p></div>
-                    </div>
-                    <hr>
-                    <h3>👥 Рефералы</h3>
-                    <div style="display: flex; justify-content: space-around;">
-                        <div><p style="font-size: 22px;">${referralCount}</p><p class="small-text">Приглашено</p></div>
-                        <div><p style="font-size: 22px;">${referralCount * 5}</p><p class="small-text">Заработано акций</p></div>
-                    </div>
-                    <h3>🔗 Реферальная ссылка</h3>
-                    <div class="small-text" style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 20px; word-break: break-all;">${refLink}</div>
-                    <p class="small-text" style="margin-top: 8px;">Пригласите друга – он получит бонус, а вы 5 акций, когда он пополнит на 10 ⭐.</p>
-                    ${adminHtml}
                 </div>
             `;
             document.getElementById('app').innerHTML = html;
+            // Обработчик аватара
             document.getElementById('avatarClick')?.addEventListener('click', () => showMessage('Аватар', 'Изменить аватар можно через @BotFather командой /setuserpic'));
-            document.getElementById('customizeAchievementsBtn')?.addEventListener('click', () => {
-                const earned = allAchievements.filter(a => userAchievements.some(ua => ua.id === a.id));
-                const checkboxes = earned.map(ach => `<label style="display:block; margin-bottom:8px;"><input type="checkbox" value="${ach.id}" ${selectedIds.includes(ach.id) ? 'checked' : ''}> ${ach.icon} ${ach.name}</label>`).join('');
-                const modalHtml = `<div class="modal" id="achiModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAchiModal">&times;</span><h3>Выберите до 5 ачивок</h3><div id="achiList">${checkboxes}</div><button id="saveAchiBtn">Сохранить</button></div></div>`;
+            // Обработчик нажатия на иконки ачивок – открытие модалки выбора достижений
+            const openAchievementSelector = () => {
+                const earnedAchievements = allAchievements.filter(a => userAchievements.some(ua => ua.id === a.id));
+                const html = earnedAchievements.map(ach => `
+                    <div class="achievement-card ${selectedIds.includes(ach.id) ? 'selected' : ''}" data-ach-id="${ach.id}">
+                        <div class="achievement-icon">${ach.icon}</div>
+                        <div class="achievement-name">${ach.name}</div>
+                        <div class="achievement-status">${selectedIds.includes(ach.id) ? '✓ Выбрано' : 'Доступно'}</div>
+                        <div class="achievement-desc">${ach.description}</div>
+                    </div>
+                `).join('');
+                const modalHtml = `
+                    <div class="modal" id="achiSelectorModal" style="display:flex;">
+                        <div class="modal-content">
+                            <span class="close-modal" id="closeAchiSelector">&times;</span>
+                            <h3>Выберите до 4 ачивок для показа в профиле</h3>
+                            <div class="achievements-grid" id="achiGrid">${html}</div>
+                            <button id="saveAchiSelection">Сохранить</button>
+                        </div>
+                    </div>
+                `;
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
-                document.getElementById('closeAchiModal').onclick = () => document.getElementById('achiModal').remove();
-                document.getElementById('saveAchiBtn').onclick = async () => {
-                    const selected = Array.from(document.querySelectorAll('#achiList input:checked')).map(cb => parseInt(cb.value));
-                    if (selected.length > 5) { showMessage('Ошибка', 'Нельзя выбрать больше 5'); return; }
+                document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
+                document.getElementById('saveAchiSelection').onclick = async () => {
+                    const selected = Array.from(document.querySelectorAll('#achiGrid .achievement-card.selected')).map(card => parseInt(card.dataset.achId));
+                    if (selected.length > 4) { showMessage('Ошибка', 'Нельзя выбрать больше 4 ачивок'); return; }
                     await supabase.from('users').update({ selected_achievements: selected }).eq('id', userId);
                     currentUser.selected_achievements = selected;
-                    document.getElementById('achiModal').remove();
+                    document.getElementById('achiSelectorModal').remove();
                     await renderProfileTab();
                 };
-            });
-            document.querySelectorAll('.achi-icon').forEach(icon => {
-                icon.addEventListener('click', () => {
-                    const all = allAchievements.map(a => `${a.icon} ${a.name}: ${a.description}`).join('\n');
-                    showMessage('Достижения', all);
+                document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        card.classList.toggle('selected');
+                    });
                 });
-            });
+            };
+            // Навешиваем на иконки ачивок и на подпись
+            document.querySelectorAll('.achi-icon').forEach(icon => icon.addEventListener('click', openAchievementSelector));
+            document.querySelector('.achievement-icons')?.addEventListener('click', openAchievementSelector);
         }
         
         async function renderRatingTab() {
@@ -721,6 +779,37 @@
                 </div>`;
             document.getElementById('topupBtn')?.addEventListener('click', () => { document.getElementById('topupModal').style.display = 'flex'; updateTopupFee(0); });
             document.getElementById('withdrawGiftsBtn')?.addEventListener('click', () => { tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw_gifts'); });
+        }
+        
+        async function renderReferralTab() {
+            const refCode = currentUser.referral_code;
+            const refLink = `https://t.me/VoxAction_Bot?start=${refCode || 'REF0000'}`;
+            const referralCount = currentUser.referral_count || 0;
+            const earnedShares = referralCount * 5;
+            const html = `
+                <div class="card">
+                    <h2>🔗 Реферальная программа</h2>
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-value">${referralCount}</div>
+                            <div class="stat-label">Приглашено друзей</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${earnedShares}</div>
+                            <div class="stat-label">Заработано акций</div>
+                        </div>
+                    </div>
+                    <h3>Ваша реферальная ссылка</h3>
+                    <div class="small-text" style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 20px; word-break: break-all;">${refLink}</div>
+                    <p class="small-text" style="margin-top: 12px;">Приглашайте друзей – они получат бонус, а вы 5 акций, когда он пополнит на 10 ⭐.</p>
+                    <button id="copyRefLink">📋 Скопировать ссылку</button>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+            document.getElementById('copyRefLink')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(refLink);
+                showMessage('Скопировано', 'Реферальная ссылка скопирована в буфер обмена');
+            });
         }
         
         async function renderAnalyticsTab() {
@@ -877,6 +966,7 @@
                 else if(tabName === 'analytics') await renderAnalyticsTab();
                 else if(tabName === 'rating') await renderRatingTab();
                 else if(tabName === 'wallet') await renderWalletTab();
+                else if(tabName === 'referral') await renderReferralTab();
                 else if(tabName === 'settings') await renderSettingsTab();
                 else if(tabName === 'admin') await renderAdminTab();
             });
