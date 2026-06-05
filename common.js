@@ -1,15 +1,10 @@
-// common.js - общие функции, утилиты, работа с пользователем, уведомления, аватарки
-
-// Настройки
+// common.js
 window.SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
 window.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
-window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ЗАМЕНИТЕ НА ВАШ URL RENDER
+window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ЗАМЕНИТЕ НА ВАШ URL
 
-// Создаём клиент Supabase глобально
 window.supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
-window.tg = window.Telegram.WebApp;
 
-// Утилиты
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -27,7 +22,7 @@ window.toast = (msg) => {
     setTimeout(() => t.remove(), 5000);
 };
 
-// ----- Пользователь и достижения -----
+// --- Пользователь и достижения ---
 window.getOrCreateUser = async () => {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(error.message);
@@ -94,9 +89,9 @@ window.getNextProgress = async () => {
     if (!notEarned.length) return [];
     const stats = await window.getUserStats();
     const trades = stats.totalTrades;
-    const shares = window.currentUser.shares;
-    const refs = window.currentUser.referral_count || 0;
-    const topup = window.currentUser.total_topup || 0;
+    const shares = window.currentUser ? window.currentUser.shares : 0;
+    const refs = window.currentUser ? window.currentUser.referral_count || 0 : 0;
+    const topup = window.currentUser ? window.currentUser.total_topup || 0 : 0;
     const next = [];
     for (let ach of notEarned) {
         let cur = 0, need = ach.condition_value;
@@ -115,16 +110,16 @@ window.getNextProgress = async () => {
     return next;
 };
 
-// ----- Уведомления (Realtime) -----
+// --- Уведомления ---
 window.notifChannel = null;
 window.getUnreadCount = async () => {
     const { count } = await window.supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', window.userId).eq('is_read', false);
     return count || 0;
 };
 window.updateBellBadge = async () => {
-    const unread = await window.getUnreadCount();
     const badge = document.querySelector('.notification-badge');
     if (badge) {
+        const unread = await window.getUnreadCount();
         if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; }
         else badge.style.display = 'none';
     }
@@ -159,7 +154,7 @@ window.showNotificationsModal = async () => {
     }));
 };
 
-// ----- Аватарки и фон -----
+// --- Аватарки ---
 window.avatars = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
 window.adj = { '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3,'🎨':-3,'📷':-3,'⚡':-3,'🔮':-3,'🚀':-3,'🎮':-3 };
 window.fontSize = { '⚡':'56px','🔮':'56px','🎮':'56px','🚀':'56px','⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px' };
@@ -229,7 +224,7 @@ window.openBackgroundSelector = async () => {
         await window.supabase.from('users').update({ avatar_bg: selected }).eq('id', window.userId);
         window.currentUser.avatar_bg = selected;
         m.remove();
-        await window.renderProfile();
+        if (window.renderProfile) await window.renderProfile();
         await window.awardStylist();
     };
 };
@@ -244,7 +239,7 @@ window.awardStylist = async () => {
     }
 };
 
-// Обновление пользователя
+// --- Общие функции для обновления ---
 window.refreshUser = async () => {
     const res = await window.getOrCreateUser();
     window.currentUser = res.user;
