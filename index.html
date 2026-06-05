@@ -236,12 +236,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
             cursor: pointer;
             transition: 0.2s;
             margin: 0 auto;
         }
         .avatar-option.selected { border: 2px solid #2b6e9e; background: rgba(43, 110, 158, 0.3); transform: scale(1.05); }
+        .avatar-option .avatar-emoji {
+            font-size: 40px;
+        }
         .bg-option {
             width: 65px;
             height: 65px;
@@ -637,7 +639,7 @@
             '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆',
             '🎨', '📷', '⚡', '🔮'
         ];
-        // Корректировка вертикали (px) для эмодзи (применяется только к span внутри круга)
+        // Корректировка вертикали (px) для эмодзи (применяется только к span)
         const avatarAdjustments = {
             '🐱': 5, '🐶': 5, '🦊': 3, '🐼': 5, '⚽': 2, '💎': 2, '🌸': 2,
             '🔥': 2, '🎉': 2, '🌟': 2, '🍕': 2, '🏆': 2, '🎨': 2, '📷': 2
@@ -667,8 +669,7 @@
             const optionsHtml = avatarEmojis.map(emoji => {
                 const isSelected = (emoji === currentAvatar);
                 const style = getAvatarStyle(emoji);
-                // В сетке аватарок можно сдвигать весь кружок – там это допустимо
-                return `<div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar="${emoji}" style="${style}">${emoji}</div>`;
+                return `<div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar="${emoji}"><span class="avatar-emoji" style="${style}">${emoji}</span></div>`;
             }).join('');
             const modalHtml = `<div class="modal" id="avatarModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAvatarModal">&times;</span><h3>Выберите аватар</h3><div class="avatars-grid">${optionsHtml}</div><button id="nextToBgBtn">Далее → выбор фона</button></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
