@@ -1,4 +1,4 @@
-// stocks.js - вкладка "Акции"
+// stocks.js
 let sellAmt = '', sellPrice = '', buyAmt = '', buyPrice = '';
 let filterSell = 'all', filterBuy = 'all', sortSell = 'asc', sortBuy = 'desc', timeframe = '30d';
 
@@ -86,7 +86,9 @@ window.renderTicker = (trades) => {
     if (!trades.length) { cont.innerHTML = '<div class="ticker-content">Нет сделок</div>'; return; }
     cont.innerHTML = `<div class="ticker-content">${trades.map(t => `<span style="margin-right:24px">${window.fromCents(t.amount)} шт. по ${window.fromCents(t.price_per_share)} ⭐</span>`).join('')}</div>`;
 };
+
 window.renderStocks = async () => {
+    console.log('renderStocks called'); // для отладки
     try {
         const ob = await window.getOrderbook();
         let sell = ob.sell || [], buy = ob.buy || [];
@@ -194,5 +196,8 @@ window.renderStocks = async () => {
                 else window.showModal('Ошибка', res.error);
             }
         }));
-    } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
+    } catch(e) {
+        console.error('renderStocks error:', e);
+        document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`;
+    }
 };
