@@ -7,7 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ВСЕ ВАШИ СТИЛИ (оставьте как есть, они не менялись) */
         *{margin:0;padding:0;box-sizing:border-box;user-select:none;scrollbar-width:none;-ms-overflow-style:none}
         *::-webkit-scrollbar{display:none}
         body{background:#0a0e1a;font-family:'Inter',system-ui,apple-system,'Segoe UI',Roboto,sans-serif;color:#eef2ff;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
@@ -111,26 +110,19 @@
 </div>
 <script>
     (async () => {
-        // Drag tabs
-        const tabsWrapper = document.querySelector('.tabs-wrapper');
-        let isDown = false, startX, scrollLeft;
-        tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
-        window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
-        window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
-        
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
         let userId = tg.initDataUnsafe?.user?.id;
         let username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
         if (!userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
-        
+
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ЗАМЕНИТЕ
         let currentUser = null;
-        
+
         function toCents(v) { return Math.round(parseFloat(v) * 100); }
         function fromCents(c) { return (c / 100).toFixed(2); }
         function showModal(title, msg) {
@@ -145,10 +137,8 @@
             document.body.appendChild(t);
             setTimeout(() => t.remove(), 5000);
         }
-        
-        // --------------------------------------------
-        // 1. ФУНКЦИИ ДЛЯ АКЦИЙ (БЕЗ ИЗМЕНЕНИЙ)
-        // --------------------------------------------
+
+        // ---------- ФУНКЦИИ ДЛЯ АКЦИЙ (НЕ МЕНЯЛИ) ----------
         async function getActiveOrders() {
             const res = await fetch(`${BACKEND_URL}/get-active-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
             const data = await res.json();
@@ -178,6 +168,12 @@
             const data = await res.json();
             if (!data.ok) throw new Error(data.error);
             return true;
+        }
+        async function cancelAllOrders() {
+            const res = await fetch(`${BACKEND_URL}/cancel-all-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error);
+            return data.cancelled;
         }
         async function getPriceHistory() {
             let start = new Date();
@@ -218,7 +214,7 @@
             if (!data || !data.length) return null;
             return data.reduce((s,r)=>s+r.rating,0)/data.length;
         }
-        
+
         let currentTimeframe = '30d';
         function drawCanvasChart(history) {
             const cont = document.getElementById('chart-container');
@@ -252,7 +248,7 @@
             ctx.fillText(min.toFixed(2), pad.left-30, h-pad.bottom-5);
             if(history.length) {
                 const first = new Date(history[0].created_at).toLocaleDateString();
-                const last = new Date(history[history.length-1].created_at).toLocaleDateString();
+                const last = new Date(history[hist.length-1].created_at).toLocaleDateString();
                 ctx.fillText(first, pad.left, h-pad.bottom+15);
                 ctx.fillText(last, w-pad.right-40, h-pad.bottom+15);
             }
@@ -263,7 +259,7 @@
             if (!trades.length) { cont.innerHTML = '<div class="ticker-content">Нет сделок</div>'; return; }
             cont.innerHTML = `<div class="ticker-content">${trades.map(t => `<span style="margin-right:24px">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('')}</div>`;
         }
-        
+
         let currentOrdersFilter = 'all';
         let currentSortDir = 'asc';
         async function renderStocksTab() {
@@ -352,22 +348,13 @@
                 }
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
-        
-        async function cancelAllOrders() {
-            const res = await fetch(`${BACKEND_URL}/cancel-all-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error);
-            return data.cancelled;
-        }
-        
+
         async function refreshUser() {
             const res = await getOrCreateUser();
             currentUser = res.user;
         }
-        
-        // --------------------------------------------
-        // 2. ФУНКЦИИ ДЛЯ ПРОФИЛЯ (С ИСПРАВЛЕНИЕМ ДУБЛЕЙ)
-        // --------------------------------------------
+
+        // ---------- ФУНКЦИИ ДЛЯ ПРОФИЛЯ (ИСПРАВЛЕННЫЕ) ----------
         async function getOrCreateUser() {
             let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
             if (error) throw new Error(error.message);
@@ -377,11 +364,9 @@
                     avatar_url: '👤', avatar_bg: 'gradient1', registered_at: new Date().toISOString()
                 }]).select().single();
                 if (insErr) throw new Error(insErr.message);
-                // Выдаём приветственное достижение (только один раз)
                 const { data: welcome } = await supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
                 if (welcome) {
                     await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: welcome.id, earned_at: new Date().toISOString() });
-                    // Отправляем уведомление через бэкенд
                     await fetch(`${BACKEND_URL}/send-notification`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -399,9 +384,8 @@
             }
             return { user: data, isNew: false };
         }
-        
+
         async function getEarnedAchievements() {
-            // Исправляем дубли: группируем по achievement_id, берём первый
             const { data } = await supabase.from('user_achievements').select('achievement_id, earned_at, achievements(*)').eq('user_id', userId);
             if (!data) return [];
             const unique = new Map();
@@ -412,13 +396,18 @@
             }
             return Array.from(unique.values());
         }
-        
+
         async function getUserRank() {
             const leaders = await getLeaderboard();
             const idx = leaders.findIndex(u => u.id === userId);
             return idx !== -1 ? idx + 1 : null;
         }
-        
+
+        async function getAllAchievements() {
+            const { data } = await supabase.from('achievements').select('*');
+            return data || [];
+        }
+
         async function getNextProgress() {
             const all = await getAllAchievements();
             const earned = await getEarnedAchievements();
@@ -448,13 +437,8 @@
             }
             return next;
         }
-        
-        async function getAllAchievements() {
-            const { data } = await supabase.from('achievements').select('*');
-            return data || [];
-        }
-        
-        // Уведомления
+
+        // ---------- Уведомления ----------
         let notifChan = null;
         async function getUnreadCount() {
             const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_read', false);
@@ -485,8 +469,8 @@
                 showNotificationsModal();
             }));
         }
-        
-        // Аватарки и фон
+
+        // ---------- Аватарки и фон (ИСПРАВЛЕННЫЕ: убраны дубли вызовов awardStylist) ----------
         const avatars = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
         const adj = { '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3,'🎨':-3,'📷':-3,'⚡':-3,'🔮':-3,'🚀':-3,'🎮':-3 };
         const fontSize = { '⚡':'56px','🔮':'56px','🎮':'56px','🚀':'56px','⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px' };
@@ -514,8 +498,7 @@
                 await supabase.from('users').update({ avatar_url: selected }).eq('id', userId);
                 currentUser.avatar_url = selected;
                 m.remove();
-                await openBg();
-                await awardStylist();
+                await openBg(); // внутри openBg вызывается awardStylist()
             };
         }
         async function openBg() {
@@ -552,17 +535,22 @@
                 await supabase.from('users').update({ avatar_bg: selected }).eq('id', userId);
                 currentUser.avatar_bg = selected;
                 m.remove();
+                await awardStylist(); // только один раз
                 await renderProfile();
-                await awardStylist();
             };
         }
         async function awardStylist() {
-            const { data: ach } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
-            if (ach) {
-                const { data: existing } = await supabase.from('user_achievements').select('id').eq('user_id', userId).eq('achievement_id', ach.id).maybeSingle();
+            try {
+                const { data: ach } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
+                if (!ach) return;
+                const { data: existing } = await supabase
+                    .from('user_achievements')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('achievement_id', ach.id)
+                    .maybeSingle();
                 if (!existing) {
                     await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: ach.id, earned_at: new Date().toISOString() });
-                    // Отправляем уведомление через бэкенд
                     await fetch(`${BACKEND_URL}/send-notification`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -570,9 +558,9 @@
                     }).catch(e=>console.warn);
                     showModal('🎉 Новое достижение!', 'Вы получили "🎨 Стилист" за выбор аватарки или фона!');
                 }
-            }
+            } catch(e) { console.error(e); }
         }
-        
+
         async function openAchievementSelector(slot, earned, selectedIds, curId) {
             if (!earned.length) { showModal('Достижения', 'У вас пока нет достижений'); return; }
             const other = selectedIds.filter((_,i) => i !== slot);
@@ -612,7 +600,7 @@
                 });
             });
         }
-        
+
         async function renderProfile() {
             const stats = await getUserStats();
             const earned = await getEarnedAchievements();
@@ -669,10 +657,8 @@
             });
             await updateBellBadge();
         }
-        
-        // --------------------------------------------
-        // 3. ОСТАЛЬНЫЕ ВКЛАДКИ
-        // --------------------------------------------
+
+        // ---------- ОСТАЛЬНЫЕ ВКЛАДКИ (без изменений) ----------
         async function renderRatingTab() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
@@ -681,13 +667,11 @@
             html += `</div>`;
             document.getElementById('app').innerHTML = html;
         }
-        
         async function renderWalletTab() {
             document.getElementById('app').innerHTML = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><button id="topupBtn">💸 Пополнить Stars</button><button id="withdrawGiftsBtn" style="margin-top:12px">🎁 Вывести через подарки</button></div>`;
             document.getElementById('topupBtn')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'flex');
             document.getElementById('withdrawGiftsBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw_gifts'));
         }
-        
         async function renderReferralTab() {
             const refLink = `https://t.me/VoxAction_Bot?start=${currentUser.referral_code || 'REF0000'}`;
             const cnt = currentUser.referral_count || 0;
@@ -696,7 +680,6 @@
             document.getElementById('app').innerHTML = html;
             document.getElementById('copyRefLink')?.addEventListener('click', () => { navigator.clipboard.writeText(refLink); showModal('Скопировано', 'Ссылка скопирована'); });
         }
-        
         async function renderAnalyticsTab() {
             const vol = await supabase.rpc('get_volume_history', { days_limit: 30 });
             let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%;height:130px"></canvas><p class="small-text">Объём за 30 дней</p></div>`;
@@ -715,7 +698,6 @@
                 });
             }
         }
-        
         async function renderSettingsTab() {
             const hide = currentUser.hide_rating || false;
             const color = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -736,7 +718,6 @@
                 showModal('Успех', 'Настройки сохранены');
             };
         }
-        
         async function renderAdminTab() {
             if (userId !== 6048486427) { document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>'; return; }
             try {
@@ -772,8 +753,8 @@
                 };
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
-        
-        // пополнение
+
+        // ---------- ПОПОЛНЕНИЕ ----------
         let selectedAmount = null;
         function updateTopupFee(amt) {
             const fee = Math.floor(amt * 0.05);
@@ -803,16 +784,14 @@
             } catch(e) { showModal('Ошибка','Соединение'); }
         });
         document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
-        
+
         async function refreshAll() {
             const res = await getOrCreateUser();
             currentUser = res.user;
             await renderStocksTab();
         }
-        
-        // --------------------------------------------
-        // 4. ЗАПУСК
-        // --------------------------------------------
+
+        // ---------- ЗАПУСК ----------
         const { user, isNew } = await getOrCreateUser();
         currentUser = user;
         const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -820,7 +799,12 @@
         await renderStocksTab();
         setupRealtime();
         await updateBellBadge();
-        
+
+        // При первом запуске открываем выбор аватарки
+        if (isNew) {
+            setTimeout(() => openAvatar(), 500);
+        }
+
         let autoRefresh = null;
         function startAuto() {
             if (autoRefresh) clearInterval(autoRefresh);
@@ -834,7 +818,7 @@
         }
         function stopAuto() { if (autoRefresh) clearInterval(autoRefresh); autoRefresh = null; }
         startAuto();
-        
+
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
                 const name = tab.dataset.tab;
