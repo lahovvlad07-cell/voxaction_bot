@@ -120,7 +120,7 @@
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ЗАМЕНИТЕ НА ВАШ URL
+        const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ← ЗАМЕНИТЕ НА ВАШ АДРЕС
         let currentUser = null;
 
         function toCents(v) { return Math.round(parseFloat(v) * 100); }
@@ -328,7 +328,7 @@
             }
         }
 
-        // ---------- Акции (старая простая версия) ----------
+        // ---------- Акции (простая версия) ----------
         let currentOrdersFilter = 'all';
         let currentSortDir = 'asc';
         let currentTimeframe = '30d';
