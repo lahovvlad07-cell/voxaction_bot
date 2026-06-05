@@ -7,72 +7,515 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;user-select:none;scrollbar-width:none}
-        *::-webkit-scrollbar{display:none}
-        body{background:#0a0e1a;font-family:Inter,system-ui,apple-system,'Segoe UI',Roboto,sans-serif;color:#eef2ff;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
-        .card{background:rgba(18,24,38,.7);backdrop-filter:blur(16px);border-radius:28px;padding:18px;margin:12px 16px;border:1px solid rgba(56,189,248,.2);box-shadow:0 8px 20px rgba(0,0,0,.3);position:relative}
-        .tabs-wrapper{position:fixed;bottom:0;left:0;right:0;background:rgba(10,14,26,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(56,189,248,.25);padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:100;overflow-x:auto;white-space:nowrap}
-        .tabs{display:inline-flex;gap:6px;padding:0 12px}
-        .tab{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 12px;border-radius:60px;background:rgba(255,255,255,.04);transition:all .2s;cursor:pointer;min-width:68px}
-        .tab.active{background:linear-gradient(135deg,#2b6e9e,#1a4c6e);box-shadow:0 0 12px rgba(43,110,158,.6)}
-        .tab-icon{font-size:22px;margin-bottom:4px}
-        .tab-label{font-size:11px;font-weight:600;letter-spacing:.3px}
-        button{background:linear-gradient(135deg,#2b6e9e,#1a4c6e);border:none;padding:12px 20px;border-radius:44px;font-size:15px;font-weight:600;color:white;width:100%;margin-top:10px;cursor:pointer;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
-        button:active{transform:scale(.96);opacity:.9}
-        button.small{width:auto;padding:8px 16px;margin-top:8px;font-size:13px}
-        button.secondary{background:rgba(255,255,255,.1);margin-top:8px}
-        input{width:100%;padding:12px 16px;margin:6px 0;border:1px solid rgba(56,189,248,.3);border-radius:44px;font-size:15px;background:#111827;color:#f0f4ff;outline:none}
-        input:focus{border-color:#2b6e9e;box-shadow:0 0 0 2px rgba(43,110,158,.4)}
-        .order-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);gap:12px;flex-wrap:wrap}
-        .price{font-size:26px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
-        .small-text{font-size:12px;color:#9ca3af}
-        .chart-container{width:100%;height:220px;margin:16px 0;border-radius:20px;overflow:hidden;background:#0f1320}
-        canvas{width:100%;height:100%}
-        .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);z-index:1000;align-items:center;justify-content:center}
-        .modal-content{background:#121826;border-radius:32px;max-width:90%;width:400px;max-height:80%;overflow-y:auto;padding:20px;border:1px solid #2b6e9e;box-shadow:0 20px 40px rgba(0,0,0,.4)}
-        .modal-content h3{text-align:center;margin-bottom:16px;font-size:18px}
-        .close-modal{float:right;font-size:28px;cursor:pointer;color:#9ca3af}
-        .trades-list{max-height:400px;overflow-y:auto}
-        .trade-item-row{display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px}
-        .profile-avatar{display:flex;flex-direction:column;align-items:center;margin-bottom:20px;cursor:pointer}
-        .avatar-circle{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:48px;color:white;text-shadow:0 1px 2px rgba(0,0,0,.3);box-shadow:0 6px 16px rgba(0,0,0,.4);margin-bottom:8px;transition:.2s}
-        .avatar-circle:hover{transform:scale(1.02)}
-        .avatar-emoji{display:inline-block;line-height:1}
-        .notification-bell{font-size:22px;cursor:pointer;position:relative;display:inline-block}
-        .notification-badge{position:absolute;top:-8px;right:-12px;background:#e74c3c;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold}
-        .toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);backdrop-filter:blur(12px);color:white;padding:12px 20px;border-radius:40px;z-index:2000;font-size:14px;border-left:4px solid #2b6e9e;box-shadow:0 4px 12px rgba(0,0,0,.3);animation:fadeInOut 5s ease forwards;pointer-events:none;white-space:nowrap}
-        @keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-20px)}10%{opacity:1;transform:translateX(-50%) translateY(0)}90%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-20px)}}
-        .bg-gradient1{background:linear-gradient(135deg,#2b6e9e,#1a4c6e)}
-        .bg-gradient2{background:linear-gradient(135deg,#9b59b6,#8e44ad)}
-        .bg-gradient3{background:linear-gradient(135deg,#e67e22,#d35400)}
-        .bg-gradient4{background:linear-gradient(135deg,#27ae60,#2ecc71)}
-        .bg-gradient5{background:linear-gradient(135deg,#f1c40f,#f39c12)}
-        .bg-gradient6{background:linear-gradient(135deg,#e74c3c,#c0392b)}
-        .bg-gradient7{background:linear-gradient(135deg,#1abc9c,#16a085)}
-        .bg-gradient8{background:linear-gradient(135deg,#3498db,#2980b9)}
-        .bg-gradient9{background:linear-gradient(135deg,#34495e,#2c3e50)}
-        .bg-gradient10{background:linear-gradient(135deg,#ff9a9e,#fad0c4)}
-        .bg-gradient11{background:linear-gradient(135deg,#a18cd1,#fbc2eb)}
-        .achievement-icons{display:flex;justify-content:center;gap:16px;margin:16px 0;flex-wrap:wrap}
-        .achi-icon{width:56px;height:56px;background:rgba(255,255,255,.05);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;transition:.2s;border:1px solid transparent}
-        .achi-icon.earned{background:linear-gradient(135deg,#2b6e9e,#1a4c6e);border-color:#60a5fa;box-shadow:0 0 10px rgba(43,110,158,.5)}
-        .stats-container{display:flex;flex-direction:column;gap:12px;margin:16px 0}
-        .stats-row{display:flex;gap:12px;justify-content:space-between}
-        .stat-card{background:rgba(0,0,0,.3);border-radius:24px;padding:16px;text-align:center;flex:1}
-        .stat-value{font-size:28px;font-weight:800;background:linear-gradient(135deg,#eef2ff,#a5b4fc);-webkit-background-clip:text;background-clip:text;color:transparent}
-        .stat-label{font-size:12px;margin-top:4px}
-        .progress-bar{background:rgba(255,255,255,.1);border-radius:10px;height:6px;overflow:hidden;margin:6px 0}
-        .progress-fill{background:linear-gradient(90deg,#2b6e9e,#60a5fa);height:100%;width:0%;border-radius:10px}
-        .next-achievements{margin-top:12px;background:rgba(0,0,0,.2);border-radius:20px;padding:12px}
-        .next-achievement-item{margin-bottom:12px}
-        .rank-card{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.3);border-radius:20px;padding:12px;margin-top:12px}
-        .order-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px}
-        .best-price{display:flex;justify-content:space-between;margin:12px 0;padding:10px;background:rgba(0,0,0,.3);border-radius:20px}
-        .filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
-        .filter-btn,.sort-btn,.timeframe-btn{background:rgba(255,255,255,.05);padding:6px 14px;border-radius:60px;font-size:13px;font-weight:500;cursor:pointer;transition:.2s}
-        .filter-btn.active,.sort-btn.active,.timeframe-btn.active{background:linear-gradient(135deg,#2b6e9e,#1a4c6e);color:white}
-        .orders-container{max-height:300px;overflow-y:auto;margin-top:12px}
-        .leaderboard-item,.history-item,.referral-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        *::-webkit-scrollbar {
+            display: none;
+        }
+        body {
+            background: #0a0e1a;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: #eef2ff;
+            padding-bottom: calc(76px + env(safe-area-inset-bottom));
+        }
+        .card {
+            background: rgba(18, 24, 38, 0.7);
+            backdrop-filter: blur(16px);
+            border-radius: 28px;
+            padding: 18px;
+            margin: 12px 16px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        .tabs-wrapper {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 14, 26, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+            z-index: 100;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .tabs {
+            display: inline-flex;
+            gap: 6px;
+            padding: 0 12px;
+        }
+        .tab {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            border-radius: 60px;
+            background: rgba(255, 255, 255, 0.04);
+            transition: all 0.2s;
+            cursor: pointer;
+            min-width: 68px;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+            box-shadow: 0 0 12px rgba(43, 110, 158, 0.6);
+        }
+        .tab-icon {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+        .tab-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        button {
+            background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 44px;
+            font-size: 15px;
+            font-weight: 600;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        button:active {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+        button.small {
+            width: auto;
+            padding: 8px 16px;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            margin: 6px 0;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 44px;
+            font-size: 15px;
+            background: #111827;
+            color: #f0f4ff;
+            outline: none;
+        }
+        input:focus {
+            border-color: #2b6e9e;
+            box-shadow: 0 0 0 2px rgba(43, 110, 158, 0.4);
+        }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .price {
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .small-text {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .chart-container {
+            width: 100%;
+            height: 220px;
+            margin: 16px 0;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #0f1320;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #121826;
+            border-radius: 32px;
+            max-width: 90%;
+            width: 400px;
+            max-height: 80%;
+            overflow-y: auto;
+            padding: 20px;
+            border: 1px solid #2b6e9e;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        .modal-content h3 {
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        .close-modal {
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+            color: #9ca3af;
+        }
+        .trades-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .trade-item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+        }
+        .profile-avatar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .avatar-circle {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+            margin-bottom: 8px;
+            transition: 0.2s;
+        }
+        .avatar-circle:hover {
+            transform: scale(1.02);
+        }
+        .avatar-emoji {
+            display: inline-block;
+            line-height: 1;
+        }
+        .notification-bell {
+            font-size: 22px;
+            cursor: pointer;
+            position: relative;
+            display: inline-block;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -12px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            z-index: 2000;
+            font-size: 14px;
+            border-left: 4px solid #2b6e9e;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: fadeInOut 5s ease forwards;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+        .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
+        .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
+        .bg-gradient4 { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .bg-gradient5 { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+        .bg-gradient6 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .bg-gradient7 { background: linear-gradient(135deg, #1abc9c, #16a085); }
+        .bg-gradient8 { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .bg-gradient9 { background: linear-gradient(135deg, #34495e, #2c3e50); }
+        .bg-gradient10 { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
+        .bg-gradient11 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+        .achievement-icons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+        .achi-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        .achi-icon.earned {
+            background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+            border-color: #60a5fa;
+            box-shadow: 0 0 10px rgba(43, 110, 158, 0.5);
+        }
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+        }
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 24px;
+            padding: 16px;
+            text-align: center;
+            flex: 1;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .stat-label {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 6px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #2b6e9e, #60a5fa);
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+        }
+        .next-achievements {
+            margin-top: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 12px;
+        }
+        .next-achievement-item {
+            margin-bottom: 12px;
+        }
+        .rank-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+        }
+        .best-price {
+            display: flex;
+            justify-content: space-between;
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-btn, .sort-btn, .timeframe-btn {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 60px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .filter-btn.active, .sort-btn.active, .timeframe-btn.active {
+            background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+            color: white;
+        }
+        .orders-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+        .leaderboard-item, .history-item, .referral-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .avatars-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .avatar-option {
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+        .avatar-option.selected {
+            border: 2px solid #2b6e9e;
+            background: rgba(43, 110, 158, 0.3);
+            transform: scale(1.05);
+        }
+        .bg-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .bg-option {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            margin: 0 auto;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .bg-option.selected {
+            border-color: #2b6e9e;
+            transform: scale(1.05);
+        }
+        .custom-color-preview {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            margin: 0 auto;
+            cursor: pointer;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+        .topup-amounts {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+        .amount-btn {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 16px;
+            border-radius: 60px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 600;
+        }
+        .amount-btn.selected {
+            background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+            color: white;
+            box-shadow: 0 0 8px #2b6e9e;
+        }
+        .ticker {
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 60px;
+            padding: 8px 16px;
+            overflow: hidden;
+            white-space: nowrap;
+            margin: 12px 0;
+        }
+        .ticker-content {
+            display: inline-block;
+            animation: scroll 20s linear infinite;
+        }
+        @keyframes scroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .info-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 12px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -93,7 +536,7 @@
     <div class="modal-content">
         <span class="close-modal" id="closeTopupModal">&times;</span>
         <h3>💸 Пополнение Stars</h3>
-        <div class="topup-amounts" style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap">
+        <div class="topup-amounts">
             <div class="amount-btn" data-amount="200">200 ⭐</div>
             <div class="amount-btn" data-amount="500">500 ⭐</div>
             <div class="amount-btn" data-amount="1000">1000 ⭐</div>
@@ -117,34 +560,33 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         let currentUser = null;
-        let autoRefreshInterval = null;
+        let autoRefresh = null;
 
         function toCents(v) { return Math.round(parseFloat(v) * 100); }
         function fromCents(c) { return (c / 100).toFixed(2); }
-        function showCustomModal(title, msg) {
-            const modalHtml = `<div class="modal" style="display:flex;"><div class="modal-content"><span class="close-modal">&times;</span><h3>${title}</h3><p style="margin:20px 0;text-align:center">${msg}</p><button id="customModalOkBtn">OK</button></div></div>`;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            const modal = document.body.lastElementChild;
-            modal.querySelector('.close-modal').onclick = () => modal.remove();
-            modal.querySelector('#customModalOkBtn').onclick = () => modal.remove();
+        function showModal(title, msg) {
+            const html = `<div class="modal" style="display:flex"><div class="modal-content"><span class="close-modal">&times;</span><h3>${title}</h3><p style="margin:20px 0;text-align:center">${msg}</p><button id="modalOk">OK</button></div></div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
+            const m = document.body.lastElementChild;
+            m.querySelector('.close-modal').onclick = () => m.remove();
+            m.querySelector('#modalOk').onclick = () => m.remove();
         }
-        function showToast(msg) {
-            const toast = document.createElement('div'); toast.className = 'toast'; toast.innerText = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 5000);
+        function toast(msg) {
+            const t = document.createElement('div'); t.className = 'toast'; t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 5000);
         }
 
-        // ---------- User & achievements ----------
+        // ----- Пользователь и достижения -----
         async function getOrCreateUser() {
             let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
             if (error) throw new Error(error.message);
             if (!data) {
-                const { data: newUser, error: insertError } = await supabase.from('users').insert([{
+                const { data: newUser, error: insErr } = await supabase.from('users').insert([{
                     id: userId, username, shares: 0, stars_balance: 0, selected_achievements: [],
                     avatar_url: '👤', avatar_bg: 'gradient1', registered_at: new Date().toISOString()
                 }]).select().single();
-                if (insertError) throw new Error(insertError.message);
-                // Выдать приветственное достижение
+                if (insErr) throw new Error(insErr.message);
                 const { data: welcome } = await supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
                 if (welcome) await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: welcome.id, earned_at: new Date().toISOString() });
                 return { user: newUser, isNew: true };
@@ -159,7 +601,7 @@
             return { user: data, isNew: false };
         }
 
-        async function getEarnedAchievements() {
+        async function getEarned() {
             const { data } = await supabase.from('user_achievements').select('achievement_id, earned_at, achievements(*)').eq('user_id', userId);
             if (!data) return [];
             return data.map(ua => ({ ...ua.achievements, earned_at: ua.earned_at }));
@@ -182,42 +624,43 @@
             const idx = leaders.findIndex(u => u.id === userId);
             return idx !== -1 ? idx + 1 : null;
         }
-        async function getNextAchievementsProgress() {
+        async function getNextProgress() {
             const all = await getAllAchievements();
-            const earned = await getEarnedAchievements();
+            const earned = await getEarned();
             const earnedIds = new Set(earned.map(a => a.id));
             const ignore = ['🌟 Первый шаг', '🎨 Стилист', '✅ Абсолютный чемпион'];
             const notEarned = all.filter(a => !earnedIds.has(a.id) && !ignore.includes(a.name));
             if (!notEarned.length) return [];
-            const tradesCount = (await getUserStats()).totalTrades;
-            const sharesCents = currentUser.shares;
-            const referrals = currentUser.referral_count || 0;
-            const totalTopup = currentUser.total_topup || 0;
+            const stats = await getUserStats();
+            const trades = stats.totalTrades;
+            const shares = currentUser.shares;
+            const refs = currentUser.referral_count || 0;
+            const topup = currentUser.total_topup || 0;
             const next = [];
             for (let ach of notEarned) {
-                let current = 0, needed = ach.condition_value;
+                let cur = 0, need = ach.condition_value;
                 switch (ach.condition_type) {
-                    case 'trades_count': current = tradesCount; break;
-                    case 'shares_held': current = sharesCents; break;
-                    case 'referrals_count': current = referrals; break;
-                    case 'total_topup': current = totalTopup; break;
+                    case 'trades_count': cur = trades; break;
+                    case 'shares_held': cur = shares; break;
+                    case 'referrals_count': cur = refs; break;
+                    case 'total_topup': cur = topup; break;
                     default: continue;
                 }
-                if (current < needed) {
-                    next.push({ ...ach, current, needed, progress: Math.min(100, (current / needed) * 100) });
+                if (cur < need) {
+                    next.push({ ...ach, cur, need, prog: Math.min(100, (cur / need) * 100) });
                 }
                 if (next.length >= 3) break;
             }
             return next;
         }
 
-        // ---------- Notifications ----------
-        let notifChannel = null;
+        // ----- Уведомления -----
+        let notifChan = null;
         async function getUnreadCount() {
             const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_read', false);
             return count || 0;
         }
-        async function updateBellBadge() {
+        async function updateBell() {
             const unread = await getUnreadCount();
             const badge = document.querySelector('.notification-badge');
             if (badge) {
@@ -226,33 +669,29 @@
             }
         }
         function setupRealtime() {
-            if (notifChannel) return;
-            notifChannel = supabase.channel('notif').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, payload => {
-                showToast(`🔔 ${payload.new.message}`);
-                updateBellBadge();
+            if (notifChan) return;
+            notifChan = supabase.channel('notif').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, payload => {
+                toast(`🔔 ${payload.new.message}`);
+                updateBell();
             }).subscribe();
         }
 
-        // ---------- Avatar & background ----------
-        const avatarEmojis = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
-        const avatarAdjust = { '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3,'🎨':-3,'📷':-3,'⚡':-3,'🔮':-3,'🚀':-3,'🎮':-3 };
-        const avatarFontSize = { '⚡':'56px','🔮':'56px','🎮':'56px','🚀':'56px','⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px' };
-        function getAvatarStyle(emoji) {
-            const adjust = avatarAdjust[emoji] || 0;
-            const fs = avatarFontSize[emoji] || '48px';
-            return `transform: translateY(${adjust}px); font-size: ${fs};`;
-        }
-        const bgOptions = [
+        // ----- Аватар и фон -----
+        const avatars = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
+        const adj = { '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3,'🎨':-3,'📷':-3,'⚡':-3,'🔮':-3,'🚀':-3,'🎮':-3 };
+        const fontSize = { '⚡':'56px','🔮':'56px','🎮':'56px','🚀':'56px','⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px' };
+        function getStyle(e) { return `transform: translateY(${adj[e]||0}px); font-size: ${fontSize[e]||'48px'};`; }
+        const bgs = [
             { id:'gradient1', class:'bg-gradient1' },{ id:'gradient2', class:'bg-gradient2' },{ id:'gradient3', class:'bg-gradient3' },
             { id:'gradient4', class:'bg-gradient4' },{ id:'gradient5', class:'bg-gradient5' },{ id:'gradient6', class:'bg-gradient6' },
             { id:'gradient7', class:'bg-gradient7' },{ id:'gradient8', class:'bg-gradient8' },{ id:'gradient9', class:'bg-gradient9' },
             { id:'gradient10', class:'bg-gradient10' },{ id:'gradient11', class:'bg-gradient11' },{ id:'custom', name:'Свой цвет' }
         ];
-        async function openAvatarSelector() {
+        async function openAvatar() {
             const cur = currentUser.avatar_url || '👤';
-            const opts = avatarEmojis.map(e => `<div class="avatar-option ${e===cur?'selected':''}" data-avatar="${e}" style="width:65px;height:65px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border-radius:50%;margin:0 auto;cursor:pointer"><span class="avatar-emoji" style="${getAvatarStyle(e)}">${e}</span></div>`).join('');
-            const modal = `<div class="modal" style="display:flex;"><div class="modal-content"><span class="close-modal">&times;</span><h3>Выберите аватар</h3><div class="avatars-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0">${opts}</div><button id="nextToBgBtn">Далее → выбор фона</button></div></div>`;
-            document.body.insertAdjacentHTML('beforeend', modal);
+            const opts = avatars.map(e => `<div class="avatar-option ${e===cur?'selected':''}" data-avatar="${e}"><span class="avatar-emoji" style="${getStyle(e)}">${e}</span></div>`).join('');
+            const html = `<div class="modal" style="display:flex"><div class="modal-content"><span class="close-modal">&times;</span><h3>Выберите аватар</h3><div class="avatars-grid">${opts}</div><button id="nextBgBtn">Далее → выбор фона</button></div></div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
             const m = document.body.lastElementChild;
             m.querySelector('.close-modal').onclick = () => m.remove();
             let selected = cur;
@@ -261,26 +700,22 @@
                 opt.classList.add('selected');
                 selected = opt.dataset.avatar;
             }));
-            m.querySelector('#nextToBgBtn').onclick = async () => {
+            m.querySelector('#nextBgBtn').onclick = async () => {
                 await supabase.from('users').update({ avatar_url: selected }).eq('id', userId);
                 currentUser.avatar_url = selected;
                 m.remove();
-                await openBackgroundSelector();
-                await awardAvatarAchievement();
+                await openBg();
+                await awardStylist();
             };
         }
-        async function openBackgroundSelector() {
+        async function openBg() {
             const cur = currentUser.avatar_bg || 'gradient1';
-            const opts = bgOptions.map(b => {
-                if (b.id !== 'custom') {
-                    return `<div class="bg-option ${b.class} ${cur===b.id?'selected':''}" data-bg="${b.id}" style="width:65px;height:65px;border-radius:50%;margin:0 auto;cursor:pointer;border:2px solid transparent"></div>`;
-                } else {
-                    const isCustom = cur.startsWith('#');
-                    return `<div class="custom-color-preview ${isCustom?'selected':''}" data-bg="custom" style="width:65px;height:65px;border-radius:50%;margin:0 auto;cursor:pointer;border:2px solid transparent;display:flex;align-items:center;justify-content:center;background:${isCustom?cur:'#2b6e9e'};font-size:28px">🎨</div>`;
-                }
+            const opts = bgs.map(b => {
+                if (b.id !== 'custom') return `<div class="bg-option ${b.class} ${cur===b.id?'selected':''}" data-bg="${b.id}"></div>`;
+                else return `<div class="custom-color-preview ${cur.startsWith('#')?'selected':''}" data-bg="custom" style="background:${cur.startsWith('#')?cur:'#2b6e9e'}">🎨</div>`;
             }).join('');
-            const modal = `<div class="modal" style="display:flex;"><div class="modal-content"><span class="close-modal">&times;</span><h3>Выберите фон аватарки</h3><div class="bg-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0">${opts}</div><button id="saveBgBtn">Сохранить</button></div></div>`;
-            document.body.insertAdjacentHTML('beforeend', modal);
+            const html = `<div class="modal" style="display:flex"><div class="modal-content"><span class="close-modal">&times;</span><h3>Выберите фон аватарки</h3><div class="bg-grid">${opts}</div><button id="saveBgBtn">Сохранить</button></div></div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
             const m = document.body.lastElementChild;
             m.querySelector('.close-modal').onclick = () => m.remove();
             let selected = cur;
@@ -289,16 +724,16 @@
                 opt.classList.add('selected');
                 selected = opt.dataset.bg;
             }));
-            const customDiv = m.querySelector('.custom-color-preview');
-            if (customDiv) {
-                customDiv.addEventListener('click', () => {
+            const custom = m.querySelector('.custom-color-preview');
+            if (custom) {
+                custom.addEventListener('click', () => {
                     const input = document.createElement('input'); input.type = 'color';
                     input.value = (selected && selected.startsWith('#')) ? selected : '#2b6e9e';
                     input.addEventListener('input', e => {
-                        customDiv.style.background = e.target.value;
+                        custom.style.background = e.target.value;
                         selected = e.target.value;
                         m.querySelectorAll('.bg-option, .custom-color-preview').forEach(o => o.classList.remove('selected'));
-                        customDiv.classList.add('selected');
+                        custom.classList.add('selected');
                     });
                     input.click();
                 });
@@ -307,23 +742,23 @@
                 await supabase.from('users').update({ avatar_bg: selected }).eq('id', userId);
                 currentUser.avatar_bg = selected;
                 m.remove();
-                await renderProfileTab();
-                await awardAvatarAchievement();
+                await renderProfile();
+                await awardStylist();
             };
         }
-        async function awardAvatarAchievement() {
+        async function awardStylist() {
             const { data: ach } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
             if (ach) {
                 const { data: existing } = await supabase.from('user_achievements').select('id').eq('user_id', userId).eq('achievement_id', ach.id).maybeSingle();
                 if (!existing) {
                     await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: ach.id, earned_at: new Date().toISOString() });
-                    showCustomModal('🎉 Новое достижение!', 'Вы получили достижение "🎨 Стилист" за выбор аватарки или фона!');
+                    showModal('🎉 Новое достижение!', 'Вы получили "🎨 Стилист" за выбор аватарки или фона!');
                 }
             }
         }
 
-        // ---------- Stocks (order book, market) ----------
-        let savedSellAmount='', savedSellPrice='', savedBuyAmount='', savedBuyPrice='';
+        // ----- Акции (стакан, ордера, матчинг) -----
+        let sellAmt='', sellPrice='', buyAmt='', buyPrice='';
         let filterSell='all', filterBuy='all', sortSell='asc', sortBuy='desc', timeframe='30d';
         async function getOrderbook() {
             const res = await fetch(`${BACKEND_URL}/get-orderbook`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
@@ -331,19 +766,19 @@
             if (!data.ok) throw new Error(data.error);
             return data;
         }
-        async function createSellOrder(amount, price) {
+        async function createSell(amount, price) {
             const res = await fetch(`${BACKEND_URL}/create-sell-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount, price }) });
             return await res.json();
         }
-        async function createBuyOrder(amount, price) {
+        async function createBuy(amount, price) {
             const res = await fetch(`${BACKEND_URL}/create-buy-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount, price }) });
             return await res.json();
         }
-        async function cancelOrder(orderId) {
+        async function cancelOrd(orderId) {
             const res = await fetch(`${BACKEND_URL}/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, order_id: orderId }) });
             return await res.json();
         }
-        async function cancelAllOrders() {
+        async function cancelAll() {
             const res = await fetch(`${BACKEND_URL}/cancel-all-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
             return await res.json();
         }
@@ -354,13 +789,13 @@
             for(let t of data){ totalAmt+=t.amount; totalStars+=t.amount*t.price_per_share; }
             return totalAmt>0 ? totalStars/totalAmt : 100;
         }
-        async function getTotalMarketCap() {
+        async function getMarketCap() {
             const { data } = await supabase.from('users').select('shares');
-            const totalSharesCents = data.reduce((s,u)=>s+u.shares,0);
+            const totalShares = data.reduce((s,u)=>s+u.shares,0);
             const price = await getCurrentPrice();
-            return { totalShares: totalSharesCents, currentPrice: price, marketCap: (totalSharesCents/100)*(price/100) };
+            return { totalShares, price, cap: (totalShares/100)*(price/100) };
         }
-        async function fetchPriceHistory() {
+        async function getPriceHistory() {
             let start = new Date();
             if (timeframe==='1d') start.setDate(start.getDate()-1);
             else if (timeframe==='7d') start.setDate(start.getDate()-7);
@@ -368,18 +803,18 @@
             const { data } = await supabase.from('price_history').select('price,created_at').gte('created_at',start.toISOString()).order('created_at',{ascending:true}).limit(100);
             return data || [];
         }
-        function drawChart(history) {
+        function drawChart(hist) {
             const cont = document.getElementById('chart-container');
             if (!cont) return;
             cont.innerHTML = '';
-            if (!history.length) { cont.innerHTML = '<p style="padding:20px;text-align:center">Нет данных</p>'; return; }
+            if (!hist.length) { cont.innerHTML = '<p style="padding:20px;text-align:center">Нет данных</p>'; return; }
             const canvas = document.createElement('canvas');
             const w = cont.clientWidth, h = 220;
             canvas.width = w; canvas.height = h;
             canvas.style.width = '100%'; canvas.style.height = 'auto';
             cont.appendChild(canvas);
             const ctx = canvas.getContext('2d');
-            const vals = history.map(h => h.price/100);
+            const vals = hist.map(h => h.price/100);
             const max = Math.max(...vals), min = Math.min(...vals), range = max-min;
             const pad = { top:20, bottom:30, left:40, right:20 };
             const gw = w - pad.left - pad.right;
@@ -398,8 +833,8 @@
             ctx.fillStyle = '#eef2ff'; ctx.font='11px sans-serif';
             ctx.fillText(max.toFixed(2), pad.left-30, pad.top+10);
             ctx.fillText(min.toFixed(2), pad.left-30, h-pad.bottom-5);
-            const firstDate = new Date(history[0].created_at).toLocaleDateString();
-            const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
+            const firstDate = new Date(hist[0].created_at).toLocaleDateString();
+            const lastDate = new Date(hist[hist.length-1].created_at).toLocaleDateString();
             ctx.fillText(firstDate, pad.left, h-pad.bottom+15);
             ctx.fillText(lastDate, w-pad.right-40, h-pad.bottom+15);
         }
@@ -407,10 +842,11 @@
             const cont = document.getElementById('ticker');
             if (!cont) return;
             if (!trades.length) { cont.innerHTML = '<div class="ticker-content">Нет сделок</div>'; return; }
-            const items = trades.map(t => `<span style="margin-right:24px">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('');
-            cont.innerHTML = `<div class="ticker-content" style="display:inline-block;animation:scroll 20s linear infinite">${items}</div>`;
+            cont.innerHTML = `<div class="ticker-content">${trades.map(t => `<span style="margin-right:24px">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('')}</div>`;
         }
-        async function renderStocksTab() {
+
+        // ----- Основной рендер вкладки Акции -----
+        async function renderStocks() {
             try {
                 const ob = await getOrderbook();
                 let sell = ob.sell || [], buy = ob.buy || [];
@@ -422,130 +858,132 @@
                 else buy.sort((a,b)=>b.price_per_share - a.price_per_share);
                 const bestAsk = sell.length ? sell[0].price_per_share/100 : null;
                 const bestBid = buy.length ? buy[0].price_per_share/100 : null;
-                const hist = await fetchPriceHistory();
+                const hist = await getPriceHistory();
                 const recent = await (await supabase.from('trades').select('amount,price_per_share').order('created_at',{ascending:false}).limit(10)).data || [];
-                const { totalShares, currentPrice, marketCap } = await getTotalMarketCap();
+                const { totalShares, price, cap } = await getMarketCap();
                 const html = `
-                    <div class="card"><div style="display:flex;justify-content:space-between"><div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div><div class="price">${(currentPrice/100).toFixed(2)} ⭐</div></div></div>
-                    <div class="card"><div class="info-panel" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price" style="font-size:20px">${Math.round(marketCap)} ⭐</div></div><div class="info-card"><div class="small-text">Всего акций</div><div class="price" style="font-size:20px">${(totalShares/100).toFixed(2)}</div></div></div>
+                    <div class="card"><div style="display:flex;justify-content:space-between"><div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div><div class="price">${(price/100).toFixed(2)} ⭐</div></div></div>
+                    <div class="card"><div class="info-panel"><div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price" style="font-size:20px">${Math.round(cap)} ⭐</div></div><div class="info-card"><div class="small-text">Всего акций</div><div class="price" style="font-size:20px">${(totalShares/100).toFixed(2)}</div></div></div>
                     <div class="best-price"><span>📈 Лучшая цена продажи: ${bestAsk!==null?bestAsk.toFixed(2):'—'} ⭐</span><span>📉 Лучшая цена покупки: ${bestBid!==null?bestBid.toFixed(2):'—'} ⭐</span></div>
-                    <div style="display:flex;gap:8px;margin-bottom:12px"><button class="timeframe-btn ${timeframe==='1d'?'active':''}" data-tf="1d">1д</button><button class="timeframe-btn ${timeframe==='7d'?'active':''}" data-tf="7d">7д</button><button class="timeframe-btn ${timeframe==='30d'?'active':''}" data-tf="30d">30д</button><button id="refreshChartBtn" style="margin-left:auto;width:auto;padding:6px 12px">🔄</button></div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px"><button class="timeframe-btn ${timeframe==='1d'?'active':''}" data-tf="1d">1д</button><button class="timeframe-btn ${timeframe==='7d'?'active':''}" data-tf="7d">7д</button><button class="timeframe-btn ${timeframe==='30d'?'active':''}" data-tf="30d">30д</button><button id="refreshChart" style="margin-left:auto;width:auto;padding:6px 12px">🔄</button></div>
                     <div id="chart-container" class="chart-container"></div><div id="ticker" class="ticker"></div></div>
-                    <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)" value="${savedSellAmount}"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)" value="${savedSellPrice}"><button id="sellBtn">➕ Выставить ордер на продажу</button></div>
-                    <div class="card"><h3>📉 Купить акции</h3><input type="number" id="buyAmount" step="0.01" min="1" placeholder="Количество (от 1)" value="${savedBuyAmount}"><input type="number" id="buyPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)" value="${savedBuyPrice}"><button id="buyBtn">➕ Выставить ордер на покупку</button></div>
+                    <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)" value="${sellAmt}"><input type="number" id="sellPriceInput" step="0.01" min="1" placeholder="Цена (от 1 Star)" value="${sellPrice}"><button id="sellBtn">➕ Выставить ордер на продажу</button></div>
+                    <div class="card"><h3>📉 Купить акции</h3><input type="number" id="buyAmount" step="0.01" min="1" placeholder="Количество (от 1)" value="${buyAmt}"><input type="number" id="buyPriceInput" step="0.01" min="1" placeholder="Цена (от 1 Star)" value="${buyPrice}"><button id="buyBtn">➕ Выставить ордер на покупку</button></div>
                     <div class="card"><div class="filter-bar"><span style="font-weight:bold">Продажа</span><button class="filter-btn ${filterSell==='all'?'active':''}" data-filter-sell="all">Все</button><button class="filter-btn ${filterSell==='my'?'active':''}" data-filter-sell="my">Мои</button><button class="sort-btn ${sortSell==='asc'?'active':''}" data-sort-sell="asc">↑ Цена</button><button class="sort-btn ${sortSell==='desc'?'active':''}" data-sort-sell="desc">↓ Цена</button></div>
-                    <div id="ordersListSell" class="orders-container"></div>
+                    <div id="ordersSell" class="orders-container"></div>
                     <div class="filter-bar" style="margin-top:16px"><span style="font-weight:bold">Покупка</span><button class="filter-btn ${filterBuy==='all'?'active':''}" data-filter-buy="all">Все</button><button class="filter-btn ${filterBuy==='my'?'active':''}" data-filter-buy="my">Мои</button><button class="sort-btn ${sortBuy==='asc'?'active':''}" data-sort-buy="asc">↑ Цена</button><button class="sort-btn ${sortBuy==='desc'?'active':''}" data-sort-buy="desc">↓ Цена</button></div>
-                    <div id="ordersListBuy" class="orders-container"></div>
-                    <div class="filter-bar" style="margin-top:16px"><button id="cancelAllOrdersBtn" class="small" style="background:#f97316">❌ Отменить все мои ордера</button><button id="myTradesBtn" class="small">📜 Мои сделки</button></div></div>
+                    <div id="ordersBuy" class="orders-container"></div>
+                    <div class="filter-bar" style="margin-top:16px"><button id="cancelAllBtn" class="small" style="background:#f97316">❌ Отменить все мои ордера</button><button id="myTradesBtn" class="small">📜 Мои сделки</button></div></div>
                 `;
                 document.getElementById('app').innerHTML = html;
                 drawChart(hist);
                 renderTicker(recent);
-                document.getElementById('sellAmount').value = savedSellAmount;
-                document.getElementById('sellPrice').value = savedSellPrice;
-                document.getElementById('buyAmount').value = savedBuyAmount;
-                document.getElementById('buyPrice').value = savedBuyPrice;
-                ['sellAmount','sellPrice','buyAmount','buyPrice'].forEach(id => {
+                // Восстановление значений полей
+                document.getElementById('sellAmount').value = sellAmt;
+                document.getElementById('sellPriceInput').value = sellPrice;
+                document.getElementById('buyAmount').value = buyAmt;
+                document.getElementById('buyPriceInput').value = buyPrice;
+                // Сохранение при изменении
+                ['sellAmount','sellPriceInput','buyAmount','buyPriceInput'].forEach(id => {
                     document.getElementById(id).addEventListener('input', e => {
-                        if(id==='sellAmount') savedSellAmount = e.target.value;
-                        if(id==='sellPrice') savedSellPrice = e.target.value;
-                        if(id==='buyAmount') savedBuyAmount = e.target.value;
-                        if(id==='buyPrice') savedBuyPrice = e.target.value;
+                        if(id==='sellAmount') sellAmt = e.target.value;
+                        if(id==='sellPriceInput') sellPrice = e.target.value;
+                        if(id==='buyAmount') buyAmt = e.target.value;
+                        if(id==='buyPriceInput') buyPrice = e.target.value;
                     });
                 });
-                document.querySelectorAll('[data-filter-sell]').forEach(btn => btn.addEventListener('click', () => { filterSell = btn.dataset.filterSell; renderStocksTab(); }));
-                document.querySelectorAll('[data-filter-buy]').forEach(btn => btn.addEventListener('click', () => { filterBuy = btn.dataset.filterBuy; renderStocksTab(); }));
-                document.querySelectorAll('[data-sort-sell]').forEach(btn => btn.addEventListener('click', () => { sortSell = btn.dataset.sortSell; renderStocksTab(); }));
-                document.querySelectorAll('[data-sort-buy]').forEach(btn => btn.addEventListener('click', () => { sortBuy = btn.dataset.sortBuy; renderStocksTab(); }));
-                document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', () => { timeframe = btn.dataset.tf; renderStocksTab(); }));
-                document.getElementById('refreshChartBtn')?.addEventListener('click', () => renderStocksTab());
-                document.getElementById('cancelAllOrdersBtn')?.addEventListener('click', async () => {
+                // Обработчики фильтров
+                document.querySelectorAll('[data-filter-sell]').forEach(btn => btn.addEventListener('click', () => { filterSell = btn.dataset.filterSell; renderStocks(); }));
+                document.querySelectorAll('[data-filter-buy]').forEach(btn => btn.addEventListener('click', () => { filterBuy = btn.dataset.filterBuy; renderStocks(); }));
+                document.querySelectorAll('[data-sort-sell]').forEach(btn => btn.addEventListener('click', () => { sortSell = btn.dataset.sortSell; renderStocks(); }));
+                document.querySelectorAll('[data-sort-buy]').forEach(btn => btn.addEventListener('click', () => { sortBuy = btn.dataset.sortBuy; renderStocks(); }));
+                document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', () => { timeframe = btn.dataset.tf; renderStocks(); }));
+                document.getElementById('refreshChart')?.addEventListener('click', () => renderStocks());
+                document.getElementById('cancelAllBtn')?.addEventListener('click', async () => {
                     if (confirm('Отменить все ваши активные ордера?')) {
-                        const res = await cancelAllOrders();
-                        if (res.ok) showToast(`Отменено ${res.cancelled} ордеров`);
-                        else showCustomModal('Ошибка', res.error);
-                        await renderStocksTab();
+                        const res = await cancelAll();
+                        if (res.ok) toast(`Отменено ${res.cancelled} ордеров`);
+                        else showModal('Ошибка', res.error);
+                        await renderStocks();
                     }
                 });
                 document.getElementById('myTradesBtn')?.addEventListener('click', async () => {
                     const { data } = await supabase.from('trades').select('*').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`).order('created_at',{ascending:false}).limit(100);
-                    if (!data || !data.length) { showCustomModal('История сделок', 'У вас пока нет сделок'); return; }
+                    if (!data || !data.length) { showModal('История сделок', 'У вас пока нет сделок'); return; }
                     const list = data.map(t => `<div class="trade-item-row"><span><strong>${t.buyer_id===userId?'Покупка':'Продажа'}</strong> ${fromCents(t.amount)} шт.</span><span>по ${fromCents(t.price_per_share)} ⭐</span><span>${fromCents(t.total_stars)} ⭐</span><span class="small-text">${new Date(t.created_at).toLocaleString()}</span></div>`).join('');
-                    showCustomModal('📜 Мои сделки', `<div class="trades-list">${list}</div>`);
+                    showModal('📜 Мои сделки', `<div class="trades-list">${list}</div>`);
                 });
                 document.getElementById('sellBtn')?.addEventListener('click', async () => {
-                    let amt = parseFloat(document.getElementById('sellAmount').value);
-                    let pri = parseFloat(document.getElementById('sellPrice').value);
-                    if (isNaN(amt) || isNaN(pri) || amt<1 || pri<1) { showCustomModal('Ошибка','Введите количество не менее 1 и цену не менее 1'); return; }
-                    const res = await createSellOrder(amt, pri);
+                    let a = parseFloat(document.getElementById('sellAmount').value);
+                    let p = parseFloat(document.getElementById('sellPriceInput').value);
+                    if (isNaN(a) || isNaN(p) || a<1 || p<1) { showModal('Ошибка', 'Введите количество не менее 1 и цену не менее 1'); return; }
+                    const res = await createSell(a, p);
                     if (res.ok) {
-                        showCustomModal('Успех', res.executed ? `Продано ${fromCents(res.executed)} акций мгновенно. Остаток ${fromCents(res.remaining)} выставлен.` : 'Ордер выставлен');
-                        savedSellAmount = ''; savedSellPrice = '';
-                        await refreshUser(); await renderStocksTab();
-                    } else showCustomModal('Ошибка', res.error);
+                        showModal('Успех', res.executed ? `Продано ${fromCents(res.executed)} акций мгновенно. Остаток ${fromCents(res.remaining)} выставлен.` : 'Ордер выставлен');
+                        sellAmt = ''; sellPrice = '';
+                        await refreshUser(); await renderStocks();
+                    } else showModal('Ошибка', res.error);
                 });
                 document.getElementById('buyBtn')?.addEventListener('click', async () => {
-                    let amt = parseFloat(document.getElementById('buyAmount').value);
-                    let pri = parseFloat(document.getElementById('buyPrice').value);
-                    if (isNaN(amt) || isNaN(pri) || amt<1 || pri<1) { showCustomModal('Ошибка','Введите количество не менее 1 и цену не менее 1'); return; }
-                    const res = await createBuyOrder(amt, pri);
+                    let a = parseFloat(document.getElementById('buyAmount').value);
+                    let p = parseFloat(document.getElementById('buyPriceInput').value);
+                    if (isNaN(a) || isNaN(p) || a<1 || p<1) { showModal('Ошибка', 'Введите количество не менее 1 и цену не менее 1'); return; }
+                    const res = await createBuy(a, p);
                     if (res.ok) {
-                        showCustomModal('Успех', res.executed ? `Куплено ${fromCents(res.executed)} акций мгновенно. Остаток ${fromCents(res.remaining)} выставлен.` : 'Ордер выставлен');
-                        savedBuyAmount = ''; savedBuyPrice = '';
-                        await refreshUser(); await renderStocksTab();
-                    } else showCustomModal('Ошибка', res.error);
+                        showModal('Успех', res.executed ? `Куплено ${fromCents(res.executed)} акций мгновенно. Остаток ${fromCents(res.remaining)} выставлен.` : 'Ордер выставлен');
+                        buyAmt = ''; buyPrice = '';
+                        await refreshUser(); await renderStocks();
+                    } else showModal('Ошибка', res.error);
                 });
-                const sellDiv = document.getElementById('ordersListSell');
+                const sellDiv = document.getElementById('ordersSell');
                 sellDiv.innerHTML = '';
                 if (!sell.length) sellDiv.innerHTML = '<p>Нет ордеров на продажу</p>';
                 else sell.forEach(o => {
                     const own = o.seller_id === userId;
                     sellDiv.innerHTML += `<div class="order-row"><div><span>${fromCents(o.amount)} шт.</span> <span class="small-text">по ${fromCents(o.price_per_share)} ⭐</span><br><span class="small-text">Продавец: ...${String(o.seller_id).slice(-4)}</span></div>${own ? `<button class="cancel-order small" data-id="${o.id}">Отменить</button>` : ''}</div>`;
                 });
-                const buyDiv = document.getElementById('ordersListBuy');
+                const buyDiv = document.getElementById('ordersBuy');
                 buyDiv.innerHTML = '';
                 if (!buy.length) buyDiv.innerHTML = '<p>Нет ордеров на покупку</p>';
                 else buy.forEach(o => {
                     const own = o.buyer_id === userId;
                     buyDiv.innerHTML += `<div class="order-row"><div><span>${fromCents(o.amount)} шт.</span> <span class="small-text">по ${fromCents(o.price_per_share)} ⭐</span><br><span class="small-text">Покупатель: ...${String(o.buyer_id).slice(-4)}</span></div>${own ? `<button class="cancel-order small" data-id="${o.id}">Отменить</button>` : ''}</div>`;
                 });
-                document.querySelectorAll('.cancel-order').forEach(btn => btn.addEventListener('click', async e => {
+                document.querySelectorAll('.cancel-order').forEach(btn => btn.addEventListener('click', async () => {
                     const id = parseInt(btn.dataset.id);
                     if (confirm('Отменить ордер?')) {
-                        const res = await cancelOrder(id);
-                        if (res.ok) { showToast('Ордер отменён'); await renderStocksTab(); }
-                        else showCustomModal('Ошибка', res.error);
+                        const res = await cancelOrd(id);
+                        if (res.ok) { toast('Ордер отменён'); await renderStocks(); }
+                        else showModal('Ошибка', res.error);
                     }
                 }));
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
-
-        // ---------- Profile tab ----------
-        async function renderProfileTab() {
+                // ----- Вкладка профиля -----
+        async function renderProfile() {
             const stats = await getUserStats();
-            const earned = await getEarnedAchievements();
-            const selectedIds = currentUser.selected_achievements || [];
+            const earned = await getEarned();
+            const selected = currentUser.selected_achievements || [];
             const icons = [];
             for(let i=0;i<3;i++) {
-                const ach = earned.find(a => a.id === selectedIds[i]);
+                const ach = earned.find(a => a.id === selected[i]);
                 icons.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
             }
             const rank = await getUserRank();
             const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px;font-weight:bold">#${rank}</span></div>` : '';
-            const nextAch = await getNextAchievementsProgress();
+            const nextList = await getNextProgress();
             let nextHtml = '';
-            if (nextAch.length) {
+            if (nextList.length) {
                 nextHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px">📋 Ближайшие достижения:</div>`;
-                for (let a of nextAch) {
+                for (let a of nextList) {
                     let cond = '';
                     switch(a.condition_type){
-                        case 'trades_count': cond = `${a.current}/${a.needed} сделок`; break;
-                        case 'shares_held': cond = `${a.current/100}/${a.needed/100} акций`; break;
-                        case 'referrals_count': cond = `${a.current}/${a.needed} приглашений`; break;
-                        case 'total_topup': cond = `${a.current/100}/${a.needed/100} ⭐`; break;
+                        case 'trades_count': cond = `${a.cur}/${a.need} сделок`; break;
+                        case 'shares_held': cond = `${a.cur/100}/${a.need/100} акций`; break;
+                        case 'referrals_count': cond = `${a.cur}/${a.need} приглашений`; break;
+                        case 'total_topup': cond = `${a.cur/100}/${a.need/100} ⭐`; break;
                     }
-                    nextHtml += `<div class="next-achievement-item"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:28px">${a.icon}</span><span class="small-text">${cond}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${a.progress}%"></div></div></div>`;
+                    nextHtml += `<div class="next-achievement-item"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:28px">${a.icon}</span><span class="small-text">${cond}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${a.prog}%"></div></div></div>`;
                 }
                 nextHtml += `</div>`;
             }
@@ -553,13 +991,13 @@
             let avatarStyle = '';
             if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) avatarStyle = `background:${currentUser.avatar_bg};`;
             else {
-                const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
+                const found = bgs.find(b => b.id === currentUser.avatar_bg);
                 avatarClass += ` ${found ? found.class : 'bg-gradient1'}`;
             }
-            const emojiStyle = getAvatarStyle(currentUser.avatar_url);
+            const emojiStyle = getStyle(currentUser.avatar_url);
             const regDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
             const html = `<div class="card" style="text-align:center">
-                <div style="position:absolute;top:12px;right:16px"><div class="notification-bell" id="notificationBell">🔔<span class="notification-badge" style="display:none">0</span></div></div>
+                <div style="position:absolute;top:12px;right:16px"><div class="notification-bell" id="bell">🔔<span class="notification-badge" style="display:none">0</span></div></div>
                 <div class="profile-avatar" id="avatarClick"><div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div><div class="small-text">Нажмите, чтобы сменить аватар и фон</div></div>
                 <p style="font-size:20px;font-weight:bold">${currentUser.username}</p><p class="small-text">ID: ${userId}</p><p class="small-text">📅 Регистрация: ${regDate}</p>
                 <div class="achievement-icons">${icons.join('')}</div><div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div>
@@ -567,50 +1005,49 @@
                 ${rankHtml}${nextHtml}
             </div>`;
             document.getElementById('app').innerHTML = html;
-            document.getElementById('avatarClick')?.addEventListener('click', openAvatarSelector);
-            document.getElementById('notificationBell')?.addEventListener('click', async () => {
+            document.getElementById('avatarClick')?.addEventListener('click', openAvatar);
+            document.getElementById('bell')?.addEventListener('click', async () => {
                 const { data: notifs } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at',{ascending:false});
-                if (!notifs || !notifs.length) { showCustomModal('Уведомления', 'Нет уведомлений'); return; }
-                const list = notifs.map(n => `<div class="notification-item ${!n.is_read ? 'unread' : ''}" style="padding:12px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between"><span>${n.message}</span><span class="small-text">${new Date(n.created_at).toLocaleString()}</span><button class="mark-read" data-id="${n.id}" style="background:none;border:none;color:#9ca3af">✓</button></div>`).join('');
-                showCustomModal('🔔 Уведомления', `<div style="max-height:400px;overflow-y:auto">${list}</div>`);
-                document.querySelectorAll('.mark-read').forEach(btn => btn.addEventListener('click', async e => {
-                    const id = parseInt(btn.dataset.id);
-                    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-                    await renderProfileTab();
+                if (!notifs || !notifs.length) { showModal('Уведомления', 'Нет уведомлений'); return; }
+                const list = notifs.map(n => `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between"><span>${n.message}</span><span class="small-text">${new Date(n.created_at).toLocaleString()}</span><button class="mark-read" data-id="${n.id}" style="background:none;border:none;color:#9ca3af">✓</button></div>`).join('');
+                showModal('🔔 Уведомления', `<div style="max-height:400px;overflow-y:auto">${list}</div>`);
+                document.querySelectorAll('.mark-read').forEach(btn => btn.addEventListener('click', async () => {
+                    await supabase.from('notifications').update({ is_read: true }).eq('id', parseInt(btn.dataset.id));
+                    await renderProfile();
                 }));
             });
             document.querySelectorAll('.achi-icon').forEach(icon => {
                 icon.addEventListener('click', async () => {
                     const slot = parseInt(icon.dataset.slot);
-                    const currentId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null;
-                    await openAchievementSelector(slot, earned, selectedIds, currentId);
+                    const curId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null;
+                    await openAchieveSelector(slot, earned, selected, curId);
                 });
             });
-            await updateBellBadge();
+            await updateBell();
         }
 
-        async function openAchievementSelector(slot, earned, selectedIds, currentId) {
-            if (!earned.length) { showCustomModal('Достижения', 'У вас пока нет достижений'); return; }
+        async function openAchieveSelector(slot, earned, selectedIds, curId) {
+            if (!earned.length) { showModal('Достижения', 'У вас пока нет достижений'); return; }
             const other = selectedIds.filter((_,i) => i !== slot);
             const grid = earned.map(ach => {
-                const isSelected = (currentId === ach.id);
+                const isSel = (curId === ach.id);
                 const disabled = other.includes(ach.id);
-                return `<div class="achievement-card ${isSelected?'selected':''} ${disabled?'disabled':''}" data-id="${ach.id}" style="background:rgba(0,0,0,.3);border-radius:18px;padding:10px;text-align:center;cursor:pointer;border:1px solid transparent;${disabled?'opacity:0.4':''}"><div class="achievement-icon" style="font-size:28px">${ach.icon}</div><div class="achievement-name" style="font-weight:600;font-size:13px">${ach.name}</div><div class="achievement-desc" style="font-size:10px;color:#9ca3af">${ach.description}</div><div class="achievement-date" style="font-size:10px;color:#9ca3af">🏅 Получено: ${new Date(ach.earned_at).toLocaleString()}</div></div>`;
+                return `<div class="achievement-card ${isSel?'selected':''} ${disabled?'disabled':''}" data-id="${ach.id}" style="background:rgba(0,0,0,.3);border-radius:18px;padding:10px;text-align:center;cursor:pointer;border:1px solid transparent;${disabled?'opacity:0.4':''}"><div class="achievement-icon" style="font-size:28px">${ach.icon}</div><div class="achievement-name" style="font-weight:600;font-size:13px">${ach.name}</div><div class="achievement-desc" style="font-size:10px;color:#9ca3af">${ach.description}</div><div class="achievement-date" style="font-size:10px;color:#9ca3af">🏅 Получено: ${new Date(ach.earned_at).toLocaleString()}</div></div>`;
             }).join('');
-            const modal = `<div class="modal" style="display:flex"><div class="modal-content"><span class="close-modal">&times;</span><h3>Выберите достижение для слота ${slot+1}</h3><div class="achievements-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0">${grid}</div>${currentId ? '<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>' : ''}<button id="saveAchi">Сохранить</button></div></div>`;
-            document.body.insertAdjacentHTML('beforeend', modal);
+            const html = `<div class="modal" style="display:flex"><div class="modal-content"><span class="close-modal">&times;</span><h3>Выберите достижение для слота ${slot+1}</h3><div class="achievements-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0">${grid}</div>${curId ? '<button id="clearSlot" class="secondary">🗑️ Очистить слот</button>' : ''}<button id="saveSlot">Сохранить</button></div></div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
             const m = document.body.lastElementChild;
             m.querySelector('.close-modal').onclick = () => m.remove();
-            if (currentId) m.querySelector('#clearSlotBtn').onclick = async () => {
+            if (curId) m.querySelector('#clearSlot').onclick = async () => {
                 let newSel = [...selectedIds];
                 newSel[slot] = null;
                 newSel = newSel.filter(v => v !== null);
                 await supabase.from('users').update({ selected_achievements: newSel }).eq('id', userId);
                 currentUser.selected_achievements = newSel;
                 m.remove();
-                await renderProfileTab();
+                await renderProfile();
             };
-            m.querySelector('#saveAchi').onclick = async () => {
+            m.querySelector('#saveSlot').onclick = async () => {
                 const selected = m.querySelector('.achievement-card.selected:not(.disabled)');
                 let newSel = [...selectedIds];
                 if (selected) newSel[slot] = parseInt(selected.dataset.id);
@@ -618,19 +1055,19 @@
                 await supabase.from('users').update({ selected_achievements: newSel }).eq('id', userId);
                 currentUser.selected_achievements = newSel;
                 m.remove();
-                await renderProfileTab();
+                await renderProfile();
             };
             m.querySelectorAll('.achievement-card').forEach(card => {
                 card.addEventListener('click', () => {
-                    if (card.classList.contains('disabled')) { showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте'); return; }
+                    if (card.classList.contains('disabled')) { showModal('Недоступно', 'Это достижение уже используется в другом слоте'); return; }
                     m.querySelectorAll('.achievement-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                 });
             });
         }
 
-        // ---------- Other tabs (simplified but working) ----------
-        async function renderRatingTab() {
+        // ----- Остальные вкладки (упрощённые, но полные) -----
+        async function renderRating() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
             if (!leaders.length) html += '<p>Нет данных</p>';
@@ -638,20 +1075,20 @@
             html += `</div>`;
             document.getElementById('app').innerHTML = html;
         }
-        async function renderWalletTab() {
-            document.getElementById('app').innerHTML = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><button id="topupBtn">💸 Пополнить Stars</button><button id="withdrawGiftsBtn" style="margin-top:12px">🎁 Вывести через подарки</button></div>`;
+        async function renderWallet() {
+            document.getElementById('app').innerHTML = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><button id="topupBtn">💸 Пополнить Stars</button><button id="withdrawBtn" style="margin-top:12px">🎁 Вывести через подарки</button></div>`;
             document.getElementById('topupBtn')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'flex');
-            document.getElementById('withdrawGiftsBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw_gifts'));
+            document.getElementById('withdrawBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw_gifts'));
         }
-        async function renderReferralTab() {
+        async function renderReferral() {
             const refLink = `https://t.me/VoxAction_Bot?start=${currentUser.referral_code || 'REF0000'}`;
-            const refCount = currentUser.referral_count || 0;
-            const earned = refCount * 5;
-            const html = `<div class="card"><h2>🔗 Реферальная программа</h2><div class="stats-row"><div class="stat-card"><div class="stat-value">${refCount}</div><div class="stat-label">Приглашено друзей</div></div><div class="stat-card"><div class="stat-value">${earned}</div><div class="stat-label">Заработано акций</div></div></div><h3>Ваша реферальная ссылка</h3><div class="small-text" style="background:rgba(0,0,0,.3);padding:8px;border-radius:20px;word-break:break-all">${refLink}</div><button id="copyRefLink">📋 Скопировать ссылку</button></div>`;
+            const cnt = currentUser.referral_count || 0;
+            const earned = cnt * 5;
+            const html = `<div class="card"><h2>🔗 Реферальная программа</h2><div class="stats-row"><div class="stat-card"><div class="stat-value">${cnt}</div><div class="stat-label">Приглашено друзей</div></div><div class="stat-card"><div class="stat-value">${earned}</div><div class="stat-label">Заработано акций</div></div></div><h3>Ваша реферальная ссылка</h3><div class="small-text" style="background:rgba(0,0,0,.3);padding:8px;border-radius:20px;word-break:break-all">${refLink}</div><button id="copyRef">📋 Скопировать ссылку</button></div>`;
             document.getElementById('app').innerHTML = html;
-            document.getElementById('copyRefLink')?.addEventListener('click', () => { navigator.clipboard.writeText(refLink); showCustomModal('Скопировано', 'Реферальная ссылка скопирована'); });
+            document.getElementById('copyRef')?.addEventListener('click', () => { navigator.clipboard.writeText(refLink); showModal('Скопировано', 'Ссылка скопирована'); });
         }
-        async function renderAnalyticsTab() {
+        async function renderAnalytics() {
             const vol = await supabase.rpc('get_volume_history', { days_limit: 30 });
             let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%;height:130px"></canvas><p class="small-text">Объём за 30 дней</p></div>`;
             document.getElementById('app').innerHTML = html;
@@ -669,7 +1106,7 @@
                 });
             }
         }
-        async function renderSettingsTab() {
+        async function renderSettings() {
             const hide = currentUser.hide_rating || false;
             const color = localStorage.getItem('custom_color') || '#2b6e9e';
             const html = `<div class="card"><h2>⚙️ Настройки</h2><label><input type="checkbox" id="hideRating" ${hide?'checked':''}> Скрыть из рейтинга</label><br><br><div><strong>Уведомления от бота:</strong></div><label><input type="checkbox" id="notifyTrades" ${currentUser.notify_trades!==false?'checked':''}> О сделках</label><br><label><input type="checkbox" id="notifyTopup" ${currentUser.notify_topup!==false?'checked':''}> О пополнении</label><br><label><input type="checkbox" id="notifyReferral" ${currentUser.notify_referral!==false?'checked':''}> О рефералах</label><br><br><div><strong>Цвет акцента:</strong></div><input type="color" id="colorPicker" value="${color}" style="width:60px;padding:0"><button id="saveSettings">Сохранить</button></div>`;
@@ -686,10 +1123,10 @@
                     notify_referral: document.getElementById('notifyReferral').checked
                 }).eq('id', userId);
                 currentUser.hide_rating = newHide;
-                showCustomModal('Успех', 'Настройки сохранены');
+                showModal('Успех', 'Настройки сохранены');
             };
         }
-        async function renderAdminTab() {
+        async function renderAdmin() {
             if (userId !== 6048486427) { document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>'; return; }
             try {
                 const stats = await fetch(`${BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId }) }).then(r=>r.json());
@@ -699,109 +1136,110 @@
                 document.getElementById('app').innerHTML = html;
                 const ordersDiv = document.getElementById('adminOrders');
                 ordersDiv.innerHTML = '';
-                if (ob.sell.length) ob.sell.forEach(o => ordersDiv.innerHTML += `<div class="order-item"><div>${fromCents(o.amount)} шт. по ${fromCents(o.price_per_share)} ⭐ (продавец ${o.seller_id})</div><button class="admin-cancel" data-id="${o.id}">Отменить</button></div>`);
-                if (ob.buy.length) ob.buy.forEach(o => ordersDiv.innerHTML += `<div class="order-item"><div>${fromCents(o.amount)} шт. по ${fromCents(o.price_per_share)} ⭐ (покупатель ${o.buyer_id})</div><button class="admin-cancel" data-id="${o.id}">Отменить</button></div>`);
-                document.querySelectorAll('.admin-cancel').forEach(btn => btn.addEventListener('click', async () => {
+                if (ob.sell.length) ob.sell.forEach(o => ordersDiv.innerHTML += `<div class="order-item"><div>${fromCents(o.amount)} шт. по ${fromCents(o.price_per_share)} ⭐ (продавец ${o.seller_id})</div><button class="adminCancel" data-id="${o.id}">Отменить</button></div>`);
+                if (ob.buy.length) ob.buy.forEach(o => ordersDiv.innerHTML += `<div class="order-item"><div>${fromCents(o.amount)} шт. по ${fromCents(o.price_per_share)} ⭐ (покупатель ${o.buyer_id})</div><button class="adminCancel" data-id="${o.id}">Отменить</button></div>`);
+                document.querySelectorAll('.adminCancel').forEach(btn => btn.addEventListener('click', async () => {
                     const res = await fetch(`${BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, order_id: btn.dataset.id }) });
                     const data = await res.json();
-                    if (data.ok) { showToast('Ордер отменён'); renderAdminTab(); } else showCustomModal('Ошибка', data.error);
+                    if (data.ok) { toast('Ордер отменён'); renderAdmin(); } else showModal('Ошибка', data.error);
                 }));
                 if (users.users) document.getElementById('adminUsers').innerHTML = users.users.map(u => `<div>ID: ${u.id} | ${u.username||'Аноним'} | Акций: ${fromCents(u.shares)} | Stars: ${fromCents(u.stars_balance)}</div>`).join('');
                 document.getElementById('giveSharesBtn').onclick = async () => {
                     const target = parseInt(document.getElementById('targetId').value);
                     const shares = parseInt(document.getElementById('giveShares').value);
-                    if (!target || !shares) { showCustomModal('Ошибка','Заполните поля'); return; }
+                    if (!target || !shares) { showModal('Ошибка','Заполните поля'); return; }
                     const res = await fetch(`${BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, target_id: target, shares }) });
                     const data = await res.json();
-                    if (data.ok) showCustomModal('Успех','Акции выданы'); else showCustomModal('Ошибка',data.error);
+                    if (data.ok) showModal('Успех','Акции выданы'); else showModal('Ошибка',data.error);
                 };
                 document.getElementById('giveStarsBtn').onclick = async () => {
                     const target = parseInt(document.getElementById('targetId').value);
                     const stars = parseInt(document.getElementById('giveStars').value);
-                    if (!target || !stars) { showCustomModal('Ошибка','Заполните поля'); return; }
+                    if (!target || !stars) { showModal('Ошибка','Заполните поля'); return; }
                     const res = await fetch(`${BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, target_id: target, stars }) });
                     const data = await res.json();
-                    if (data.ok) showCustomModal('Успех','Stars выданы'); else showCustomModal('Ошибка',data.error);
+                    if (data.ok) showModal('Успех','Stars выданы'); else showModal('Ошибка',data.error);
                 };
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
 
-        // ---------- Topup ----------
-        let selectedAmount = null;
-        function updateTopupFee(amt) {
+        // ----- Пополнение -----
+        let selAmount = null;
+        function updateFee(amt) {
             const fee = Math.floor(amt * 0.05);
-            const receive = amt - fee;
-            document.getElementById('topupFeeInfo').innerHTML = `💸 Вы платите: ${amt} ⭐<br>📉 Комиссия (5%): ${fee} ⭐<br>✅ Получите: ${receive} ⭐`;
+            const rec = amt - fee;
+            document.getElementById('topupFeeInfo').innerHTML = `💸 Вы платите: ${amt} ⭐<br>📉 Комиссия (5%): ${fee} ⭐<br>✅ Получите: ${rec} ⭐`;
         }
         document.querySelectorAll('#topupModal .amount-btn').forEach(btn => btn.addEventListener('click', () => {
             document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
-            selectedAmount = parseInt(btn.dataset.amount);
-            document.getElementById('customTopupAmount').value = selectedAmount;
-            updateTopupFee(selectedAmount);
+            selAmount = parseInt(btn.dataset.amount);
+            document.getElementById('customTopupAmount').value = selAmount;
+            updateFee(selAmount);
         }));
         document.getElementById('customTopupAmount')?.addEventListener('input', () => {
             let val = parseInt(document.getElementById('customTopupAmount').value);
-            if (!isNaN(val) && val>=1) { selectedAmount = val; document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected')); updateTopupFee(selectedAmount); }
+            if (!isNaN(val) && val>=1) { selAmount = val; document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected')); updateFee(selAmount); }
             else document.getElementById('topupFeeInfo').innerHTML = '';
         });
         document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => {
-            if (!selectedAmount || selectedAmount<1) { showCustomModal('Ошибка','Выберите сумму'); return; }
+            if (!selAmount || selAmount<1) { showModal('Ошибка','Выберите сумму'); return; }
             document.getElementById('topupModal').style.display = 'none';
             try {
-                const res = await fetch(`${BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount: selectedAmount }) });
+                const res = await fetch(`${BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount: selAmount }) });
                 const data = await res.json();
-                if (data.ok && data.invoice_link) tg.openInvoice(data.invoice_link, (status) => { if (status === 'paid') { showCustomModal('Успех','Баланс пополнен'); refreshAll(); } });
-                else showCustomModal('Ошибка', data.error || 'Не удалось создать счёт');
-            } catch(e) { showCustomModal('Ошибка','Соединение'); }
+                if (data.ok && data.invoice_link) tg.openInvoice(data.invoice_link, (status) => { if (status === 'paid') { showModal('Успех','Баланс пополнен'); refreshAll(); } });
+                else showModal('Ошибка', data.error || 'Не удалось создать счёт');
+            } catch(e) { showModal('Ошибка','Соединение'); }
         });
         document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
 
+        // ----- Вспомогательные функции -----
         async function refreshUser() {
             const res = await getOrCreateUser();
             currentUser = res.user;
         }
         async function refreshAll() {
             await refreshUser();
-            await renderStocksTab();
+            await renderStocks();
         }
-        function startAutoRefresh() {
-            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-            autoRefreshInterval = setInterval(async () => {
+        function startAuto() {
+            if (autoRefresh) clearInterval(autoRefresh);
+            autoRefresh = setInterval(async () => {
                 const active = document.querySelector('.tab.active');
                 if (active && active.dataset.tab === 'stocks') {
                     await refreshUser();
-                    await renderStocksTab();
+                    await renderStocks();
                 }
             }, 15000);
         }
-        function stopAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+        function stopAuto() { if (autoRefresh) clearInterval(autoRefresh); autoRefresh = null; }
 
-        // ---------- Launch ----------
+        // ----- Запуск приложения -----
         const { user, isNew } = await getOrCreateUser();
         currentUser = user;
         const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
         document.documentElement.style.setProperty('--accent', savedColor);
-        await renderStocksTab();
+        await renderStocks();
         setupRealtime();
-        startAutoRefresh();
-        if (isNew) setTimeout(() => openAvatarSelector(), 500);
+        startAuto();
+        if (isNew) setTimeout(() => openAvatar(), 500);
 
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
                 const name = tab.dataset.tab;
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                if (name === 'stocks') { startAutoRefresh(); await renderStocksTab(); }
+                if (name === 'stocks') { startAuto(); await renderStocks(); }
                 else {
-                    stopAutoRefresh();
-                    if (name === 'profile') await renderProfileTab();
-                    else if (name === 'analytics') await renderAnalyticsTab();
-                    else if (name === 'rating') await renderRatingTab();
-                    else if (name === 'wallet') await renderWalletTab();
-                    else if (name === 'referral') await renderReferralTab();
-                    else if (name === 'settings') await renderSettingsTab();
-                    else if (name === 'admin') await renderAdminTab();
+                    stopAuto();
+                    if (name === 'profile') await renderProfile();
+                    else if (name === 'analytics') await renderAnalytics();
+                    else if (name === 'rating') await renderRating();
+                    else if (name === 'wallet') await renderWallet();
+                    else if (name === 'referral') await renderReferral();
+                    else if (name === 'settings') await renderSettings();
+                    else if (name === 'admin') await renderAdmin();
                 }
             });
         });
