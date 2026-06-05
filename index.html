@@ -7,8 +7,8 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ВСЕ ВАШИ СТИЛИ (скопируйте из вашего текущего файла) */
-        *{margin:0;padding:0;box-sizing:border-box;user-select:none;scrollbar-width:none}
+        /* ВСЕ ВАШИ СТИЛИ (оставьте как есть, они не менялись) */
+        *{margin:0;padding:0;box-sizing:border-box;user-select:none;scrollbar-width:none;-ms-overflow-style:none}
         *::-webkit-scrollbar{display:none}
         body{background:#0a0e1a;font-family:'Inter',system-ui,apple-system,'Segoe UI',Roboto,sans-serif;color:#eef2ff;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
         .card{background:rgba(18,24,38,.7);backdrop-filter:blur(16px);border-radius:28px;padding:18px;margin:12px 16px;border:1px solid rgba(56,189,248,.2);box-shadow:0 8px 20px rgba(0,0,0,.3);position:relative}
@@ -18,21 +18,23 @@
         .tab.active{background:linear-gradient(135deg,#2b6e9e,#1a4c6e);box-shadow:0 0 12px rgba(43,110,158,.6)}
         .tab-icon{font-size:22px;margin-bottom:4px}
         .tab-label{font-size:11px;font-weight:600;letter-spacing:.3px}
-        button{background:linear-gradient(135deg,#2b6e9e,#1a4c6e);border:none;padding:14px 20px;border-radius:44px;font-size:16px;font-weight:600;color:white;width:100%;margin-top:14px;cursor:pointer;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+        button{background:linear-gradient(135deg,#2b6e9e,#1a4c6e);border:none;padding:12px 20px;border-radius:44px;font-size:15px;font-weight:600;color:white;width:100%;margin-top:10px;cursor:pointer;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
         button:active{transform:scale(.96);opacity:.9}
         button.small{width:auto;padding:8px 16px;margin-top:8px;font-size:13px}
         button.secondary{background:rgba(255,255,255,.1);margin-top:8px}
-        input{width:100%;padding:14px 18px;margin:8px 0;border:1px solid rgba(56,189,248,.3);border-radius:44px;font-size:16px;background:#111827;color:#f0f4ff;outline:none}
+        input{width:100%;padding:12px 16px;margin:6px 0;border:1px solid rgba(56,189,248,.3);border-radius:44px;font-size:15px;background:#111827;color:#f0f4ff;outline:none}
         input:focus{border-color:#2b6e9e;box-shadow:0 0 0 2px rgba(43,110,158,.4)}
-        .order-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08);gap:12px;flex-wrap:wrap}
+        .order-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);gap:12px;flex-wrap:wrap}
         .price{font-size:26px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
         .small-text{font-size:12px;color:#9ca3af}
         .chart-container{width:100%;height:220px;margin:16px 0;border-radius:20px;overflow:hidden;background:#0f1320}
         canvas{width:100%;height:100%}
         .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);z-index:1000;align-items:center;justify-content:center}
-        .modal-content{background:#121826;border-radius:32px;max-width:90%;width:400px;max-height:80%;overflow-y:auto;padding:24px;border:1px solid #2b6e9e;box-shadow:0 20px 40px rgba(0,0,0,.4)}
+        .modal-content{background:#121826;border-radius:32px;max-width:90%;width:400px;max-height:80%;overflow-y:auto;padding:20px;border:1px solid #2b6e9e;box-shadow:0 20px 40px rgba(0,0,0,.4)}
         .modal-content h3{text-align:center;margin-bottom:16px;font-size:18px}
         .close-modal{float:right;font-size:28px;cursor:pointer;color:#9ca3af}
+        .trades-list{max-height:400px;overflow-y:auto}
+        .trade-item-row{display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px}
         .profile-avatar{display:flex;flex-direction:column;align-items:center;margin-bottom:20px;cursor:pointer}
         .avatar-circle{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:48px;color:white;text-shadow:0 1px 2px rgba(0,0,0,.3);box-shadow:0 6px 16px rgba(0,0,0,.4);margin-bottom:8px;transition:.2s}
         .avatar-circle:hover{transform:scale(1.02)}
@@ -109,23 +111,26 @@
 </div>
 <script>
     (async () => {
+        // Drag tabs
+        const tabsWrapper = document.querySelector('.tabs-wrapper');
+        let isDown = false, startX, scrollLeft;
+        tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
+        window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
+        window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
+        
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
         let userId = tg.initDataUnsafe?.user?.id;
         let username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
         if (!userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
-
+        
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ЗАМЕНИТЕ НА ВАШ URL
+        const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // ЗАМЕНИТЕ
         let currentUser = null;
-        let autoRefresh = null;
-
-        // --------------------------------------------
-        // Утилиты
-        // --------------------------------------------
+        
         function toCents(v) { return Math.round(parseFloat(v) * 100); }
         function fromCents(c) { return (c / 100).toFixed(2); }
         function showModal(title, msg) {
@@ -136,30 +141,255 @@
             m.querySelector('#modalOk').onclick = () => m.remove();
         }
         function showToast(msg) {
-            const toast = document.createElement('div'); toast.className = 'toast'; toast.innerText = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 5000);
+            const t = document.createElement('div'); t.className = 'toast'; t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 5000);
         }
-
+        
         // --------------------------------------------
-        // ПОЛЬЗОВАТЕЛЬ И ДОСТИЖЕНИЯ (единая версия)
+        // 1. ФУНКЦИИ ДЛЯ АКЦИЙ (БЕЗ ИЗМЕНЕНИЙ)
+        // --------------------------------------------
+        async function getActiveOrders() {
+            const res = await fetch(`${BACKEND_URL}/get-active-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error);
+            return data.orders;
+        }
+        async function getUserOrders() {
+            const res = await fetch(`${BACKEND_URL}/get-user-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error);
+            return data.orders;
+        }
+        async function cancelOrder(orderId) {
+            const res = await fetch(`${BACKEND_URL}/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, order_id: orderId }) });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error);
+            return true;
+        }
+        async function createSellOrder(amount, price) {
+            const res = await fetch(`${BACKEND_URL}/create-sell-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount, price }) });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error);
+            return true;
+        }
+        async function executeTrade(orderId, amount) {
+            const res = await fetch(`${BACKEND_URL}/execute-trade`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, order_id: orderId, amount }) });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error);
+            return true;
+        }
+        async function getPriceHistory() {
+            let start = new Date();
+            if (currentTimeframe === '1d') start.setDate(start.getDate()-1);
+            else if (currentTimeframe === '7d') start.setDate(start.getDate()-7);
+            else start.setDate(start.getDate()-30);
+            const { data } = await supabase.from('price_history').select('price,created_at').gte('created_at',start.toISOString()).order('created_at',{ascending:true}).limit(100);
+            return data || [];
+        }
+        async function getRecentTrades(limit=10) {
+            const { data } = await supabase.from('trades').select('amount,price_per_share').order('created_at',{ascending:false}).limit(limit);
+            return data || [];
+        }
+        async function getCurrentPrice() {
+            const { data } = await supabase.from('trades').select('amount,price_per_share').order('created_at',{ascending:false}).limit(50);
+            if (!data || !data.length) return 100;
+            let totalAmt=0,totalStars=0;
+            for(let t of data){ totalAmt+=t.amount; totalStars+=t.amount*t.price_per_share; }
+            return totalAmt>0 ? totalStars/totalAmt : 100;
+        }
+        async function getTotalMarketCap() {
+            const { data } = await supabase.from('users').select('shares');
+            const totalSharesCents = data.reduce((s,u)=>s+u.shares,0);
+            const price = await getCurrentPrice();
+            return { totalShares: totalSharesCents, price, cap: (totalSharesCents/100)*(price/100) };
+        }
+        async function getLeaderboard() {
+            const { data } = await supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
+            return data || [];
+        }
+        async function getUserStats() {
+            const { data } = await supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+            if (!data) return { totalTrades: 0, totalVolume: 0 };
+            return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
+        }
+        async function getSellerRating(sellerId) {
+            const { data } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
+            if (!data || !data.length) return null;
+            return data.reduce((s,r)=>s+r.rating,0)/data.length;
+        }
+        
+        let currentTimeframe = '30d';
+        function drawCanvasChart(history) {
+            const cont = document.getElementById('chart-container');
+            if (!cont) return;
+            cont.innerHTML = '';
+            if (!history.length) { cont.innerHTML = '<p style="padding:20px;text-align:center">Нет данных</p>'; return; }
+            const canvas = document.createElement('canvas');
+            const w = cont.clientWidth, h = 220;
+            canvas.width = w; canvas.height = h;
+            canvas.style.width = '100%'; canvas.style.height = 'auto';
+            cont.appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+            const vals = history.map(h => h.price/100);
+            const max = Math.max(...vals), min = Math.min(...vals), range = max-min;
+            const pad = { top:20, bottom:30, left:40, right:20 };
+            const gw = w - pad.left - pad.right;
+            const gh = h - pad.top - pad.bottom;
+            const step = gw / (vals.length-1);
+            ctx.fillStyle = '#0f1320';
+            ctx.fillRect(0,0,w,h);
+            ctx.beginPath(); ctx.strokeStyle = '#2b6e9e'; ctx.lineWidth = 2;
+            for(let i=0;i<vals.length;i++) {
+                const x = pad.left + i*step;
+                let y = (range===0) ? pad.top+gh/2 : pad.top + gh - ((vals[i]-min)/range)*gh;
+                if(i===0) ctx.moveTo(x,y);
+                else ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+            ctx.fillStyle = '#eef2ff'; ctx.font='11px sans-serif';
+            ctx.fillText(max.toFixed(2), pad.left-30, pad.top+10);
+            ctx.fillText(min.toFixed(2), pad.left-30, h-pad.bottom-5);
+            if(history.length) {
+                const first = new Date(history[0].created_at).toLocaleDateString();
+                const last = new Date(history[history.length-1].created_at).toLocaleDateString();
+                ctx.fillText(first, pad.left, h-pad.bottom+15);
+                ctx.fillText(last, w-pad.right-40, h-pad.bottom+15);
+            }
+        }
+        function renderTicker(trades) {
+            const cont = document.getElementById('ticker');
+            if (!cont) return;
+            if (!trades.length) { cont.innerHTML = '<div class="ticker-content">Нет сделок</div>'; return; }
+            cont.innerHTML = `<div class="ticker-content">${trades.map(t => `<span style="margin-right:24px">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('')}</div>`;
+        }
+        
+        let currentOrdersFilter = 'all';
+        let currentSortDir = 'asc';
+        async function renderStocksTab() {
+            try {
+                let orders = [];
+                if (currentOrdersFilter === 'all') orders = await getActiveOrders();
+                else orders = await getUserOrders();
+                for (let o of orders) o.seller_rating = await getSellerRating(o.seller_id);
+                if (currentSortDir === 'asc') orders.sort((a,b)=>a.price_per_share - b.price_per_share);
+                else orders.sort((a,b)=>b.price_per_share - a.price_per_share);
+                const hist = await getPriceHistory();
+                const recent = await getRecentTrades(10);
+                const { totalShares, price, cap } = await getTotalMarketCap();
+                const html = `
+                    <div class="card"><div style="display:flex;justify-content:space-between"><div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div><div class="price">${(price/100).toFixed(2)} ⭐</div></div></div>
+                    <div class="card"><div class="info-panel"><div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price" style="font-size:20px">${Math.round(cap)} ⭐</div></div><div class="info-card"><div class="small-text">Всего акций</div><div class="price" style="font-size:20px">${(totalShares/100).toFixed(2)}</div></div></div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px"><button class="timeframe-btn ${currentTimeframe==='1d'?'active':''}" data-tf="1d">1д</button><button class="timeframe-btn ${currentTimeframe==='7d'?'active':''}" data-tf="7d">7д</button><button class="timeframe-btn ${currentTimeframe==='30d'?'active':''}" data-tf="30d">30д</button><button id="refreshChart" style="margin-left:auto;width:auto;padding:6px 12px">🔄</button></div>
+                    <div id="chart-container" class="chart-container"></div><div id="ticker" class="ticker"></div></div>
+                    <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)"><button id="sellBtn">➕ Выставить ордер</button></div>
+                    <div class="card"><div class="filter-bar"><button class="filter-btn ${currentOrdersFilter==='all'?'active':''}" data-filter="all">Все</button><button class="filter-btn ${currentOrdersFilter==='my'?'active':''}" data-filter="my">Мои</button><button class="sort-btn ${currentSortDir==='asc'?'active':''}" data-sort="asc">↑ Цена</button><button class="sort-btn ${currentSortDir==='desc'?'active':''}" data-sort="desc">↓ Цена</button><button id="cancelAllBtn" class="small" style="background:#f97316;margin-left:auto">❌ Отменить все</button></div>
+                    <h3>📋 Ордера на продажу</h3><div id="ordersList" class="orders-container"></div></div>
+                `;
+                document.getElementById('app').innerHTML = html;
+                drawCanvasChart(hist);
+                renderTicker(recent);
+                document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', () => { currentTimeframe = btn.dataset.tf; renderStocksTab(); }));
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => { currentOrdersFilter = btn.dataset.filter; renderStocksTab(); }));
+                document.querySelectorAll('.sort-btn').forEach(btn => btn.addEventListener('click', () => { currentSortDir = btn.dataset.sort; renderStocksTab(); }));
+                document.getElementById('refreshChart')?.addEventListener('click', () => renderStocksTab());
+                document.getElementById('cancelAllBtn')?.addEventListener('click', async () => {
+                    if (confirm('Отменить все ваши активные ордера?')) {
+                        const cnt = await cancelAllOrders();
+                        showToast(`Отменено ${cnt} ордеров`);
+                        await renderStocksTab();
+                    }
+                });
+                document.getElementById('sellBtn')?.addEventListener('click', async () => {
+                    let a = parseFloat(document.getElementById('sellAmount').value);
+                    let p = parseFloat(document.getElementById('sellPrice').value);
+                    if (isNaN(a) || isNaN(p) || a<1 || p<1) { showModal('Ошибка', 'Введите количество не менее 1 и цену не менее 1'); return; }
+                    try {
+                        await createSellOrder(a, p);
+                        showModal('Успех', 'Ордер создан');
+                        document.getElementById('sellAmount').value = '';
+                        document.getElementById('sellPrice').value = '';
+                        await refreshUser();
+                        await renderStocksTab();
+                    } catch(err) { showModal('Ошибка', err.message); }
+                });
+                const ordersDiv = document.getElementById('ordersList');
+                if (!orders.length) ordersDiv.innerHTML = '<p>Нет ордеров</p>';
+                else {
+                    orders.forEach(order => {
+                        const isOwn = order.seller_id === userId;
+                        const div = document.createElement('div'); div.className = 'order-row';
+                        div.innerHTML = `<div><span>${fromCents(order.amount)} шт.</span> <span class="small-text">по ${fromCents(order.price_per_share)} ⭐</span><br><span class="small-text">Продавец: ...${String(order.seller_id).slice(-4)}</span></div><div>${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}' style="width:auto;padding:6px 12px">Купить</button>` : `<button class="cancel-order" data-id="${order.id}" style="background:#f97316;width:auto;padding:6px 12px">Отменить</button>`}</div>`;
+                        ordersDiv.appendChild(div);
+                    });
+                    document.querySelectorAll('.buy-btn').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const order = JSON.parse(btn.dataset.order);
+                            const maxShares = fromCents(order.amount);
+                            let buyAmt = prompt(`Введите количество (1-${maxShares}):`, maxShares);
+                            if (!buyAmt) return;
+                            buyAmt = parseFloat(buyAmt);
+                            if (isNaN(buyAmt) || buyAmt<1 || buyAmt>maxShares) { showModal('Ошибка', 'Некорректное количество'); return; }
+                            try {
+                                await executeTrade(order.id, buyAmt);
+                                showModal('Успех', 'Сделка завершена');
+                                await refreshUser();
+                                await renderStocksTab();
+                            } catch(err) { showModal('Ошибка', err.message); }
+                        });
+                    });
+                    document.querySelectorAll('.cancel-order').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            if (confirm('Отменить ордер?')) {
+                                try {
+                                    await cancelOrder(parseInt(btn.dataset.id));
+                                    showToast('Ордер отменён');
+                                    await renderStocksTab();
+                                } catch(err) { showModal('Ошибка', err.message); }
+                            }
+                        });
+                    });
+                }
+            } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
+        }
+        
+        async function cancelAllOrders() {
+            const res = await fetch(`${BACKEND_URL}/cancel-all-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error);
+            return data.cancelled;
+        }
+        
+        async function refreshUser() {
+            const res = await getOrCreateUser();
+            currentUser = res.user;
+        }
+        
+        // --------------------------------------------
+        // 2. ФУНКЦИИ ДЛЯ ПРОФИЛЯ (С ИСПРАВЛЕНИЕМ ДУБЛЕЙ)
         // --------------------------------------------
         async function getOrCreateUser() {
             let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
             if (error) throw new Error(error.message);
             if (!data) {
-                // Новый пользователь
                 const { data: newUser, error: insErr } = await supabase.from('users').insert([{
                     id: userId, username, shares: 0, stars_balance: 0, selected_achievements: [],
                     avatar_url: '👤', avatar_bg: 'gradient1', registered_at: new Date().toISOString()
                 }]).select().single();
                 if (insErr) throw new Error(insErr.message);
-                // Выдаём приветственное достижение
-                await awardWelcomeAchievement(userId);
+                // Выдаём приветственное достижение (только один раз)
+                const { data: welcome } = await supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
+                if (welcome) {
+                    await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: welcome.id, earned_at: new Date().toISOString() });
+                    // Отправляем уведомление через бэкенд
+                    await fetch(`${BACKEND_URL}/send-notification`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, message: '🎉 Вы получили достижение "🌟 Первый шаг"!', type: 'notify_trades' })
+                    }).catch(e=>console.warn);
+                }
                 return { user: newUser, isNew: true };
             }
-            // Для старых пользователей – убедимся, что есть приветственное достижение
-            await ensureWelcomeAchievement(userId);
             if (!data.selected_achievements) data.selected_achievements = [];
             if (!data.avatar_url) data.avatar_url = '👤';
             if (!data.avatar_bg) data.avatar_bg = 'gradient1';
@@ -169,64 +399,26 @@
             }
             return { user: data, isNew: false };
         }
-
-        async function ensureWelcomeAchievement(uid) {
-            try {
-                const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
-                if (!achData) return;
-                const { data: existing } = await supabase.from('user_achievements').select('achievement_id').eq('user_id', uid).eq('achievement_id', achData.id).maybeSingle();
-                if (!existing) {
-                    await supabase.from('user_achievements').insert({ user_id: uid, achievement_id: achData.id, earned_at: new Date().toISOString() });
-                    showToast('🏆 Получено достижение: 🌟 Первый шаг!');
-                }
-            } catch(e) { console.error(e); }
-        }
-
-        async function awardWelcomeAchievement(uid) {
-            const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
-            if (achData) {
-                await supabase.from('user_achievements').insert({ user_id: uid, achievement_id: achData.id, earned_at: new Date().toISOString() });
-                showToast('🏆 Получено достижение: 🌟 Первый шаг!');
-            }
-        }
-
+        
         async function getEarnedAchievements() {
+            // Исправляем дубли: группируем по achievement_id, берём первый
             const { data } = await supabase.from('user_achievements').select('achievement_id, earned_at, achievements(*)').eq('user_id', userId);
             if (!data) return [];
-            // Убираем дубликаты (если вдруг есть)
-            const unique = [];
-            const seen = new Set();
-            for (let item of data) {
-                if (!seen.has(item.achievements.id)) {
-                    seen.add(item.achievements.id);
-                    unique.push({ ...item.achievements, earned_at: item.earned_at });
+            const unique = new Map();
+            for (const ua of data) {
+                if (!unique.has(ua.achievement_id)) {
+                    unique.set(ua.achievement_id, { ...ua.achievements, earned_at: ua.earned_at });
                 }
             }
-            return unique;
+            return Array.from(unique.values());
         }
-
-        async function getAllAchievements() {
-            const { data } = await supabase.from('achievements').select('*');
-            return data || [];
-        }
-
-        async function getUserStats() {
-            const { data } = await supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
-            if (!data) return { totalTrades: 0, totalVolume: 0 };
-            return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
-        }
-
-        async function getLeaderboard() {
-            const { data } = await supabase.from('users').select('id, username, shares').eq('hide_rating', false).order('shares', { ascending: false });
-            return data || [];
-        }
-
+        
         async function getUserRank() {
             const leaders = await getLeaderboard();
             const idx = leaders.findIndex(u => u.id === userId);
             return idx !== -1 ? idx + 1 : null;
         }
-
+        
         async function getNextProgress() {
             const all = await getAllAchievements();
             const earned = await getEarnedAchievements();
@@ -256,10 +448,13 @@
             }
             return next;
         }
-
-        // --------------------------------------------
-        // УВЕДОМЛЕНИЯ
-        // --------------------------------------------
+        
+        async function getAllAchievements() {
+            const { data } = await supabase.from('achievements').select('*');
+            return data || [];
+        }
+        
+        // Уведомления
         let notifChan = null;
         async function getUnreadCount() {
             const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_read', false);
@@ -290,10 +485,8 @@
                 showNotificationsModal();
             }));
         }
-
-        // --------------------------------------------
-        // АВАТАРКИ И ФОН
-        // --------------------------------------------
+        
+        // Аватарки и фон
         const avatars = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
         const adj = { '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3,'🎨':-3,'📷':-3,'⚡':-3,'🔮':-3,'🚀':-3,'🎮':-3 };
         const fontSize = { '⚡':'56px','🔮':'56px','🎮':'56px','🚀':'56px','⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px' };
@@ -369,14 +562,17 @@
                 const { data: existing } = await supabase.from('user_achievements').select('id').eq('user_id', userId).eq('achievement_id', ach.id).maybeSingle();
                 if (!existing) {
                     await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: ach.id, earned_at: new Date().toISOString() });
-                    showToast('🏆 Получено достижение: 🎨 Стилист!');
+                    // Отправляем уведомление через бэкенд
+                    await fetch(`${BACKEND_URL}/send-notification`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, message: '🎨 Вы получили достижение "🎨 Стилист" за выбор аватарки или фона!', type: 'notify_trades' })
+                    }).catch(e=>console.warn);
+                    showModal('🎉 Новое достижение!', 'Вы получили "🎨 Стилист" за выбор аватарки или фона!');
                 }
             }
         }
-
-        // --------------------------------------------
-        // ВКЛАДКА ПРОФИЛЬ
-        // --------------------------------------------
+        
         async function openAchievementSelector(slot, earned, selectedIds, curId) {
             if (!earned.length) { showModal('Достижения', 'У вас пока нет достижений'); return; }
             const other = selectedIds.filter((_,i) => i !== slot);
@@ -416,7 +612,7 @@
                 });
             });
         }
-
+        
         async function renderProfile() {
             const stats = await getUserStats();
             const earned = await getEarnedAchievements();
@@ -473,215 +669,11 @@
             });
             await updateBellBadge();
         }
-
+        
         // --------------------------------------------
-        // ВКЛАДКА АКЦИИ (старая простая версия)
+        // 3. ОСТАЛЬНЫЕ ВКЛАДКИ
         // --------------------------------------------
-        async function getActiveOrders() {
-            const res = await fetch(`${BACKEND_URL}/get-active-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error);
-            return data.orders;
-        }
-        async function getUserOrders() {
-            const res = await fetch(`${BACKEND_URL}/get-user-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error);
-            return data.orders;
-        }
-        async function cancelOrder(orderId) {
-            const res = await fetch(`${BACKEND_URL}/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, order_id: orderId }) });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error);
-            return true;
-        }
-        async function createOrder(amount, price) {
-            const res = await fetch(`${BACKEND_URL}/create-sell-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount, price }) });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error);
-            return true;
-        }
-        async function executePartialTrade(orderId, buyAmountCents) {
-            const res = await fetch(`${BACKEND_URL}/execute-trade`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, order_id: orderId, amount: buyAmountCents/100 }) });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error);
-            return true;
-        }
-        async function getPriceHistory() {
-            let startDate = new Date();
-            if (currentTimeframe === '1d') startDate.setDate(startDate.getDate() - 1);
-            else if (currentTimeframe === '7d') startDate.setDate(startDate.getDate() - 7);
-            else startDate.setDate(startDate.getDate() - 30);
-            const { data, error } = await supabase.from('price_history').select('price, created_at').gte('created_at', startDate.toISOString()).order('created_at', { ascending: true }).limit(100);
-            if (error) throw new Error(error.message);
-            return data || [];
-        }
-        async function getRecentTrades(limit = 10) {
-            const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
-            if (error) throw new Error(error.message);
-            return data || [];
-        }
-        async function getCurrentPrice() {
-            const { data, error } = await supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
-            if (error || !data || data.length === 0) return 100;
-            let totalAmount = 0, totalStars = 0;
-            for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
-            return totalAmount > 0 ? totalStars / totalAmount : 100;
-        }
-        async function getTotalMarketCap() {
-            const { data, error } = await supabase.from('users').select('shares');
-            if (error) throw new Error(error.message);
-            const totalSharesCents = data.reduce((s,u) => s + u.shares, 0);
-            const currentPriceCents = await getCurrentPrice();
-            const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
-            return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
-        }
-        async function getSellerRating(sellerId) {
-            const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
-            if (error || !data.length) return null;
-            return data.reduce((s,r)=>s+r.rating,0)/data.length;
-        }
-        let currentTimeframe = '30d';
-        function drawCanvasChart(history) {
-            const container = document.getElementById('chart-container');
-            if (!container) return;
-            container.innerHTML = '';
-            if (!history || history.length === 0) { container.innerHTML = '<p style="padding:20px; text-align:center;">Нет данных</p>'; return; }
-            const canvas = document.createElement('canvas');
-            const width = container.clientWidth, height = 220;
-            canvas.width = width; canvas.height = height;
-            canvas.style.width = '100%'; canvas.style.height = 'auto';
-            container.appendChild(canvas);
-            const ctx = canvas.getContext('2d');
-            const values = history.map(h => h.price / 100);
-            const max = Math.max(...values), min = Math.min(...values), range = max - min;
-            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
-            const graphWidth = width - padding.left - padding.right;
-            const graphHeight = height - padding.top - padding.bottom;
-            const stepX = graphWidth / (values.length - 1);
-            ctx.fillStyle = '#0f1320';
-            ctx.fillRect(0, 0, width, height);
-            ctx.beginPath(); ctx.strokeStyle = '#2b6e9e'; ctx.lineWidth = 2;
-            for (let i = 0; i < values.length; i++) {
-                const x = padding.left + i * stepX;
-                let y = (range === 0) ? padding.top + graphHeight/2 : padding.top + graphHeight - ((values[i] - min) / range) * graphHeight;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-            ctx.fillStyle = '#eef2ff'; ctx.font = '11px sans-serif';
-            ctx.fillText(max.toFixed(2), padding.left - 30, padding.top + 10);
-            ctx.fillText(min.toFixed(2), padding.left - 30, height - padding.bottom - 5);
-            if (history.length) {
-                const firstDate = new Date(history[0].created_at).toLocaleDateString();
-                const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
-                ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
-                ctx.fillText(lastDate, width - padding.right - 40, height - padding.bottom + 15);
-            }
-        }
-        function renderTicker(trades) {
-            const container = document.getElementById('ticker');
-            if (!container) return;
-            if (!trades || trades.length === 0) { container.innerHTML = '<div class="ticker-content">Нет сделок</div>'; return; }
-            const items = trades.map(t => `<span class="trade-item" style="margin-right:24px;">${fromCents(t.amount)} шт. по ${fromCents(t.price_per_share)} ⭐</span>`).join('');
-            container.innerHTML = `<div class="ticker-content">${items}</div>`;
-        }
-        let currentOrdersFilter = 'all';
-        let currentSortDir = 'asc';
-        async function renderStocks() {
-            try {
-                let orders = [];
-                if (currentOrdersFilter === 'all') orders = await getActiveOrders();
-                else orders = await getUserOrders();
-                for (let o of orders) o.seller_rating = await getSellerRating(o.seller_id);
-                orders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
-                const priceHistory = await getPriceHistory();
-                const recentTrades = await getRecentTrades(10);
-                const { totalShares, currentPrice, marketCap } = await getTotalMarketCap();
-                const html = `
-                    <div class="card"><div style="display:flex; justify-content:space-between;"><div><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><p>⭐ Stars: <strong>${fromCents(currentUser.stars_balance)}</strong></p></div><div class="price">${(currentPrice/100).toFixed(2)} ⭐</div></div></div>
-                    <div class="card"><div class="info-panel"><div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price" style="font-size:20px;">${Math.round(marketCap)} ⭐</div></div><div class="info-card"><div class="small-text">Всего акций</div><div class="price" style="font-size:20px;">${(totalShares/100).toFixed(2)}</div></div></div>
-                    <div style="display:flex; gap:8px; margin-bottom:12px;"><button class="timeframe-btn ${currentTimeframe==='1d'?'active':''}" data-tf="1d">1д</button><button class="timeframe-btn ${currentTimeframe==='7d'?'active':''}" data-tf="7d">7д</button><button class="timeframe-btn ${currentTimeframe==='30d'?'active':''}" data-tf="30d">30д</button><button id="refreshChart" style="margin-left:auto;width:auto;padding:6px 12px">🔄</button></div>
-                    <div id="chart-container" class="chart-container"></div><div id="ticker" class="ticker"></div></div>
-                    <div class="card"><h3>📈 Продать акции</h3><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)"><button id="sellBtn">➕ Выставить ордер</button></div>
-                    <div class="card"><div class="filter-bar"><button class="filter-btn ${currentOrdersFilter==='all'?'active':''}" data-filter="all">Все</button><button class="filter-btn ${currentOrdersFilter==='my'?'active':''}" data-filter="my">Мои</button><button class="sort-btn ${currentSortDir==='asc'?'active':''}" data-sort="asc">↑ Цена</button><button class="sort-btn ${currentSortDir==='desc'?'active':''}" data-sort="desc">↓ Цена</button><button id="cancelAllBtn" class="small" style="background:#f97316;margin-left:auto">❌ Отменить все</button></div>
-                    <h3>📋 Ордера на продажу</h3><div id="ordersList" class="orders-container"></div></div>
-                `;
-                document.getElementById('app').innerHTML = html;
-                drawCanvasChart(priceHistory);
-                renderTicker(recentTrades);
-                document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', () => { currentTimeframe = btn.dataset.tf; renderStocks(); }));
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => { currentOrdersFilter = btn.dataset.filter; renderStocks(); }));
-                document.querySelectorAll('.sort-btn').forEach(btn => btn.addEventListener('click', () => { currentSortDir = btn.dataset.sort; renderStocks(); }));
-                document.getElementById('refreshChart')?.addEventListener('click', () => renderStocks());
-                document.getElementById('cancelAllBtn')?.addEventListener('click', async () => {
-                    if (confirm('Отменить все ваши активные ордера?')) {
-                        const res = await fetch(`${BACKEND_URL}/cancel-all-orders`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId }) });
-                        const data = await res.json();
-                        if (data.ok) showToast(`Отменено ${data.cancelled} ордеров`);
-                        else showModal('Ошибка', data.error);
-                        await renderStocks();
-                    }
-                });
-                document.getElementById('sellBtn')?.addEventListener('click', async () => {
-                    let a = parseFloat(document.getElementById('sellAmount').value);
-                    let p = parseFloat(document.getElementById('sellPrice').value);
-                    if (isNaN(a) || isNaN(p) || a<1 || p<1) { showModal('Ошибка', 'Введите количество не менее 1 и цену не менее 1'); return; }
-                    try {
-                        await createOrder(a, p);
-                        showModal('Успех', 'Ордер создан');
-                        document.getElementById('sellAmount').value = '';
-                        document.getElementById('sellPrice').value = '';
-                        const { user } = await getOrCreateUser();
-                        currentUser = user;
-                        await renderStocks();
-                    } catch(err) { showModal('Ошибка', err.message); }
-                });
-                const ordersDiv = document.getElementById('ordersList');
-                if (!orders.length) ordersDiv.innerHTML = '<p>Нет ордеров</p>';
-                else {
-                    orders.forEach(order => {
-                        const isOwn = order.seller_id === userId;
-                        const div = document.createElement('div'); div.className = 'order-row';
-                        div.innerHTML = `<div><span>${fromCents(order.amount)} шт.</span> <span class="small-text">по ${fromCents(order.price_per_share)} ⭐</span><br><span class="small-text">Продавец: ...${String(order.seller_id).slice(-4)}</span></div><div>${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}' style="width:auto;padding:6px 12px">Купить</button>` : `<button class="cancel-order" data-id="${order.id}" style="background:#f97316;width:auto;padding:6px 12px">Отменить</button>`}</div>`;
-                        ordersDiv.appendChild(div);
-                    });
-                    document.querySelectorAll('.buy-btn').forEach(btn => {
-                        btn.addEventListener('click', async () => {
-                            const order = JSON.parse(btn.dataset.order);
-                            const maxShares = fromCents(order.amount);
-                            let buyAmt = prompt(`Введите количество (1-${maxShares}):`, maxShares);
-                            if (!buyAmt) return;
-                            buyAmt = parseFloat(buyAmt);
-                            if (isNaN(buyAmt) || buyAmt<1 || buyAmt>maxShares) { showModal('Ошибка', 'Некорректное количество'); return; }
-                            try {
-                                await executePartialTrade(order.id, toCents(buyAmt));
-                                showModal('Успех', 'Сделка завершена');
-                                const { user } = await getOrCreateUser();
-                                currentUser = user;
-                                await renderStocks();
-                            } catch(err) { showModal('Ошибка', err.message); }
-                        });
-                    });
-                    document.querySelectorAll('.cancel-order').forEach(btn => {
-                        btn.addEventListener('click', async () => {
-                            if (confirm('Отменить ордер?')) {
-                                try {
-                                    await cancelOrder(parseInt(btn.dataset.id));
-                                    showToast('Ордер отменён');
-                                    await renderStocks();
-                                } catch(err) { showModal('Ошибка', err.message); }
-                            }
-                        });
-                    });
-                }
-            } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
-        }
-
-        // --------------------------------------------
-        // ОСТАЛЬНЫЕ ВКЛАДКИ (быстрые заглушки с сохранением функционала)
-        // --------------------------------------------
-        async function renderRating() {
+        async function renderRatingTab() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
             if (!leaders.length) html += '<p>Нет данных</p>';
@@ -689,12 +681,14 @@
             html += `</div>`;
             document.getElementById('app').innerHTML = html;
         }
-        async function renderWallet() {
+        
+        async function renderWalletTab() {
             document.getElementById('app').innerHTML = `<div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr><button id="topupBtn">💸 Пополнить Stars</button><button id="withdrawGiftsBtn" style="margin-top:12px">🎁 Вывести через подарки</button></div>`;
             document.getElementById('topupBtn')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'flex');
             document.getElementById('withdrawGiftsBtn')?.addEventListener('click', () => tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw_gifts'));
         }
-        async function renderReferral() {
+        
+        async function renderReferralTab() {
             const refLink = `https://t.me/VoxAction_Bot?start=${currentUser.referral_code || 'REF0000'}`;
             const cnt = currentUser.referral_count || 0;
             const earned = cnt * 5;
@@ -702,7 +696,8 @@
             document.getElementById('app').innerHTML = html;
             document.getElementById('copyRefLink')?.addEventListener('click', () => { navigator.clipboard.writeText(refLink); showModal('Скопировано', 'Ссылка скопирована'); });
         }
-        async function renderAnalytics() {
+        
+        async function renderAnalyticsTab() {
             const vol = await supabase.rpc('get_volume_history', { days_limit: 30 });
             let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%;height:130px"></canvas><p class="small-text">Объём за 30 дней</p></div>`;
             document.getElementById('app').innerHTML = html;
@@ -714,10 +709,14 @@
                 const maxVol = Math.max(...vol.data.map(v=>v.total_amount/100));
                 const barW = (w-40)/vol.data.length - 2;
                 ctx.fillStyle = '#2b6e9e';
-                vol.data.forEach((v,i)=>{ const barH = (v.total_amount/100 / maxVol) * (h-20); ctx.fillRect(20 + i*(barW+2), h-10-barH, barW, barH); });
+                vol.data.forEach((v,i) => {
+                    const barH = (v.total_amount/100 / maxVol) * (h-20);
+                    ctx.fillRect(20 + i*(barW+2), h-10-barH, barW, barH);
+                });
             }
         }
-        async function renderSettings() {
+        
+        async function renderSettingsTab() {
             const hide = currentUser.hide_rating || false;
             const color = localStorage.getItem('custom_color') || '#2b6e9e';
             const html = `<div class="card"><h2>⚙️ Настройки</h2><label><input type="checkbox" id="hideRating" ${hide?'checked':''}> Скрыть из рейтинга</label><br><br><div><strong>Уведомления от бота:</strong></div><label><input type="checkbox" id="notifyTrades" ${currentUser.notify_trades!==false?'checked':''}> О сделках</label><br><label><input type="checkbox" id="notifyTopup" ${currentUser.notify_topup!==false?'checked':''}> О пополнении</label><br><label><input type="checkbox" id="notifyReferral" ${currentUser.notify_referral!==false?'checked':''}> О рефералах</label><br><br><div><strong>Цвет акцента:</strong></div><input type="color" id="colorPicker" value="${color}" style="width:60px;padding:0"><button id="saveSettings">Сохранить</button></div>`;
@@ -737,7 +736,8 @@
                 showModal('Успех', 'Настройки сохранены');
             };
         }
-        async function renderAdmin() {
+        
+        async function renderAdminTab() {
             if (userId !== 6048486427) { document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>'; return; }
             try {
                 const stats = await fetch(`${BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId }) }).then(r=>r.json());
@@ -751,7 +751,7 @@
                 document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', async () => {
                     const res = await fetch(`${BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, order_id: btn.dataset.id }) });
                     const data = await res.json();
-                    if(data.ok) { showModal('Успех','Ордер отменён'); renderAdmin(); } else showModal('Ошибка',data.error);
+                    if(data.ok) { showModal('Успех','Ордер отменён'); renderAdminTab(); } else showModal('Ошибка',data.error);
                 }));
                 if(usersData.users) document.getElementById('usersList').innerHTML = usersData.users.map(u => `<div>ID: ${u.id} | ${u.username||'Аноним'} | Акций: ${fromCents(u.shares)} | Stars: ${fromCents(u.stars_balance)}</div>`).join('');
                 document.getElementById('giveSharesBtn').onclick = async () => {
@@ -772,10 +772,8 @@
                 };
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
-
-        // --------------------------------------------
-        // ПОПОЛНЕНИЕ
-        // --------------------------------------------
+        
+        // пополнение
         let selectedAmount = null;
         function updateTopupFee(amt) {
             const fee = Math.floor(amt * 0.05);
@@ -805,61 +803,53 @@
             } catch(e) { showModal('Ошибка','Соединение'); }
         });
         document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
-
-        // --------------------------------------------
-        // ЗАПУСК И АВТООБНОВЛЕНИЕ
-        // --------------------------------------------
+        
         async function refreshAll() {
-            const { user } = await getOrCreateUser();
-            currentUser = user;
-            await renderStocks();
+            const res = await getOrCreateUser();
+            currentUser = res.user;
+            await renderStocksTab();
         }
-
+        
+        // --------------------------------------------
+        // 4. ЗАПУСК
+        // --------------------------------------------
+        const { user, isNew } = await getOrCreateUser();
+        currentUser = user;
+        const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
+        document.documentElement.style.setProperty('--accent', savedColor);
+        await renderStocksTab();
+        setupRealtime();
+        await updateBellBadge();
+        
+        let autoRefresh = null;
         function startAuto() {
             if (autoRefresh) clearInterval(autoRefresh);
             autoRefresh = setInterval(async () => {
                 const active = document.querySelector('.tab.active');
                 if (active && active.dataset.tab === 'stocks') {
-                    const { user } = await getOrCreateUser();
-                    currentUser = user;
-                    await renderStocks();
+                    await refreshUser();
+                    await renderStocksTab();
                 }
             }, 15000);
         }
         function stopAuto() { if (autoRefresh) clearInterval(autoRefresh); autoRefresh = null; }
-
-        const { user, isNew } = await getOrCreateUser();
-        currentUser = user;
-        const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
-        document.documentElement.style.setProperty('--accent', savedColor);
-        await renderStocks();
-        setupRealtime();
         startAuto();
-        await updateBellBadge();
-        if (isNew) setTimeout(() => openAvatar(), 500);
-
+        
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
                 const name = tab.dataset.tab;
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                if (name === 'stocks') {
-                    startAuto();
-                    const { user: u } = await getOrCreateUser();
-                    currentUser = u;
-                    await renderStocks();
-                } else {
+                if (name === 'stocks') { startAuto(); await renderStocksTab(); }
+                else {
                     stopAuto();
-                    if (name === 'profile') {
-                        const { user: u } = await getOrCreateUser();
-                        currentUser = u;
-                        await renderProfile();
-                    } else if (name === 'analytics') await renderAnalytics();
-                    else if (name === 'rating') await renderRating();
-                    else if (name === 'wallet') await renderWallet();
-                    else if (name === 'referral') await renderReferral();
-                    else if (name === 'settings') await renderSettings();
-                    else if (name === 'admin') await renderAdmin();
+                    if (name === 'profile') await renderProfile();
+                    else if (name === 'analytics') await renderAnalyticsTab();
+                    else if (name === 'rating') await renderRatingTab();
+                    else if (name === 'wallet') await renderWalletTab();
+                    else if (name === 'referral') await renderReferralTab();
+                    else if (name === 'settings') await renderSettingsTab();
+                    else if (name === 'admin') await renderAdminTab();
                 }
             });
         });
