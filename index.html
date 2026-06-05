@@ -7,9 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* --------------------------------------------------------------
-            УНИКАЛЬНЫЙ ДИЗАЙН ДЛЯ ВАШЕГО ПРОЕКТА
-        -------------------------------------------------------------- */
         * {
             margin: 0;
             padding: 0;
@@ -269,6 +266,10 @@
             border-color: #2b6e9e;
             background: rgba(43, 110, 158, 0.2);
         }
+        .achievement-card.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
         .achievement-icon {
             font-size: 36px;
             margin-bottom: 8px;
@@ -396,9 +397,6 @@
     </div>
 </div>
 <script>
-    // ======================================================================
-    // ПОЛНАЯ ЛОГИКА ПРОЕКТА (JavaScript)
-    // ======================================================================
     (async () => {
         // ----------------------------- DRAG TABS -----------------------------
         const tabsWrapper = document.querySelector('.tabs-wrapper');
@@ -679,7 +677,6 @@
             const userAchievements = await getAchievements();
             const allAchievements = await getAllAchievements();
             const selectedIds = currentUser.selected_achievements || [];
-            // Получаем 4 выбранные ачивки
             const selectedAchievements = allAchievements.filter(a => selectedIds.includes(a.id));
             const displayedAchievements = selectedAchievements.slice(0,4);
             const achievementIconsHtml = displayedAchievements.map(ach => `<div class="achi-icon earned" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>`).join('');
@@ -719,21 +716,27 @@
             `;
             document.getElementById('app').innerHTML = html;
             document.getElementById('avatarClick')?.addEventListener('click', () => showMessage('Аватар', 'Изменить аватар можно через @BotFather командой /setuserpic'));
-            // Открытие модалки выбора ачивок (только для иконок)
+            
+            // Открытие модалки со всеми достижениями
             const openAchievementSelector = async () => {
-                const earnedAchievements = allAchievements.filter(a => userAchievements.some(ua => ua.id === a.id));
-                if (earnedAchievements.length === 0) {
-                    showMessage('Достижения', 'У вас пока нет полученных достижений. Совершайте сделки, пополняйте баланс, приглашайте друзей!');
+                const allAchs = allAchievements;
+                if (allAchs.length === 0) {
+                    showMessage('Достижения', 'Нет доступных достижений.');
                     return;
                 }
-                const gridHtml = earnedAchievements.map(ach => `
-                    <div class="achievement-card ${selectedIds.includes(ach.id) ? 'selected' : ''}" data-ach-id="${ach.id}">
-                        <div class="achievement-icon">${ach.icon}</div>
-                        <div class="achievement-name">${ach.name}</div>
-                        <div class="achievement-status">${selectedIds.includes(ach.id) ? '✓ Выбрано' : 'Доступно'}</div>
-                        <div class="achievement-desc">${ach.description}</div>
-                    </div>
-                `).join('');
+                const earnedIds = new Set(userAchievements.map(a => a.id));
+                const gridHtml = allAchs.map(ach => {
+                    const isEarned = earnedIds.has(ach.id);
+                    const isSelected = selectedIds.includes(ach.id);
+                    return `
+                        <div class="achievement-card ${isEarned ? (isSelected ? 'selected' : '') : 'locked'}" data-ach-id="${ach.id}" data-earned="${isEarned}">
+                            <div class="achievement-icon">${ach.icon}</div>
+                            <div class="achievement-name">${ach.name}</div>
+                            <div class="achievement-status">${isEarned ? (isSelected ? '✓ Выбрано' : 'Доступно') : '🔒 Не получено'}</div>
+                            <div class="achievement-desc">${ach.description}</div>
+                        </div>
+                    `;
+                }).join('');
                 const modalHtml = `
                     <div class="modal" id="achiSelectorModal" style="display:flex;">
                         <div class="modal-content">
@@ -756,11 +759,15 @@
                 };
                 document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
                     card.addEventListener('click', () => {
+                        const earned = card.dataset.earned === 'true';
+                        if (!earned) {
+                            showMessage('Достижение не получено', 'Выполните условие: ' + (card.querySelector('.achievement-desc')?.innerText || ''));
+                            return;
+                        }
                         card.classList.toggle('selected');
                     });
                 });
             };
-            // Навешиваем на все иконки ачивок
             document.querySelectorAll('.achi-icon').forEach(icon => icon.addEventListener('click', openAchievementSelector));
         }
         
