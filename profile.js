@@ -1,39 +1,79 @@
-// profile.js — исправлен: горизонтальный скролл достижений, улучшенный выбор, чистый дизайн
+// profile.js — прогресс-бары для всех достижений, объединение при полном завершении
 window.renderProfile = async () => {
     const stats = await window.getUserStats();
     const earned = await window.getEarnedAchievements();
     const selectedIds = window.currentUser.selected_achievements || [];
+    
+    // Иконки выбранных достижений (три слота)
     const icons = [];
     for(let i = 0; i < 3; i++) {
         const ach = earned.find(a => a.id === selectedIds[i]);
         icons.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
     }
-    const rank = await window.getUserRank();
-    const rankHtml = rank ? `<div class="rank-card"><span>🔴 Рейтинг</span><span class="rank-number">#${rank}</span></div>` : '';
     
-    // Ближайшие достижения — горизонтальный скролл
-    const nextList = await window.getNextProgress();
-    let nextHtml = '';
-    if (nextList.length) {
-        nextHtml = `<div class="next-achievements-wrapper"><div class="small-text section-title">📋 Ближайшие достижения:</div>
-                    <div class="next-achievements horizontal-scroll">`;
-        for(let a of nextList) {
-            let cond = '';
-            switch(a.condition_type){
-                case 'trades_count': cond = `${a.cur}/${a.need} сделок`; break;
-                case 'shares_held': cond = `${(a.cur/100).toFixed(2)}/${(a.need/100).toFixed(2)} акций`; break;
-                case 'referrals_count': cond = `${a.cur}/${a.need} приглашений`; break;
-                case 'total_topup': cond = `${(a.cur/100).toFixed(2)}/${(a.need/100).toFixed(2)} ⭐`; break;
-            }
-            nextHtml += `<div class="next-achievement-item">
-                            <div class="next-achieve-icon">${a.icon}</div>
-                            <div class="next-achieve-progress">
-                                <div class="progress-label">${cond}</div>
-                                <div class="progress-bar"><div class="progress-fill" style="width:${a.prog}%"></div></div>
-                            </div>
-                         </div>`;
+    // Рейтинг
+    const rank = await window.getUserRank();
+    const rankHtml = rank ? `<div class="rank-badge">🔴 Рейтинг #${rank}</div>` : '';
+    
+    // ---- Достижения с прогресс-барами ----
+    // Список основных достижений (можно расширить)
+    const mainAchievements = [
+        { name: 'Сделки', icon: '📈', type: 'trades_count', need: 1, description: 'Совершить 1 сделку' },
+        { name: 'Трейдер', icon: '🔄', type: 'trades_count', need: 10, description: 'Совершить 10 сделок' },
+        { name: 'Капиталист', icon: '🏦', type: 'shares_held', need: 10000, description: 'Накопить 100 акций' }  // 100 акций = 10000 центов
+    ];
+    
+    // Текущие значения из статистики и баланса
+    let currentTrades = stats.totalTrades;
+    let currentShares = window.currentUser.shares / 100;  // в штуках
+    
+    // Функция получения прогресса по достижению
+    function getProgress(ach) {
+        let cur = 0, need = ach.need;
+        if (ach.type === 'trades_count') cur = currentTrades;
+        else if (ach.type === 'shares_held') cur = currentShares;
+        let percent = Math.min(100, (cur / need) * 100);
+        let completed = cur >= need;
+        return { cur, need, percent, completed };
+    }
+    
+    // Проверяем, все ли достижения выполнены
+    let allCompleted = true;
+    const achievementsWithProgress = mainAchievements.map(ach => {
+        const prog = getProgress(ach);
+        if (!prog.completed) allCompleted = false;
+        return { ...ach, ...prog };
+    });
+    
+    let achievementsHtml = '';
+    if (allCompleted) {
+        // Если все выполнены — показываем одно большое достижение
+        achievementsHtml = `
+            <div class="achievement-big-complete">
+                <div class="big-icon">🏆</div>
+                <div class="big-title">Абсолютный чемпион</div>
+                <div class="progress-bar big-bar"><div class="progress-fill" style="width:100%"></div></div>
+                <div class="big-check">✅ Все достижения получены!</div>
+            </div>
+        `;
+    } else {
+        // Список всех достижений с прогресс-барами
+        achievementsHtml = `<div class="achievements-list-vertical">`;
+        for (let ach of achievementsWithProgress) {
+            const checkMark = ach.completed ? '✅' : '❌';
+            achievementsHtml += `
+                <div class="achievement-progress-item">
+                    <div class="ach-progress-icon">${ach.icon}</div>
+                    <div class="ach-progress-info">
+                        <div class="ach-progress-name">${ach.name} ${checkMark}</div>
+                        <div class="ach-progress-desc">${ach.description}</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${ach.percent}%"></div></div>
+                        <div class="ach-progress-stats">${ach.cur.toFixed(2)} / ${ach.need} ${ach.type === 'trades_count' ? 'сделок' : 'акций'}</div>
+                    </div>
+                </div>
+            `;
         }
-        nextHtml += `</div></div>`;
+        achievementsHtml += `</div>`;
     }
     
     // Аватар и фон
@@ -48,34 +88,40 @@ window.renderProfile = async () => {
     const emojiStyle = window.getAvatarStyle(window.currentUser.avatar_url);
     const regDate = window.currentUser.registered_at ? new Date(window.currentUser.registered_at).toLocaleDateString() : 'неизвестно';
     
-    const html = `<div class="card profile-card">
-        <div class="bell-wrapper">
-            <div class="notification-bell" id="notificationBell">🔔<span class="notification-badge" style="display:none">0</span></div>
-        </div>
-        <div class="profile-avatar" id="avatarClick">
-            <div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${window.currentUser.avatar_url}</span></div>
-            <div class="small-text hint-text">Нажмите, чтобы сменить аватар и фон</div>
-        </div>
-        <p class="username">${window.currentUser.username}</p>
-        <p class="small-text">ID: ${window.userId}</p>
-        <p class="small-text">📅 Регистрация: ${regDate}</p>
-        
-        <div class="achievement-icons">${icons.join('')}</div>
-        <div class="small-text hint-text">Нажмите на значок, чтобы выбрать/убрать достижение</div>
-        
-        <div class="stats-container">
-            <div class="stats-row">
-                <div class="stat-card"><div class="stat-value">${window.fromCents(window.currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div>
-                <div class="stat-card"><div class="stat-value">${window.fromCents(window.currentUser.shares)}</div><div class="stat-label">Акций</div></div>
+    const html = `
+        <div class="card profile-card">
+            <div class="bell-wrapper">
+                <div class="notification-bell" id="notificationBell">🔔<span class="notification-badge" style="display:none">0</span></div>
             </div>
-            <div class="stats-row">
-                <div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div>
-                <div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div>
+            <div class="profile-avatar-center" id="avatarClick">
+                <div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${window.currentUser.avatar_url}</span></div>
+                <div class="small-text hint-text">Нажмите, чтобы сменить аватар и фон</div>
+            </div>
+            <div class="username">${window.currentUser.username}</div>
+            <div class="user-meta">ID: ${window.userId} &nbsp;|&nbsp; 📅 Регистрация: ${regDate}</div>
+            
+            <div class="selected-achievements-area">
+                <div class="selected-label">Нажмите на значок, чтобы выбрать/убрать достижение</div>
+                <div class="achievement-icons">${icons.join('')}</div>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stats-row">
+                    <div class="stat-card"><div class="stat-value">${window.fromCents(window.currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div>
+                    <div class="stat-card"><div class="stat-value">${window.fromCents(window.currentUser.shares)}</div><div class="stat-label">Акций</div></div>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div>
+                </div>
+            </div>
+            ${rankHtml}
+            <div class="achievements-progress-section">
+                <div class="section-title">🏅 Прогресс достижений</div>
+                ${achievementsHtml}
             </div>
         </div>
-        ${rankHtml}
-        ${nextHtml}
-    </div>`;
+    `;
     
     document.getElementById('app').innerHTML = html;
     
