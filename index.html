@@ -7,7 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Все стили как в предыдущем варианте, только добавляем стили для кастомного модального окна сообщений */
         * {
             margin: 0;
             padding: 0;
@@ -96,6 +95,10 @@
         button:active {
             transform: scale(0.96);
             opacity: 0.9;
+        }
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 8px;
         }
         input {
             width: 100%;
@@ -191,11 +194,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 42px;
+            font-size: 48px;
             font-weight: bold;
             color: white;
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
             margin-bottom: 12px;
+            transition: 0.2s;
+        }
+        .avatar-circle:hover {
+            transform: scale(1.02);
         }
         .achievement-icons {
             display: flex;
@@ -291,6 +298,30 @@
             color: #9ca3af;
             margin-top: 4px;
         }
+        .avatars-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .avatar-option {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 0 auto;
+        }
+        .avatar-option.selected {
+            border: 2px solid #2b6e9e;
+            background: rgba(43, 110, 158, 0.3);
+            transform: scale(1.05);
+        }
         .topup-amounts {
             display: flex;
             gap: 12px;
@@ -365,19 +396,6 @@
             padding: 10px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .admin-only {
-            display: none;
-        }
-        /* Кастомное модальное сообщение */
-        .custom-message-modal .modal-content {
-            text-align: center;
-        }
-        .custom-message-modal button {
-            margin-top: 20px;
-            width: auto;
-            padding: 10px 24px;
-            display: inline-block;
-        }
     </style>
 </head>
 <body>
@@ -426,32 +444,22 @@
         if (!userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
-        // Кастомная функция показа сообщения вместо tg.showPopup
-        function showCustomMessage(title, message, onClose = null) {
+        // Кастомное модальное окно вместо tg.showPopup
+        function showCustomModal(title, message) {
             const modalHtml = `
-                <div class="modal custom-message-modal" id="customMessageModal" style="display:flex;">
+                <div class="modal" id="customMessageModal" style="display:flex;">
                     <div class="modal-content">
+                        <span class="close-modal" id="closeCustomModal">&times;</span>
                         <h3>${title}</h3>
-                        <p style="margin: 16px 0;">${message}</p>
-                        <button id="customMessageOkBtn">OK</button>
+                        <p style="margin: 20px 0;">${message}</p>
+                        <button id="customModalOkBtn">OK</button>
                     </div>
                 </div>
             `;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = document.getElementById('customMessageModal');
-            const closeBtn = document.getElementById('customMessageOkBtn');
-            const removeModal = () => {
-                modal.remove();
-                if (onClose) onClose();
-            };
-            closeBtn.onclick = removeModal;
-            modal.onclick = (e) => { if (e.target === modal) removeModal(); };
-        }
-        
-        // Оригинальный tg.showPopup оставляем для некоторых системных сообщений, но для достижений используем кастомный
-        function showMessage(title, msg) {
-            // Для единообразия тоже можно кастомное, но пусть будет tg - менее навязчиво
-            tg.showPopup({ title, message: msg, buttons: [{ type: 'ok' }] });
+            document.getElementById('closeCustomModal').onclick = () => modal.remove();
+            document.getElementById('customModalOkBtn').onclick = () => modal.remove();
         }
         
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
@@ -462,56 +470,29 @@
         function toCents(v) { return Math.round(parseFloat(v) * 100); }
         function fromCents(c) { return (c / 100).toFixed(2); }
         
-        // Функция для выдачи приветственного достижения, если у пользователя нет ни одного
-        async function grantWelcomeAchievementIfNeeded(userId) {
-            // Проверим, есть ли у пользователя хоть одно достижение
-            const { data: existing, error: checkError } = await supabase
-                .from('user_achievements')
-                .select('achievement_id')
-                .eq('user_id', userId)
-                .limit(1);
-            if (checkError) {
-                console.error('Ошибка проверки достижений:', checkError);
-                return;
-            }
-            if (existing && existing.length > 0) return; // уже есть достижения
-            
-            // Найдём достижение "Добро пожаловать!" (условие типа trades_count = 0 или специальный флаг)
-            // Ищем achievement с condition_type='welcome' или просто первое подходящее, но проще создать отдельное достижение.
-            // В SQL мы добавим достижение с condition_type='welcome' или с trades_count = -1.
-            // Для простоты создадим его прямо сейчас через проверку.
-            const { data: welcomeAch, error: achError } = await supabase
-                .from('achievements')
-                .select('id')
-                .eq('condition_type', 'welcome')
-                .maybeSingle();
-            if (achError || !welcomeAch) {
-                // Если нет достижения "welcome", попробуем создать его на лету (но лучше через SQL)
-                console.warn('Достижение "Добро пожаловать!" не найдено, пропускаем');
-                return;
-            }
-            // Выдаём достижение
-            const { error: insertError } = await supabase
-                .from('user_achievements')
-                .insert({ user_id: userId, achievement_id: welcomeAch.id });
-            if (insertError) console.error('Ошибка выдачи приветственного достижения:', insertError);
-            else console.log('Выдано приветственное достижение пользователю', userId);
-        }
-        
         async function getOrCreateUser() {
             let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
             if (error) throw new Error(`Ошибка запроса: ${error.message}`);
             if (!data) {
-                const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0, selected_achievements: [] }]).select().single();
+                // Новый пользователь – выдаём приветственное достижение
+                const { data: newUser, error: insertError } = await supabase.from('users').insert([{ 
+                    id: userId, 
+                    username, 
+                    shares: 0, 
+                    stars_balance: 0,
+                    selected_achievements: [],
+                    avatar_url: '👤'
+                }]).select().single();
                 if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
-                data = newUser;
+                // Добавляем приветственное достижение
+                const { data: welcomeAch } = await supabase.from('achievements').select('id').eq('name', 'Добро пожаловать!').single();
+                if (welcomeAch) {
+                    await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: welcomeAch.id });
+                }
+                return newUser;
             }
-            // Убедимся, что поле selected_achievements существует
             if (!data.selected_achievements) data.selected_achievements = [];
-            
-            // Выдаём приветственное достижение, если нужно
-            await grantWelcomeAchievementIfNeeded(userId);
-            
+            if (!data.avatar_url) data.avatar_url = '👤';
             return data;
         }
         
@@ -736,18 +717,18 @@
                             let buyAmount = prompt(`Введите количество (от 1 до ${maxShares}):`, maxShares);
                             if (!buyAmount) return;
                             buyAmount = parseFloat(buyAmount);
-                            if (isNaN(buyAmount) || buyAmount < 1 || buyAmount > maxShares) { showMessage('Ошибка', 'Некорректное количество'); return; }
+                            if (isNaN(buyAmount) || buyAmount < 1 || buyAmount > maxShares) { showCustomModal('Ошибка', 'Некорректное количество'); return; }
                             try {
                                 await executePartialTrade(order.id, toCents(buyAmount));
-                                showMessage('Успех', 'Сделка завершена');
+                                showCustomModal('Успех', 'Сделка завершена');
                                 await refreshAll();
-                            } catch (err) { showMessage('Ошибка', err.message); }
+                            } catch (err) { showCustomModal('Ошибка', err.message); }
                         });
                     });
                     document.querySelectorAll('.cancel-btn').forEach(btn => {
                         btn.addEventListener('click', async () => {
                             if (confirm('Отменить ордер?')) {
-                                try { await cancelOrder(parseInt(btn.dataset.orderId)); showMessage('Успех', 'Ордер отменён'); await refreshAll(); } catch (err) { showMessage('Ошибка', err.message); }
+                                try { await cancelOrder(parseInt(btn.dataset.orderId)); showCustomModal('Успех', 'Ордер отменён'); await refreshAll(); } catch (err) { showCustomModal('Ошибка', err.message); }
                             }
                         });
                     });
@@ -755,26 +736,63 @@
                 document.getElementById('sellBtn')?.addEventListener('click', async () => {
                     let amount = parseFloat(document.getElementById('sellAmount').value);
                     let price = parseFloat(document.getElementById('sellPrice').value);
-                    if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { showMessage('Ошибка', 'Введите количество не менее 1 и цену не менее 1'); return; }
-                    try { await createOrder(amount, price); showMessage('Успех', 'Ордер создан'); await refreshAll(); } catch (err) { showMessage('Ошибка', err.message); }
+                    if (isNaN(amount) || isNaN(price) || amount < 1 || price < 1) { showCustomModal('Ошибка', 'Введите количество не менее 1 и цену не менее 1'); return; }
+                    try { await createOrder(amount, price); showCustomModal('Успех', 'Ордер создан'); await refreshAll(); } catch (err) { showCustomModal('Ошибка', err.message); }
                 });
             } catch (err) { document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`; }
         }
         
         async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
         
-        // ---------- ПРОФИЛЬ С ТРЕМЯ ЗНАЧКАМИ ----------
+        // ---------- ВЫБОР АВАТАРА ----------
+        const avatarOptions = ['👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽', '🚀', '💎'];
+        async function openAvatarSelector() {
+            const currentAvatar = currentUser.avatar_url || '👤';
+            const optionsHtml = avatarOptions.map(emoji => `
+                <div class="avatar-option ${emoji === currentAvatar ? 'selected' : ''}" data-avatar="${emoji}">
+                    ${emoji}
+                </div>
+            `).join('');
+            const modalHtml = `
+                <div class="modal" id="avatarModal" style="display:flex;">
+                    <div class="modal-content">
+                        <span class="close-modal" id="closeAvatarModal">&times;</span>
+                        <h3>Выберите аватар</h3>
+                        <div class="avatars-grid">${optionsHtml}</div>
+                        <button id="saveAvatarBtn">Сохранить</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('closeAvatarModal').onclick = () => document.getElementById('avatarModal').remove();
+            
+            let selectedAvatar = currentAvatar;
+            document.querySelectorAll('.avatar-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    selectedAvatar = opt.dataset.avatar;
+                });
+            });
+            document.getElementById('saveAvatarBtn').onclick = async () => {
+                await supabase.from('users').update({ avatar_url: selectedAvatar }).eq('id', userId);
+                currentUser.avatar_url = selectedAvatar;
+                document.getElementById('avatarModal').remove();
+                await renderProfileTab();
+            };
+        }
+        
+        // ---------- ПРОФИЛЬ С ТРЕМЯ СЛОТАМИ И ОЧИСТКОЙ ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
             const selectedIds = currentUser.selected_achievements || [];
-            // Для каждого из трёх слотов (0,1,2) получаем иконку
             const iconsHtml = [];
             for (let i = 0; i < 3; i++) {
                 const achId = selectedIds[i];
                 const ach = earnedAchievements.find(a => a.id === achId);
                 if (ach) {
-                    iconsHtml.push(`<div class="achi-icon earned" data-slot="${i}" title="${ach.name}: ${ach.description}">${ach.icon}</div>`);
+                    iconsHtml.push(`<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>`);
                 } else {
                     iconsHtml.push(`<div class="achi-icon" data-slot="${i}">?</div>`);
                 }
@@ -782,7 +800,7 @@
             const html = `
                 <div class="card" style="text-align: center;">
                     <div class="profile-avatar" id="avatarClick">
-                        <div class="avatar-circle">${currentUser.username.charAt(0).toUpperCase()}</div>
+                        <div class="avatar-circle">${currentUser.avatar_url || '👤'}</div>
                         <div class="small-text" style="margin-top: 6px;">Нажмите, чтобы сменить аватар</div>
                     </div>
                     <p style="font-size: 20px; font-weight: bold;">${currentUser.username}</p>
@@ -790,7 +808,7 @@
                     <div class="achievement-icons">
                         ${iconsHtml.join('')}
                     </div>
-                    <div class="small-text" style="margin-bottom: 12px;">Нажмите на значок, чтобы выбрать достижение</div>
+                    <div class="small-text" style="margin-bottom: 12px;">Нажмите на значок, чтобы выбрать/убрать достижение</div>
                     <div class="stats-container">
                         <div class="stats-row">
                             <div class="stat-card">
@@ -817,29 +835,31 @@
             `;
             document.getElementById('app').innerHTML = html;
             
-            document.getElementById('avatarClick')?.addEventListener('click', () => showMessage('Аватар', 'Изменить аватар можно через @BotFather командой /setuserpic'));
+            document.getElementById('avatarClick')?.addEventListener('click', openAvatarSelector);
             
-            // Обработчики кликов по значкам
+            // Обработчики кликов по значкам достижений
             document.querySelectorAll('.achi-icon').forEach(icon => {
-                icon.addEventListener('click', (e) => {
+                icon.addEventListener('click', async (e) => {
                     const slot = parseInt(icon.dataset.slot);
-                    openAchievementSelectorForSlot(slot, earnedAchievements, selectedIds);
+                    const currentAchId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null;
+                    await openAchievementSelectorForSlot(slot, earnedAchievements, selectedIds, currentAchId);
                 });
             });
         }
         
-        // Открыть выбор достижения для конкретного слота (0-2)
-        async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds) {
+        // Открыть выбор достижения для конкретного слота (0-2) с возможностью очистки
+        async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId) {
             if (!earnedAchievements.length) {
-                // Используем кастомное сообщение вместо tg.showPopup
-                showCustomMessage('Достижения', 'У вас пока нет заработанных достижений. Совершайте сделки, пополняйте баланс и приглашайте друзей!');
+                showCustomModal('Достижения', 'У вас пока нет заработанных достижений. Совершайте сделки, пополняйте баланс и приглашайте друзей!');
                 return;
             }
             
             // Создаём копию, чтобы отметить уже выбранные в других слотах как disabled
             const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
+            const isSlotOccupied = currentSlotAchievementId !== null;
+            
             const gridHtml = earnedAchievements.map(ach => {
-                const isSelected = (currentSelectedIds[slot] === ach.id);
+                const isSelected = (currentSlotAchievementId === ach.id);
                 const isUsedElsewhere = otherSelected.includes(ach.id);
                 const disabledClass = isUsedElsewhere ? 'disabled' : '';
                 const selectedClass = isSelected ? 'selected' : '';
@@ -850,7 +870,6 @@
                     case 'shares_held': conditionText = `Накоплено акций: ${ach.condition_value/100}`; break;
                     case 'referrals_count': conditionText = `Приглашено друзей: ${ach.condition_value}`; break;
                     case 'total_topup': conditionText = `Пополнено Stars: ${ach.condition_value/100}`; break;
-                    case 'welcome': conditionText = `За регистрацию`; break;
                 }
                 return `
                     <div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
@@ -869,6 +888,7 @@
                         <span class="close-modal" id="closeAchiSelector">&times;</span>
                         <h3>Выберите достижение для слота ${slot+1}</h3>
                         <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
+                        ${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}
                         <button id="saveAchiSelection">Сохранить</button>
                     </div>
                 </div>
@@ -876,21 +896,35 @@
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             
             document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
+            
+            if (isSlotOccupied) {
+                document.getElementById('clearSlotBtn').onclick = async () => {
+                    // Очищаем этот слот
+                    let newSelectedIds = [...currentSelectedIds];
+                    newSelectedIds[slot] = null;
+                    newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
+                    // Сохраняем в БД
+                    await supabase.from('users').update({ selected_achievements: newSelectedIds }).eq('id', userId);
+                    currentUser.selected_achievements = newSelectedIds;
+                    document.getElementById('achiSelectorModal').remove();
+                    await renderProfileTab();
+                };
+            }
+            
             document.getElementById('saveAchiSelection').onclick = async () => {
                 const selectedCard = document.querySelector('#achiGrid .achievement-card.selected:not(.disabled)');
                 let newSelectedIds = [...currentSelectedIds];
                 if (!selectedCard) {
-                    // Если не выбрали – очищаем этот слот
-                    newSelectedIds[slot] = null;
+                    // Если не выбрали – оставляем как есть (не меняем)
                 } else {
                     const selectedId = parseInt(selectedCard.dataset.achId);
                     newSelectedIds[slot] = selectedId;
                 }
-                // Очищаем null и приводим к массиву
+                // Убираем null и undefined
                 newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
+                // Ограничиваем длину 3 (но в любом случае у нас 3 слота)
                 while (newSelectedIds.length < 3) newSelectedIds.push(null);
-                // Сохраняем в БД (убираем null, заменяем на 0, потом фильтруем)
-                const saveArray = newSelectedIds.map(id => id || 0).filter(v => v !== 0);
+                const saveArray = newSelectedIds.filter(v => v !== null);
                 await supabase.from('users').update({ selected_achievements: saveArray }).eq('id', userId);
                 currentUser.selected_achievements = saveArray;
                 document.getElementById('achiSelectorModal').remove();
@@ -900,7 +934,7 @@
             document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
                 card.addEventListener('click', () => {
                     if (card.dataset.disabled === 'true') {
-                        showCustomMessage('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.');
+                        showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.');
                         return;
                     }
                     // Убираем выделение со всех в этой сетке
@@ -961,7 +995,7 @@
             document.getElementById('app').innerHTML = html;
             document.getElementById('copyRefLink')?.addEventListener('click', () => {
                 navigator.clipboard.writeText(refLink);
-                showMessage('Скопировано', 'Реферальная ссылка скопирована в буфер обмена');
+                showCustomModal('Скопировано', 'Реферальная ссылка скопирована в буфер обмена');
             });
         }
         
@@ -1022,7 +1056,7 @@
                     notify_referral: document.getElementById('notifyReferralCheckbox').checked,
                 }).eq('id', userId);
                 currentUser.hide_rating = newHide;
-                showMessage('Успех', 'Настройки сохранены');
+                showCustomModal('Успех', 'Настройки сохранены');
             };
         }
         
@@ -1051,24 +1085,24 @@
                 document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', async () => {
                     const res = await fetch(`${BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, order_id: btn.dataset.orderId }) });
                     const data = await res.json();
-                    if(data.ok) { showMessage('Успех','Ордер отменён'); renderAdminTab(); } else showMessage('Ошибка',data.error);
+                    if(data.ok) { showCustomModal('Успех','Ордер отменён'); renderAdminTab(); } else showCustomModal('Ошибка',data.error);
                 }));
                 if(usersData.users) document.getElementById('usersList').innerHTML = usersData.users.map(u => `<div>ID: ${u.id} | ${u.username||'Аноним'} | Акций: ${fromCents(u.shares)} | Stars: ${fromCents(u.stars_balance)}</div>`).join('');
                 document.getElementById('giveSharesBtn').onclick = async () => {
                     const target = parseInt(document.getElementById('targetUserId').value);
                     const shares = parseInt(document.getElementById('giveShares').value);
-                    if(!target||!shares) { showMessage('Ошибка','Заполните поля'); return; }
+                    if(!target||!shares) { showCustomModal('Ошибка','Заполните поля'); return; }
                     const res = await fetch(`${BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, target_id: target, shares }) });
                     const data = await res.json();
-                    if(data.ok) showMessage('Успех','Акции выданы'); else showMessage('Ошибка',data.error);
+                    if(data.ok) showCustomModal('Успех','Акции выданы'); else showCustomModal('Ошибка',data.error);
                 };
                 document.getElementById('giveStarsBtn').onclick = async () => {
                     const target = parseInt(document.getElementById('targetUserId').value);
                     const stars = parseInt(document.getElementById('giveStars').value);
-                    if(!target||!stars) { showMessage('Ошибка','Заполните поля'); return; }
+                    if(!target||!stars) { showCustomModal('Ошибка','Заполните поля'); return; }
                     const res = await fetch(`${BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: userId, target_id: target, stars }) });
                     const data = await res.json();
-                    if(data.ok) showMessage('Успех','Stars выданы'); else showMessage('Ошибка',data.error);
+                    if(data.ok) showCustomModal('Успех','Stars выданы'); else showCustomModal('Ошибка',data.error);
                 };
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
@@ -1093,14 +1127,14 @@
             else document.getElementById('topupFeeInfo').innerHTML = '';
         });
         document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => {
-            if(!selectedAmount || selectedAmount<1) { showMessage('Ошибка','Выберите сумму'); return; }
+            if(!selectedAmount || selectedAmount<1) { showCustomModal('Ошибка','Выберите сумму'); return; }
             document.getElementById('topupModal').style.display = 'none';
             try {
                 const res = await fetch(`${BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: userId, amount: selectedAmount }) });
                 const data = await res.json();
-                if(data.ok && data.invoice_link) tg.openInvoice(data.invoice_link, (status) => { if(status === 'paid') { showMessage('Успех','Баланс пополнен'); refreshAll(); } });
-                else showMessage('Ошибка', data.error || 'Не удалось создать счёт');
-            } catch(e) { showMessage('Ошибка','Соединение'); }
+                if(data.ok && data.invoice_link) tg.openInvoice(data.invoice_link, (status) => { if(status === 'paid') { showCustomModal('Успех','Баланс пополнен'); refreshAll(); } });
+                else showCustomModal('Ошибка', data.error || 'Не удалось создать счёт');
+            } catch(e) { showCustomModal('Ошибка','Соединение'); }
         });
         document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
         
