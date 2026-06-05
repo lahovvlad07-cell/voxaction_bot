@@ -196,28 +196,31 @@
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
             margin-bottom: 12px;
         }
-        .single-achievement {
+        /* Три значка, как раньше */
+        .achievement-icons {
             display: flex;
             justify-content: center;
-            margin: 16px 0 8px;
+            gap: 16px;
+            margin: 16px 0;
+            flex-wrap: wrap;
         }
         .achi-icon {
-            width: 80px;
-            height: 80px;
+            width: 56px;
+            height: 56px;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
+            font-size: 30px;
             cursor: pointer;
             transition: 0.2s;
-            border: 2px solid transparent;
+            border: 1px solid transparent;
         }
         .achi-icon.earned {
             background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
             border-color: #60a5fa;
-            box-shadow: 0 0 12px rgba(43, 110, 158, 0.5);
+            box-shadow: 0 0 10px rgba(43, 110, 158, 0.5);
         }
         .stats-container {
             display: flex;
@@ -269,6 +272,11 @@
         .achievement-card.selected {
             border-color: #2b6e9e;
             background: rgba(43, 110, 158, 0.2);
+        }
+        .achievement-card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(0.3);
         }
         .achievement-icon {
             font-size: 36px;
@@ -394,7 +402,7 @@
 </div>
 <script>
     (async () => {
-        // ----------------------------- DRAG TABS -----------------------------
+        // DRAG TABS
         const tabsWrapper = document.querySelector('.tabs-wrapper');
         let isDown = false, startX, scrollLeft;
         tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
@@ -423,10 +431,12 @@
             let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
             if (error) throw new Error(`Ошибка запроса: ${error.message}`);
             if (!data) {
-                const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0 }]).select().single();
+                const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0, selected_achievements: [] }]).select().single();
                 if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
                 return newUser;
             }
+            // Убедимся, что поле selected_achievements существует
+            if (!data.selected_achievements) data.selected_achievements = [];
             return data;
         }
         
@@ -498,7 +508,7 @@
             return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
         }
         
-        // ---------- НОВЫЕ ФУНКЦИИ ДЛЯ ДОСТИЖЕНИЙ ----------
+        // Достижения – получаем заработанные с датами
         async function getEarnedAchievements() {
             const { data, error } = await supabase
                 .from('user_achievements')
@@ -678,17 +688,22 @@
         
         async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
         
-        // ---------- ПРОФИЛЬ С ОДНИМ ДОСТИЖЕНИЕМ ----------
+        // ---------- ПРОФИЛЬ С ТРЕМЯ ЗНАЧКАМИ ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
-            const selectedAchId = currentUser.selected_achievement;
-            const selectedAchievement = earnedAchievements.find(a => a.id === selectedAchId);
-            
-            const selectedIconHtml = selectedAchievement 
-                ? `<div class="achi-icon earned" data-ach-id="${selectedAchievement.id}" title="${selectedAchievement.name}: ${selectedAchievement.description}">${selectedAchievement.icon}</div>`
-                : `<div class="achi-icon">?</div>`;
-            
+            const selectedIds = currentUser.selected_achievements || [];
+            // Для каждого из трёх слотов (0,1,2) получаем иконку
+            const iconsHtml = [];
+            for (let i = 0; i < 3; i++) {
+                const achId = selectedIds[i];
+                const ach = earnedAchievements.find(a => a.id === achId);
+                if (ach) {
+                    iconsHtml.push(`<div class="achi-icon earned" data-slot="${i}" title="${ach.name}: ${ach.description}">${ach.icon}</div>`);
+                } else {
+                    iconsHtml.push(`<div class="achi-icon" data-slot="${i}">?</div>`);
+                }
+            }
             const html = `
                 <div class="card" style="text-align: center;">
                     <div class="profile-avatar" id="avatarClick">
@@ -697,8 +712,8 @@
                     </div>
                     <p style="font-size: 20px; font-weight: bold;">${currentUser.username}</p>
                     <p class="small-text">ID: ${userId}</p>
-                    <div class="single-achievement" id="selectedAchievementIcon">
-                        ${selectedIconHtml}
+                    <div class="achievement-icons">
+                        ${iconsHtml.join('')}
                     </div>
                     <div class="small-text" style="margin-bottom: 12px;">Нажмите на значок, чтобы выбрать достижение</div>
                     <div class="stats-container">
@@ -729,18 +744,29 @@
             
             document.getElementById('avatarClick')?.addEventListener('click', () => showMessage('Аватар', 'Изменить аватар можно через @BotFather командой /setuserpic'));
             
-            document.getElementById('selectedAchievementIcon')?.addEventListener('click', () => openAchievementSelector(earnedAchievements, selectedAchId));
+            // Обработчики кликов по значкам
+            document.querySelectorAll('.achi-icon').forEach(icon => {
+                icon.addEventListener('click', (e) => {
+                    const slot = parseInt(icon.dataset.slot);
+                    openAchievementSelectorForSlot(slot, earnedAchievements, selectedIds);
+                });
+            });
         }
         
-        // Модальное окно выбора достижения (только заработанные)
-        async function openAchievementSelector(earnedAchievements, currentSelectedId) {
+        // Открыть выбор достижения для конкретного слота (0-2)
+        async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds) {
             if (!earnedAchievements.length) {
                 showMessage('Достижения', 'У вас пока нет заработанных достижений. Совершайте сделки, пополняйте баланс и приглашайте друзей!');
                 return;
             }
             
+            // Создаём копию, чтобы отметить уже выбранные в других слотах как disabled
+            const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
             const gridHtml = earnedAchievements.map(ach => {
-                const isSelected = (currentSelectedId === ach.id);
+                const isSelected = (currentSelectedIds[slot] === ach.id);
+                const isUsedElsewhere = otherSelected.includes(ach.id);
+                const disabledClass = isUsedElsewhere ? 'disabled' : '';
+                const selectedClass = isSelected ? 'selected' : '';
                 const earnedDate = new Date(ach.earned_at).toLocaleString();
                 let conditionText = '';
                 switch(ach.condition_type) {
@@ -750,7 +776,7 @@
                     case 'total_topup': conditionText = `Пополнено Stars: ${ach.condition_value/100}`; break;
                 }
                 return `
-                    <div class="achievement-card ${isSelected ? 'selected' : ''}" data-ach-id="${ach.id}">
+                    <div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
                         <div class="achievement-icon">${ach.icon}</div>
                         <div class="achievement-name">${ach.name}</div>
                         <div class="achievement-desc">${ach.description}</div>
@@ -764,7 +790,7 @@
                 <div class="modal" id="achiSelectorModal" style="display:flex;">
                     <div class="modal-content">
                         <span class="close-modal" id="closeAchiSelector">&times;</span>
-                        <h3>Выберите достижение для отображения в профиле</h3>
+                        <h3>Выберите достижение для слота ${slot+1}</h3>
                         <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
                         <button id="saveAchiSelection">Сохранить</button>
                     </div>
@@ -774,30 +800,41 @@
             
             document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
             document.getElementById('saveAchiSelection').onclick = async () => {
-                const selectedCard = document.querySelector('#achiGrid .achievement-card.selected');
+                const selectedCard = document.querySelector('#achiGrid .achievement-card.selected:not(.disabled)');
+                let newSelectedIds = [...currentSelectedIds];
                 if (!selectedCard) {
-                    // Если не выбрано ни одного – сбросить
-                    await supabase.from('users').update({ selected_achievement: null }).eq('id', userId);
-                    currentUser.selected_achievement = null;
+                    // Если не выбрали – можно очистить этот слот
+                    newSelectedIds[slot] = null;
                 } else {
                     const selectedId = parseInt(selectedCard.dataset.achId);
-                    await supabase.from('users').update({ selected_achievement: selectedId }).eq('id', userId);
-                    currentUser.selected_achievement = selectedId;
+                    newSelectedIds[slot] = selectedId;
                 }
+                // Очищаем null и приводим к массиву
+                newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
+                // Ограничиваем длину 3 (но по сути и так будет 3 слота, просто убираем null)
+                while (newSelectedIds.length < 3) newSelectedIds.push(null);
+                // Сохраняем в БД (массив целых чисел, null не сохраняем, заменим на 0 или удалим, но лучше хранить null? Supabase массив не любит null, заменим на 0)
+                const saveArray = newSelectedIds.map(id => id || 0).filter(v => v !== 0);
+                await supabase.from('users').update({ selected_achievements: saveArray }).eq('id', userId);
+                currentUser.selected_achievements = saveArray;
                 document.getElementById('achiSelectorModal').remove();
                 await renderProfileTab();
             };
             
             document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
                 card.addEventListener('click', () => {
-                    // Убираем выделение у всех и ставим на текущую
+                    if (card.dataset.disabled === 'true') {
+                        showMessage('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.');
+                        return;
+                    }
+                    // Убираем выделение со всех в этой сетке
                     document.querySelectorAll('#achiGrid .achievement-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                 });
             });
         }
         
-        // ---------- ОСТАЛЬНЫЕ ВКЛАДКИ (без изменений) ----------
+        // ---------- ОСТАЛЬНЫЕ ВКЛАДКИ ----------
         async function renderRatingTab() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
