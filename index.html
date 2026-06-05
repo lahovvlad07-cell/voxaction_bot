@@ -30,7 +30,6 @@
             margin: 12px 16px;
             border: 1px solid rgba(56, 189, 248, 0.2);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s, box-shadow 0.2s;
         }
         .tabs-wrapper {
             position: fixed;
@@ -197,30 +196,28 @@
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
             margin-bottom: 12px;
         }
-        .achievement-icons {
+        .single-achievement {
             display: flex;
             justify-content: center;
-            gap: 14px;
-            margin: 12px 0;
-            flex-wrap: wrap;
+            margin: 16px 0 8px;
         }
         .achi-icon {
-            width: 52px;
-            height: 52px;
+            width: 80px;
+            height: 80px;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
+            font-size: 40px;
             cursor: pointer;
             transition: 0.2s;
-            border: 1px solid transparent;
+            border: 2px solid transparent;
         }
         .achi-icon.earned {
             background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
             border-color: #60a5fa;
-            box-shadow: 0 0 10px rgba(43, 110, 158, 0.5);
+            box-shadow: 0 0 12px rgba(43, 110, 158, 0.5);
         }
         .stats-container {
             display: flex;
@@ -256,7 +253,9 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-            margin-top: 16px;
+            margin: 16px 0;
+            max-height: 400px;
+            overflow-y: auto;
         }
         .achievement-card {
             background: rgba(0, 0, 0, 0.3);
@@ -271,10 +270,6 @@
             border-color: #2b6e9e;
             background: rgba(43, 110, 158, 0.2);
         }
-        .achievement-card.locked {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
         .achievement-icon {
             font-size: 36px;
             margin-bottom: 8px;
@@ -283,14 +278,10 @@
             font-weight: 600;
             font-size: 14px;
         }
-        .achievement-status {
+        .achievement-desc, .achievement-condition, .achievement-date {
             font-size: 11px;
-            margin-top: 6px;
             color: #9ca3af;
-        }
-        .achievement-desc {
-            font-size: 10px;
-            color: #6b7280;
+            margin-top: 4px;
         }
         .topup-amounts {
             display: flex;
@@ -506,23 +497,32 @@
             if (error) return { totalTrades: 0, totalVolume: 0 };
             return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
         }
-        async function getAchievements() {
-            const { data, error } = await supabase.from('user_achievements').select('achievements(id, name, description, icon)').eq('user_id', userId);
+        
+        // ---------- НОВЫЕ ФУНКЦИИ ДЛЯ ДОСТИЖЕНИЙ ----------
+        async function getEarnedAchievements() {
+            const { data, error } = await supabase
+                .from('user_achievements')
+                .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
+                .eq('user_id', userId);
             if (error) return [];
-            return data.map(a => a.achievements);
+            return data.map(ua => ({
+                id: ua.achievements.id,
+                name: ua.achievements.name,
+                description: ua.achievements.description,
+                icon: ua.achievements.icon,
+                earned_at: ua.earned_at,
+                condition_type: ua.achievements.condition_type,
+                condition_value: ua.achievements.condition_value
+            }));
         }
-        async function getAllAchievements() {
-            const { data, error } = await supabase.from('achievements').select('*');
-            if (error) return [];
-            return data;
-        }
+        
         async function getSellerRating(sellerId) {
             const { data, error } = await supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
             if (error || !data.length) return null;
             return data.reduce((s,r)=>s+r.rating,0)/data.length;
         }
         
-        // ---------- график ----------
+        // ---------- ГРАФИК ----------
         let currentTimeframe = '30d';
         async function fetchPriceHistoryForTimeframe() {
             let startDate = new Date();
@@ -578,6 +578,7 @@
             container.innerHTML = `<div class="ticker-content">${items}</div>`;
         }
         
+        // ---------- ВКЛАДКА АКЦИЙ ----------
         let currentOrdersFilter = 'all';
         let currentSortDir = 'asc';
         async function renderStocksTab() {
@@ -677,16 +678,17 @@
         
         async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
         
+        // ---------- ПРОФИЛЬ С ОДНИМ ДОСТИЖЕНИЕМ ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
-            const userAchievements = await getAchievements();
-            const allAchievements = await getAllAchievements();
-            const selectedIds = currentUser.selected_achievements || [];
-            const selectedAchievements = allAchievements.filter(a => selectedIds.includes(a.id));
-            const displayedAchievements = selectedAchievements.slice(0,4);
-            const achievementIconsHtml = displayedAchievements.map(ach => `<div class="achi-icon earned" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>`).join('');
-            const missingCount = Math.max(0, 4 - displayedAchievements.length);
-            const missingHtml = Array.from({length: missingCount}, () => `<div class="achi-icon">?</div>`).join('');
+            const earnedAchievements = await getEarnedAchievements();
+            const selectedAchId = currentUser.selected_achievement;
+            const selectedAchievement = earnedAchievements.find(a => a.id === selectedAchId);
+            
+            const selectedIconHtml = selectedAchievement 
+                ? `<div class="achi-icon earned" data-ach-id="${selectedAchievement.id}" title="${selectedAchievement.name}: ${selectedAchievement.description}">${selectedAchievement.icon}</div>`
+                : `<div class="achi-icon">?</div>`;
+            
             const html = `
                 <div class="card" style="text-align: center;">
                     <div class="profile-avatar" id="avatarClick">
@@ -695,8 +697,8 @@
                     </div>
                     <p style="font-size: 20px; font-weight: bold;">${currentUser.username}</p>
                     <p class="small-text">ID: ${userId}</p>
-                    <div class="achievement-icons">
-                        ${achievementIconsHtml}${missingHtml}
+                    <div class="single-achievement" id="selectedAchievementIcon">
+                        ${selectedIconHtml}
                     </div>
                     <div class="small-text" style="margin-bottom: 12px;">Нажмите на значок, чтобы выбрать достижение</div>
                     <div class="stats-container">
@@ -724,62 +726,78 @@
                 </div>
             `;
             document.getElementById('app').innerHTML = html;
+            
             document.getElementById('avatarClick')?.addEventListener('click', () => showMessage('Аватар', 'Изменить аватар можно через @BotFather командой /setuserpic'));
             
-            // Открытие модалки со всеми достижениями
-            const openAchievementSelector = async () => {
-                const allAchs = allAchievements;
-                if (allAchs.length === 0) {
-                    showMessage('Достижения', 'Нет доступных достижений.');
-                    return;
-                }
-                const earnedIds = new Set(userAchievements.map(a => a.id));
-                const gridHtml = allAchs.map(ach => {
-                    const isEarned = earnedIds.has(ach.id);
-                    const isSelected = selectedIds.includes(ach.id);
-                    return `
-                        <div class="achievement-card ${isEarned ? (isSelected ? 'selected' : '') : 'locked'}" data-ach-id="${ach.id}" data-earned="${isEarned}">
-                            <div class="achievement-icon">${ach.icon}</div>
-                            <div class="achievement-name">${ach.name}</div>
-                            <div class="achievement-status">${isEarned ? (isSelected ? '✓ Выбрано' : 'Доступно') : '🔒 Не получено'}</div>
-                            <div class="achievement-desc">${ach.description}</div>
-                        </div>
-                    `;
-                }).join('');
-                const modalHtml = `
-                    <div class="modal" id="achiSelectorModal" style="display:flex;">
-                        <div class="modal-content">
-                            <span class="close-modal" id="closeAchiSelector">&times;</span>
-                            <h3>Выберите до 4 ачивок для показа в профиле</h3>
-                            <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
-                            <button id="saveAchiSelection">Сохранить</button>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-                document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
-                document.getElementById('saveAchiSelection').onclick = async () => {
-                    const selected = Array.from(document.querySelectorAll('#achiGrid .achievement-card.selected')).map(card => parseInt(card.dataset.achId));
-                    if (selected.length > 4) { showMessage('Ошибка', 'Нельзя выбрать больше 4 ачивок'); return; }
-                    await supabase.from('users').update({ selected_achievements: selected }).eq('id', userId);
-                    currentUser.selected_achievements = selected;
-                    document.getElementById('achiSelectorModal').remove();
-                    await renderProfileTab();
-                };
-                document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
-                    card.addEventListener('click', () => {
-                        const earned = card.dataset.earned === 'true';
-                        if (!earned) {
-                            showMessage('Достижение не получено', 'Выполните условие: ' + (card.querySelector('.achievement-desc')?.innerText || ''));
-                            return;
-                        }
-                        card.classList.toggle('selected');
-                    });
-                });
-            };
-            document.querySelectorAll('.achi-icon').forEach(icon => icon.addEventListener('click', openAchievementSelector));
+            document.getElementById('selectedAchievementIcon')?.addEventListener('click', () => openAchievementSelector(earnedAchievements, selectedAchId));
         }
         
+        // Модальное окно выбора достижения (только заработанные)
+        async function openAchievementSelector(earnedAchievements, currentSelectedId) {
+            if (!earnedAchievements.length) {
+                showMessage('Достижения', 'У вас пока нет заработанных достижений. Совершайте сделки, пополняйте баланс и приглашайте друзей!');
+                return;
+            }
+            
+            const gridHtml = earnedAchievements.map(ach => {
+                const isSelected = (currentSelectedId === ach.id);
+                const earnedDate = new Date(ach.earned_at).toLocaleString();
+                let conditionText = '';
+                switch(ach.condition_type) {
+                    case 'trades_count': conditionText = `Совершено сделок: ${ach.condition_value}`; break;
+                    case 'shares_held': conditionText = `Накоплено акций: ${ach.condition_value/100}`; break;
+                    case 'referrals_count': conditionText = `Приглашено друзей: ${ach.condition_value}`; break;
+                    case 'total_topup': conditionText = `Пополнено Stars: ${ach.condition_value/100}`; break;
+                }
+                return `
+                    <div class="achievement-card ${isSelected ? 'selected' : ''}" data-ach-id="${ach.id}">
+                        <div class="achievement-icon">${ach.icon}</div>
+                        <div class="achievement-name">${ach.name}</div>
+                        <div class="achievement-desc">${ach.description}</div>
+                        <div class="achievement-condition">${conditionText}</div>
+                        <div class="achievement-date">🏅 Получено: ${earnedDate}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            const modalHtml = `
+                <div class="modal" id="achiSelectorModal" style="display:flex;">
+                    <div class="modal-content">
+                        <span class="close-modal" id="closeAchiSelector">&times;</span>
+                        <h3>Выберите достижение для отображения в профиле</h3>
+                        <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
+                        <button id="saveAchiSelection">Сохранить</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
+            document.getElementById('saveAchiSelection').onclick = async () => {
+                const selectedCard = document.querySelector('#achiGrid .achievement-card.selected');
+                if (!selectedCard) {
+                    // Если не выбрано ни одного – сбросить
+                    await supabase.from('users').update({ selected_achievement: null }).eq('id', userId);
+                    currentUser.selected_achievement = null;
+                } else {
+                    const selectedId = parseInt(selectedCard.dataset.achId);
+                    await supabase.from('users').update({ selected_achievement: selectedId }).eq('id', userId);
+                    currentUser.selected_achievement = selectedId;
+                }
+                document.getElementById('achiSelectorModal').remove();
+                await renderProfileTab();
+            };
+            
+            document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    // Убираем выделение у всех и ставим на текущую
+                    document.querySelectorAll('#achiGrid .achievement-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                });
+            });
+        }
+        
+        // ---------- ОСТАЛЬНЫЕ ВКЛАДКИ (без изменений) ----------
         async function renderRatingTab() {
             const leaders = await getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
@@ -895,8 +913,8 @@
             };
         }
         
-        // админка
-        const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // замените
+        // ---------- АДМИНКА ----------
+        const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         async function renderAdminTab() {
             if (userId !== 6048486427) { document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>'; return; }
             try {
@@ -942,7 +960,7 @@
             } catch(e) { document.getElementById('app').innerHTML = `<div class="card error">${e.message}</div>`; }
         }
         
-        // пополнение
+        // ---------- ПОПОЛНЕНИЕ ----------
         let selectedAmount = null;
         function updateTopupFee(amount) {
             const fee = Math.floor(amount * 0.05);
@@ -973,7 +991,7 @@
         });
         document.getElementById('closeTopupModal')?.addEventListener('click', () => document.getElementById('topupModal').style.display = 'none');
         
-        // старт
+        // ---------- ЗАПУСК ----------
         currentUser = await getOrCreateUser();
         const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
         document.documentElement.style.setProperty('--accent', savedColor);
