@@ -173,6 +173,10 @@
             border: 1px solid #2b6e9e;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         }
+        .modal-content h3 {
+            text-align: center;
+            margin-bottom: 16px;
+        }
         .close-modal {
             float: right;
             font-size: 28px;
@@ -300,19 +304,21 @@
         }
         .avatars-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
             margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
         }
         .avatar-option {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 50%;
-            width: 60px;
-            height: 60px;
+            width: 55px;
+            height: 55px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
+            font-size: 32px;
             cursor: pointer;
             transition: 0.2s;
             margin: 0 auto;
@@ -444,14 +450,14 @@
         if (!userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
-        // Кастомное модальное окно вместо tg.showPopup
+        // Кастомное модальное окно
         function showCustomModal(title, message) {
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
                     <div class="modal-content">
                         <span class="close-modal" id="closeCustomModal">&times;</span>
                         <h3>${title}</h3>
-                        <p style="margin: 20px 0;">${message}</p>
+                        <p style="margin: 20px 0; text-align: center;">${message}</p>
                         <button id="customModalOkBtn">OK</button>
                     </div>
                 </div>
@@ -744,8 +750,12 @@
         
         async function refreshAll() { currentUser = await getOrCreateUser(); await renderStocksTab(); }
         
-        // ---------- ВЫБОР АВАТАРА ----------
-        const avatarOptions = ['👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽', '🚀', '💎'];
+        // ---------- ВЫБОР АВАТАРА (30 штук) ----------
+        const avatarOptions = [
+            '👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽',
+            '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆',
+            '🎨', '📷', '🎸', '⚡', '💡', '🔮', '🧸', '🐧', '🦄', '🍀'
+        ];
         async function openAvatarSelector() {
             const currentAvatar = currentUser.avatar_url || '👤';
             const optionsHtml = avatarOptions.map(emoji => `
@@ -837,7 +847,6 @@
             
             document.getElementById('avatarClick')?.addEventListener('click', openAvatarSelector);
             
-            // Обработчики кликов по значкам достижений
             document.querySelectorAll('.achi-icon').forEach(icon => {
                 icon.addEventListener('click', async (e) => {
                     const slot = parseInt(icon.dataset.slot);
@@ -850,11 +859,10 @@
         // Открыть выбор достижения для конкретного слота (0-2) с возможностью очистки
         async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId) {
             if (!earnedAchievements.length) {
-                showCustomModal('Достижения', 'У вас пока нет заработанных достижений. Совершайте сделки, пополняйте баланс и приглашайте друзей!');
+                showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
                 return;
             }
             
-            // Создаём копию, чтобы отметить уже выбранные в других слотах как disabled
             const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
             const isSlotOccupied = currentSlotAchievementId !== null;
             
@@ -899,11 +907,9 @@
             
             if (isSlotOccupied) {
                 document.getElementById('clearSlotBtn').onclick = async () => {
-                    // Очищаем этот слот
                     let newSelectedIds = [...currentSelectedIds];
                     newSelectedIds[slot] = null;
                     newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
-                    // Сохраняем в БД
                     await supabase.from('users').update({ selected_achievements: newSelectedIds }).eq('id', userId);
                     currentUser.selected_achievements = newSelectedIds;
                     document.getElementById('achiSelectorModal').remove();
@@ -915,14 +921,12 @@
                 const selectedCard = document.querySelector('#achiGrid .achievement-card.selected:not(.disabled)');
                 let newSelectedIds = [...currentSelectedIds];
                 if (!selectedCard) {
-                    // Если не выбрали – оставляем как есть (не меняем)
+                    // ничего не меняем
                 } else {
                     const selectedId = parseInt(selectedCard.dataset.achId);
                     newSelectedIds[slot] = selectedId;
                 }
-                // Убираем null и undefined
                 newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
-                // Ограничиваем длину 3 (но в любом случае у нас 3 слота)
                 while (newSelectedIds.length < 3) newSelectedIds.push(null);
                 const saveArray = newSelectedIds.filter(v => v !== null);
                 await supabase.from('users').update({ selected_achievements: saveArray }).eq('id', userId);
@@ -937,7 +941,6 @@
                         showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.');
                         return;
                     }
-                    // Убираем выделение со всех в этой сетке
                     document.querySelectorAll('#achiGrid .achievement-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                 });
