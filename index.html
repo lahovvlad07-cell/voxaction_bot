@@ -7,6 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* Все стили как в предыдущем варианте, только добавляем стили для кастомного модального окна сообщений */
         * {
             margin: 0;
             padding: 0;
@@ -196,7 +197,6 @@
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
             margin-bottom: 12px;
         }
-        /* Три значка, как раньше */
         .achievement-icons {
             display: flex;
             justify-content: center;
@@ -368,6 +368,16 @@
         .admin-only {
             display: none;
         }
+        /* Кастомное модальное сообщение */
+        .custom-message-modal .modal-content {
+            text-align: center;
+        }
+        .custom-message-modal button {
+            margin-top: 20px;
+            width: auto;
+            padding: 10px 24px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -416,9 +426,34 @@
         if (!userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
+        // Кастомная функция показа сообщения вместо tg.showPopup
+        function showCustomMessage(title, message, onClose = null) {
+            const modalHtml = `
+                <div class="modal custom-message-modal" id="customMessageModal" style="display:flex;">
+                    <div class="modal-content">
+                        <h3>${title}</h3>
+                        <p style="margin: 16px 0;">${message}</p>
+                        <button id="customMessageOkBtn">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = document.getElementById('customMessageModal');
+            const closeBtn = document.getElementById('customMessageOkBtn');
+            const removeModal = () => {
+                modal.remove();
+                if (onClose) onClose();
+            };
+            closeBtn.onclick = removeModal;
+            modal.onclick = (e) => { if (e.target === modal) removeModal(); };
+        }
+        
+        // Оригинальный tg.showPopup оставляем для некоторых системных сообщений, но для достижений используем кастомный
         function showMessage(title, msg) {
+            // Для единообразия тоже можно кастомное, но пусть будет tg - менее навязчиво
             tg.showPopup({ title, message: msg, buttons: [{ type: 'ok' }] });
         }
+        
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -427,16 +462,56 @@
         function toCents(v) { return Math.round(parseFloat(v) * 100); }
         function fromCents(c) { return (c / 100).toFixed(2); }
         
+        // Функция для выдачи приветственного достижения, если у пользователя нет ни одного
+        async function grantWelcomeAchievementIfNeeded(userId) {
+            // Проверим, есть ли у пользователя хоть одно достижение
+            const { data: existing, error: checkError } = await supabase
+                .from('user_achievements')
+                .select('achievement_id')
+                .eq('user_id', userId)
+                .limit(1);
+            if (checkError) {
+                console.error('Ошибка проверки достижений:', checkError);
+                return;
+            }
+            if (existing && existing.length > 0) return; // уже есть достижения
+            
+            // Найдём достижение "Добро пожаловать!" (условие типа trades_count = 0 или специальный флаг)
+            // Ищем achievement с condition_type='welcome' или просто первое подходящее, но проще создать отдельное достижение.
+            // В SQL мы добавим достижение с condition_type='welcome' или с trades_count = -1.
+            // Для простоты создадим его прямо сейчас через проверку.
+            const { data: welcomeAch, error: achError } = await supabase
+                .from('achievements')
+                .select('id')
+                .eq('condition_type', 'welcome')
+                .maybeSingle();
+            if (achError || !welcomeAch) {
+                // Если нет достижения "welcome", попробуем создать его на лету (но лучше через SQL)
+                console.warn('Достижение "Добро пожаловать!" не найдено, пропускаем');
+                return;
+            }
+            // Выдаём достижение
+            const { error: insertError } = await supabase
+                .from('user_achievements')
+                .insert({ user_id: userId, achievement_id: welcomeAch.id });
+            if (insertError) console.error('Ошибка выдачи приветственного достижения:', insertError);
+            else console.log('Выдано приветственное достижение пользователю', userId);
+        }
+        
         async function getOrCreateUser() {
             let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
             if (error) throw new Error(`Ошибка запроса: ${error.message}`);
             if (!data) {
                 const { data: newUser, error: insertError } = await supabase.from('users').insert([{ id: userId, username, shares: 0, stars_balance: 0, selected_achievements: [] }]).select().single();
                 if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
-                return newUser;
+                data = newUser;
             }
             // Убедимся, что поле selected_achievements существует
             if (!data.selected_achievements) data.selected_achievements = [];
+            
+            // Выдаём приветственное достижение, если нужно
+            await grantWelcomeAchievementIfNeeded(userId);
+            
             return data;
         }
         
@@ -756,7 +831,8 @@
         // Открыть выбор достижения для конкретного слота (0-2)
         async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds) {
             if (!earnedAchievements.length) {
-                showMessage('Достижения', 'У вас пока нет заработанных достижений. Совершайте сделки, пополняйте баланс и приглашайте друзей!');
+                // Используем кастомное сообщение вместо tg.showPopup
+                showCustomMessage('Достижения', 'У вас пока нет заработанных достижений. Совершайте сделки, пополняйте баланс и приглашайте друзей!');
                 return;
             }
             
@@ -774,6 +850,7 @@
                     case 'shares_held': conditionText = `Накоплено акций: ${ach.condition_value/100}`; break;
                     case 'referrals_count': conditionText = `Приглашено друзей: ${ach.condition_value}`; break;
                     case 'total_topup': conditionText = `Пополнено Stars: ${ach.condition_value/100}`; break;
+                    case 'welcome': conditionText = `За регистрацию`; break;
                 }
                 return `
                     <div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
@@ -803,7 +880,7 @@
                 const selectedCard = document.querySelector('#achiGrid .achievement-card.selected:not(.disabled)');
                 let newSelectedIds = [...currentSelectedIds];
                 if (!selectedCard) {
-                    // Если не выбрали – можно очистить этот слот
+                    // Если не выбрали – очищаем этот слот
                     newSelectedIds[slot] = null;
                 } else {
                     const selectedId = parseInt(selectedCard.dataset.achId);
@@ -811,9 +888,8 @@
                 }
                 // Очищаем null и приводим к массиву
                 newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
-                // Ограничиваем длину 3 (но по сути и так будет 3 слота, просто убираем null)
                 while (newSelectedIds.length < 3) newSelectedIds.push(null);
-                // Сохраняем в БД (массив целых чисел, null не сохраняем, заменим на 0 или удалим, но лучше хранить null? Supabase массив не любит null, заменим на 0)
+                // Сохраняем в БД (убираем null, заменяем на 0, потом фильтруем)
                 const saveArray = newSelectedIds.map(id => id || 0).filter(v => v !== 0);
                 await supabase.from('users').update({ selected_achievements: saveArray }).eq('id', userId);
                 currentUser.selected_achievements = saveArray;
@@ -824,7 +900,7 @@
             document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
                 card.addEventListener('click', () => {
                     if (card.dataset.disabled === 'true') {
-                        showMessage('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.');
+                        showCustomMessage('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.');
                         return;
                     }
                     // Убираем выделение со всех в этой сетке
