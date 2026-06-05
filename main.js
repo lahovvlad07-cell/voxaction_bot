@@ -1,4 +1,4 @@
-// main.js (полная версия с drag-to-scroll для меню)
+// main.js (с drag-to-scroll для горизонтального меню)
 (async () => {
     const tg = window.Telegram.WebApp;
     tg.ready();
@@ -12,24 +12,19 @@
         return;
     }
 
-    // Показываем админ-вкладку для владельца
     if (window.userId === 6048486427) {
         const adminTab = document.querySelector('.admin-tab');
         if (adminTab) adminTab.style.display = 'inline-flex';
     }
 
-    // Загружаем или создаём пользователя
     const { user, isNew } = await window.getOrCreateUser();
     window.currentUser = user;
 
-    // Применяем сохранённый цвет акцента
     const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
     document.documentElement.style.setProperty('--accent', savedColor);
 
-    // Рендерим начальную вкладку (Акции)
     await window.renderStocks();
 
-    // Автообновление для вкладки акций (каждые 15 секунд)
     let autoRefresh = null;
     function startAutoRefresh() {
         if (autoRefresh) clearInterval(autoRefresh);
@@ -49,11 +44,9 @@
         }
     }
 
-    // Переключение вкладок
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', async () => {
             const name = tab.dataset.tab;
-            // Убираем активный класс со всех вкладок
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
@@ -76,64 +69,50 @@
         });
     });
 
-    // Уведомления в реальном времени
     window.setupRealtime();
     await window.updateBellBadge();
 
-    // Если пользователь новый — через 0.5 сек предложим выбрать аватар
     if (isNew) {
         setTimeout(() => window.openAvatar(), 500);
     }
-
-    // Запускаем автообновление для акций
     startAutoRefresh();
 
-    // ----- Горизонтальный скролл для нижнего меню (drag-to-scroll) -----
-    function initDragScroll() {
+    // ---------- DRAG-TO-SCROLL ДЛЯ ГОРИЗОНТАЛЬНОГО МЕНЮ ----------
+    function initHorizontalDragScroll() {
         const wrapper = document.querySelector('.tabs-wrapper');
         if (!wrapper) return;
 
-        let isDown = false;
-        let startX;
-        let scrollLeft;
+        let isDragging = false;
+        let startX, startScrollLeft;
 
         wrapper.addEventListener('mousedown', (e) => {
-            isDown = true;
+            isDragging = true;
             wrapper.style.cursor = 'grabbing';
             startX = e.pageX - wrapper.offsetLeft;
-            scrollLeft = wrapper.scrollLeft;
-            e.preventDefault(); // предотвращаем выделение текста
+            startScrollLeft = wrapper.scrollLeft;
+            e.preventDefault();
         });
 
-        wrapper.addEventListener('mouseleave', () => {
-            isDown = false;
-            wrapper.style.cursor = 'grab';
-        });
-
-        wrapper.addEventListener('mouseup', () => {
-            isDown = false;
-            wrapper.style.cursor = 'grab';
-        });
-
-        wrapper.addEventListener('mousemove', (e) => {
-            if (!isDown) return;
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
             e.preventDefault();
             const x = e.pageX - wrapper.offsetLeft;
-            const walk = (x - startX) * 1.5; // скорость прокрутки
-            wrapper.scrollLeft = scrollLeft - walk;
+            const walk = (x - startX) * 1.2; // скорость прокрутки
+            wrapper.scrollLeft = startScrollLeft - walk;
         });
 
-        // Для сенсорных экранов (пальцем) — стандартный браузерный скролл работает,
-        // но добавим пассивный режим, чтобы не конфликтовать.
-        wrapper.addEventListener('touchstart', (e) => {
-            // ничего не делаем, просто разрешаем нативный скролл
-        }, { passive: true });
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            wrapper.style.cursor = 'grab';
+        });
+
+        wrapper.addEventListener('dragstart', (e) => e.preventDefault());
+        wrapper.addEventListener('selectstart', (e) => e.preventDefault());
     }
 
-    initDragScroll();
+    initHorizontalDragScroll();
 })();
 
-// Вспомогательная функция для обновления данных пользователя (используется в stocks.js)
 window.refreshUser = async () => {
     const { user } = await window.getOrCreateUser();
     window.currentUser = user;
