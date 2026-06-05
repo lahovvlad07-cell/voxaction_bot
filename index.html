@@ -24,62 +24,62 @@
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto;
             background: var(--bg);
             color: var(--text);
-            padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
             transition: background 0.2s, color 0.2s;
         }
-        .card { background: var(--card-bg); border-radius: 24px; padding: 16px; margin: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .card { background: var(--card-bg); border-radius: 24px; padding: 14px; margin: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
         .tabs-wrapper { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); border-top: 1px solid var(--border); padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px)); z-index: 100; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; cursor: grab; }
         .tabs-wrapper:active { cursor: grabbing; }
-        .tabs { display: inline-flex; gap: 8px; padding: 0 12px; }
-        .tab { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 40px; background: var(--border); transition: all 0.2s; cursor: pointer; min-width: 70px; }
+        .tabs { display: inline-flex; gap: 4px; padding: 0 8px; }
+        .tab { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 10px; border-radius: 32px; background: var(--border); transition: all 0.2s; cursor: pointer; min-width: 60px; }
         .tab.active { background: var(--primary); color: white; }
-        .tab-icon { font-size: 22px; margin-bottom: 4px; }
-        .tab-label { font-size: 12px; font-weight: 500; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 40px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
+        .tab-icon { font-size: 20px; margin-bottom: 2px; }
+        .tab-label { font-size: 11px; font-weight: 500; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 14px; border-radius: 36px; font-size: 15px; font-weight: 600; width: 100%; margin-top: 8px; cursor: pointer; transition: 0.2s; }
         button:active { transform: scale(0.97); }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 40px; font-size: 16px; background: var(--bg); color: var(--text); }
-        .buy-btn, .cancel-btn { width: auto; padding: 6px 16px; margin: 0; font-size: 14px; }
+        input { width: 100%; padding: 10px; margin: 6px 0; border: 1px solid var(--border); border-radius: 36px; font-size: 15px; background: var(--bg); color: var(--text); }
+        .buy-btn, .cancel-btn { width: auto; padding: 4px 12px; margin: 0; font-size: 13px; }
         .cancel-btn { background: var(--danger); }
-        .order-item { border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .order-item { border-bottom: 1px solid var(--border); padding: 10px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .price { font-size: 24px; font-weight: bold; color: var(--primary); }
-        .small-text { font-size: 12px; color: var(--text-secondary); }
-        .chart-container { width: 100%; height: 250px; margin: 12px 0; background: var(--card-bg); border-radius: 12px; overflow: hidden; }
+        .price { font-size: 22px; font-weight: bold; color: var(--primary); }
+        .small-text { font-size: 11px; color: var(--text-secondary); }
+        .chart-container { width: 100%; height: 230px; margin: 10px 0; background: var(--card-bg); border-radius: 12px; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
-        .ticker { background: var(--bg); border-radius: 20px; padding: 8px 12px; overflow: hidden; white-space: nowrap; margin-bottom: 12px; }
+        .ticker { background: var(--bg); border-radius: 20px; padding: 6px 10px; overflow: hidden; white-space: nowrap; margin-bottom: 10px; font-size: 13px; }
         .ticker-content { display: inline-block; animation: scroll 20s linear infinite; }
         @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        .trade-item { display: inline-block; margin-right: 30px; }
-        .info-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        .info-card { background: var(--bg); border-radius: 16px; padding: 12px; text-align: center; }
-        .info-label { font-size: 12px; color: var(--text-secondary); }
-        .info-value { font-size: 20px; font-weight: bold; }
-        .leaderboard-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
-        .rank { font-weight: bold; width: 40px; }
+        .trade-item { display: inline-block; margin-right: 25px; }
+        .info-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .info-card { background: var(--bg); border-radius: 16px; padding: 10px; text-align: center; }
+        .info-label { font-size: 11px; color: var(--text-secondary); }
+        .info-value { font-size: 18px; font-weight: bold; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+        .rank { font-weight: bold; width: 35px; }
         .user-name { flex: 2; }
         .user-shares { font-weight: bold; }
-        .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-        .filter-btn, .sort-btn, .timeframe-btn { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 6px 12px; font-size: 14px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
-        .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: var(--primary); color: white; }
-        .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .filter-bar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .filter-btn, .sort-btn, .timeframe-btn { background: var(--bg); color: var(--text); margin: 0; width: auto; padding: 4px 10px; font-size: 13px; cursor: pointer; border-radius: 20px; border: 1px solid var(--border); }
+        .filter-btn.active, .sort-btn.active, .timeframe-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .history-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--card-bg); border-radius: 24px; max-width: 90%; width: 400px; max-height: 80%; overflow-y: auto; padding: 20px; }
-        .close-modal { float: right; cursor: pointer; font-size: 24px; }
-        .notification-bell { position: relative; display: inline-block; cursor: pointer; }
-        .badge-count { position: absolute; top: -8px; right: -12px; background: red; color: white; font-size: 10px; border-radius: 20px; padding: 2px 6px; }
-        .color-preview { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-left: 10px; border: 1px solid #ccc; }
-        .topup-amounts { display: flex; justify-content: space-around; margin: 15px 0; flex-wrap: wrap; gap: 12px; }
-        .amount-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 30px; width: auto; margin: 0; flex: 1; text-align: center; cursor: pointer; transition: 0.2s; }
-        .amount-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
-        .fee-info { background: var(--bg); padding: 12px; border-radius: 16px; margin: 12px 0; text-align: center; font-size: 14px; }
-        .custom-amount { display: flex; gap: 8px; align-items: center; margin: 12px 0; }
-        .custom-amount input { flex: 2; margin: 0; }
-        .profile-avatar { display: flex; flex-direction: column; align-items: center; margin-bottom: 16px; cursor: pointer; }
-        .avatar-circle { width: 80px; height: 80px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 8px; }
-        .achievement-icons { display: flex; justify-content: center; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
-        .achi-icon { width: 50px; height: 50px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-secondary); cursor: pointer; transition: 0.2s; }
+        .modal-content { background: var(--card-bg); border-radius: 24px; max-width: 90%; width: 350px; max-height: 70%; overflow-y: auto; padding: 16px; }
+        .close-modal { float: right; cursor: pointer; font-size: 22px; }
+        .profile-avatar { display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; cursor: pointer; }
+        .avatar-circle { width: 70px; height: 70px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; color: white; margin-bottom: 6px; }
+        .achievement-icons { display: flex; justify-content: center; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+        .achi-icon { width: 44px; height: 44px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--text-secondary); cursor: pointer; transition: 0.2s; }
         .achi-icon.earned { background: var(--primary); color: white; }
+        .topup-amounts { display: flex; justify-content: space-around; margin: 12px 0; flex-wrap: wrap; gap: 8px; }
+        .amount-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 30px; width: auto; margin: 0; flex: 1; text-align: center; cursor: pointer; transition: 0.2s; }
+        .amount-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
+        .fee-info { background: var(--bg); padding: 10px; border-radius: 16px; margin: 10px 0; text-align: center; font-size: 13px; }
+        .custom-amount { display: flex; gap: 6px; align-items: center; margin: 10px 0; }
+        .custom-amount input { flex: 2; margin: 0; }
         .admin-only { display: none; }
+        .color-preview { width: 28px; height: 28px; border-radius: 50%; display: inline-block; margin-left: 8px; border: 1px solid #ccc; }
+        .radio-group { display: flex; gap: 15px; margin: 8px 0; align-items: center; }
+        .radio-group label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -111,6 +111,18 @@
             <button id="confirmTopupBtn">Пополнить</button>
         </div>
     </div>
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeWithdrawModal">&times;</span>
+            <h3>Вывод средств</h3>
+            <div class="custom-amount">
+                <input type="number" id="withdrawAmount" placeholder="Количество Stars" min="10" step="1">
+            </div>
+            <div class="fee-info" id="withdrawFeeInfo">Комиссия 5%, вы получите: 0 ⭐</div>
+            <button id="confirmWithdrawBtn">Вывести в подарок</button>
+            <p class="small-text" style="margin-top:8px;">Средства будут конвертированы в Telegram Gift и отправлены вам.</p>
+        </div>
+    </div>
     <script>
         (async () => {
             // DRAG TABS
@@ -126,7 +138,6 @@
             const username = tg.initDataUnsafe?.user?.username || `user_${userId}`;
             if (!userId) { document.getElementById('app').innerHTML = '<div class="card error">Ошибка: запустите через Telegram</div>'; return; }
             
-            // Показываем админ-вкладку, если пользователь – админ
             if (userId === 6048486427) {
                 document.querySelector('.admin-tab').style.display = 'inline-flex';
             }
@@ -147,7 +158,7 @@
             function toCents(v) { return Math.round(parseFloat(v) * 100); }
             function fromCents(c) { return (c / 100).toFixed(2); }
             
-            // ----------------------------- USER -----------------------------
+            // ---------- USER ----------
             async function getOrCreateUser() {
                 let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
                 if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -243,7 +254,7 @@
                 return data.reduce((s,r)=>s+r.rating,0)/data.length;
             }
             
-            // ----------------------------- CHART -----------------------------
+            // ---------- CHART ----------
             let currentTimeframe = '30d';
             async function fetchPriceHistoryForTimeframe() {
                 let startDate = new Date();
@@ -260,14 +271,14 @@
                 container.innerHTML = '';
                 if (!history || history.length === 0) { container.innerHTML = '<p style="padding:20px;">Нет данных</p>'; return; }
                 const canvas = document.createElement('canvas');
-                const width = container.clientWidth, height = 250;
+                const width = container.clientWidth, height = 230;
                 canvas.width = width; canvas.height = height;
                 canvas.style.width = '100%'; canvas.style.height = 'auto';
                 container.appendChild(canvas);
                 const ctx = canvas.getContext('2d');
                 const values = history.map(h => h.price / 100);
                 const max = Math.max(...values), min = Math.min(...values), range = max - min;
-                const padding = { top: 20, bottom: 30, left: 40, right: 20 };
+                const padding = { top: 15, bottom: 25, left: 35, right: 15 };
                 const graphWidth = width - padding.left - padding.right;
                 const graphHeight = height - padding.top - padding.bottom;
                 const stepX = graphWidth / (values.length - 1);
@@ -283,14 +294,14 @@
                 }
                 ctx.stroke();
                 ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text') || '#f1f5f9';
-                ctx.font = '11px sans-serif';
-                ctx.fillText(max.toFixed(2), padding.left - 30, padding.top + 10);
-                ctx.fillText(min.toFixed(2), padding.left - 30, height - padding.bottom - 5);
+                ctx.font = '10px sans-serif';
+                ctx.fillText(max.toFixed(2), padding.left - 25, padding.top + 8);
+                ctx.fillText(min.toFixed(2), padding.left - 25, height - padding.bottom - 5);
                 if (history.length > 0) {
                     const firstDate = new Date(history[0].created_at).toLocaleDateString();
                     const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
-                    ctx.fillText(firstDate, padding.left, height - padding.bottom + 15);
-                    ctx.fillText(lastDate, width - padding.right - 30, height - padding.bottom + 15);
+                    ctx.fillText(firstDate, padding.left, height - padding.bottom + 12);
+                    ctx.fillText(lastDate, width - padding.right - 35, height - padding.bottom + 12);
                 }
             }
             function renderTicker(trades) {
@@ -301,7 +312,7 @@
                 container.innerHTML = `<div class="ticker-content">${items}</div>`;
             }
             
-            // ----------------------------- RENDERING -----------------------------
+            // ---------- RENDERING ----------
             let currentOrdersFilter = 'all';
             let currentSortDir = 'asc';
             async function renderStocksTab() {
@@ -320,7 +331,7 @@
                         </div>
                         <div class="card">
                             <div class="info-panel"><div class="info-card"><div class="info-label">Рыночная капитализация</div><div class="info-value">${Math.round(marketCap)} ⭐</div></div><div class="info-card"><div class="info-label">Всего акций</div><div class="info-value">${(totalShares/100).toFixed(2)}</div></div></div>
-                            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                            <div style="display:flex; gap:6px; margin-bottom:8px;">
                                 <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
                                 <button class="timeframe-btn ${currentTimeframe === '7d' ? 'active' : ''}" data-tf="7d">7д</button>
                                 <button class="timeframe-btn ${currentTimeframe === '30d' ? 'active' : ''}" data-tf="30d">30д</button>
@@ -399,31 +410,31 @@
                         <div class="profile-avatar" id="avatarClick">
                             <div class="avatar-circle">${currentUser.username.charAt(0).toUpperCase()}</div>
                         </div>
-                        <p style="font-size: 24px; font-weight: bold;">${currentUser.username}</p>
+                        <p style="font-size: 22px; font-weight: bold;">${currentUser.username}</p>
                         <p>ID: ${userId}</p>
                         <div class="achievement-icons" id="achievementIcons">
                             ${achievementIconsHtml}${missingHtml}
                         </div>
-                        <button id="customizeAchievementsBtn" style="margin-top: 8px;">🎨 Настроить ачивки</button>
-                        <div style="display: flex; justify-content: space-around; margin: 20px 0;">
-                            <div><p style="font-size: 28px;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
-                            <div><p style="font-size: 28px;">${fromCents(currentUser.stars_balance)}</p><p class="small-text">Stars</p></div>
+                        <button id="customizeAchievementsBtn" style="margin-top: 6px;">🎨 Настроить ачивки</button>
+                        <div style="display: flex; justify-content: space-around; margin: 16px 0;">
+                            <div><p style="font-size: 26px;">${fromCents(currentUser.shares)}</p><p class="small-text">Акций</p></div>
+                            <div><p style="font-size: 26px;">${fromCents(currentUser.stars_balance)}</p><p class="small-text">Stars</p></div>
                         </div>
                         <hr>
                         <h3>📊 Статистика</h3>
                         <div style="display: flex; justify-content: space-around;">
-                            <div><p style="font-size: 20px;">${stats.totalTrades}</p><p class="small-text">Сделок</p></div>
-                            <div><p style="font-size: 20px;">${stats.totalVolume.toFixed(2)} ⭐</p><p class="small-text">Объём</p></div>
+                            <div><p style="font-size: 18px;">${stats.totalTrades}</p><p class="small-text">Сделок</p></div>
+                            <div><p style="font-size: 18px;">${stats.totalVolume.toFixed(2)} ⭐</p><p class="small-text">Объём</p></div>
                         </div>
                         <hr>
                         <h3>👥 Рефералы</h3>
-                        <div style="display: flex; justify-content: space-around; margin-bottom: 16px;">
-                            <div><p style="font-size: 24px;">${referralCount}</p><p class="small-text">Приглашено друзей</p></div>
-                            <div><p style="font-size: 24px;">${referralBonusShares}</p><p class="small-text">Заработано акций</p></div>
+                        <div style="display: flex; justify-content: space-around; margin-bottom: 12px;">
+                            <div><p style="font-size: 22px;">${referralCount}</p><p class="small-text">Приглашено друзей</p></div>
+                            <div><p style="font-size: 22px;">${referralBonusShares}</p><p class="small-text">Заработано акций</p></div>
                         </div>
                         <h3>🔗 Реферальная ссылка</h3>
-                        <div class="small-text" style="background: var(--bg); padding: 8px; border-radius: 12px; word-break: break-all;">${refLink}</div>
-                        <p class="small-text" style="margin-top: 8px;">Приглашайте друзей – они получат бонус, а вы 5 акций, когда друг пополнит на 10 ⭐ 🎁.</p>
+                        <div class="small-text" style="background: var(--bg); padding: 6px; border-radius: 12px; word-break: break-all;">${refLink}</div>
+                        <p class="small-text" style="margin-top: 6px;">Приглашайте друзей – они получат бонус, а вы 5 акций, когда друг пополнит на 10 ⭐ 🎁.</p>
                     </div>
                 `;
                 document.getElementById('app').innerHTML = html;
@@ -449,10 +460,7 @@
                     });
                     document.getElementById('saveAchievementsBtn')?.addEventListener('click', async () => {
                         const selected = Array.from(document.querySelectorAll('#achievementsSelectModal input:checked')).map(cb => parseInt(cb.value));
-                        if (selected.length > 5) {
-                            showMessage('Ошибка', 'Нельзя выбрать больше 5 ачивок');
-                            return;
-                        }
+                        if (selected.length > 5) { showMessage('Ошибка', 'Нельзя выбрать больше 5 ачивок'); return; }
                         await supabase.from('users').update({ selected_achievements: selected }).eq('id', userId);
                         currentUser.selected_achievements = selected;
                         document.getElementById('achievementsSelectModal').remove();
@@ -480,23 +488,28 @@
                 document.getElementById('app').innerHTML = `
                     <div class="card"><h2>💳 Кошелёк</h2><p>⭐ Баланс: <strong>${fromCents(currentUser.stars_balance)}</strong></p><p>📊 Акций: <strong>${fromCents(currentUser.shares)}</strong></p><hr>
                     <button id="topupBtn">💸 Пополнить Stars</button>
+                    <button id="withdrawBtn">🎁 Вывести в подарок</button>
                     </div>`;
                 document.getElementById('topupBtn')?.addEventListener('click', () => {
                     document.getElementById('topupModal').style.display = 'flex';
                     updateTopupFee(0);
+                });
+                document.getElementById('withdrawBtn')?.addEventListener('click', () => {
+                    document.getElementById('withdrawModal').style.display = 'flex';
+                    updateWithdrawFee();
                 });
             }
             
             async function renderAnalyticsTab() {
                 const volume = await supabase.rpc('get_volume_history', { days_limit: 30 });
                 const trades = await supabase.from('trades').select('*').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`).order('created_at', { ascending: false }).limit(50);
-                let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%; height:150px;"></canvas><p class="small-text">Объём за 30 дней</p></div>
+                let html = `<div class="card"><h2>📊 Объёмы торгов</h2><canvas id="volCanvas" style="width:100%; height:130px;"></canvas><p class="small-text">Объём за 30 дней</p></div>
                            <div class="card"><h2>📜 История сделок</h2><div id="historyList"></div></div>`;
                 document.getElementById('app').innerHTML = html;
                 if (volume.data && volume.data.length) {
                     const canvas = document.getElementById('volCanvas');
                     const ctx = canvas.getContext('2d');
-                    const w = canvas.clientWidth, h = 150;
+                    const w = canvas.clientWidth, h = 130;
                     canvas.width = w; canvas.height = h;
                     const maxVol = Math.max(...volume.data.map(v=>v.total_amount/100));
                     const barW = (w-40)/volume.data.length - 2;
@@ -528,7 +541,7 @@
                         <label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br>
                         <label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br>
                         <div><strong>Цвет акцента:</strong></div>
-                        <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <input type="color" id="colorPicker" value="${customColor}">
                             <span id="colorPreview" class="color-preview" style="background: ${customColor};"></span>
                         </div>
@@ -562,8 +575,8 @@
                 };
             }
             
-            // ----------------------------- ADMIN PANEL -----------------------------
-            const BACKEND_URL = 'https://voxaction-bot-main.onrender.com'; // замените на ваш URL
+            // ---------- ADMIN PANEL ----------
+            const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
             async function renderAdminTab() {
                 if (userId !== 6048486427) {
                     document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>';
@@ -601,11 +614,10 @@
                             <div id="adminOrdersList"></div>
                             <hr>
                             <h3>Пользователи</h3>
-                            <div id="usersList" style="max-height: 300px; overflow-y: auto;"></div>
+                            <div id="usersList" style="max-height: 250px; overflow-y: auto;"></div>
                         </div>
                     `;
                     document.getElementById('app').innerHTML = html;
-                    // Ордера
                     const ordersDiv = document.getElementById('adminOrdersList');
                     if (orders.length === 0) ordersDiv.innerHTML = '<p>Нет активных ордеров</p>';
                     else {
@@ -627,21 +639,15 @@
                                     body: JSON.stringify({ admin_id: userId, order_id: orderId })
                                 });
                                 const data = await res.json();
-                                if (data.ok) {
-                                    showMessage('Успех', 'Ордер отменён');
-                                    renderAdminTab();
-                                } else {
-                                    showMessage('Ошибка', data.error);
-                                }
+                                if (data.ok) { showMessage('Успех', 'Ордер отменён'); renderAdminTab(); }
+                                else showMessage('Ошибка', data.error);
                             });
                         });
                     }
-                    // Пользователи
                     const usersDiv = document.getElementById('usersList');
                     if (usersData.users) {
                         usersDiv.innerHTML = usersData.users.map(u => `<div>ID: ${u.id} | ${u.username || 'Аноним'} | Акций: ${fromCents(u.shares)} | Stars: ${fromCents(u.stars_balance)}</div>`).join('');
                     }
-                    // Выдача акций
                     document.getElementById('giveSharesBtn')?.addEventListener('click', async () => {
                         const targetId = parseInt(document.getElementById('targetUserId').value);
                         const shares = parseInt(document.getElementById('giveShares').value);
@@ -655,7 +661,6 @@
                         if (data.ok) showMessage('Успех', 'Акции выданы');
                         else showMessage('Ошибка', data.error);
                     });
-                    // Выдача звёзд
                     document.getElementById('giveStarsBtn')?.addEventListener('click', async () => {
                         const targetId = parseInt(document.getElementById('targetUserId').value);
                         const stars = parseInt(document.getElementById('giveStars').value);
@@ -674,16 +679,12 @@
                 }
             }
             
-            // ----------------------------- TOPUP LOGIC -----------------------------
+            // ---------- TOPUP ----------
             let selectedAmount = null;
             function updateTopupFee(amount) {
                 const fee = Math.floor(amount * 0.05);
                 const receive = amount - fee;
-                document.getElementById('topupFeeInfo').innerHTML = `
-                    💸 Вы платите: <strong>${amount} ⭐</strong><br>
-                    📉 Комиссия Telegram (5%): <strong>${fee} ⭐</strong><br>
-                    ✅ Получите на баланс: <strong style="color: var(--success);">${receive} ⭐</strong>
-                `;
+                document.getElementById('topupFeeInfo').innerHTML = `💸 Вы платите: <strong>${amount} ⭐</strong><br>📉 Комиссия Telegram (5%): <strong>${fee} ⭐</strong><br>✅ Получите на баланс: <strong style="color: var(--success);">${receive} ⭐</strong>`;
             }
             document.querySelectorAll('#topupModal .amount-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -708,10 +709,7 @@
                 });
             }
             document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => {
-                if (!selectedAmount || selectedAmount < 1) {
-                    showMessage('Ошибка', 'Выберите или введите сумму');
-                    return;
-                }
+                if (!selectedAmount || selectedAmount < 1) { showMessage('Ошибка', 'Выберите или введите сумму'); return; }
                 document.getElementById('topupModal').style.display = 'none';
                 try {
                     const response = await fetch(`${BACKEND_URL}/create-invoice`, {
@@ -739,7 +737,32 @@
                 document.getElementById('topupModal').style.display = 'none';
             });
             
-            // ----------------------------- START -----------------------------
+            // ---------- WITHDRAW (Gifts) ----------
+            function updateWithdrawFee() {
+                const amount = parseFloat(document.getElementById('withdrawAmount').value);
+                if (isNaN(amount) || amount < 10) {
+                    document.getElementById('withdrawFeeInfo').innerHTML = 'Комиссия 5%, вы получите: 0 ⭐';
+                    return;
+                }
+                const fee = Math.floor(amount * 0.05);
+                const receive = amount - fee;
+                document.getElementById('withdrawFeeInfo').innerHTML = `Комиссия 5%: ${fee} ⭐<br>Вы получите подарок на сумму: <strong>${receive} ⭐</strong>`;
+            }
+            document.getElementById('withdrawAmount')?.addEventListener('input', updateWithdrawFee);
+            document.getElementById('confirmWithdrawBtn')?.addEventListener('click', async () => {
+                const amount = parseFloat(document.getElementById('withdrawAmount').value);
+                if (isNaN(amount) || amount < 10) { showMessage('Ошибка', 'Минимальная сумма вывода – 10 ⭐'); return; }
+                if (currentUser.stars_balance < amount * 100) { showMessage('Ошибка', 'Недостаточно Stars'); return; }
+                document.getElementById('withdrawModal').style.display = 'none';
+                // Имитация вывода – в реальности здесь будет вызов API бота для отправки подарка
+                showMessage('Вывод средств', `Запрос на вывод ${amount} ⭐ в виде подарка отправлен. Ожидайте, бот свяжется с вами.`);
+                // Здесь можно вызвать fetch к боту: `${BACKEND_URL}/withdraw-gift?amount=${amount}`
+            });
+            document.getElementById('closeWithdrawModal')?.addEventListener('click', () => {
+                document.getElementById('withdrawModal').style.display = 'none';
+            });
+            
+            // ---------- START ----------
             currentUser = await getOrCreateUser();
             const savedColor = localStorage.getItem('custom_color') || '#38bdf8';
             document.documentElement.style.setProperty('--primary', savedColor);
