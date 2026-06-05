@@ -219,7 +219,6 @@
         .achievement-icon { font-size: 28px; margin-bottom: 4px; }
         .achievement-name { font-weight: 600; font-size: 13px; }
         .achievement-desc, .achievement-condition, .achievement-date { font-size: 10px; color: #9ca3af; margin-top: 4px; }
-        /* Сетки аватарок и фонов */
         .avatars-grid, .bg-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -243,6 +242,7 @@
         .avatar-option.selected { border: 2px solid #2b6e9e; background: rgba(43, 110, 158, 0.3); transform: scale(1.05); }
         .avatar-option .avatar-emoji {
             font-size: 40px;
+            line-height: 1;
         }
         .bg-option {
             width: 65px;
@@ -639,10 +639,22 @@
             '🚀', '💎', '🌸', '🔥', '❤️', '👍', '🎉', '🌟', '🍕', '🏆',
             '🎨', '📷', '⚡', '🔮'
         ];
-        // Корректировка вертикали (px) для эмодзи (применяется только к span)
+        // Уточнённые значения вертикального смещения (в px) для точного центрирования
         const avatarAdjustments = {
-            '🐱': 5, '🐶': 5, '🦊': 3, '🐼': 5, '⚽': 2, '💎': 2, '🌸': 2,
-            '🔥': 2, '🎉': 2, '🌟': 2, '🍕': 2, '🏆': 2, '🎨': 2, '📷': 2
+            '🐱': 8,    // кот – был сильно ниже
+            '🐶': 8,    // собака
+            '🐼': 7,    // панда
+            '🦊': 5,    // лиса
+            '⚽': 3,
+            '💎': 3,
+            '🌸': 3,
+            '🔥': 3,
+            '🎉': 3,
+            '🌟': 3,
+            '🍕': 3,
+            '🏆': 3,
+            '🎨': 3,
+            '📷': 3
         };
         function getAvatarStyle(emoji) {
             const adjust = avatarAdjustments[emoji] || 0;
