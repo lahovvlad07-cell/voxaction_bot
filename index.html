@@ -300,7 +300,7 @@
         .achievement-card.disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.3); }
         .achievement-icon { font-size: 28px; margin-bottom: 4px; }
         .achievement-name { font-weight: 600; font-size: 13px; }
-        .achievement-desc, .achievement-condition, .achievement-date { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+        .achievement-desc, .achievement-date { font-size: 10px; color: #9ca3af; margin-top: 4px; }
         .progress-bar {
             background: rgba(255,255,255,0.1);
             border-radius: 10px;
@@ -1069,7 +1069,7 @@
             };
         }
         
-        // ---------- Профиль (компактный колокольчик) ----------
+        // ---------- Профиль ----------
         async function renderProfileTab() {
             const stats = await getUserStats();
             const earnedAchievements = await getEarnedAchievements();
@@ -1161,7 +1161,7 @@
             await updateBellBadge();
         }
         
-        // ---------- Выбор достижения для слота (с сохранением в нужный слот) ----------
+        // ---------- Выбор достижения для слота (без дублирующей строки условия) ----------
         async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId) {
             if (!earnedAchievements.length) {
                 showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
@@ -1175,17 +1175,13 @@
                 const disabledClass = isUsedElsewhere ? 'disabled' : '';
                 const selectedClass = isSelected ? 'selected' : '';
                 const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleString() : 'дата не указана';
-                let conditionText = '';
-                const hideCondition = ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '✅ Абсолютный чемпион';
-                if (!hideCondition && ach.condition_type !== 'all_achievements') {
-                    switch(ach.condition_type) {
-                        case 'trades_count': conditionText = `📊 Сделок: ${ach.condition_value}`; break;
-                        case 'shares_held': conditionText = `📈 Акций: ${ach.condition_value/100}`; break;
-                        case 'referrals_count': conditionText = `👥 Приглашений: ${ach.condition_value}`; break;
-                        case 'total_topup': conditionText = `💰 Пополнено: ${ach.condition_value/100} ⭐`; break;
-                    }
-                }
-                return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}"><div class="achievement-icon">${ach.icon}</div><div class="achievement-name">${ach.name}</div><div class="achievement-desc">${ach.description}</div>${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}<div class="achievement-date">🏅 Получено: ${earnedDate}</div></div>`;
+                // Убрали conditionText полностью
+                return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
+                            <div class="achievement-icon">${ach.icon}</div>
+                            <div class="achievement-name">${ach.name}</div>
+                            <div class="achievement-desc">${ach.description}</div>
+                            <div class="achievement-date">🏅 Получено: ${earnedDate}</div>
+                        </div>`;
             }).join('');
             const modalHtml = `<div class="modal" id="achiSelectorModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAchiSelector">&times;</span><h3>Выберите достижение для слота ${slot+1}</h3><div class="achievements-grid" id="achiGrid">${gridHtml}</div>${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}<button id="saveAchiSelection">Сохранить</button></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
