@@ -222,18 +222,23 @@
             border-color: #60a5fa;
             box-shadow: 0 0 10px rgba(43, 110, 158, 0.5);
         }
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 16px 0;
+        }
         .stats-row {
             display: flex;
-            justify-content: space-around;
-            margin: 16px 0;
+            gap: 12px;
+            justify-content: space-between;
         }
         .stat-card {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 24px;
-            padding: 12px;
+            padding: 16px;
             text-align: center;
             flex: 1;
-            margin: 0 6px;
         }
         .stat-value {
             font-size: 28px;
@@ -690,28 +695,32 @@
                     </div>
                     <p style="font-size: 20px; font-weight: bold;">${currentUser.username}</p>
                     <p class="small-text">ID: ${userId}</p>
-                    <div class="stats-row">
-                        <div class="stat-card">
-                            <div class="stat-value">${fromCents(currentUser.stars_balance)}</div>
-                            <div class="stat-label">Stars</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${fromCents(currentUser.shares)}</div>
-                            <div class="stat-label">Акций</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${stats.totalTrades}</div>
-                            <div class="stat-label">Сделок</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${stats.totalVolume.toFixed(2)}</div>
-                            <div class="stat-label">Объём (⭐)</div>
-                        </div>
-                    </div>
                     <div class="achievement-icons">
                         ${achievementIconsHtml}${missingHtml}
                     </div>
-                    <div class="small-text" style="margin-top: 4px;">Нажмите на значок, чтобы выбрать достижение</div>
+                    <div class="small-text" style="margin-bottom: 12px;">Нажмите на значок, чтобы выбрать достижение</div>
+                    <div class="stats-container">
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="stat-value">${fromCents(currentUser.stars_balance)}</div>
+                                <div class="stat-label">Stars</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${fromCents(currentUser.shares)}</div>
+                                <div class="stat-label">Акций</div>
+                            </div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="stat-value">${stats.totalTrades}</div>
+                                <div class="stat-label">Сделок</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${stats.totalVolume.toFixed(2)}</div>
+                                <div class="stat-label">Объём (⭐)</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
             document.getElementById('app').innerHTML = html;
