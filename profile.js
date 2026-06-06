@@ -1,11 +1,7 @@
-// profile.js – финальная исправленная версия
+// profile.js – полная финальная версия с исправленными шагами (аватар, фон, обводка) и случайной инициализацией
 
-// ---------- Баннеры (только 3) ----------
-const bannerList = [
-    'banners/1.jpg',
-    'banners/2.jpg',
-    'banners/3.jpg'
-];
+// ---------- Баннеры (временно отключены, но массив оставлен для совместимости) ----------
+const bannerList = ['banners/1.jpg', 'banners/2.jpg', 'banners/3.jpg'];
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -160,7 +156,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1 (выбор аватара) – кнопка на всю ширину ==========
+// ========== ШАГ 1: выбор аватарки ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -169,10 +165,6 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
         return `<div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar="${emoji}"><span class="avatar-emoji" style="${style}">${emoji}</span></div>`;
     }).join('');
     const previewEmojiStyle = getAvatarStyle(currentAvatar);
-    // Если нет backCallback – кнопка "Назад" не отображается, и "Далее" растягивается на всю ширину
-    const buttonsHtml = backCallback ? 
-        `<div class="modal-buttons"><button id="backBtn" class="secondary">← Назад</button><button id="nextBtn">Далее →</button></div>` :
-        `<div class="modal-buttons"><button id="nextBtn" style="width:100%">Далее →</button></div>`;
     const modalHtml = `
         <div class="modal" id="stepModal" style="display:flex;">
             <div class="modal-content">
@@ -182,7 +174,10 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
                     <div class="avatar-circle" style="background: #2b6e9e;"><span class="avatar-emoji" style="${previewEmojiStyle}">${currentAvatar}</span></div>
                 </div>
                 <div class="avatars-grid">${optionsHtml}</div>
-                ${buttonsHtml}
+                <div class="modal-buttons">
+                    ${backCallback ? '<button id="backBtn" class="secondary">← Назад</button>' : ''}
+                    <button id="nextBtn">Далее →</button>
+                </div>
             </div>
         </div>
     `;
@@ -213,7 +208,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
     }
 }
 
-// ========== ШАГ 2 (выбор фона) ==========
+// ========== ШАГ 2: выбор фона ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     let optionsHtml = '';
@@ -294,7 +289,7 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3 (выбор обводки) – 3 колонки, исправлен preview ==========
+// ========== ШАГ 3: выбор обводки (с сохранением) ==========
 function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBorder = currentUser.avatar_border || 'default';
     const gridHtml = borderOptions.map(opt => {
@@ -366,29 +361,27 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (шаги 1-3, без баннеров) ==========
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (3 шага, баннер пока пропускаем) ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
-    // Шаг 1 (аватар) – без кнопки назад
+    // Шаг 1: аватар (без кнопки "Назад")
     await new Promise(resolve => {
         showAvatarStep(currentUser, updateUserCallback, resolve, null, showCustomModal);
     });
-    // Шаг 2 (фон) – с кнопкой назад
+    // Шаг 2: фон (с кнопкой "Назад")
     await new Promise(resolve => {
         showBackgroundStep(currentUser, updateUserCallback, async () => {
             resolve();
         }, async () => {
-            // Возврат к шагу 1
             await new Promise(r => { showAvatarStep(currentUser, updateUserCallback, r, null, showCustomModal); });
             await new Promise(r2 => { showBackgroundStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
             resolve();
         }, showCustomModal);
     });
-    // Шаг 3 (обводка) – с кнопкой назад
+    // Шаг 3: обводка (с кнопкой "Назад")
     await new Promise(resolve => {
         showBorderStep(currentUser, updateUserCallback, async () => {
             resolve();
         }, async () => {
-            // Возврат к шагу 2
             await new Promise(r => { showBackgroundStep(currentUser, updateUserCallback, r, null, showCustomModal); });
             await new Promise(r2 => { showBorderStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
             resolve();
@@ -442,6 +435,7 @@ window.renderProfileTab = async function(
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
     const borderStyle = getBorderStyle(currentUser.avatar_border || 'default');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
+    // Баннер (опционально)
     const bannerId = currentUser.banner_id || 1;
     const bannerUrl = bannerList[bannerId - 1] || bannerList[0];
 
