@@ -16,8 +16,60 @@
             background: #0a0e1a;
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             color: #eef2ff;
+            padding-top: 70px;          /* отступ для фиксированного хедера */
             padding-bottom: calc(76px + env(safe-area-inset-bottom));
         }
+        /* ----- Верхняя панель (хедер) ----- */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 12px 16px;
+            z-index: 101;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-logo {
+            font-weight: 700;
+            font-size: 18px;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .header-icons {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .header-icon {
+            font-size: 24px;
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+        }
+        .header-icon:active { transform: scale(0.94); }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -12px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        /* ----- Карточки, табы и остальные стили (без изменений, кроме удаления старого бейджа) ----- */
         .card {
             background: rgba(18, 24, 38, 0.7);
             backdrop-filter: blur(16px);
@@ -155,30 +207,9 @@
         }
         .avatar-circle:hover { transform: scale(1.02); }
         .avatar-emoji { display: inline-block; line-height: 1; }
-        .notification-bell {
-            font-size: 22px;
-            cursor: pointer;
-            position: relative;
-            display: inline-block;
-        }
-        .notification-badge {
-            position: absolute;
-            top: -8px;
-            right: -12px;
-            background: #e74c3c;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
         .toast {
             position: fixed;
-            top: 60px;
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.85);
@@ -200,6 +231,7 @@
             90% { opacity: 1; transform: translateX(-50%) translateY(0); }
             100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
         }
+        /* Стили уведомлений (модалка) */
         .notifications-list {
             max-height: 400px;
             overflow-y: auto;
@@ -234,6 +266,7 @@
             margin: 0;
             box-shadow: none;
         }
+        /* Градиенты и прочие старые стили (сохраняем всё) */
         .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
         .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
         .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
@@ -404,7 +437,19 @@
     </style>
 </head>
 <body>
+
+<!-- Верхняя панель с шестерёнкой и колокольчиком -->
+<div class="app-header">
+    <div class="header-logo">VoxAction</div>
+    <div class="header-icons">
+        <div class="header-icon" id="headerNotificationBell">🔔<span class="notification-badge" id="headerNotificationBadge" style="display:none;">0</span></div>
+        <div class="header-icon" id="headerSettingsGear">⚙️</div>
+    </div>
+</div>
+
 <div id="app">Загрузка...</div>
+
+<!-- Нижняя панель вкладок (без вкладки "Настройки") -->
 <div class="tabs-wrapper">
     <div class="tabs" id="tabs">
         <div class="tab" data-tab="profile"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
@@ -413,10 +458,10 @@
         <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
         <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
         <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
-        <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
 </div>
+
 <div id="topupModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" id="closeTopupModal">&times;</span>
@@ -431,6 +476,7 @@
         <button id="confirmTopupBtn">Пополнить</button>
     </div>
 </div>
+
 <script>
     // Основной скрипт (оставшиеся функции)
     (async () => {
@@ -617,7 +663,7 @@
             return data.reduce((s,r)=>s+r.rating,0)/data.length;
         };
         
-        // Уведомления
+        // Уведомления (глобальные)
         let notificationsChannel = null;
         async function loadNotifications() {
             const { data, error } = await window.supabase.from('notifications').select('*').eq('user_id', window.userId).order('created_at', { ascending: false });
@@ -645,7 +691,7 @@
         };
         window.updateBellBadge = async function() {
             const unread = await getUnreadCount();
-            const badge = document.querySelector('.notification-badge');
+            const badge = document.getElementById('headerNotificationBadge');
             if (badge) {
                 if (unread > 0) {
                     badge.textContent = unread > 9 ? '9+' : unread;
@@ -722,7 +768,28 @@
                 .subscribe();
         }
         
-        // Остальные вкладки (кроме profile и stocks)
+        // Функция рендера настроек (теперь доступна глобально)
+        async function renderSettingsTab() {
+            const hideRating = window.currentUser.hide_rating || false;
+            const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
+            const notifyTrades = window.currentUser.notify_trades ?? true;
+            const notifyTopup = window.currentUser.notify_topup ?? true;
+            const notifyReferral = window.currentUser.notify_referral ?? true;
+            const html = `<div class="card"><h2>⚙️ Настройки</h2><label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br><div><strong>Уведомления от бота:</strong></div><label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br><label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br><label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br><div><strong>Цвет акцента:</strong></div><input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;"><button id="saveSettings">Сохранить</button></div>`;
+            document.getElementById('app').innerHTML = html;
+            document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
+            document.getElementById('saveSettings').onclick = async () => {
+                const newHide = document.getElementById('hideRatingCheckbox').checked;
+                const newColor = document.getElementById('colorPicker').value;
+                localStorage.setItem('custom_color', newColor);
+                document.documentElement.style.setProperty('--accent', newColor);
+                await window.supabase.from('users').update({ hide_rating: newHide, notify_trades: document.getElementById('notifyTradesCheckbox').checked, notify_topup: document.getElementById('notifyTopupCheckbox').checked, notify_referral: document.getElementById('notifyReferralCheckbox').checked }).eq('id', window.userId);
+                window.currentUser.hide_rating = newHide;
+                window.showCustomModal('Успех', 'Настройки сохранены');
+            };
+        }
+        
+        // Остальные вкладки (кроме profile, stocks, settings)
         async function renderRatingTab() {
             const leaders = await window.getLeaderboard();
             let html = `<div class="card"><h2>🏆 Рейтинг держателей акций</h2>`;
@@ -764,26 +831,8 @@
             if (trades.data && trades.data.length) historyDiv.innerHTML = trades.data.map(t => `<div class="history-item"><span>${t.buyer_id===window.userId?'Покупка':'Продажа'} ${window.fromCents(t.amount)} шт. по ${window.fromCents(t.price_per_share)} ⭐</span><span class="small-text">${new Date(t.created_at).toLocaleString()}</span></div>`).join('');
             else historyDiv.innerHTML = '<p>Нет сделок</p>';
         }
-        async function renderSettingsTab() {
-            const hideRating = window.currentUser.hide_rating || false;
-            const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
-            const notifyTrades = window.currentUser.notify_trades ?? true;
-            const notifyTopup = window.currentUser.notify_topup ?? true;
-            const notifyReferral = window.currentUser.notify_referral ?? true;
-            const html = `<div class="card"><h2>⚙️ Настройки</h2><label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br><div><strong>Уведомления от бота:</strong></div><label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br><label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br><label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br><div><strong>Цвет акцента:</strong></div><input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;"><button id="saveSettings">Сохранить</button></div>`;
-            document.getElementById('app').innerHTML = html;
-            document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
-            document.getElementById('saveSettings').onclick = async () => {
-                const newHide = document.getElementById('hideRatingCheckbox').checked;
-                const newColor = document.getElementById('colorPicker').value;
-                localStorage.setItem('custom_color', newColor);
-                document.documentElement.style.setProperty('--accent', newColor);
-                await window.supabase.from('users').update({ hide_rating: newHide, notify_trades: document.getElementById('notifyTradesCheckbox').checked, notify_topup: document.getElementById('notifyTopupCheckbox').checked, notify_referral: document.getElementById('notifyReferralCheckbox').checked }).eq('id', window.userId);
-                window.currentUser.hide_rating = newHide;
-                window.showCustomModal('Успех', 'Настройки сохранены');
-            };
-        }
         
+        // Админка
         const BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         async function renderAdminTab() {
             if (window.userId !== 6048486427) { document.getElementById('app').innerHTML = '<div class="card error">Доступ запрещён</div>'; return; }
@@ -826,6 +875,11 @@
         setupRealtimeNotifications();
         await window.updateBellBadge();
         
+        // Обработчики для верхней панели
+        document.getElementById('headerNotificationBell')?.addEventListener('click', () => window.showNotificationsModal());
+        document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
+        
+        // Переключение вкладок (без вкладки настроек)
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
                 const tabName = tab.dataset.tab;
@@ -841,7 +895,6 @@
                 else if(tabName === 'rating') await renderRatingTab();
                 else if(tabName === 'wallet') await renderWalletTab();
                 else if(tabName === 'referral') await renderReferralTab();
-                else if(tabName === 'settings') await renderSettingsTab();
                 else if(tabName === 'admin') await renderAdminTab();
             });
         });
