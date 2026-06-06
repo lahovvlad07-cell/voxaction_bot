@@ -597,7 +597,7 @@ window.renderProfileTab = async function(
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div id="avatarClickWrapper">
             <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
-            <div class="small-text">Нажмите, чтобы изменить аватар, фон, обводку</div>
+            <div class="small-text">Нажмите на аватар для кастомизации</div>
         </div>
         <p style="font-size:20px; font-weight:bold; margin-top:8px;">${currentUser.username}</p>
         <p class="small-text">ID: ${userId}</p>
