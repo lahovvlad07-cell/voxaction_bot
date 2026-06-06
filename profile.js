@@ -1,4 +1,4 @@
-// profile.js - Все функции, связанные с профилем
+// profile.js - Все функции, связанные с профилем (без колокольчика)
 
 const avatarEmojis = [
     '👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽',
@@ -298,13 +298,8 @@ window.renderProfileTab = async function(
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
+    // ВАЖНО: убрали блок с колокольчиком
     const html = `<div class="card" style="text-align: center;">
-        <div style="position: absolute; top: 12px; right: 16px;">
-            <div class="notification-bell" id="notificationBell">
-                🔔
-                <span class="notification-badge" style="display:none;">0</span>
-            </div>
-        </div>
         <div class="profile-avatar" id="avatarClick">
             <div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
             <div class="small-text">Нажмите, чтобы сменить аватар и фон</div>
@@ -354,7 +349,6 @@ window.renderProfileTab = async function(
     );
 
     document.getElementById('avatarClick')?.addEventListener('click', openAvatarSelectorBound);
-    document.getElementById('notificationBell')?.addEventListener('click', showNotificationsModal);
 
     document.querySelectorAll('.achi-icon').forEach(icon => {
         icon.addEventListener('click', async () => {
@@ -368,5 +362,7 @@ window.renderProfileTab = async function(
         });
     });
 
+    // Колокольчик не обновляем, это делает хедер
+    // Но нужно вызвать updateBellBadge всё равно для бейджа в хедере
     await updateBellBadge();
 };
