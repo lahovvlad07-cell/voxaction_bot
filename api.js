@@ -1,6 +1,6 @@
-// api.js – полная версия с updateUserBorder и случайной инициализацией
+// api.js – полная рабочая версия (без баннеров)
 
-// ---------------------- Вспомогательные функции ----------------------
+// ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
     try {
         const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
@@ -12,7 +12,7 @@ async function ensureWelcomeAchievement(userId) {
     } catch(e) { console.error(e); }
 }
 
-// ---------------------- Пользователи (со случайными параметрами) ----------------------
+// ---------- Пользователи (со случайными начальными параметрами, баннер удалён) ----------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -23,7 +23,6 @@ window.getOrCreateUser = async function() {
         const randomBg = bgOptions[Math.floor(Math.random() * bgOptions.length)];
         const borderOptions = ['default','thin','thick','gold','neon','none'];
         const randomBorder = borderOptions[Math.floor(Math.random() * borderOptions.length)];
-        const bannerId = Math.floor(Math.random() * 3) + 1;
         const { data: newUser, error: insertError } = await window.supabase.from('users').insert([{
             id: window.userId,
             username: window.username,
@@ -33,7 +32,6 @@ window.getOrCreateUser = async function() {
             avatar_url: randomAvatar,
             avatar_bg: randomBg,
             avatar_border: randomBorder,
-            banner_id: bannerId,
             registered_at: new Date().toISOString()
         }]).select().single();
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
@@ -47,15 +45,13 @@ window.getOrCreateUser = async function() {
     if (!data.avatar_bg) { data.avatar_bg = 'gradient1'; updated = true; }
     if (!data.avatar_border) { data.avatar_border = 'default'; updated = true; }
     if (!data.registered_at) { data.registered_at = new Date().toISOString(); updated = true; }
-    if (data.banner_id === undefined || data.banner_id === null) { data.banner_id = 1; updated = true; }
     if (updated) {
         await window.supabase.from('users').update({
             selected_achievements: data.selected_achievements,
             avatar_url: data.avatar_url,
             avatar_bg: data.avatar_bg,
             avatar_border: data.avatar_border,
-            registered_at: data.registered_at,
-            banner_id: data.banner_id
+            registered_at: data.registered_at
         }).eq('id', window.userId);
     }
     return { user: data, isNew: false };
@@ -176,7 +172,7 @@ window.getSellerRating = async function(sellerId) {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
-// ---------------------- Функция обновления обводки (важно!) ----------------------
+// ---------------------- Функция обновления обводки (обязательно!) ----------------------
 window.updateUserBorder = async function(borderStyle) {
     const { error } = await window.supabase.from('users').update({ avatar_border: borderStyle }).eq('id', window.userId);
     if (error) throw new Error(error.message);
@@ -184,15 +180,7 @@ window.updateUserBorder = async function(borderStyle) {
     return true;
 };
 
-// ---------------------- Функция обновления баннера ----------------------
-window.updateUserBanner = async function(bannerId) {
-    const { error } = await window.supabase.from('users').update({ banner_id: bannerId }).eq('id', window.userId);
-    if (error) throw new Error(error.message);
-    if (window.currentUser) window.currentUser.banner_id = bannerId;
-    return true;
-};
-
-// ---------------------- Админские функции (кратко) ----------------------
+// ---------------------- Админские и вспомогательные функции (кратко) ----------------------
 window.adminFetchStats = async function() {
     const res = await fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) });
     return res.json();
