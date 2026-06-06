@@ -1,4 +1,4 @@
-// api.js – полная версия с поддержкой баннеров
+// api.js – полная версия с поддержкой баннеров и обводки
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -23,6 +23,7 @@ window.getOrCreateUser = async function() {
             selected_achievements: [],
             avatar_url: '👤',
             avatar_bg: 'gradient1',
+            avatar_border: 'default',
             banner_id: 1,
             registered_at: new Date().toISOString()
         }]).select().single();
@@ -37,11 +38,13 @@ window.getOrCreateUser = async function() {
     if (!data.avatar_bg) { data.avatar_bg = 'gradient1'; updated = true; }
     if (!data.registered_at) { data.registered_at = new Date().toISOString(); updated = true; }
     if (data.banner_id === undefined || data.banner_id === null) { data.banner_id = 1; updated = true; }
+    if (data.avatar_border === undefined || data.avatar_border === null) { data.avatar_border = 'default'; updated = true; }
     if (updated) {
         await window.supabase.from('users').update({
             selected_achievements: data.selected_achievements,
             avatar_url: data.avatar_url,
             avatar_bg: data.avatar_bg,
+            avatar_border: data.avatar_border,
             registered_at: data.registered_at,
             banner_id: data.banner_id
         }).eq('id', window.userId);
@@ -161,5 +164,12 @@ window.updateUserBanner = async function(bannerId) {
     const { error } = await window.supabase.from('users').update({ banner_id: bannerId }).eq('id', window.userId);
     if (error) throw new Error(error.message);
     if (window.currentUser) window.currentUser.banner_id = bannerId;
+    return true;
+};
+
+window.updateUserBorder = async function(borderStyle) {
+    const { error } = await window.supabase.from('users').update({ avatar_border: borderStyle }).eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    if (window.currentUser) window.currentUser.avatar_border = borderStyle;
     return true;
 };
