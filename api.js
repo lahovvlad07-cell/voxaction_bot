@@ -1,0 +1,150 @@
+// api.js
+// Все API-функции (глобальные)
+
+async function ensureWelcomeAchievement(userId) {
+    try {
+        const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
+        if (!achData) return;
+        const { data: existing } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', userId).eq('achievement_id', achData.id).maybeSingle();
+        if (!existing) {
+            await window.supabase.from('user_achievements').insert({ user_id: userId, achievement_id: achData.id, earned_at: new Date().toISOString() });
+        }
+    } catch(e) { console.error(e); }
+}
+
+window.getOrCreateUser = async function() {
+    let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
+    if (error) throw new Error(`Ошибка запроса: ${error.message}`);
+    if (!data) {
+        const { data: newUser, error: insertError } = await window.supabase.from('users').insert([{ 
+            id: window.userId, 
+            username: window.username, 
+            shares: 0, 
+            stars_balance: 0,
+            selected_achievements: [],
+            avatar_url: '👤',
+            avatar_bg: 'gradient1',
+            registered_at: new Date().toISOString()
+        }]).select().single();
+        if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
+        await ensureWelcomeAchievement(window.userId);
+        return { user: newUser, isNew: true };
+    }
+    await ensureWelcomeAchievement(window.userId);
+    if (!data.selected_achievements) data.selected_achievements = [];
+    if (!data.avatar_url) data.avatar_url = '👤';
+    if (!data.avatar_bg) data.avatar_bg = 'gradient1';
+    if (!data.registered_at) {
+        await window.supabase.from('users').update({ registered_at: new Date().toISOString() }).eq('id', window.userId);
+        data.registered_at = new Date().toISOString();
+    }
+    return { user: data, isNew: false };
+};
+
+window.getActiveOrders = async function() {
+    const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getUserOrders = async function() {
+    const { data, error } = await window.supabase.from('orders').select('*').eq('seller_id', window.userId).eq('status', 'active');
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.cancelOrder = async function(orderId) {
+    const { data, error } = await window.supabase.rpc('cancel_order', { p_order_id: orderId, p_user_id: window.userId });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    return true;
+};
+
+window.createOrder = async function(amount, price) {
+    const amountCents = window.toCents(amount), priceCents = window.toCents(price);
+    if (amountCents < 100) throw new Error('Минимум 1 акция');
+    if (priceCents < 100) throw new Error('Минимум 1 Star');
+    const { data, error } = await window.supabase.rpc('create_sell_order', { p_user_id: window.userId, p_amount: amountCents, p_price: priceCents });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    window.currentUser.shares -= amountCents;
+    return true;
+};
+
+window.executePartialTrade = async function(orderId, buyAmountCents) {
+    const { data, error } = await window.supabase.rpc('execute_trade_partial', { p_order_id: orderId, p_buyer_id: window.userId, p_buy_amount: buyAmountCents });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    return true;
+};
+
+window.getRecentTrades = async function(limit = 10) {
+    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getCurrentPrice = async function() {
+    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
+    if (error || !data || data.length === 0) return 100;
+    let totalAmount = 0, totalStars = 0;
+    for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
+    return totalAmount > 0 ? totalStars / totalAmount : 100;
+};
+
+window.getTotalMarketCap = async function() {
+    const { data, error } = await window.supabase.from('users').select('shares');
+    if (error) throw new Error(error.message);
+    const totalSharesCents = data.reduce((s,u) => s + u.shares, 0);
+    const currentPriceCents = await window.getCurrentPrice();
+    const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
+    return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
+};
+
+window.getLeaderboard = async function() {
+    const { data, error } = await window.supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getUserRank = async function() {
+    const leaders = await window.getLeaderboard();
+    const idx = leaders.findIndex(u => u.id === window.userId);
+    if (idx === -1) return null;
+    return idx + 1;
+};
+
+window.getUserStats = async function() {
+    const { data, error } = await window.supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`);
+    if (error) return { totalTrades: 0, totalVolume: 0 };
+    return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
+};
+
+window.getEarnedAchievements = async function() {
+    const { data, error } = await window.supabase
+        .from('user_achievements')
+        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
+        .eq('user_id', window.userId);
+    if (error) return [];
+    return data.map(ua => ({
+        id: ua.achievements.id,
+        name: ua.achievements.name,
+        description: ua.achievements.description,
+        icon: ua.achievements.icon,
+        earned_at: ua.earned_at,
+        condition_type: ua.achievements.condition_type,
+        condition_value: ua.achievements.condition_value
+    }));
+};
+
+window.getAllAchievements = async function() {
+    const { data, error } = await window.supabase.from('achievements').select('*');
+    if (error) return [];
+    return data;
+};
+
+window.getSellerRating = async function(sellerId) {
+    const { data, error } = await window.supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
+    if (error || !data.length) return null;
+    return data.reduce((s,r)=>s+r.rating,0)/data.length;
+};
