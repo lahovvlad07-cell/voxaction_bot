@@ -7,19 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="styles.css">
-    <!-- Базовые модули -->
-    <script src="api.js"></script>
-    <script src="notifications.js"></script>
-    <script src="topup.js"></script>
-    <!-- Профиль (зависит от них) -->
-    <script src="profile.js"></script>
-    <!-- Остальные вкладки -->
-    <script src="stocks.js"></script>
-    <script src="analytics.js"></script>
-    <script src="rating.js"></script>
-    <script src="wallet.js"></script>
-    <script src="referral.js"></script>
-    <script src="admin.js"></script>
 </head>
 <body>
 <div class="app-header">
@@ -55,8 +42,17 @@
         <button id="confirmTopupBtn">Пополнить</button>
     </div>
 </div>
+<script src="api.js"></script>
+<script src="notifications.js"></script>
+<script src="topup.js"></script>
+<script src="profile.js"></script>
+<script src="stocks.js"></script>
+<script src="analytics.js"></script>
+<script src="rating.js"></script>
+<script src="wallet.js"></script>
+<script src="referral.js"></script>
+<script src="admin.js"></script>
 <script>
-    // Основной скрипт инициализации
     (async () => {
         // Drag tabs
         const tabsWrapper = document.querySelector('.tabs-wrapper');
@@ -73,7 +69,6 @@
         if (!window.userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
 
-        // Утилиты
         window.toCents = (v) => Math.round(parseFloat(v) * 100);
         window.fromCents = (c) => (c / 100).toFixed(2);
 
