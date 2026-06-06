@@ -1,4 +1,4 @@
-// api.js – полная версия с поддержкой покупки обводок и стандартными начальными значениями
+// api.js – полная версия (со всеми функциями)
 
 // ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
@@ -54,7 +54,7 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
-// ---------------------- Ордера и торги (основные функции) ----------------------
+// ---------------------- Ордера и торги ----------------------
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
