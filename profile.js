@@ -1,4 +1,4 @@
-// profile.js – финальная версия с 3 обводками, выбором цвета и покупкой
+// profile.js – исправленная версия с правильным предпросмотром и обновлением профиля
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -41,7 +41,6 @@ const borderOptions = [
     { id:'neon', name:'Неоновая', price:30, defaultColor:'#2b6e9e' }
 ];
 
-// Функция получения стиля обводки по id и цвету
 function getBorderStyle(borderId, customColor = null) {
     const opt = borderOptions.find(b => b.id === borderId);
     if (!opt) return '';
@@ -306,11 +305,21 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3: выбор обводки (три варианта, цвета, покупка) ==========
+// ========== ШАГ 3: выбор обводки (исправленный) ==========
 async function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
-    // Текущая обводка (id)
     const currentBorderId = currentUser.avatar_border || 'standard';
-    // Функция для генерации HTML каждого варианта
+    // Функция получения стиля фона для превью (реальный фон пользователя)
+    const getBgStyleForPreview = () => {
+        if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
+            return `background: ${currentUser.avatar_bg};`;
+        } else {
+            const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
+            const bgClass = found ? found.class : 'bg-gradient1';
+            return `background: ${bgClass};`;
+        }
+    };
+    const bgStylePreview = getBgStyleForPreview();
+    
     const generateOptionsHtml = () => {
         return borderOptions.map(opt => {
             const isCurrent = (opt.id === currentBorderId);
@@ -340,7 +349,7 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>3/3 – Выберите обводку аватарки</h3>
                 <div class="modal-preview">
-                    <div class="avatar-circle" style="background: #2b6e9e;"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
+                    <div class="avatar-circle" style="${bgStylePreview}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
                 <div class="scrollable-content">
                     <div class="border-options-container" id="borderOptionsContainer">
@@ -358,59 +367,74 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
     const modal = document.getElementById('borderModal');
     document.getElementById('closeModal').onclick = () => modal.remove();
     
-    // Функция обновления превью
+    // Обновление превью с учётом выбранной обводки и цвета
     const updatePreview = (borderId, customColor = null) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
         const style = getBorderStyle(borderId, customColor);
-        previewCircle.setAttribute('style', `background: #2b6e9e; ${style}`);
+        const currentStyle = previewCircle.getAttribute('style') || '';
+        // Удаляем старые border и box-shadow
+        const cleaned = currentStyle.replace(/border:[^;]+;?/g, '').replace(/box-shadow:[^;]+;?/g, '');
+        previewCircle.setAttribute('style', cleaned + style);
     };
     
-    // Сохраняем выбранный border и цвет
     let selectedBorderId = currentBorderId;
-    let selectedColor = null;
-    // Для каждого варианта слушаем выбор
-    document.querySelectorAll('.border-select-btn').forEach(btn => {
+    let selectedColor = borderOptions.find(b => b.id === currentBorderId)?.defaultColor;
+    // Флаг, чтобы не списывать повторно при повторном выборе платной обводки
+    let purchased = (currentBorderId !== 'standard');
+    
+    updatePreview(selectedBorderId, selectedColor);
+    
+    const selectButtons = modal.querySelectorAll('.border-select-btn');
+    const updateButtonsState = () => {
+        selectButtons.forEach(btn => {
+            const borderId = btn.dataset.border;
+            if (borderId === selectedBorderId) {
+                btn.textContent = '✓ Выбрано';
+            } else {
+                btn.textContent = 'Выбрать';
+            }
+        });
+    };
+    
+    selectButtons.forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const borderId = btn.dataset.border;
             const borderOpt = borderOptions.find(b => b.id === borderId);
             const price = borderOpt.price;
-            // Для gold цвет фиксирован, для остальных берём из color picker
             let customColor = null;
             if (borderId !== 'gold') {
                 const colorPicker = modal.querySelector(`.border-color-picker[data-border="${borderId}"]`);
                 if (colorPicker) customColor = colorPicker.value;
             }
-            // Проверка покупки, если платная и не текущая
-            if (price > 0 && borderId !== currentBorderId) {
-                try {
-                    await window.purchaseBorder(borderId, price, customColor);
-                    showCustomModal('Успех', `Обводка "${borderOpt.name}" приобретена!`);
-                    // Обновляем баланс в интерфейсе (можно перерисовать профиль позже)
-                } catch (err) {
-                    showCustomModal('Ошибка', err.message);
-                    return;
+            if (borderId === selectedBorderId) return;
+            // Проверка покупки (если платная и ещё не куплена)
+            if (price > 0) {
+                if (!purchased && borderId !== currentBorderId) {
+                    try {
+                        await window.purchaseBorder(borderId, price);
+                        showCustomModal('Успех', `Обводка "${borderOpt.name}" приобретена!`);
+                        purchased = true;
+                        // Обновляем баланс в currentUser
+                        const { data: userData } = await window.supabase.from('users').select('stars_balance').eq('id', window.userId).single();
+                        if (userData) currentUser.stars_balance = userData.stars_balance;
+                    } catch (err) {
+                        showCustomModal('Ошибка', err.message);
+                        return;
+                    }
+                } else {
+                    await window.updateUserBorder(borderId);
                 }
-            } else if (borderId !== currentBorderId) {
-                // Бесплатная обводка: просто сохраняем (можно сразу, но лучше сохранить при "Далее")
+            } else {
                 await window.updateUserBorder(borderId);
             }
-            // Обновляем текущую выбранную обводку в модалке
             selectedBorderId = borderId;
-            selectedColor = customColor;
-            updatePreview(selectedBorderId, selectedColor || borderOpt.defaultColor);
-            // Меняем текст кнопки
-            document.querySelectorAll('.border-select-btn').forEach(b => {
-                if (b.dataset.border === borderId) {
-                    b.textContent = '✓ Выбрано';
-                } else {
-                    b.textContent = 'Выбрать';
-                }
-            });
+            selectedColor = customColor || borderOpt.defaultColor;
+            updatePreview(selectedBorderId, selectedColor);
+            updateButtonsState();
         });
     });
     
-    // Слушатели color picker
-    document.querySelectorAll('.border-color-picker').forEach(picker => {
+    modal.querySelectorAll('.border-color-picker').forEach(picker => {
         picker.addEventListener('input', (e) => {
             const borderId = picker.dataset.border;
             const color = e.target.value;
@@ -422,38 +446,39 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
     });
     
     document.getElementById('nextBtn').onclick = async () => {
-        // Сохраняем окончательно выбранную обводку (если она ещё не сохранена)
         if (selectedBorderId !== currentBorderId) {
             const borderOpt = borderOptions.find(b => b.id === selectedBorderId);
             const price = borderOpt.price;
-            // Если обводка платная, но мы её уже купили через кнопку "Выбрать", то здесь повторно не списываем
-            // Но для надёжности: если она платная и ещё не куплена – пробуем купить
             if (price > 0) {
-                try {
-                    await window.purchaseBorder(selectedBorderId, price, selectedColor);
-                } catch (err) {
-                    showCustomModal('Ошибка', err.message);
-                    return;
+                if (!purchased) {
+                    try {
+                        await window.purchaseBorder(selectedBorderId, price);
+                    } catch (err) {
+                        showCustomModal('Ошибка', err.message);
+                        return;
+                    }
+                } else {
+                    await window.updateUserBorder(selectedBorderId);
                 }
             } else {
                 await window.updateUserBorder(selectedBorderId);
             }
         }
-        // Обновляем currentUser
         currentUser.avatar_border = selectedBorderId;
         modal.remove();
+        // Переход к следующему шагу (вызовет resolve, затем renderProfileTab)
         nextCallback();
     };
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (3 шага) ==========
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
-    // Шаг 1: аватар
+    // Шаг 1
     await new Promise(resolve => {
         showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal);
     });
-    // Шаг 2: фон
+    // Шаг 2
     await new Promise(resolve => {
         showBackgroundStep(currentUser, updateUserCallback, async () => {
             resolve();
@@ -463,7 +488,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
             resolve();
         }, showCustomModal);
     });
-    // Шаг 3: обводка
+    // Шаг 3
     await new Promise(resolve => {
         showBorderStep(currentUser, updateUserCallback, async () => {
             resolve();
@@ -473,6 +498,8 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
             resolve();
         }, showCustomModal);
     });
+    // Принудительно перерисовываем профиль после всех шагов
+    await renderProfileTab();
 }
 
 // ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
@@ -519,7 +546,7 @@ window.renderProfileTab = async function(
         avatarClass += ` ${found ? found.class : 'bg-gradient1'}`;
     }
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
-    // Получаем стиль обводки (пока без пользовательского цвета, можно добавить поле позже)
+    // Пока без пользовательского цвета, только стандартные
     const borderStyle = getBorderStyle(currentUser.avatar_border);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
