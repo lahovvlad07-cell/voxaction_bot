@@ -1,5 +1,7 @@
-// api.js – полная версия с поддержкой баннеров и обводки
+// api.js – полная версия
+// Внимание: этот файл предполагает, что window.supabase, window.userId, window.username уже определены в index.html
 
+// ---------------------- Вспомогательные функции ----------------------
 async function ensureWelcomeAchievement(userId) {
     try {
         const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
@@ -11,6 +13,7 @@ async function ensureWelcomeAchievement(userId) {
     } catch(e) { console.error(e); }
 }
 
+// ---------------------- Пользователи ----------------------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -52,6 +55,7 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
+// ---------------------- Ордера и торги ----------------------
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
@@ -91,6 +95,12 @@ window.executePartialTrade = async function(orderId, buyAmountCents) {
 
 window.getRecentTrades = async function(limit = 10) {
     const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getPriceHistory = async function() {
+    const { data, error } = await window.supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
     if (error) throw new Error(error.message);
     return data || [];
 };
@@ -160,6 +170,7 @@ window.getSellerRating = async function(sellerId) {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
+// ---------------------- Баннер и обводка ----------------------
 window.updateUserBanner = async function(bannerId) {
     const { error } = await window.supabase.from('users').update({ banner_id: bannerId }).eq('id', window.userId);
     if (error) throw new Error(error.message);
