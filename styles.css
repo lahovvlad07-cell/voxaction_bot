@@ -1,4 +1,4 @@
-/* styles.css – полная версия с улучшенной реферальной вкладкой и редактором кода */
+/* styles.css – исправленная версия для всех вкладок + рефералка */
 
 * {
     margin: 0;
@@ -104,14 +104,13 @@ body {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(16px);
     border-radius: 28px;
-    padding: 18px;
+    padding: 20px;
     margin: 12px 16px;
     border: 1px solid rgba(56, 189, 248, 0.2);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    position: relative;
-    overflow: visible !important;
-    cursor: default;
 }
+
+/* ===== Аватар ===== */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -191,13 +190,13 @@ body {
 button {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border: none;
-    padding: 14px 20px;
+    padding: 12px 20px;
     border-radius: 44px;
     font-size: 16px;
     font-weight: 600;
     color: white;
     width: 100%;
-    margin-top: 14px;
+    margin-top: 12px;
     cursor: pointer;
     transition: 0.2s;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -257,7 +256,7 @@ canvas {
     height: 100%;
 }
 
-/* ===== Модальные окна общие ===== */
+/* ===== Модальные окна ===== */
 .modal {
     display: none;
     position: fixed;
@@ -299,13 +298,6 @@ canvas {
     color: #9ca3af;
     z-index: 1;
 }
-.modal-preview {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 16px 0;
-    flex-shrink: 0;
-}
 .scrollable-content {
     flex: 1;
     overflow-y: auto;
@@ -325,12 +317,8 @@ canvas {
     flex: 1;
     margin-top: 0;
 }
-.modal-buttons button:only-child {
-    width: 100%;
-    flex: none;
-}
 
-/* ===== Сетки выбора ===== */
+/* ===== Сетки выбора аватарок и фонов ===== */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -358,38 +346,6 @@ canvas {
     font-size: 40px;
     line-height: 1;
 }
-.bg-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin: 20px 0;
-}
-.bg-option {
-    width: 65px;
-    height: 65px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: 0.2s;
-    margin: 0 auto;
-    border: 2px solid transparent;
-}
-.bg-option.selected {
-    border-color: #2b6e9e;
-    transform: scale(1.05);
-}
-.custom-color-preview {
-    width: 65px;
-    height: 65px;
-    border-radius: 50%;
-    cursor: pointer;
-    margin: 0 auto;
-    border: 2px solid transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #2b6e9e;
-    font-size: 28px;
-}
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -408,9 +364,6 @@ canvas {
     margin: 0 auto;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
-.color-option:hover {
-    transform: scale(1.05);
-}
 .color-option.selected {
     box-shadow: 0 0 0 3px #2b6e9e;
 }
@@ -418,14 +371,6 @@ canvas {
     color: white;
     font-size: 24px;
     text-shadow: 0 0 2px black;
-}
-.custom-color-container {
-    text-align: center;
-    margin: 16px 0;
-}
-.custom-color-container button {
-    width: auto;
-    padding: 10px 24px;
 }
 
 /* ===== Уведомления ===== */
@@ -467,7 +412,7 @@ canvas {
     box-shadow: none;
 }
 
-/* ===== Градиенты для фона аватарки ===== */
+/* ===== Градиенты для аватарок (фоны) ===== */
 .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
 .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
@@ -557,24 +502,6 @@ canvas {
     border-color: #2b6e9e;
     background: rgba(43, 110, 158, 0.2);
 }
-.achievement-card.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    filter: grayscale(0.3);
-}
-.achievement-icon {
-    font-size: 28px;
-    margin-bottom: 4px;
-}
-.achievement-name {
-    font-weight: 600;
-    font-size: 13px;
-}
-.achievement-desc, .achievement-condition, .achievement-date {
-    font-size: 10px;
-    color: #9ca3af;
-    margin-top: 4px;
-}
 .progress-bar {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
@@ -587,15 +514,6 @@ canvas {
     height: 100%;
     width: 0%;
     border-radius: 10px;
-}
-.next-achievements {
-    margin-top: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 20px;
-    padding: 12px;
-}
-.next-achievement-item {
-    margin-bottom: 12px;
 }
 .rank-card {
     display: flex;
@@ -709,25 +627,26 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – ОСНОВНЫЕ СТИЛИ ===== */
+/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА – НОРМАЛЬНЫЕ СТИЛИ ========== */
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
-    font-size: 20px;
+    font-size: 22px;
 }
+
 .referral-stats {
     display: flex;
     gap: 16px;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
 }
-.referral-stat-card {
+.stat-block {
     flex: 1;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 24px;
-    padding: 20px 16px;
+    padding: 16px;
     text-align: center;
 }
-.referral-stat-value {
+.stat-number {
     font-size: 36px;
     font-weight: 800;
     background: linear-gradient(135deg, #60a5fa, #a78bfa);
@@ -736,65 +655,65 @@ canvas {
     color: transparent;
     line-height: 1.2;
 }
-.referral-stat-label {
+.stat-label {
     font-size: 13px;
     color: #9ca3af;
-    margin-top: 8px;
+    margin-top: 6px;
 }
-.referral-link-block {
-    margin: 16px 0 24px 0;
+
+.link-section {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 24px;
+    padding: 16px;
+    margin-bottom: 20px;
 }
-.ref-link-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 12px 16px;
-    border-radius: 60px;
-    margin-bottom: 8px;
-    border: 1px solid rgba(56, 189, 248, 0.3);
-}
-.ref-link-text {
-    flex: 1;
-    font-size: 14px;
-    word-break: break-all;
+.link-url {
+    background: #0f1320;
+    padding: 12px;
+    border-radius: 40px;
     font-family: monospace;
-    color: #eef2ff;
+    font-size: 13px;
+    text-align: center;
+    word-break: break-all;
+    margin-bottom: 12px;
+    color: #60a5fa;
+}
+.link-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.link-buttons button {
+    flex: 1;
+    margin-top: 0;
+    padding: 10px;
+    font-size: 14px;
 }
 .copy-btn {
-    width: auto;
-    padding: 6px 14px;
-    margin: 0;
     background: #2b6e9e;
-    border-radius: 40px;
-    font-size: 14px;
-    line-height: 1;
 }
 .share-btn {
     background: rgba(56, 189, 248, 0.2);
     border: 1px solid #38bdf8;
 }
-.share-btn:hover {
-    background: rgba(56, 189, 248, 0.4);
-}
-.hint-text {
+.link-hint {
     text-align: center;
     font-size: 11px;
-    opacity: 0.7;
-    margin-top: 8px;
+    color: #9ca3af;
 }
-.referral-bonus-card {
+
+.bonus-card {
     display: flex;
     align-items: center;
     gap: 16px;
     background: rgba(43, 110, 158, 0.15);
-    border-radius: 24px;
-    padding: 16px;
-    margin-top: 16px;
+    border-radius: 20px;
+    padding: 14px;
+    margin-bottom: 20px;
     border-left: 4px solid #2b6e9e;
 }
 .bonus-icon {
-    font-size: 40px;
+    font-size: 36px;
 }
 .bonus-text {
     font-size: 13px;
@@ -802,76 +721,29 @@ canvas {
     color: #cbd5e1;
 }
 .bonus-text strong {
-    color: #eef2ff;
+    color: white;
 }
-.reward-progress-placeholder {
-    margin-top: 20px;
+
+.progress-card {
     background: rgba(0, 0, 0, 0.25);
-    border-radius: 24px;
+    border-radius: 20px;
     padding: 16px;
 }
-.reward-title {
+.progress-title {
     font-weight: 600;
     margin-bottom: 12px;
     font-size: 15px;
 }
-.reward-step {
+.progress-info {
     display: flex;
     justify-content: space-between;
-    font-size: 13px;
+    font-size: 12px;
     margin-bottom: 8px;
     color: #cbd5e1;
 }
-
-/* ===== РЕДАКТОР КАСТОМНОГО РЕФЕРАЛЬНОГО КОДА ===== */
-.ref-code-editor {
-    margin: 20px 0;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 24px;
-}
-.ref-code-editor h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
-}
-.code-input-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 60px;
-    padding: 6px 12px;
-}
-.code-prefix {
-    font-size: 12px;
+.progress-stats {
+    text-align: right;
+    font-size: 11px;
+    margin-top: 6px;
     color: #9ca3af;
-    font-family: monospace;
-}
-#refCodeInput {
-    flex: 1;
-    background: transparent;
-    border: none;
-    padding: 8px 0;
-    margin: 0;
-    font-size: 14px;
-    font-family: monospace;
-}
-#refCodeInput:focus {
-    outline: none;
-    box-shadow: none;
-}
-.save-code-btn {
-    width: auto;
-    padding: 6px 12px;
-    margin: 0;
-    background: #2b6e9e;
-    font-size: 13px;
-}
-.code-locked {
-    color: #4ade80;
-    font-size: 13px;
-    background: rgba(74, 222, 128, 0.15);
-    padding: 4px 10px;
-    border-radius: 40px;
 }
