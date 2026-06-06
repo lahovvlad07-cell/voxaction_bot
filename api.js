@@ -1,5 +1,4 @@
-// api.js
-// Все API-функции (глобальные)
+// api.js – полная версия с поддержкой баннеров
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -24,6 +23,7 @@ window.getOrCreateUser = async function() {
             selected_achievements: [],
             avatar_url: '👤',
             avatar_bg: 'gradient1',
+            banner_id: 1,
             registered_at: new Date().toISOString()
         }]).select().single();
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
@@ -31,12 +31,20 @@ window.getOrCreateUser = async function() {
         return { user: newUser, isNew: true };
     }
     await ensureWelcomeAchievement(window.userId);
-    if (!data.selected_achievements) data.selected_achievements = [];
-    if (!data.avatar_url) data.avatar_url = '👤';
-    if (!data.avatar_bg) data.avatar_bg = 'gradient1';
-    if (!data.registered_at) {
-        await window.supabase.from('users').update({ registered_at: new Date().toISOString() }).eq('id', window.userId);
-        data.registered_at = new Date().toISOString();
+    let updated = false;
+    if (!data.selected_achievements) { data.selected_achievements = []; updated = true; }
+    if (!data.avatar_url) { data.avatar_url = '👤'; updated = true; }
+    if (!data.avatar_bg) { data.avatar_bg = 'gradient1'; updated = true; }
+    if (!data.registered_at) { data.registered_at = new Date().toISOString(); updated = true; }
+    if (data.banner_id === undefined || data.banner_id === null) { data.banner_id = 1; updated = true; }
+    if (updated) {
+        await window.supabase.from('users').update({
+            selected_achievements: data.selected_achievements,
+            avatar_url: data.avatar_url,
+            avatar_bg: data.avatar_bg,
+            registered_at: data.registered_at,
+            banner_id: data.banner_id
+        }).eq('id', window.userId);
     }
     return { user: data, isNew: false };
 };
@@ -147,4 +155,11 @@ window.getSellerRating = async function(sellerId) {
     const { data, error } = await window.supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
     if (error || !data.length) return null;
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
+};
+
+window.updateUserBanner = async function(bannerId) {
+    const { error } = await window.supabase.from('users').update({ banner_id: bannerId }).eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    if (window.currentUser) window.currentUser.banner_id = bannerId;
+    return true;
 };
