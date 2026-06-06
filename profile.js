@@ -1,10 +1,5 @@
-// profile.js – финальная версия
-// Шаг 1: выбор аватарки (эмодзи)
-// Шаг 2: выбор фона аватарки (11 цветов + кастомный)
-// Шаг 3: выбор цвета обводки (11 цветов + кастомный)
-// Исправлено: аватар отображается в модальном окне при кастомизации
+// profile.js – финальная рабочая версия (аватарка в модалке отображается)
 
-// ---------- Аватары ----------
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
 ];
@@ -22,7 +17,6 @@ function getAvatarStyle(emoji) {
     return `transform: translateY(${adjust}px); font-size: ${fontSize};`;
 }
 
-// ---------- Фоны (для шага 2) ----------
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' },
     { name: 'Фиолетовый', value: '#9b59b6' },
@@ -37,7 +31,6 @@ const bgColors = [
     { name: 'Лаванда', value: '#a18cd1' }
 ];
 
-// ---------- Цвета обводки (для шага 3) ----------
 const borderColors = [
     { name: 'Белый', value: '#ffffff' },
     { name: 'Чёрный', value: '#000000' },
@@ -56,7 +49,6 @@ function getBorderStyle(color) {
     return `border: 3px solid ${color}; box-shadow: 0 2px 8px rgba(0,0,0,0.2);`;
 }
 
-// ========== ФУНКЦИИ ДОСТИЖЕНИЙ ==========
 async function awardAvatarAchievement(supabase, userId, showCustomModal) {
     try {
         const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
@@ -178,7 +170,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки (ИСПРАВЛЕНО: добавлен preview) ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -230,7 +221,6 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
-// ========== ШАГ 2: выбор фона ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     
@@ -375,7 +365,6 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
@@ -509,7 +498,6 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
     await new Promise(resolve => { showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal); });
     await new Promise(resolve => {
@@ -537,7 +525,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
-// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
