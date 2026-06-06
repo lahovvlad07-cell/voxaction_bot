@@ -7,17 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="styles.css">
-    <!-- Вынесенные модули -->
-    <script src="api.js"></script>
-    <script src="notifications.js"></script>
-    <script src="topup.js"></script>
-    <script src="profile.js"></script>
-    <script src="stocks.js"></script>
-    <script src="analytics.js"></script>
-    <script src="rating.js"></script>
-    <script src="wallet.js"></script>
-    <script src="referral.js"></script>
-    <script src="admin.js"></script>
 </head>
 <body>
 <div class="app-header">
@@ -54,8 +43,9 @@
     </div>
 </div>
 <script>
-    // Основной скрипт
+    // Основной скрипт (инициализация, утилиты, настройки, запуск)
     (async () => {
+        // Drag tabs
         const tabsWrapper = document.querySelector('.tabs-wrapper');
         let isDown = false, startX, scrollLeft;
         tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
@@ -99,13 +89,14 @@
             setTimeout(() => toast.remove(), 5000);
         };
         
+        // Supabase
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
-        // Функция настроек (шестерёнка)
+        // Настройки (шестерёнка)
         async function renderSettingsTab() {
             const hideRating = window.currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -143,6 +134,12 @@
         
         document.getElementById('headerNotificationBell')?.addEventListener('click', () => window.showNotificationsModal());
         document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
+        
+        // Подключаем модули вкладок (они должны быть определены в отдельных файлах)
+        // ВАЖНО: убедитесь, что следующие функции существуют:
+        // renderProfileTab, renderStocksTab, renderAnalyticsTab, renderRatingTab,
+        // renderWalletTab, renderReferralTab, renderAdminTab.
+        // Они подключаются через <script src="..."> в head.
         
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
