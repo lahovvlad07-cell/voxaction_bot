@@ -1,4 +1,13 @@
-// profile.js - Все функции, связанные с профилем (без колокольчика)
+// profile.js – полная версия с баннерами (6 вариантов)
+
+const bannerList = [
+    'banners/1.jpg',   // готов
+    'banners/2.jpg',   // готов
+    'banners/3.jpg',   // готов
+    'banners/3.jpg',   // временно, замените на 4.jpg
+    'banners/3.jpg',   // временно, замените на 5.jpg
+    'banners/3.jpg'    // временно, замените на 6.jpg
+];
 
 const avatarEmojis = [
     '👤', '😀', '😎', '🐱', '🐶', '🦊', '🐼', '⭐', '🎮', '⚽',
@@ -43,18 +52,9 @@ function getAvatarStyle(emoji) {
 
 async function awardAvatarAchievement(supabase, userId, showCustomModal) {
     try {
-        const { data: achData } = await supabase
-            .from('achievements')
-            .select('id')
-            .eq('name', '🎨 Стилист')
-            .single();
+        const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
         if (!achData) return;
-        const { data: existing } = await supabase
-            .from('user_achievements')
-            .select('achievement_id')
-            .eq('user_id', userId)
-            .eq('achievement_id', achData.id)
-            .maybeSingle();
+        const { data: existing } = await supabase.from('user_achievements').select('achievement_id').eq('user_id', userId).eq('achievement_id', achData.id).maybeSingle();
         if (!existing) {
             await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: achData.id, earned_at: new Date().toISOString() });
             showCustomModal('🎉 Новое достижение!', 'Вы получили достижение "🎨 Стилист" за выбор аватарки или фона!');
@@ -129,11 +129,7 @@ async function openBackgroundSelector(supabase, userId, currentUser, updateUserC
             optionsHtml += `<div class="bg-option ${bg.class} ${isSelected ? 'selected' : ''}" data-bg="${bg.id}" style="width:65px; height:65px; border-radius:50%; margin:0 auto;"></div>`;
         } else {
             const isCustomSelected = (currentBg && currentBg.startsWith('#'));
-            optionsHtml += `
-                <div class="custom-color-preview ${isCustomSelected ? 'selected' : ''}" data-bg="custom" style="background: ${isCustomSelected ? currentBg : '#2b6e9e'}; display: flex; align-items: center; justify-content: center;">
-                    🎨
-                </div>
-            `;
+            optionsHtml += `<div class="custom-color-preview ${isCustomSelected ? 'selected' : ''}" data-bg="custom" style="background: ${isCustomSelected ? currentBg : '#2b6e9e'}; display: flex; align-items: center; justify-content: center;">🎨</div>`;
         }
     }
     const modalHtml = `<div class="modal" id="bgModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeBgModal">&times;</span><h3>Выберите фон аватарки</h3><div class="bg-grid">${optionsHtml}</div><button id="saveBgBtn">Сохранить</button></div></div>`;
@@ -237,18 +233,46 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
+async function openBannerSelector(currentUser, supabase, renderProfileTab, showCustomModal) {
+    const currentBannerId = currentUser.banner_id || 1;
+    const gridHtml = bannerList.map((url, idx) => {
+        const isSelected = (idx + 1 === currentBannerId);
+        return `<div class="banner-option ${isSelected ? 'selected' : ''}" data-banner-id="${idx+1}" style="background-image: url(${url}); background-size: cover; background-position: center;"></div>`;
+    }).join('');
+    const modalHtml = `
+        <div class="modal" id="bannerModal" style="display:flex;">
+            <div class="modal-content">
+                <span class="close-modal" id="closeBannerModal">&times;</span>
+                <h3>🎨 Выберите баннер профиля</h3>
+                <div class="banner-grid">${gridHtml}</div>
+                <button id="saveBannerBtn">Сохранить</button>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('bannerModal');
+    document.getElementById('closeBannerModal').onclick = () => modal.remove();
+    let selectedBannerId = currentBannerId;
+    document.querySelectorAll('.banner-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.banner-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            selectedBannerId = parseInt(opt.dataset.bannerId);
+        });
+    });
+    document.getElementById('saveBannerBtn').onclick = async () => {
+        await window.updateUserBanner(selectedBannerId);
+        currentUser.banner_id = selectedBannerId;
+        modal.remove();
+        await renderProfileTab();
+        showCustomModal('Готово', 'Баннер профиля обновлён');
+    };
+}
+
 window.renderProfileTab = async function(
-    currentUser,
-    supabase,
-    userId,
-    fromCents,
-    showCustomModal,
-    getUserStats,
-    getUserRank,
-    getEarnedAchievements,
-    getAllAchievements,
-    updateBellBadge,
-    showNotificationsModal
+    currentUser, supabase, userId, fromCents, showCustomModal,
+    getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
+    updateBellBadge, showNotificationsModal
 ) {
     const stats = await getUserStats();
     const earnedAchievements = await getEarnedAchievements();
@@ -274,15 +298,7 @@ window.renderProfileTab = async function(
                 case 'referrals_count': conditionStr = `${ach.current}/${ach.needed} приглашений`; break;
                 case 'total_topup': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐`; break;
             }
-            nextHtml += `
-                <div class="next-achievement-item">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:28px;">${ach.icon}</span>
-                        <span class="small-text">${conditionStr}</span>
-                    </div>
-                    <div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div>
-                </div>
-            `;
+            nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between;"><span style="font-size:28px;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div></div>`;
         }
         nextHtml += `</div>`;
     }
@@ -297,14 +313,20 @@ window.renderProfileTab = async function(
     }
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
+    const bannerId = currentUser.banner_id || 1;
+    const bannerUrl = bannerList[bannerId - 1] || bannerList[0];
 
-    // ВАЖНО: убрали блок с колокольчиком
     const html = `<div class="card" style="text-align: center;">
+        <div class="profile-banner" style="background-image: url(${bannerUrl}); background-size: cover; background-position: center;">
+            <div class="profile-banner-edit" id="editBannerBtn">
+                🖌️ Сменить баннер
+            </div>
+        </div>
         <div class="profile-avatar" id="avatarClick">
             <div class="${avatarClass}" style="${avatarStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
             <div class="small-text">Нажмите, чтобы сменить аватар и фон</div>
         </div>
-        <p style="font-size:20px; font-weight:bold;">${currentUser.username}</p>
+        <p style="font-size:20px; font-weight:bold; margin-top:8px;">${currentUser.username}</p>
         <p class="small-text">ID: ${userId}</p>
         <p class="small-text">📅 Регистрация: ${registeredDate}</p>
         <div class="achievement-icons">${iconsHtml.join('')}</div>
@@ -329,7 +351,6 @@ window.renderProfileTab = async function(
         await supabase.from('users').update(updates).eq('id', userId);
         Object.assign(currentUser, updates);
     };
-
     const renderProfileTabBound = async () => {
         await window.renderProfileTab(
             currentUser, supabase, userId, fromCents, showCustomModal,
@@ -337,7 +358,6 @@ window.renderProfileTab = async function(
             updateBellBadge, showNotificationsModal
         );
     };
-
     const awardAvatarAchievementBound = () => awardAvatarAchievement(supabase, userId, showCustomModal);
     const openBackgroundSelectorBound = () => openBackgroundSelector(
         supabase, userId, currentUser, updateUserCallback,
@@ -349,6 +369,7 @@ window.renderProfileTab = async function(
     );
 
     document.getElementById('avatarClick')?.addEventListener('click', openAvatarSelectorBound);
+    document.getElementById('editBannerBtn')?.addEventListener('click', () => openBannerSelector(currentUser, supabase, renderProfileTabBound, showCustomModal));
 
     document.querySelectorAll('.achi-icon').forEach(icon => {
         icon.addEventListener('click', async () => {
@@ -362,7 +383,5 @@ window.renderProfileTab = async function(
         });
     });
 
-    // Колокольчик не обновляем, это делает хедер
-    // Но нужно вызвать updateBellBadge всё равно для бейджа в хедере
     await updateBellBadge();
 };
