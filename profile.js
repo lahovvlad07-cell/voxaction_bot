@@ -1,4 +1,4 @@
-// profile.js – финальная версия (баннеры удалены, кнопки закреплены внизу, аватарка по центру, обводка сохраняется)
+// profile.js – финальная версия с 3 обводками, выбором цвета и покупкой
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -34,18 +34,21 @@ const bgOptions = [
     { id:'custom', name:'🎨 Свой цвет', class:'', isCustom:true }
 ];
 
-// ---------- Обводки ----------
+// ---------- Обводки (3 варианта) ----------
 const borderOptions = [
-    { id:'default', name:'Стандартная', style:'3px solid rgba(255,255,255,0.9)' },
-    { id:'thin', name:'Тонкая', style:'2px solid rgba(255,255,255,0.9)' },
-    { id:'thick', name:'Толстая', style:'5px solid rgba(255,255,255,0.9)' },
-    { id:'gold', name:'Золотая', style:'3px solid #fbbf24' },
-    { id:'neon', name:'Неоновая', style:'3px solid #2b6e9e; box-shadow:0 0 10px #2b6e9e' },
-    { id:'none', name:'Без обводки', style:'none' }
+    { id:'standard', name:'Стандартная', price:0, defaultColor:'#ffffff' },
+    { id:'gold', name:'Золотая', price:50, defaultColor:'#fbbf24' },
+    { id:'neon', name:'Неоновая', price:30, defaultColor:'#2b6e9e' }
 ];
-function getBorderStyle(borderId) {
-    const found = borderOptions.find(b => b.id === borderId);
-    return found ? found.style : borderOptions[0].style;
+
+// Функция получения стиля обводки по id и цвету
+function getBorderStyle(borderId, customColor = null) {
+    const opt = borderOptions.find(b => b.id === borderId);
+    if (!opt) return '';
+    const color = customColor || opt.defaultColor;
+    if (borderId === 'gold') return `border: 3px solid ${color}; box-shadow: 0 0 8px ${color};`;
+    if (borderId === 'neon') return `border: 3px solid ${color}; box-shadow: 0 0 10px ${color};`;
+    return `border: 3px solid ${color};`;
 }
 
 // ========== ФУНКЦИИ ДОСТИЖЕНИЙ ==========
@@ -90,7 +93,6 @@ async function getNextAchievementsProgress(supabase, userId, currentUser, getUse
     return nextAchievements;
 }
 
-// ---------- Выбор достижения для слота (исправленная версия) ----------
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
     if (!earnedAchievements.length) {
         showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
@@ -171,7 +173,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки (кнопка всегда видна) ==========
+// ========== ШАГ 1: выбор аватарки ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -304,38 +306,46 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3: выбор обводки (с сохранением и обновлением превью) ==========
-function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
-    const currentBorder = currentUser.avatar_border || 'default';
-    const gridHtml = borderOptions.map(opt => {
-        const isSelected = (opt.id === currentBorder);
-        let previewStyle = '';
-        if (opt.id === 'none') previewStyle = 'border: none;';
-        else if (opt.id === 'neon') previewStyle = 'border: 3px solid #2b6e9e; box-shadow: 0 0 8px #2b6e9e;';
-        else previewStyle = `border: ${opt.style};`;
-        return `<div style="text-align:center;">
-                    <div class="border-option ${isSelected ? 'selected' : ''}" data-border="${opt.id}" style="${previewStyle} background-color: #2b6e9e;"></div>
-                    <div class="border-label">${opt.name}</div>
-                </div>`;
-    }).join('');
-    let bgClass = '';
-    if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) bgClass = '';
-    else {
-        const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
-        bgClass = found ? found.class : 'bg-gradient1';
-    }
-    const bgStyle = (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) ? `background:${currentUser.avatar_bg};` : '';
-    const borderCurrent = getBorderStyle(currentBorder);
+// ========== ШАГ 3: выбор обводки (три варианта, цвета, покупка) ==========
+async function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
+    // Текущая обводка (id)
+    const currentBorderId = currentUser.avatar_border || 'standard';
+    // Функция для генерации HTML каждого варианта
+    const generateOptionsHtml = () => {
+        return borderOptions.map(opt => {
+            const isCurrent = (opt.id === currentBorderId);
+            const priceText = opt.price > 0 ? `${opt.price} ⭐` : 'Бесплатно';
+            const previewStyle = getBorderStyle(opt.id, opt.defaultColor);
+            return `
+                <div class="border-option-item" data-border-id="${opt.id}" data-price="${opt.price}">
+                    <div class="border-option-info">
+                        <div class="border-option-preview" style="${previewStyle} background-color: #2b6e9e;"></div>
+                        <div class="border-option-details">
+                            <div class="border-option-name">${opt.name}</div>
+                            <div class="border-option-price">${priceText}</div>
+                        </div>
+                    </div>
+                    <div class="border-option-actions">
+                        ${opt.id !== 'gold' ? `<input type="color" class="border-color-picker" value="${opt.defaultColor}" data-border="${opt.id}">` : ''}
+                        <button class="border-select-btn" data-border="${opt.id}">${isCurrent ? '✓ Выбрано' : 'Выбрать'}</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+    
     const modalHtml = `
-        <div class="modal" id="stepModal" style="display:flex;">
+        <div class="modal" id="borderModal" style="display:flex;">
             <div class="modal-content">
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>3/3 – Выберите обводку аватарки</h3>
                 <div class="modal-preview">
-                    <div class="avatar-circle ${bgClass}" style="${bgStyle}; ${borderCurrent}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
+                    <div class="avatar-circle" style="background: #2b6e9e;"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
                 <div class="scrollable-content">
-                    <div class="border-grid">${gridHtml}</div>
+                    <div class="border-options-container" id="borderOptionsContainer">
+                        ${generateOptionsHtml()}
+                    </div>
                 </div>
                 <div class="modal-buttons">
                     <button id="backBtn" class="secondary">← Назад</button>
@@ -345,33 +355,92 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
         </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = document.getElementById('stepModal');
+    const modal = document.getElementById('borderModal');
     document.getElementById('closeModal').onclick = () => modal.remove();
-    let selectedBorder = currentBorder;
-    const updatePreview = () => {
+    
+    // Функция обновления превью
+    const updatePreview = (borderId, customColor = null) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
-        let newStyle = '';
-        if (selectedBorder === 'none') newStyle = 'border: none;';
-        else if (selectedBorder === 'neon') newStyle = 'border: 3px solid #2b6e9e; box-shadow: 0 0 10px #2b6e9e;';
-        else {
-            const opt = borderOptions.find(b => b.id === selectedBorder);
-            newStyle = opt ? `border: ${opt.style};` : '';
-        }
-        const currentStyle = previewCircle.getAttribute('style') || '';
-        const cleaned = currentStyle.replace(/border:[^;]+;?/g, '').replace(/box-shadow:[^;]+;?/g, '');
-        previewCircle.setAttribute('style', cleaned + newStyle);
+        const style = getBorderStyle(borderId, customColor);
+        previewCircle.setAttribute('style', `background: #2b6e9e; ${style}`);
     };
-    document.querySelectorAll('.border-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-            document.querySelectorAll('.border-option').forEach(o => o.classList.remove('selected'));
-            opt.classList.add('selected');
-            selectedBorder = opt.dataset.border;
-            updatePreview();
+    
+    // Сохраняем выбранный border и цвет
+    let selectedBorderId = currentBorderId;
+    let selectedColor = null;
+    // Для каждого варианта слушаем выбор
+    document.querySelectorAll('.border-select-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const borderId = btn.dataset.border;
+            const borderOpt = borderOptions.find(b => b.id === borderId);
+            const price = borderOpt.price;
+            // Для gold цвет фиксирован, для остальных берём из color picker
+            let customColor = null;
+            if (borderId !== 'gold') {
+                const colorPicker = modal.querySelector(`.border-color-picker[data-border="${borderId}"]`);
+                if (colorPicker) customColor = colorPicker.value;
+            }
+            // Проверка покупки, если платная и не текущая
+            if (price > 0 && borderId !== currentBorderId) {
+                try {
+                    await window.purchaseBorder(borderId, price, customColor);
+                    showCustomModal('Успех', `Обводка "${borderOpt.name}" приобретена!`);
+                    // Обновляем баланс в интерфейсе (можно перерисовать профиль позже)
+                } catch (err) {
+                    showCustomModal('Ошибка', err.message);
+                    return;
+                }
+            } else if (borderId !== currentBorderId) {
+                // Бесплатная обводка: просто сохраняем (можно сразу, но лучше сохранить при "Далее")
+                await window.updateUserBorder(borderId);
+            }
+            // Обновляем текущую выбранную обводку в модалке
+            selectedBorderId = borderId;
+            selectedColor = customColor;
+            updatePreview(selectedBorderId, selectedColor || borderOpt.defaultColor);
+            // Меняем текст кнопки
+            document.querySelectorAll('.border-select-btn').forEach(b => {
+                if (b.dataset.border === borderId) {
+                    b.textContent = '✓ Выбрано';
+                } else {
+                    b.textContent = 'Выбрать';
+                }
+            });
         });
     });
+    
+    // Слушатели color picker
+    document.querySelectorAll('.border-color-picker').forEach(picker => {
+        picker.addEventListener('input', (e) => {
+            const borderId = picker.dataset.border;
+            const color = e.target.value;
+            if (borderId === selectedBorderId) {
+                updatePreview(borderId, color);
+                selectedColor = color;
+            }
+        });
+    });
+    
     document.getElementById('nextBtn').onclick = async () => {
-        await window.updateUserBorder(selectedBorder);
-        currentUser.avatar_border = selectedBorder;
+        // Сохраняем окончательно выбранную обводку (если она ещё не сохранена)
+        if (selectedBorderId !== currentBorderId) {
+            const borderOpt = borderOptions.find(b => b.id === selectedBorderId);
+            const price = borderOpt.price;
+            // Если обводка платная, но мы её уже купили через кнопку "Выбрать", то здесь повторно не списываем
+            // Но для надёжности: если она платная и ещё не куплена – пробуем купить
+            if (price > 0) {
+                try {
+                    await window.purchaseBorder(selectedBorderId, price, selectedColor);
+                } catch (err) {
+                    showCustomModal('Ошибка', err.message);
+                    return;
+                }
+            } else {
+                await window.updateUserBorder(selectedBorderId);
+            }
+        }
+        // Обновляем currentUser
+        currentUser.avatar_border = selectedBorderId;
         modal.remove();
         nextCallback();
     };
@@ -384,7 +453,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await new Promise(resolve => {
         showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal);
     });
-    // Шаг 2: фон (с кнопкой "Назад")
+    // Шаг 2: фон
     await new Promise(resolve => {
         showBackgroundStep(currentUser, updateUserCallback, async () => {
             resolve();
@@ -394,7 +463,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
             resolve();
         }, showCustomModal);
     });
-    // Шаг 3: обводка (с кнопкой "Назад")
+    // Шаг 3: обводка
     await new Promise(resolve => {
         showBorderStep(currentUser, updateUserCallback, async () => {
             resolve();
@@ -450,7 +519,8 @@ window.renderProfileTab = async function(
         avatarClass += ` ${found ? found.class : 'bg-gradient1'}`;
     }
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
-    const borderStyle = getBorderStyle(currentUser.avatar_border || 'default');
+    // Получаем стиль обводки (пока без пользовательского цвета, можно добавить поле позже)
+    const borderStyle = getBorderStyle(currentUser.avatar_border);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
