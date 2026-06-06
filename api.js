@@ -1,7 +1,5 @@
 // api.js – полная версия с улучшенной реферальной системой
-// Включает все функции: пользователи, ордера, торги, аналитика, админка, рефералы
 
-// ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
     try {
         const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
@@ -17,13 +15,11 @@ function generateReferralCode() {
     return 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// ---------- Пользователи (с бонусом за регистрацию по рефералке) ----------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
     
     if (!data) {
-        // Случайные начальные параметры
         const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
         const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
         const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
@@ -38,7 +34,6 @@ window.getOrCreateUser = async function() {
             existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
         }
         
-        // Проверяем, есть ли referred_by (установленный ботом при переходе по ссылке)
         let referredById = null;
         const userCheck = await window.supabase.from('users').select('referred_by').eq('id', window.userId).maybeSingle();
         if (userCheck.data && userCheck.data.referred_by) {
@@ -68,12 +63,8 @@ window.getOrCreateUser = async function() {
         
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
         
-        // Начисляем бонус новому пользователю, если он пришёл по рефералке
         if (referredById) {
-            // Бонус новичку: 5 звёзд (500 центов)
             await window.supabase.from('users').update({ stars_balance: 500 }).eq('id', window.userId);
-            
-            // Создаём запись в таблице referrals
             await window.supabase.from('referrals').insert({
                 referrer_id: referredById,
                 referred_id: window.userId,
@@ -81,15 +72,11 @@ window.getOrCreateUser = async function() {
                 topup_completed: false,
                 bonus_earned: false
             });
-            
-            // Увеличиваем referral_count реферера
             const referrer = await window.supabase.from('users').select('referral_count').eq('id', referredById).single();
             if (referrer.data) {
                 const newCount = (referrer.data.referral_count || 0) + 1;
                 await window.supabase.from('users').update({ referral_count: newCount }).eq('id', referredById);
             }
-            
-            // Уведомление рефереру
             await window.supabase.from('notifications').insert({
                 user_id: referredById,
                 message: `🎉 Новый реферал! ${window.username} зарегистрировался по вашей ссылке.`,
@@ -102,7 +89,6 @@ window.getOrCreateUser = async function() {
         return { user: newUser, isNew: true };
     }
     
-    // Существующий пользователь – обновляем недостающие поля
     await ensureWelcomeAchievement(window.userId);
     let updated = false;
     if (!data.selected_achievements) { data.selected_achievements = []; updated = true; }
@@ -146,7 +132,6 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
-// ---------- Реферальные функции ----------
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
@@ -176,16 +161,14 @@ window.getReferralsList = async function() {
 
 window.getReferralRewardsProgress = async function(referralCount) {
     const rewards = [
-        { count: 3, shares: 1000, achievement: '🤝 Наставник' },    // 10 акций
-        { count: 5, shares: 2000, achievement: '🌟 Лидер' },        // 20 акций
-        { count: 10, shares: 5000, achievement: '👑 Король рефералов' } // 50 акций
+        { count: 3, shares: 1000, achievement: '🤝 Наставник' },
+        { count: 5, shares: 2000, achievement: '🌟 Лидер' },
+        { count: 10, shares: 5000, achievement: '👑 Король рефералов' }
     ];
     const earnedAchievements = await window.getEarnedAchievements();
     const earnedNames = new Set(earnedAchievements.map(a => a.name));
-    
     const nextReward = rewards.find(r => referralCount < r.count && !earnedNames.has(r.achievement));
     if (!nextReward) return null;
-    
     return {
         needed: nextReward.count,
         current: referralCount,
@@ -195,7 +178,7 @@ window.getReferralRewardsProgress = async function(referralCount) {
     };
 };
 
-// ---------------------- Ордера и торги (основные функции) ----------------------
+// ---------- Остальные функции (ордера, торги, статистика и т.д.) ----------
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
@@ -310,7 +293,6 @@ window.getSellerRating = async function(sellerId) {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
-// ---------------------- Обновление цвета обводки ----------------------
 window.updateUserBorder = async function(color) {
     const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
     if (error) throw new Error(error.message);
@@ -318,7 +300,6 @@ window.updateUserBorder = async function(color) {
     return true;
 };
 
-// ---------------------- Админские и вспомогательные функции ----------------------
 window.adminFetchStats = async function() {
     const res = await fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) });
     return res.json();
