@@ -1,12 +1,13 @@
-// profile.js – финальная версия с 4 шагами, превью, кнопками поровну
+// profile.js – финальная версия с 4 шагами, 3 баннерами, превью, кнопками поровну
 
-// ---------- Баннеры ----------
+// ---------- Баннеры (только 3) ----------
 const bannerList = [
-    'banners/1.jpg', 'banners/2.jpg', 'banners/3.jpg',
-    'banners/3.jpg', 'banners/3.jpg', 'banners/3.jpg'
+    'banners/1.jpg',
+    'banners/2.jpg',
+    'banners/3.jpg'
 ];
 
-// ---------- Аватары ----------
+// ---------- Аватары, фоны, обводки (без изменений) ----------
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
 ];
@@ -24,7 +25,6 @@ function getAvatarStyle(emoji) {
     return `transform: translateY(${adjust}px); font-size: ${fontSize};`;
 }
 
-// ---------- Фоны ----------
 const bgOptions = [
     { id:'gradient1', name:'Синий', class:'bg-gradient1', isCustom:false },
     { id:'gradient2', name:'Фиолетовый', class:'bg-gradient2', isCustom:false },
@@ -40,7 +40,6 @@ const bgOptions = [
     { id:'custom', name:'🎨 Свой цвет', class:'', isCustom:true }
 ];
 
-// ---------- Обводки ----------
 const borderOptions = [
     { id:'default', name:'Стандартная', style:'3px solid rgba(255,255,255,0.9)' },
     { id:'thin', name:'Тонкая', style:'2px solid rgba(255,255,255,0.9)' },
@@ -54,7 +53,7 @@ function getBorderStyle(borderId) {
     return found ? found.style : borderOptions[0].style;
 }
 
-// ========== ФУНКЦИИ ДОСТИЖЕНИЙ (реализованы) ==========
+// ========== ФУНКЦИИ ДОСТИЖЕНИЙ (без изменений) ==========
 async function awardAvatarAchievement(supabase, userId, showCustomModal) {
     try {
         const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
@@ -366,22 +365,38 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ---------- ШАГ 4: выбор баннера с превью ----------
+// ---------- ШАГ 4: выбор баннера с превью (только 3 баннера) ----------
 async function showBannerStep(currentUser, supabase, renderProfileTab, backCallback, showCustomModal) {
     const currentBannerId = currentUser.banner_id || 1;
+    // Генерируем сетку баннеров (2 в ряд)
     const gridHtml = bannerList.map((url, idx) => {
         const isSelected = (idx + 1 === currentBannerId);
         return `<div class="banner-option ${isSelected ? 'selected' : ''}" data-banner-id="${idx+1}" style="background-image: url(${url}); background-size: cover; background-position: center;"></div>`;
     }).join('');
-    // Превью текущего баннера
+    
+    // Превью: баннер + аватарка поверх
     const currentBannerUrl = bannerList[currentBannerId - 1] || bannerList[0];
+    let bgClass = '';
+    if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) bgClass = '';
+    else {
+        const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
+        bgClass = found ? found.class : 'bg-gradient1';
+    }
+    const bgStyle = (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) ? `background:${currentUser.avatar_bg};` : '';
+    const borderStyle = getBorderStyle(currentUser.avatar_border || 'default');
+    const emojiStyle = getAvatarStyle(currentUser.avatar_url);
+    
     const modalHtml = `
         <div class="modal" id="bannerModal" style="display:flex;">
             <div class="modal-content">
                 <span class="close-modal" id="closeBannerModal">&times;</span>
                 <h3>4/4 – Выберите баннер профиля</h3>
-                <div class="modal-preview">
-                    <div class="profile-banner" style="width:100%; height:80px; border-radius:16px; background-image: url(${currentBannerUrl}); background-size: cover; background-position: center;"></div>
+                <div class="modal-preview" style="margin-bottom: 20px;">
+                    <div class="profile-banner" style="width:100%; height:100px; border-radius:20px; background-image: url(${currentBannerUrl}); background-size: cover; background-position: center; position: relative;">
+                        <div style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%);">
+                            <div class="avatar-circle ${bgClass}" style="${bgStyle}; ${borderStyle}; width: 70px; height: 70px; font-size: 38px;"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="banner-grid">${gridHtml}</div>
                 <div class="modal-buttons">
@@ -396,9 +411,9 @@ async function showBannerStep(currentUser, supabase, renderProfileTab, backCallb
     document.getElementById('closeBannerModal').onclick = () => modal.remove();
     let selectedBannerId = currentBannerId;
     const updatePreview = () => {
-        const preview = modal.querySelector('.modal-preview .profile-banner');
-        if (preview) {
-            preview.style.backgroundImage = `url(${bannerList[selectedBannerId - 1] || bannerList[0]})`;
+        const previewBanner = modal.querySelector('.modal-preview .profile-banner');
+        if (previewBanner) {
+            previewBanner.style.backgroundImage = `url(${bannerList[selectedBannerId - 1] || bannerList[0]})`;
         }
     };
     document.querySelectorAll('.banner-option').forEach(opt => {
@@ -499,10 +514,9 @@ window.renderProfileTab = async function(
     const bannerId = currentUser.banner_id || 1;
     const bannerUrl = bannerList[bannerId - 1] || bannerList[0];
 
+    // HTML карточки – баннер без кнопки смены
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
-        <div class="profile-banner" style="background-image: url(${bannerUrl}); background-size: cover; background-position: center;">
-            <div class="profile-banner-edit" id="editBannerBtn">🖌️ Сменить баннер</div>
-        </div>
+        <div class="profile-banner" style="background-image: url(${bannerUrl}); background-size: cover; background-position: center;"></div>
         <div class="profile-avatar" id="avatarClick">
             <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
             <div class="small-text">Нажмите, чтобы изменить аватар, фон, обводку и баннер</div>
@@ -541,9 +555,6 @@ window.renderProfileTab = async function(
     };
     document.getElementById('avatarClick')?.addEventListener('click', () => {
         startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTabBound, showCustomModal);
-    });
-    document.getElementById('editBannerBtn')?.addEventListener('click', () => {
-        showBannerStep(currentUser, supabase, renderProfileTabBound, null, showCustomModal);
     });
     document.querySelectorAll('.achi-icon').forEach(icon => {
         icon.addEventListener('click', async () => {
