@@ -1,4 +1,4 @@
-/* styles.css – финальная версия (без кастомного кода, с поддержкой рефералки) */
+/* styles.css – финальная версия (полная) */
 
 * {
     margin: 0;
@@ -110,7 +110,7 @@ body {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* ===== Аватар ===== */
+/* ===== Аватар (центрирование) ===== */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -142,6 +142,7 @@ body {
 .avatar-emoji {
     display: inline-block;
     line-height: 1;
+    vertical-align: middle;
 }
 .small-text {
     font-size: 12px;
@@ -298,6 +299,13 @@ canvas {
     color: #9ca3af;
     z-index: 1;
 }
+.modal-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 16px 0;
+    flex-shrink: 0;
+}
 .scrollable-content {
     flex: 1;
     overflow-y: auto;
@@ -318,7 +326,7 @@ canvas {
     margin-top: 0;
 }
 
-/* ===== Сетки выбора аватарок и фонов ===== */
+/* ===== Сетки выбора ===== */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -813,4 +821,20 @@ canvas {
     background: rgba(251, 191, 36, 0.15);
     padding: 4px 8px;
     border-radius: 20px;
+}
+
+/* ===== Дополнительно: гарантия отображения превью в кастомизации ===== */
+#stepModal .modal-preview {
+    display: flex !important;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+#stepModal .avatar-circle {
+    width: 80px;
+    height: 80px;
+    background: #2b6e9e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
 }
