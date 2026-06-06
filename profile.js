@@ -311,18 +311,19 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки (исправленный, с правильным фоном) ==========
+// ========== ШАГ 3: выбор цвета обводки (ИСПРАВЛЕН: правильно отображается фон) ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
-    // Получаем актуальный фон из currentUser (должен быть обновлён после шага 2)
-    let bgStylePreview = '';
+    // Определяем класс фона и инлайн-стиль
+    let bgClass = '';
+    let bgStyleInline = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
-        bgStylePreview = `background: ${currentUser.avatar_bg};`;
+        bgStyleInline = `background: ${currentUser.avatar_bg};`;
     } else {
         const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
-        const bgClass = found ? found.class : 'bg-gradient1';
-        bgStylePreview = `background: ${bgClass};`;
+        bgClass = found ? found.class : 'bg-gradient1';
+        // Инлайн-стиль не нужен, полагаемся на класс
     }
     
     const generateColorsHtml = () => {
@@ -342,7 +343,7 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>3/3 – Выберите цвет обводки аватарки</h3>
                 <div class="modal-preview">
-                    <div class="avatar-circle" style="${bgStylePreview}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
+                    <div class="avatar-circle ${bgClass}" style="${bgStyleInline}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
                 <div class="scrollable-content">
                     <div class="colors-grid" id="colorsGrid">
