@@ -709,7 +709,7 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – УЛУЧШЕННЫЙ ДИЗАЙН (без прогресса) ===== */
+/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – УЛУЧШЕННЫЙ ДИЗАЙН ===== */
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
@@ -763,17 +763,25 @@ canvas {
 }
 .copy-btn {
     width: auto;
-    padding: 6px 16px;
+    padding: 6px 14px;
     margin: 0;
     background: #2b6e9e;
     border-radius: 40px;
-    font-size: 18px;
+    font-size: 14px;
     line-height: 1;
+}
+.share-btn {
+    background: rgba(56, 189, 248, 0.2);
+    border: 1px solid #38bdf8;
+}
+.share-btn:hover {
+    background: rgba(56, 189, 248, 0.4);
 }
 .hint-text {
     text-align: center;
     font-size: 11px;
     opacity: 0.7;
+    margin-top: 8px;
 }
 .referral-bonus-card {
     display: flex;
@@ -795,4 +803,22 @@ canvas {
 }
 .bonus-text strong {
     color: #eef2ff;
+}
+.reward-progress-placeholder {
+    margin-top: 20px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 24px;
+    padding: 16px;
+}
+.reward-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+.reward-step {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #cbd5e1;
 }
