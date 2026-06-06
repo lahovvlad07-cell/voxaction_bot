@@ -1,3 +1,5 @@
+// referral.js – финальная версия (с аватаром и ID в списке приглашённых)
+
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     const activeCode = currentUser.referral_code;
@@ -77,6 +79,7 @@ window.renderReferralTab = async function() {
     });
 };
 
+// Обновлённая модалка с аватаром, username, ID, датой и статусом
 async function showReferralsModal(referrals) {
     let listHtml = '';
     if (referrals.length === 0) {
@@ -85,9 +88,10 @@ async function showReferralsModal(referrals) {
         listHtml = referrals.map(r => `
             <div class="referral-item">
                 <div class="referral-user">
-                    <span class="referral-avatar">👤</span>
+                    <div class="referral-avatar" style="font-size:32px;">${r.avatarUrl}</div>
                     <div>
                         <div class="referral-username"><strong>${escapeHtml(r.username)}</strong></div>
+                        <div class="referral-id">ID: ${r.userId}</div>
                         <div class="referral-date">${new Date(r.registeredAt).toLocaleDateString()}</div>
                     </div>
                 </div>
