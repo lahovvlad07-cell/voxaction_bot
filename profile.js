@@ -1,4 +1,8 @@
-// profile.js – финальная версия (исправлена область клика: только аватарка и текст)
+// profile.js – финальная версия
+// Шаг 1: выбор аватарки (эмодзи)
+// Шаг 2: выбор фона аватарки (11 цветов + кастомный)
+// Шаг 3: выбор цвета обводки (11 цветов + кастомный)
+// Исправлено: текст под аватаркой, область клика только на аватарку
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -593,7 +597,6 @@ window.renderProfileTab = async function(
     const borderStyle = getBorderStyle(currentUser.avatar_border || '#ffffff');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
-    // Исправлено: контейнер аватарки занимает только ширину содержимого
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div id="avatarClickWrapper">
             <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
