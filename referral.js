@@ -1,9 +1,11 @@
+// referral.js – только кастомный код, без отображения полной ссылки
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     const activeCode = currentUser.custom_ref_code || currentUser.referral_code;
     const referralCount = currentUser.referral_count || 0;
     const earnedShares = currentUser.total_earned_shares ? (currentUser.total_earned_shares / 100).toFixed(2) : '0.00';
 
+    // Прогресс до следующей награды (заглушка)
     const nextMilestone = 3;
     const progressPercent = Math.min(100, (referralCount / nextMilestone) * 100);
     const remaining = nextMilestone - referralCount;
@@ -31,7 +33,7 @@ window.renderReferralTab = async function() {
                     <button id="saveCodeBtn" class="save-code-btn">💾 Сохранить</button>
                 </div>
                 <p class="hint-text">Используйте латиницу, цифры и символ подчёркивания (_). До 32 символов.</p>
-                <p class="small-text" style="margin-top: 8px;">После сохранения ваша ссылка станет такой: <strong>t.me/VoxAction_Bot?start=${activeCode}</strong></p>
+                <div class="preview-link">Ваша ссылка: <strong>t.me/VoxAction_Bot?start=${activeCode}</strong></div>
             </div>
 
             <div class="bonus-card">
@@ -74,8 +76,7 @@ window.renderReferralTab = async function() {
             window.showCustomModal('Ошибка', 'Код не должен превышать 32 символа');
             return;
         }
-        // Если код не изменился, не сохраняем
-        if (newCode === window.currentUser.custom_ref_code) {
+        if (newCode === (window.currentUser.custom_ref_code || window.currentUser.referral_code)) {
             window.showCustomModal('Внимание', 'Этот код уже используется');
             return;
         }
