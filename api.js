@@ -135,7 +135,6 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
-// Функция обновления кастомного кода
 window.updateRefCode = async function(customCode) {
     const res = await fetch(`${window.BACKEND_URL}/update-ref-code`, {
         method: 'POST',
@@ -151,7 +150,6 @@ window.updateRefCode = async function(customCode) {
     }
 };
 
-// Остальные функции (ордера, торги, статистика и т.д.)
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
