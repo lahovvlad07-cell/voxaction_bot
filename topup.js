@@ -1,58 +1,77 @@
-// topup.js
+// topup.js – полная версия (модалка пополнения, комиссия, инвойс)
+
 let selectedAmount = null;
 
 window.updateTopupFee = function(amount) {
     const fee = Math.floor(amount * 0.05);
     const receive = amount - fee;
-    document.getElementById('topupFeeInfo').innerHTML = `💸 Вы платите: ${amount} ⭐<br>📉 Комиссия (5%): ${fee} ⭐<br>✅ Получите: ${receive} ⭐`;
+    const feeInfo = document.getElementById('topupFeeInfo');
+    if (feeInfo) {
+        feeInfo.innerHTML = `💸 Вы платите: ${amount} ⭐<br>📉 Комиссия (5%): ${fee} ⭐<br>✅ Получите: ${receive} ⭐`;
+    }
 };
 
 function initTopupModal() {
-    document.querySelectorAll('#topupModal .amount-btn').forEach(btn => btn.addEventListener('click', () => {
-        document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        selectedAmount = parseInt(btn.dataset.amount);
-        document.getElementById('customTopupAmount').value = selectedAmount;
-        window.updateTopupFee(selectedAmount);
-    }));
-    document.getElementById('customTopupAmount')?.addEventListener('input', () => {
-        let val = parseInt(document.getElementById('customTopupAmount').value);
-        if (!isNaN(val) && val >= 1) {
-            selectedAmount = val;
-            document.querySelectorAll('#topupModal .amount-btn').forEach(b => b.classList.remove('selected'));
+    const modal = document.getElementById('topupModal');
+    if (!modal) return;
+    
+    const amountBtns = document.querySelectorAll('#topupModal .amount-btn');
+    amountBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            amountBtns.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedAmount = parseInt(btn.dataset.amount);
+            const customInput = document.getElementById('customTopupAmount');
+            if (customInput) customInput.value = selectedAmount;
             window.updateTopupFee(selectedAmount);
-        } else {
-            document.getElementById('topupFeeInfo').innerHTML = '';
-        }
+        });
     });
-    document.getElementById('confirmTopupBtn')?.addEventListener('click', async () => {
-        if (!selectedAmount || selectedAmount < 1) {
-            window.showCustomModal('Ошибка', 'Выберите сумму');
-            return;
-        }
-        document.getElementById('topupModal').style.display = 'none';
-        try {
-            const res = await fetch(`${window.BACKEND_URL}/create-invoice`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: window.userId, amount: selectedAmount })
-            });
-            const data = await res.json();
-            if (data.ok && data.invoice_link) {
-                window.tg.openInvoice(data.invoice_link, (status) => {
-                    if (status === 'paid') {
-                        window.showCustomModal('Успех', 'Баланс пополнен');
-                        window.refreshAll();
-                    }
-                });
+    
+    const customInput = document.getElementById('customTopupAmount');
+    if (customInput) {
+        customInput.addEventListener('input', () => {
+            let val = parseInt(customInput.value);
+            if (!isNaN(val) && val >= 1) {
+                selectedAmount = val;
+                amountBtns.forEach(b => b.classList.remove('selected'));
+                window.updateTopupFee(selectedAmount);
             } else {
-                window.showCustomModal('Ошибка', data.error || 'Не удалось создать счёт');
+                const feeInfo = document.getElementById('topupFeeInfo');
+                if (feeInfo) feeInfo.innerHTML = '';
             }
-        } catch (e) {
-            window.showCustomModal('Ошибка', 'Соединение');
-        }
-    });
-    document.getElementById('closeTopupModal')?.addEventListener('click', () => {
-        document.getElementById('topupModal').style.display = 'none';
-    });
+        });
+    }
+    
+    const confirmBtn = document.getElementById('confirmTopupBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+            if (!selectedAmount || selectedAmount < 1) {
+                window.showCustomModal('Ошибка', 'Выберите сумму');
+                return;
+            }
+            modal.style.display = 'none';
+            try {
+                const res = await window.createInvoice(selectedAmount);
+                if (res.ok && res.invoice_link) {
+                    window.tg.openInvoice(res.invoice_link, (status) => {
+                        if (status === 'paid') {
+                            window.showCustomModal('Успех', 'Баланс пополнен');
+                            if (window.refreshAll) window.refreshAll();
+                        }
+                    });
+                } else {
+                    window.showCustomModal('Ошибка', res.error || 'Не удалось создать счёт');
+                }
+            } catch(e) {
+                window.showCustomModal('Ошибка', 'Соединение');
+            }
+        });
+    }
+    
+    const closeBtn = document.getElementById('closeTopupModal');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+    }
 }
