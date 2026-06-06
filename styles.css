@@ -1,4 +1,4 @@
-/* styles.css – финальная версия (полная) */
+/* styles.css – финальная версия (с поддержкой referral-id) */
 
 * {
     margin: 0;
@@ -803,6 +803,11 @@ canvas {
 .referral-username {
     font-size: 14px;
     margin-bottom: 2px;
+}
+.referral-id {
+    font-size: 10px;
+    color: #6b7280;
+    margin-top: 2px;
 }
 .referral-date {
     font-size: 10px;
