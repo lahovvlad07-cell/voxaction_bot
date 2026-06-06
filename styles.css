@@ -1,4 +1,4 @@
-/* styles.css – финальная версия с кастомным кодом */
+/* styles.css – финальная версия без кастомного кода */
 
 * {
     margin: 0;
@@ -318,7 +318,7 @@ canvas {
     margin-top: 0;
 }
 
-/* ===== Сетки выбора аватарок и фонов ===== */
+/* ===== Сетки выбора ===== */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -412,7 +412,7 @@ canvas {
     box-shadow: none;
 }
 
-/* ===== Градиенты для аватарок (фоны) ===== */
+/* ===== Градиенты для фона аватарки ===== */
 .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
 .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
@@ -627,7 +627,7 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА – ТОЛЬКО КАСТОМНЫЙ КОД ========== */
+/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА – УПРОЩЁННАЯ (БЕЗ КАСТОМНОГО КОДА) ========== */
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
@@ -659,72 +659,46 @@ canvas {
     color: #9ca3af;
     margin-top: 6px;
 }
-
-.custom-code-section {
+.link-section {
     background: rgba(0, 0, 0, 0.25);
     border-radius: 24px;
     padding: 16px;
     margin-bottom: 20px;
 }
-.custom-code-section h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
-}
-.code-input-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 60px;
-    padding: 6px 12px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-}
-.code-prefix {
-    font-size: 12px;
-    color: #9ca3af;
+.link-url {
+    background: #0f1320;
+    padding: 12px;
+    border-radius: 40px;
     font-family: monospace;
-    white-space: nowrap;
-}
-#refCodeInput {
-    flex: 1;
-    background: transparent;
-    border: none;
-    padding: 10px 0;
-    margin: 0;
-    font-size: 14px;
-    font-family: monospace;
-    color: #eef2ff;
-}
-#refCodeInput:focus {
-    outline: none;
-    box-shadow: none;
-}
-.save-code-btn {
-    width: auto;
-    padding: 6px 16px;
-    margin: 0;
-    background: #2b6e9e;
     font-size: 13px;
-}
-.hint-text {
-    font-size: 11px;
-    color: #9ca3af;
-    margin: 8px 0 0 0;
-}
-.preview-link {
-    margin-top: 12px;
-    font-size: 12px;
-    background: rgba(0,0,0,0.3);
-    padding: 8px;
-    border-radius: 20px;
     text-align: center;
     word-break: break-all;
-}
-.preview-link strong {
+    margin-bottom: 12px;
     color: #60a5fa;
 }
-
+.link-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.link-buttons button {
+    flex: 1;
+    margin-top: 0;
+    padding: 10px;
+    font-size: 14px;
+}
+.copy-btn {
+    background: #2b6e9e;
+}
+.share-btn {
+    background: rgba(56, 189, 248, 0.2);
+    border: 1px solid #38bdf8;
+}
+.link-hint {
+    text-align: center;
+    font-size: 11px;
+    color: #9ca3af;
+}
 .bonus-card {
     display: flex;
     align-items: center;
@@ -746,7 +720,6 @@ canvas {
 .bonus-text strong {
     color: white;
 }
-
 .progress-card {
     background: rgba(0, 0, 0, 0.25);
     border-radius: 20px;
