@@ -1,4 +1,4 @@
-// api.js – полная версия (обводка хранится как цвет, без платных опций)
+// api.js – полная версия со случайными начальными параметрами, реферальным кодом и updateUserBorder
 
 // ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
@@ -12,23 +12,42 @@ async function ensureWelcomeAchievement(userId) {
     } catch(e) { console.error(e); }
 }
 
-// ---------- Пользователи (стандартные значения) ----------
+// Генерация уникального реферального кода
+function generateReferralCode() {
+    return 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// ---------- Пользователи (случайные начальные параметры + реферальный код) ----------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
     if (!data) {
-        const defaultAvatar = '👤';
-        const defaultBg = 'gradient1';
-        const defaultBorder = '#ffffff'; // белый цвет обводки по умолчанию
+        // Случайные значения для нового пользователя
+        const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
+        const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
+        const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
+        const randomBg = bgOptions[Math.floor(Math.random() * bgOptions.length)];
+        const borderOptions = ['standard','gold','neon','none'];
+        const randomBorder = borderOptions[Math.floor(Math.random() * borderOptions.length)];
+        
+        // Генерация уникального реферального кода
+        let referralCode = generateReferralCode();
+        let existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
+        while (existingCode.data) {
+            referralCode = generateReferralCode();
+            existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
+        }
+        
         const { data: newUser, error: insertError } = await window.supabase.from('users').insert([{
             id: window.userId,
             username: window.username,
             shares: 0,
             stars_balance: 0,
             selected_achievements: [],
-            avatar_url: defaultAvatar,
-            avatar_bg: defaultBg,
-            avatar_border: defaultBorder,
+            avatar_url: randomAvatar,
+            avatar_bg: randomBg,
+            avatar_border: randomBorder,
+            referral_code: referralCode,
             registered_at: new Date().toISOString()
         }]).select().single();
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
@@ -40,14 +59,25 @@ window.getOrCreateUser = async function() {
     if (!data.selected_achievements) { data.selected_achievements = []; updated = true; }
     if (!data.avatar_url) { data.avatar_url = '👤'; updated = true; }
     if (!data.avatar_bg) { data.avatar_bg = 'gradient1'; updated = true; }
-    if (!data.avatar_border) { data.avatar_border = '#ffffff'; updated = true; }
+    if (!data.avatar_border) { data.avatar_border = 'standard'; updated = true; }
     if (!data.registered_at) { data.registered_at = new Date().toISOString(); updated = true; }
+    if (!data.referral_code) {
+        let newCode = generateReferralCode();
+        let existing = await window.supabase.from('users').select('referral_code').eq('referral_code', newCode).maybeSingle();
+        while (existing.data) {
+            newCode = generateReferralCode();
+            existing = await window.supabase.from('users').select('referral_code').eq('referral_code', newCode).maybeSingle();
+        }
+        data.referral_code = newCode;
+        updated = true;
+    }
     if (updated) {
         await window.supabase.from('users').update({
             selected_achievements: data.selected_achievements,
             avatar_url: data.avatar_url,
             avatar_bg: data.avatar_bg,
             avatar_border: data.avatar_border,
+            referral_code: data.referral_code,
             registered_at: data.registered_at
         }).eq('id', window.userId);
     }
