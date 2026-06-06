@@ -1,4 +1,4 @@
-// api.js – полная версия с функциями обновления обводки, баннера и случайной инициализацией
+// api.js – полная версия с updateUserBorder и случайной инициализацией
 
 // ---------------------- Вспомогательные функции ----------------------
 async function ensureWelcomeAchievement(userId) {
@@ -12,20 +12,18 @@ async function ensureWelcomeAchievement(userId) {
     } catch(e) { console.error(e); }
 }
 
-// ---------------------- Пользователи (со случайными начальными параметрами) ----------------------
+// ---------------------- Пользователи (со случайными параметрами) ----------------------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
     if (!data) {
-        // Случайные значения для нового пользователя
         const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
         const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
         const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
         const randomBg = bgOptions[Math.floor(Math.random() * bgOptions.length)];
         const borderOptions = ['default','thin','thick','gold','neon','none'];
         const randomBorder = borderOptions[Math.floor(Math.random() * borderOptions.length)];
-        const bannerId = Math.floor(Math.random() * 3) + 1; // 1-3
-
+        const bannerId = Math.floor(Math.random() * 3) + 1;
         const { data: newUser, error: insertError } = await window.supabase.from('users').insert([{
             id: window.userId,
             username: window.username,
@@ -178,14 +176,7 @@ window.getSellerRating = async function(sellerId) {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
-// ---------------------- Функции обновления полей пользователя ----------------------
-window.updateUserBanner = async function(bannerId) {
-    const { error } = await window.supabase.from('users').update({ banner_id: bannerId }).eq('id', window.userId);
-    if (error) throw new Error(error.message);
-    if (window.currentUser) window.currentUser.banner_id = bannerId;
-    return true;
-};
-
+// ---------------------- Функция обновления обводки (важно!) ----------------------
 window.updateUserBorder = async function(borderStyle) {
     const { error } = await window.supabase.from('users').update({ avatar_border: borderStyle }).eq('id', window.userId);
     if (error) throw new Error(error.message);
@@ -193,33 +184,35 @@ window.updateUserBorder = async function(borderStyle) {
     return true;
 };
 
-// ---------------------- Админские функции (через бэкенд) ----------------------
+// ---------------------- Функция обновления баннера ----------------------
+window.updateUserBanner = async function(bannerId) {
+    const { error } = await window.supabase.from('users').update({ banner_id: bannerId }).eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    if (window.currentUser) window.currentUser.banner_id = bannerId;
+    return true;
+};
+
+// ---------------------- Админские функции (кратко) ----------------------
 window.adminFetchStats = async function() {
     const res = await fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) });
     return res.json();
 };
-
 window.adminFetchUsers = async function() {
     const res = await fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) });
     return res.json();
 };
-
 window.adminCancelOrder = async function(orderId) {
     const res = await fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) });
     return res.json();
 };
-
 window.adminAddShares = async function(targetId, shares) {
     const res = await fetch(`${window.BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, shares }) });
     return res.json();
 };
-
 window.adminAddStars = async function(targetId, stars) {
     const res = await fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) });
     return res.json();
 };
-
-// ---------------------- Инвойсы ----------------------
 window.createInvoice = async function(amount) {
     const res = await fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) });
     return res.json();
