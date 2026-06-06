@@ -1,4 +1,4 @@
-/* styles.css – исправленная версия для всех вкладок + рефералка */
+/* styles.css – финальная версия с кастомным кодом */
 
 * {
     margin: 0;
@@ -627,13 +627,12 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА – НОРМАЛЬНЫЕ СТИЛИ ========== */
+/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА – ТОЛЬКО КАСТОМНЫЙ КОД ========== */
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
     font-size: 22px;
 }
-
 .referral-stats {
     display: flex;
     gap: 16px;
@@ -661,45 +660,69 @@ canvas {
     margin-top: 6px;
 }
 
-.link-section {
+.custom-code-section {
     background: rgba(0, 0, 0, 0.25);
     border-radius: 24px;
     padding: 16px;
     margin-bottom: 20px;
 }
-.link-url {
-    background: #0f1320;
-    padding: 12px;
-    border-radius: 40px;
-    font-family: monospace;
-    font-size: 13px;
-    text-align: center;
-    word-break: break-all;
+.custom-code-section h3 {
+    font-size: 16px;
     margin-bottom: 12px;
-    color: #60a5fa;
 }
-.link-buttons {
+.code-input-group {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 60px;
+    padding: 6px 12px;
     margin-bottom: 8px;
+    flex-wrap: wrap;
 }
-.link-buttons button {
+.code-prefix {
+    font-size: 12px;
+    color: #9ca3af;
+    font-family: monospace;
+    white-space: nowrap;
+}
+#refCodeInput {
     flex: 1;
-    margin-top: 0;
-    padding: 10px;
+    background: transparent;
+    border: none;
+    padding: 10px 0;
+    margin: 0;
     font-size: 14px;
+    font-family: monospace;
+    color: #eef2ff;
 }
-.copy-btn {
+#refCodeInput:focus {
+    outline: none;
+    box-shadow: none;
+}
+.save-code-btn {
+    width: auto;
+    padding: 6px 16px;
+    margin: 0;
     background: #2b6e9e;
+    font-size: 13px;
 }
-.share-btn {
-    background: rgba(56, 189, 248, 0.2);
-    border: 1px solid #38bdf8;
-}
-.link-hint {
-    text-align: center;
+.hint-text {
     font-size: 11px;
     color: #9ca3af;
+    margin: 8px 0 0 0;
+}
+.preview-link {
+    margin-top: 12px;
+    font-size: 12px;
+    background: rgba(0,0,0,0.3);
+    padding: 8px;
+    border-radius: 20px;
+    text-align: center;
+    word-break: break-all;
+}
+.preview-link strong {
+    color: #60a5fa;
 }
 
 .bonus-card {
