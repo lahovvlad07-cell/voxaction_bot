@@ -1,7 +1,4 @@
-// profile.js – полная финальная версия
-
-// ---------- Баннеры ----------
-const bannerList = ['banners/1.jpg', 'banners/2.jpg', 'banners/3.jpg'];
+// profile.js – финальная версия (баннеры удалены, кнопки закреплены внизу, аватарка по центру)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -118,9 +115,10 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         }
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}"><div class="achievement-icon">${ach.icon}</div><div class="achievement-name">${ach.name}</div><div class="achievement-desc">${ach.description}</div>${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}<div class="achievement-date">🏅 Получено: ${earnedDate}</div></div>`;
     }).join('');
-    const modalHtml = `<div class="modal" id="achiSelectorModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAchiSelector">&times;</span><h3>Выберите достижение для слота ${slot+1}</h3><div class="achievements-grid" id="achiGrid">${gridHtml}</div>${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}<button id="saveAchiSelection">Сохранить</button></div></div>`;
+    const modalHtml = `<div class="modal" id="achiSelectorModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAchiSelector">&times;</span><h3>Выберите достижение для слота ${slot+1}</h3><div class="scrollable-content"><div class="achievements-grid">${gridHtml}</div></div><div class="modal-buttons">${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}<button id="saveAchiSelection">Сохранить</button></div></div></div>`;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
+    const modal = document.getElementById('achiSelectorModal');
+    document.getElementById('closeAchiSelector').onclick = () => modal.remove();
     if (isSlotOccupied) {
         document.getElementById('clearSlotBtn').onclick = async () => {
             let newSelectedIds = [...currentSelectedIds];
@@ -128,7 +126,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
             newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
             await updateUserCallback({ selected_achievements: newSelectedIds });
             currentUser.selected_achievements = newSelectedIds;
-            document.getElementById('achiSelectorModal').remove();
+            modal.remove();
             await renderProfileTab();
         };
     }
@@ -144,7 +142,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         const saveArray = newSelectedIds.filter(v => v !== null);
         await updateUserCallback({ selected_achievements: saveArray });
         currentUser.selected_achievements = saveArray;
-        document.getElementById('achiSelectorModal').remove();
+        modal.remove();
         await renderProfileTab();
     };
     document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
@@ -156,8 +154,8 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки (кнопка на всю ширину) ==========
-function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
+// ========== ШАГ 1: выбор аватарки (кнопка всегда видна) ==========
+function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
         const isSelected = (emoji === currentAvatar);
@@ -173,9 +171,10 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
                 <div class="modal-preview">
                     <div class="avatar-circle" style="background: #2b6e9e;"><span class="avatar-emoji" style="${previewEmojiStyle}">${currentAvatar}</span></div>
                 </div>
-                <div class="avatars-grid">${optionsHtml}</div>
+                <div class="scrollable-content">
+                    <div class="avatars-grid">${optionsHtml}</div>
+                </div>
                 <div class="modal-buttons">
-                    ${backCallback ? '<button id="backBtn" class="secondary">← Назад</button>' : ''}
                     <button id="nextBtn" style="width:100%">Далее →</button>
                 </div>
             </div>
@@ -203,9 +202,6 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
         modal.remove();
         nextCallback();
     };
-    if (backCallback) {
-        document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
-    }
 }
 
 // ========== ШАГ 2: выбор фона ==========
@@ -235,7 +231,9 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
                 <div class="modal-preview">
                     <div class="avatar-circle ${bgClass}" style="${currentBg && currentBg.startsWith('#') ? `background:${currentBg};` : ''}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
-                <div class="bg-grid">${optionsHtml}</div>
+                <div class="scrollable-content">
+                    <div class="bg-grid">${optionsHtml}</div>
+                </div>
                 <div class="modal-buttons">
                     <button id="backBtn" class="secondary">← Назад</button>
                     <button id="nextBtn">Далее →</button>
@@ -289,7 +287,7 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3: выбор обводки (с сохранением) ==========
+// ========== ШАГ 3: выбор обводки (с сохранением и обновлением превью) ==========
 function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBorder = currentUser.avatar_border || 'default';
     const gridHtml = borderOptions.map(opt => {
@@ -319,7 +317,9 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
                 <div class="modal-preview">
                     <div class="avatar-circle ${bgClass}" style="${bgStyle}; ${borderCurrent}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
-                <div class="border-grid">${gridHtml}</div>
+                <div class="scrollable-content">
+                    <div class="border-grid">${gridHtml}</div>
+                </div>
                 <div class="modal-buttons">
                     <button id="backBtn" class="secondary">← Назад</button>
                     <button id="nextBtn">Далее →</button>
@@ -361,20 +361,23 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (3 шага) ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
+    // Шаг 1: аватар
     await new Promise(resolve => {
-        showAvatarStep(currentUser, updateUserCallback, resolve, null, showCustomModal);
+        showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal);
     });
+    // Шаг 2: фон (с кнопкой "Назад")
     await new Promise(resolve => {
         showBackgroundStep(currentUser, updateUserCallback, async () => {
             resolve();
         }, async () => {
-            await new Promise(r => { showAvatarStep(currentUser, updateUserCallback, r, null, showCustomModal); });
+            await new Promise(r => { showAvatarStep(currentUser, updateUserCallback, r, showCustomModal); });
             await new Promise(r2 => { showBackgroundStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
             resolve();
         }, showCustomModal);
     });
+    // Шаг 3: обводка (с кнопкой "Назад")
     await new Promise(resolve => {
         showBorderStep(currentUser, updateUserCallback, async () => {
             resolve();
@@ -432,12 +435,10 @@ window.renderProfileTab = async function(
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
     const borderStyle = getBorderStyle(currentUser.avatar_border || 'default');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
-    const bannerId = currentUser.banner_id || 1;
-    const bannerUrl = bannerList[bannerId - 1] || bannerList[0];
 
+    // HTML без баннера, аватарка обёрнута в #avatarClickWrapper
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
-        <div class="profile-banner" style="background-image: url(${bannerUrl}); background-size: cover; background-position: center;"></div>
-        <div style="margin-top: -40px; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; cursor: pointer;" id="avatarClickWrapper">
+        <div id="avatarClickWrapper">
             <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
             <div class="small-text">Нажмите, чтобы изменить аватар, фон, обводку и баннер</div>
         </div>
