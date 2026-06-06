@@ -1,4 +1,4 @@
-/* styles.css – полная версия с баннерами */
+/* styles.css – полная версия с исправлениями для баннеров */
 
 * {
     margin: 0;
@@ -79,7 +79,7 @@ body {
     font-weight: bold;
 }
 
-/* ----- Карточки ----- */
+/* ----- Карточка профиля ----- */
 .card {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(16px);
@@ -91,7 +91,80 @@ body {
     position: relative;
 }
 
-/* ----- Нижняя панель вкладок ----- */
+/* Баннер внутри карточки */
+.profile-banner {
+    width: 100%;
+    height: 140px;
+    border-radius: 28px 28px 20px 20px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+
+/* Кнопка смены баннера (поверх баннера) */
+.profile-banner-edit {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 30px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s;
+    z-index: 3;
+    font-weight: 500;
+}
+.profile-banner-edit:active {
+    transform: scale(0.96);
+}
+
+/* Аватарка – наезжает на баннер */
+.profile-avatar {
+    margin-top: -35px;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Круг для аватарки – с обводкой и тенью для контраста на любом баннере */
+.avatar-circle {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.25); /* затемнение для читаемости */
+    backdrop-filter: blur(2px);
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    margin-bottom: 8px;
+    transition: 0.2s;
+}
+.avatar-circle:hover {
+    transform: scale(1.02);
+}
+
+/* Эмодзи внутри аватарки */
+.avatar-emoji {
+    display: inline-block;
+    line-height: 1;
+}
+
+/* ----- Нижняя панель вкладок (без изменений) ----- */
 .tabs-wrapper {
     position: fixed;
     bottom: 0;
@@ -224,7 +297,7 @@ canvas {
     height: 100%;
 }
 
-/* ----- Модальные окна ----- */
+/* ----- Модальные окна (общие) ----- */
 .modal {
     display: none;
     position: fixed;
@@ -243,7 +316,7 @@ canvas {
     background: #121826;
     border-radius: 32px;
     max-width: 90%;
-    width: 400px;
+    width: 450px;
     max-height: 80%;
     overflow-y: auto;
     padding: 20px;
@@ -264,75 +337,35 @@ canvas {
     color: #9ca3af;
 }
 
-/* ----- Профиль (аватар, баннер) ----- */
-.profile-banner {
-    width: 100%;
-    height: 130px;
-    border-radius: 28px 28px 20px 20px;
+/* ----- Модалка выбора баннера (2 колонки) ----- */
+.banner-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    max-height: 460px;
+    overflow-y: auto;
+    margin: 16px 0 20px;
+    padding: 4px;
+}
+
+.banner-option {
+    aspect-ratio: 16 / 9;
+    border-radius: 20px;
     background-size: cover;
     background-position: center;
-    position: relative;
-    margin-bottom: 16px;
-    overflow: hidden;
-}
-
-.profile-banner-edit {
-    position: absolute;
-    bottom: 8px;
-    right: 12px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    border-radius: 30px;
-    padding: 6px 12px;
-    font-size: 14px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    border: 3px solid transparent;
     transition: 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-.profile-banner-edit:active {
-    transform: scale(0.96);
+.banner-option.selected {
+    border-color: #2b6e9e;
+    transform: scale(0.97);
+    box-shadow: 0 0 0 2px rgba(43,110,158,0.6);
 }
 
-.profile-avatar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 20px;
-    cursor: pointer;
-    margin-top: -30px;
-    position: relative;
-    z-index: 2;
-}
-
-.avatar-circle {
-    width: 88px;
-    height: 88px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 48px;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    margin-bottom: 8px;
-    transition: 0.2s;
-    border: 3px solid rgba(255, 255, 255, 0.2);
-}
-
-.avatar-circle:hover {
-    transform: scale(1.02);
-}
-
-.avatar-emoji {
-    display: inline-block;
-    line-height: 1;
-}
-
-/* ----- Toast уведомления ----- */
+/* ----- Toast ----- */
 .toast {
     position: fixed;
     top: 80px;
@@ -371,7 +404,7 @@ canvas {
     }
 }
 
-/* ----- Уведомления (модалка) ----- */
+/* ----- Уведомления (модалка списка) ----- */
 .notifications-list {
     max-height: 400px;
     overflow-y: auto;
@@ -415,7 +448,7 @@ canvas {
     box-shadow: none;
 }
 
-/* ----- Градиенты для аватарок ----- */
+/* ----- Градиенты для фона аватарки (без изменений) ----- */
 .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
 .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
@@ -428,7 +461,7 @@ canvas {
 .bg-gradient10 { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
 .bg-gradient11 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
 
-/* ----- Достижения ----- */
+/* ----- Достижения, иконки, статистика (без изменений) ----- */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -457,7 +490,6 @@ canvas {
     box-shadow: 0 0 10px rgba(43, 110, 158, 0.5);
 }
 
-/* ----- Статистика ----- */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -493,7 +525,6 @@ canvas {
     margin-top: 4px;
 }
 
-/* ----- Сетка достижений для выбора ----- */
 .achievements-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -542,7 +573,6 @@ canvas {
     margin-top: 4px;
 }
 
-/* ----- Прогресс-бары ----- */
 .progress-bar {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
@@ -579,7 +609,6 @@ canvas {
     margin-top: 12px;
 }
 
-/* ----- Аватары и фоны (сетки выбора) ----- */
 .avatars-grid,
 .bg-grid {
     display: grid;
@@ -643,7 +672,6 @@ canvas {
     font-size: 28px;
 }
 
-/* ----- Пополнение ----- */
 .topup-amounts {
     display: flex;
     gap: 12px;
@@ -667,7 +695,6 @@ canvas {
     box-shadow: 0 0 8px #2b6e9e;
 }
 
-/* ----- Тикер и графики ----- */
 .ticker {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 60px;
@@ -706,7 +733,6 @@ canvas {
     text-align: center;
 }
 
-/* ----- Фильтры и кнопки сортировки ----- */
 .filter-bar {
     display: flex;
     gap: 8px;
@@ -733,7 +759,6 @@ canvas {
     color: white;
 }
 
-/* ----- Общие списки ----- */
 .leaderboard-item,
 .history-item,
 .referral-item {
@@ -748,28 +773,4 @@ canvas {
 #adminOrdersList {
     max-height: 400px;
     overflow-y: auto;
-}
-
-/* ----- Сетка выбора баннеров ----- */
-.banner-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    max-height: 400px;
-    overflow-y: auto;
-    margin: 16px 0;
-}
-
-.banner-option {
-    aspect-ratio: 16 / 9;
-    border-radius: 16px;
-    background-size: cover;
-    background-position: center;
-    cursor: pointer;
-    border: 2px solid transparent;
-}
-
-.banner-option.selected {
-    border-color: #2b6e9e;
-    transform: scale(0.98);
 }
