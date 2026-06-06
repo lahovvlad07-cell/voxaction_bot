@@ -1,4 +1,7 @@
-// profile.js – финальная версия (шаги: аватар → фон → выбор цвета обводки (12 цветов + кастомный в сетке))
+// profile.js – финальная версия
+// Шаг 1: выбор аватарки (эмодзи)
+// Шаг 2: выбор фона аватарки (11 цветов + кастомный цвет через пикер)
+// Шаг 3: выбор цвета обводки (11 цветов + кастомный цвет через пикер)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -18,23 +21,22 @@ function getAvatarStyle(emoji) {
     return `transform: translateY(${adjust}px); font-size: ${fontSize};`;
 }
 
-// ---------- Фоны ----------
-const bgOptions = [
-    { id:'gradient1', name:'Синий', class:'bg-gradient1', isCustom:false },
-    { id:'gradient2', name:'Фиолетовый', class:'bg-gradient2', isCustom:false },
-    { id:'gradient3', name:'Оранжевый', class:'bg-gradient3', isCustom:false },
-    { id:'gradient4', name:'Зелёный', class:'bg-gradient4', isCustom:false },
-    { id:'gradient5', name:'Жёлтый', class:'bg-gradient5', isCustom:false },
-    { id:'gradient6', name:'Красный', class:'bg-gradient6', isCustom:false },
-    { id:'gradient7', name:'Бирюзовый', class:'bg-gradient7', isCustom:false },
-    { id:'gradient8', name:'Лазурный', class:'bg-gradient8', isCustom:false },
-    { id:'gradient9', name:'Тёмный', class:'bg-gradient9', isCustom:false },
-    { id:'gradient10', name:'Розовый', class:'bg-gradient10', isCustom:false },
-    { id:'gradient11', name:'Лаванда', class:'bg-gradient11', isCustom:false },
-    { id:'custom', name:'🎨 Свой цвет', class:'', isCustom:true }
+// ---------- Фоны (для шага 2) ----------
+const bgColors = [
+    { name: 'Синий', value: '#2b6e9e' },
+    { name: 'Фиолетовый', value: '#9b59b6' },
+    { name: 'Оранжевый', value: '#e67e22' },
+    { name: 'Зелёный', value: '#27ae60' },
+    { name: 'Жёлтый', value: '#f1c40f' },
+    { name: 'Красный', value: '#e74c3c' },
+    { name: 'Бирюзовый', value: '#1abc9c' },
+    { name: 'Лазурный', value: '#3498db' },
+    { name: 'Тёмный', value: '#2c3e50' },
+    { name: 'Розовый', value: '#ff9a9e' },
+    { name: 'Лаванда', value: '#a18cd1' }
 ];
 
-// ---------- Цвета обводки (11 стандартных + кастомный в виде пикера) ----------
+// ---------- Цвета обводки (для шага 3) ----------
 const borderColors = [
     { name: 'Белый', value: '#ffffff' },
     { name: 'Чёрный', value: '#000000' },
@@ -225,35 +227,70 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
-// ========== ШАГ 2: выбор фона ==========
+// ========== ШАГ 2: выбор фона (цвета + пикер) ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
-    let optionsHtml = '';
-    for (let bg of bgOptions) {
-        if (!bg.isCustom) {
-            const isSelected = (currentBg === bg.id);
-            optionsHtml += `<div class="bg-option ${bg.class} ${isSelected ? 'selected' : ''}" data-bg="${bg.id}" style="width:65px; height:65px; border-radius:50%; margin:0 auto;"></div>`;
-        } else {
-            const isCustomSelected = (currentBg && currentBg.startsWith('#'));
-            optionsHtml += `<div class="custom-color-preview ${isCustomSelected ? 'selected' : ''}" data-bg="custom" style="background: ${isCustomSelected ? currentBg : '#2b6e9e'}; display: flex; align-items: center; justify-content: center;">🎨</div>`;
-        }
+    
+    // Определяем, выбран ли стандартный цвет или кастомный
+    let isCustomColor = false;
+    let currentColorValue = null;
+    if (currentBg && currentBg.startsWith('#')) {
+        isCustomColor = true;
+        currentColorValue = currentBg;
+    } else {
+        const mapping = {
+            'gradient1': '#2b6e9e',
+            'gradient2': '#9b59b6',
+            'gradient3': '#e67e22',
+            'gradient4': '#27ae60',
+            'gradient5': '#f1c40f',
+            'gradient6': '#e74c3c',
+            'gradient7': '#1abc9c',
+            'gradient8': '#3498db',
+            'gradient9': '#2c3e50',
+            'gradient10': '#ff9a9e',
+            'gradient11': '#a18cd1'
+        };
+        currentColorValue = mapping[currentBg] || '#2b6e9e';
     }
-    let bgClass = '';
-    if (currentBg && currentBg.startsWith('#')) bgClass = '';
-    else {
-        const found = bgOptions.find(b => b.id === currentBg);
-        bgClass = found ? found.class : 'bg-gradient1';
-    }
+    
+    const colors = [
+        ...bgColors,
+        { name: '🎨 Свой цвет', value: 'custom', isPicker: true }
+    ];
+    
+    const generateColorsHtml = () => {
+        return colors.map(color => {
+            if (color.isPicker) {
+                const isSelected = isCustomColor;
+                return `
+                    <div class="color-option picker-option ${isSelected ? 'selected' : ''}" data-bg="custom" style="background: linear-gradient(135deg, #ff0000, #00ff00, #0000ff); display: flex; align-items: center; justify-content: center; font-size: 28px;">
+                        🎨
+                    </div>
+                `;
+            } else {
+                const isSelected = (!isCustomColor && currentColorValue === color.value);
+                return `
+                    <div class="color-option ${isSelected ? 'selected' : ''}" data-bg="${color.value}" style="background: ${color.value}; border: 2px solid ${color.value === '#ffffff' ? '#ccc' : 'transparent'};">
+                        ${isSelected ? '<span class="color-check">✓</span>' : ''}
+                    </div>
+                `;
+            }
+        }).join('');
+    };
+    
     const modalHtml = `
         <div class="modal" id="stepModal" style="display:flex;">
             <div class="modal-content">
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>2/3 – Выберите фон аватарки</h3>
                 <div class="modal-preview">
-                    <div class="avatar-circle ${bgClass}" style="${currentBg && currentBg.startsWith('#') ? `background:${currentBg};` : ''}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
+                    <div class="avatar-circle" style="background: ${currentColorValue};"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
                 <div class="scrollable-content">
-                    <div class="bg-grid">${optionsHtml}</div>
+                    <div class="colors-grid" id="colorsGrid">
+                        ${generateColorsHtml()}
+                    </div>
                 </div>
                 <div class="modal-buttons">
                     <button id="backBtn" class="secondary">← Назад</button>
@@ -265,43 +302,69 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modal = document.getElementById('stepModal');
     document.getElementById('closeModal').onclick = () => modal.remove();
-    let selectedBgValue = currentBg;
-    const updatePreview = () => {
+    
+    const updatePreview = (color) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
-        if (selectedBgValue && selectedBgValue.startsWith('#')) {
-            previewCircle.style.background = selectedBgValue;
-            previewCircle.className = 'avatar-circle';
-        } else {
-            previewCircle.style.background = '';
-            const found = bgOptions.find(b => b.id === selectedBgValue);
-            previewCircle.className = `avatar-circle ${found ? found.class : 'bg-gradient1'}`;
-        }
+        previewCircle.style.background = color;
+        // Убираем классы градиентов
+        previewCircle.classList.remove('bg-gradient1', 'bg-gradient2', 'bg-gradient3', 'bg-gradient4', 'bg-gradient5', 'bg-gradient6', 'bg-gradient7', 'bg-gradient8', 'bg-gradient9', 'bg-gradient10', 'bg-gradient11');
     };
-    document.querySelectorAll('.bg-option, .custom-color-preview').forEach(opt => {
+    
+    let selectedBgValue = currentColorValue;
+    let isSelectedCustom = isCustomColor;
+    updatePreview(selectedBgValue);
+    
+    document.querySelectorAll('.color-option').forEach(opt => {
         opt.addEventListener('click', () => {
-            document.querySelectorAll('.bg-option, .custom-color-preview').forEach(o => o.classList.remove('selected'));
-            opt.classList.add('selected');
-            if (opt.classList.contains('custom-color-preview')) {
-                selectedBgValue = opt.dataset.bg;
+            const bgValue = opt.dataset.bg;
+            if (bgValue === 'custom') {
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
-                colorInput.value = selectedBgValue === 'custom' ? '#2b6e9e' : (selectedBgValue.startsWith('#') ? selectedBgValue : '#2b6e9e');
+                colorInput.value = selectedBgValue;
                 colorInput.addEventListener('input', (e) => {
                     const newColor = e.target.value;
-                    opt.style.background = newColor;
                     selectedBgValue = newColor;
-                    updatePreview();
+                    isSelectedCustom = true;
+                    updatePreview(selectedBgValue);
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    document.querySelectorAll('.color-check').forEach(c => c.remove());
                 });
                 colorInput.click();
             } else {
-                selectedBgValue = opt.dataset.bg;
-                updatePreview();
+                selectedBgValue = bgValue;
+                isSelectedCustom = false;
+                updatePreview(selectedBgValue);
+                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                document.querySelectorAll('.color-check').forEach(c => c.remove());
+                opt.innerHTML = `<span class="color-check">✓</span>`;
             }
         });
     });
+    
     document.getElementById('nextBtn').onclick = async () => {
-        await updateCallback({ avatar_bg: selectedBgValue });
-        currentUser.avatar_bg = selectedBgValue;
+        let saveBgValue;
+        if (isSelectedCustom || !bgColors.some(c => c.value === selectedBgValue)) {
+            saveBgValue = selectedBgValue;
+        } else {
+            const mapping = {
+                '#2b6e9e': 'gradient1',
+                '#9b59b6': 'gradient2',
+                '#e67e22': 'gradient3',
+                '#27ae60': 'gradient4',
+                '#f1c40f': 'gradient5',
+                '#e74c3c': 'gradient6',
+                '#1abc9c': 'gradient7',
+                '#3498db': 'gradient8',
+                '#2c3e50': 'gradient9',
+                '#ff9a9e': 'gradient10',
+                '#a18cd1': 'gradient11'
+            };
+            saveBgValue = mapping[selectedBgValue] || 'gradient1';
+        }
+        await updateCallback({ avatar_bg: saveBgValue });
+        currentUser.avatar_bg = saveBgValue;
         modal.remove();
         nextCallback();
     };
@@ -311,21 +374,39 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки (12 цветов + пикер в сетке) ==========
+// ========== ШАГ 3: выбор цвета обводки (цвета + пикер) ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
-    // Определяем класс фона и инлайн-стиль для превью
+    // Определяем фон для превью
     let bgClass = '';
     let bgStyleInline = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
         bgStyleInline = `background: ${currentUser.avatar_bg};`;
     } else {
-        const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
-        bgClass = found ? found.class : 'bg-gradient1';
+        const found = bgColors.find(c => {
+            const mapping = {
+                '#2b6e9e': 'gradient1',
+                '#9b59b6': 'gradient2',
+                '#e67e22': 'gradient3',
+                '#27ae60': 'gradient4',
+                '#f1c40f': 'gradient5',
+                '#e74c3c': 'gradient6',
+                '#1abc9c': 'gradient7',
+                '#3498db': 'gradient8',
+                '#2c3e50': 'gradient9',
+                '#ff9a9e': 'gradient10',
+                '#a18cd1': 'gradient11'
+            };
+            return mapping[c.value] === currentUser.avatar_bg;
+        });
+        if (found) {
+            bgStyleInline = `background: ${found.value};`;
+        } else {
+            bgStyleInline = `background: #2b6e9e;`;
+        }
     }
     
-    // Создаём 12 цветов: 11 стандартных + 12-й кастомный (пикер)
     const colors = [
         ...borderColors,
         { name: '🎨 Свой цвет', value: 'custom', isPicker: true }
@@ -357,7 +438,7 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>3/3 – Выберите цвет обводки аватарки</h3>
                 <div class="modal-preview">
-                    <div class="avatar-circle ${bgClass}" style="${bgStyleInline}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
+                    <div class="avatar-circle" style="${bgStyleInline}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
                 <div class="scrollable-content">
                     <div class="colors-grid" id="colorsGrid">
@@ -386,12 +467,10 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     let selectedColor = currentColor;
     updatePreview(selectedColor);
     
-    // Обработчики выбора цвета
     document.querySelectorAll('.color-option').forEach(opt => {
         opt.addEventListener('click', () => {
             const colorValue = opt.dataset.color;
             if (colorValue === 'custom') {
-                // Открываем стандартный пикер цвета
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
                 colorInput.value = selectedColor === '#ffffff' ? '#ffffff' : (selectedColor.startsWith('#') ? selectedColor : '#ffffff');
@@ -399,12 +478,9 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
                     const newColor = e.target.value;
                     selectedColor = newColor;
                     updatePreview(selectedColor);
-                    // Снимаем выделение со всех цветов
                     document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-                    document.querySelectorAll('.color-check').forEach(c => c.remove());
-                    // Отмечаем кастомный как выбранный (визуально)
                     opt.classList.add('selected');
-                    // Убираем галочку у остальных
+                    document.querySelectorAll('.color-check').forEach(c => c.remove());
                 });
                 colorInput.click();
             } else {
@@ -502,8 +578,22 @@ window.renderProfileTab = async function(
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
         avatarStyle = `background: ${currentUser.avatar_bg};`;
     } else {
-        const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
-        avatarClass += ` ${found ? found.class : 'bg-gradient1'}`;
+        const mapping = {
+            'gradient1': '#2b6e9e',
+            'gradient2': '#9b59b6',
+            'gradient3': '#e67e22',
+            'gradient4': '#27ae60',
+            'gradient5': '#f1c40f',
+            'gradient6': '#e74c3c',
+            'gradient7': '#1abc9c',
+            'gradient8': '#3498db',
+            'gradient9': '#2c3e50',
+            'gradient10': '#ff9a9e',
+            'gradient11': '#a18cd1'
+        };
+        const bgColor = mapping[currentUser.avatar_bg] || '#2b6e9e';
+        avatarStyle = `background: ${bgColor};`;
+        avatarClass = 'avatar-circle';
     }
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
     const borderStyle = getBorderStyle(currentUser.avatar_border || '#ffffff');
