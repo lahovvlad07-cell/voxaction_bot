@@ -1,4 +1,4 @@
-// profile.js – исправленная версия с правильным предпросмотром и обновлением профиля
+// profile.js – финальная версия (без баннеров, три обводки, выбор цвета, платные, предпросмотр с реальным фоном)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -305,10 +305,11 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3: выбор обводки (исправленный) ==========
+// ========== ШАГ 3: выбор обводки (исправленный – фон аватарки отображается) ==========
 async function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBorderId = currentUser.avatar_border || 'standard';
-    // Функция получения стиля фона для превью (реальный фон пользователя)
+    
+    // Функция для получения правильного стиля фона аватарки (реальный фон пользователя)
     const getBgStyleForPreview = () => {
         if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
             return `background: ${currentUser.avatar_bg};`;
@@ -367,19 +368,16 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
     const modal = document.getElementById('borderModal');
     document.getElementById('closeModal').onclick = () => modal.remove();
     
-    // Обновление превью с учётом выбранной обводки и цвета
     const updatePreview = (borderId, customColor = null) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
         const style = getBorderStyle(borderId, customColor);
         const currentStyle = previewCircle.getAttribute('style') || '';
-        // Удаляем старые border и box-shadow
         const cleaned = currentStyle.replace(/border:[^;]+;?/g, '').replace(/box-shadow:[^;]+;?/g, '');
         previewCircle.setAttribute('style', cleaned + style);
     };
     
     let selectedBorderId = currentBorderId;
     let selectedColor = borderOptions.find(b => b.id === currentBorderId)?.defaultColor;
-    // Флаг, чтобы не списывать повторно при повторном выборе платной обводки
     let purchased = (currentBorderId !== 'standard');
     
     updatePreview(selectedBorderId, selectedColor);
@@ -388,41 +386,31 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
     const updateButtonsState = () => {
         selectButtons.forEach(btn => {
             const borderId = btn.dataset.border;
-            if (borderId === selectedBorderId) {
-                btn.textContent = '✓ Выбрано';
-            } else {
-                btn.textContent = 'Выбрать';
-            }
+            btn.textContent = (borderId === selectedBorderId) ? '✓ Выбрано' : 'Выбрать';
         });
     };
     
     selectButtons.forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', async () => {
             const borderId = btn.dataset.border;
             const borderOpt = borderOptions.find(b => b.id === borderId);
             const price = borderOpt.price;
             let customColor = null;
             if (borderId !== 'gold') {
-                const colorPicker = modal.querySelector(`.border-color-picker[data-border="${borderId}"]`);
-                if (colorPicker) customColor = colorPicker.value;
+                const picker = modal.querySelector(`.border-color-picker[data-border="${borderId}"]`);
+                if (picker) customColor = picker.value;
             }
             if (borderId === selectedBorderId) return;
-            // Проверка покупки (если платная и ещё не куплена)
-            if (price > 0) {
-                if (!purchased && borderId !== currentBorderId) {
-                    try {
-                        await window.purchaseBorder(borderId, price);
-                        showCustomModal('Успех', `Обводка "${borderOpt.name}" приобретена!`);
-                        purchased = true;
-                        // Обновляем баланс в currentUser
-                        const { data: userData } = await window.supabase.from('users').select('stars_balance').eq('id', window.userId).single();
-                        if (userData) currentUser.stars_balance = userData.stars_balance;
-                    } catch (err) {
-                        showCustomModal('Ошибка', err.message);
-                        return;
-                    }
-                } else {
-                    await window.updateUserBorder(borderId);
+            if (price > 0 && !purchased && borderId !== currentBorderId) {
+                try {
+                    await window.purchaseBorder(borderId, price);
+                    showCustomModal('Успех', `Обводка "${borderOpt.name}" приобретена!`);
+                    purchased = true;
+                    const { data: userData } = await window.supabase.from('users').select('stars_balance').eq('id', window.userId).single();
+                    if (userData) currentUser.stars_balance = userData.stars_balance;
+                } catch (err) {
+                    showCustomModal('Ошибка', err.message);
+                    return;
                 }
             } else {
                 await window.updateUserBorder(borderId);
@@ -449,16 +437,12 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
         if (selectedBorderId !== currentBorderId) {
             const borderOpt = borderOptions.find(b => b.id === selectedBorderId);
             const price = borderOpt.price;
-            if (price > 0) {
-                if (!purchased) {
-                    try {
-                        await window.purchaseBorder(selectedBorderId, price);
-                    } catch (err) {
-                        showCustomModal('Ошибка', err.message);
-                        return;
-                    }
-                } else {
-                    await window.updateUserBorder(selectedBorderId);
+            if (price > 0 && !purchased) {
+                try {
+                    await window.purchaseBorder(selectedBorderId, price);
+                } catch (err) {
+                    showCustomModal('Ошибка', err.message);
+                    return;
                 }
             } else {
                 await window.updateUserBorder(selectedBorderId);
@@ -466,13 +450,12 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
         }
         currentUser.avatar_border = selectedBorderId;
         modal.remove();
-        // Переход к следующему шагу (вызовет resolve, затем renderProfileTab)
         nextCallback();
     };
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (3 шага) ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
     // Шаг 1
     await new Promise(resolve => {
@@ -498,7 +481,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
             resolve();
         }, showCustomModal);
     });
-    // Принудительно перерисовываем профиль после всех шагов
     await renderProfileTab();
 }
 
@@ -546,7 +528,6 @@ window.renderProfileTab = async function(
         avatarClass += ` ${found ? found.class : 'bg-gradient1'}`;
     }
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
-    // Пока без пользовательского цвета, только стандартные
     const borderStyle = getBorderStyle(currentUser.avatar_border);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
