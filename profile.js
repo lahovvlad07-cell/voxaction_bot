@@ -1,6 +1,4 @@
-// profile.js – финальная версия
-// Исправлено: клик срабатывает только при наведении на аватарку или текст под ней,
-// а не на всю карточку.
+// profile.js – финальная версия (исправлена область клика: только аватарка и текст)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -534,7 +532,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
-// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ (ИСПРАВЛЕНА ОБЛАСТЬ КЛИКА) ==========
+// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
@@ -595,9 +593,9 @@ window.renderProfileTab = async function(
     const borderStyle = getBorderStyle(currentUser.avatar_border || '#ffffff');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
-    // Исправлено: кликабельный контейнер занимает только место под свой контент
+    // Исправлено: контейнер аватарки занимает только ширину содержимого
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
-        <div style="display: inline-flex; flex-direction: column; align-items: center; cursor: pointer;" id="avatarClickWrapper">
+        <div id="avatarClickWrapper">
             <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
             <div class="small-text">Нажмите, чтобы изменить аватар, фон, обводку и баннер</div>
         </div>
