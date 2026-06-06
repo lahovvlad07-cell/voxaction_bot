@@ -1,4 +1,4 @@
-// profile.js – полная версия с 4 шагами и предпросмотром, все функции реализованы
+// profile.js – финальная версия с 4 шагами, превью, кнопками поровну
 
 // ---------- Баннеры ----------
 const bannerList = [
@@ -54,7 +54,7 @@ function getBorderStyle(borderId) {
     return found ? found.style : borderOptions[0].style;
 }
 
-// ---------- Вспомогательные функции (достижения) – реализованы ----------
+// ========== ФУНКЦИИ ДОСТИЖЕНИЙ (реализованы) ==========
 async function awardAvatarAchievement(supabase, userId, showCustomModal) {
     try {
         const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
@@ -74,12 +74,10 @@ async function getNextAchievementsProgress(supabase, userId, currentUser, getUse
     const ignoreNames = ['🌟 Первый шаг', '🎨 Стилист', '✅ Абсолютный чемпион'];
     const notEarned = allAchievements.filter(a => !earnedIds.has(a.id) && !ignoreNames.includes(a.name));
     if (notEarned.length === 0) return [];
-
     const tradesCount = (await getUserStats()).totalTrades;
     const sharesCents = currentUser.shares;
     const referralsCount = currentUser.referral_count || 0;
     const totalTopupCents = currentUser.total_topup || 0;
-
     const nextAchievements = [];
     for (let ach of notEarned) {
         let current = 0, needed = ach.condition_value;
@@ -98,7 +96,6 @@ async function getNextAchievementsProgress(supabase, userId, currentUser, getUse
     return nextAchievements;
 }
 
-// ---------- Функция выбора достижения для слота ----------
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
     if (!earnedAchievements.length) {
         showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
@@ -162,7 +159,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ---------- ШАГ 1: выбор аватарки ----------
+// ========== ШАГ 1: выбор аватарки ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -180,9 +177,9 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
                     <div class="avatar-circle" style="background: #2b6e9e;"><span class="avatar-emoji" style="${previewEmojiStyle}">${currentAvatar}</span></div>
                 </div>
                 <div class="avatars-grid">${optionsHtml}</div>
-                <div style="display:flex; gap:12px; margin-top:16px;">
-                    <button id="backBtn" class="secondary" style="width:auto; padding:10px 20px;">← Назад</button>
-                    <button id="nextBtn" style="width:auto; padding:10px 20px;">Далее →</button>
+                <div class="modal-buttons">
+                    <button id="backBtn" class="secondary">← Назад</button>
+                    <button id="nextBtn">Далее →</button>
                 </div>
             </div>
         </div>
@@ -244,9 +241,9 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
                     <div class="avatar-circle ${bgClass}" style="${currentBg && currentBg.startsWith('#') ? `background:${currentBg};` : ''}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
                 <div class="bg-grid">${optionsHtml}</div>
-                <div style="display:flex; gap:12px; margin-top:16px;">
-                    <button id="backBtn" class="secondary" style="width:auto; padding:10px 20px;">← Назад</button>
-                    <button id="nextBtn" style="width:auto; padding:10px 20px;">Далее →</button>
+                <div class="modal-buttons">
+                    <button id="backBtn" class="secondary">← Назад</button>
+                    <button id="nextBtn">Далее →</button>
                 </div>
             </div>
         </div>
@@ -307,7 +304,7 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
         else if (opt.id === 'neon') previewStyle = 'border: 3px solid #2b6e9e; box-shadow: 0 0 8px #2b6e9e;';
         else previewStyle = `border: ${opt.style};`;
         return `<div style="text-align:center;">
-                    <div class="border-option ${isSelected ? 'selected' : ''}" data-border="${opt.id}" style="${previewStyle} background:#2b6e9e; width:80px; height:80px; border-radius:50%; margin:0 auto;"></div>
+                    <div class="border-option ${isSelected ? 'selected' : ''}" data-border="${opt.id}" style="${previewStyle} background:#2b6e9e;"></div>
                     <div class="border-label">${opt.name}</div>
                 </div>`;
     }).join('');
@@ -327,10 +324,10 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
                 <div class="modal-preview">
                     <div class="avatar-circle ${bgClass}" style="${bgStyle}; ${borderCurrent}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin:20px 0;">${gridHtml}</div>
-                <div style="display:flex; gap:12px; margin-top:16px;">
-                    <button id="backBtn" class="secondary" style="width:auto; padding:10px 20px;">← Назад</button>
-                    <button id="nextBtn" style="width:auto; padding:10px 20px;">Далее →</button>
+                <div class="border-grid">${gridHtml}</div>
+                <div class="modal-buttons">
+                    <button id="backBtn" class="secondary">← Назад</button>
+                    <button id="nextBtn">Далее →</button>
                 </div>
             </div>
         </div>
@@ -348,7 +345,9 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
             const opt = borderOptions.find(b => b.id === selectedBorder);
             newStyle = opt ? `border: ${opt.style};` : '';
         }
-        previewCircle.setAttribute('style', (previewCircle.getAttribute('style') || '') + '; ' + newStyle);
+        const currentStyle = previewCircle.getAttribute('style') || '';
+        const cleaned = currentStyle.replace(/border:[^;]+;?/g, '').replace(/box-shadow:[^;]+;?/g, '');
+        previewCircle.setAttribute('style', cleaned + newStyle);
     };
     document.querySelectorAll('.border-option').forEach(opt => {
         opt.addEventListener('click', () => {
@@ -367,22 +366,27 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ---------- ШАГ 4: выбор баннера ----------
+// ---------- ШАГ 4: выбор баннера с превью ----------
 async function showBannerStep(currentUser, supabase, renderProfileTab, backCallback, showCustomModal) {
     const currentBannerId = currentUser.banner_id || 1;
     const gridHtml = bannerList.map((url, idx) => {
         const isSelected = (idx + 1 === currentBannerId);
         return `<div class="banner-option ${isSelected ? 'selected' : ''}" data-banner-id="${idx+1}" style="background-image: url(${url}); background-size: cover; background-position: center;"></div>`;
     }).join('');
+    // Превью текущего баннера
+    const currentBannerUrl = bannerList[currentBannerId - 1] || bannerList[0];
     const modalHtml = `
         <div class="modal" id="bannerModal" style="display:flex;">
             <div class="modal-content">
                 <span class="close-modal" id="closeBannerModal">&times;</span>
                 <h3>4/4 – Выберите баннер профиля</h3>
+                <div class="modal-preview">
+                    <div class="profile-banner" style="width:100%; height:80px; border-radius:16px; background-image: url(${currentBannerUrl}); background-size: cover; background-position: center;"></div>
+                </div>
                 <div class="banner-grid">${gridHtml}</div>
-                <div style="display:flex; gap:12px; margin-top:16px;">
-                    <button id="backBtn" class="secondary" style="width:auto; padding:10px 20px;">← Назад</button>
-                    <button id="saveBannerBtn" style="width:auto; padding:10px 20px;">Сохранить</button>
+                <div class="modal-buttons">
+                    <button id="backBtn" class="secondary">← Назад</button>
+                    <button id="saveBannerBtn">Сохранить</button>
                 </div>
             </div>
         </div>
@@ -391,11 +395,18 @@ async function showBannerStep(currentUser, supabase, renderProfileTab, backCallb
     const modal = document.getElementById('bannerModal');
     document.getElementById('closeBannerModal').onclick = () => modal.remove();
     let selectedBannerId = currentBannerId;
+    const updatePreview = () => {
+        const preview = modal.querySelector('.modal-preview .profile-banner');
+        if (preview) {
+            preview.style.backgroundImage = `url(${bannerList[selectedBannerId - 1] || bannerList[0]})`;
+        }
+    };
     document.querySelectorAll('.banner-option').forEach(opt => {
         opt.addEventListener('click', () => {
             document.querySelectorAll('.banner-option').forEach(o => o.classList.remove('selected'));
             opt.classList.add('selected');
             selectedBannerId = parseInt(opt.dataset.bannerId);
+            updatePreview();
         });
     });
     document.getElementById('saveBannerBtn').onclick = async () => {
@@ -405,14 +416,10 @@ async function showBannerStep(currentUser, supabase, renderProfileTab, backCallb
         await renderProfileTab();
         showCustomModal('Готово', 'Баннер профиля обновлён');
     };
-    if (backCallback) {
-        document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
-    } else {
-        document.getElementById('backBtn').onclick = () => modal.remove();
-    }
+    document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ---------- Запуск полной кастомизации ----------
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
     // Шаг 1
     await new Promise(resolve => {
@@ -423,41 +430,27 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
         showBackgroundStep(currentUser, updateUserCallback, async () => {
             resolve();
         }, async () => {
-            // назад – повторяем шаг 1
-            await new Promise(r => {
-                showAvatarStep(currentUser, updateUserCallback, r, null, showCustomModal);
-            });
-            // после возврата снова запускаем шаг 2 (текущий)
-            await new Promise(r2 => {
-                showBackgroundStep(currentUser, updateUserCallback, r2, null, showCustomModal);
-            });
+            await new Promise(r => { showAvatarStep(currentUser, updateUserCallback, r, null, showCustomModal); });
+            await new Promise(r2 => { showBackgroundStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
             resolve();
         }, showCustomModal);
     });
     // Шаг 3
     await new Promise(resolve => {
         showBorderStep(currentUser, updateUserCallback, resolve, async () => {
-            // назад – перезапускаем шаг 2
-            await new Promise(r => {
-                showBackgroundStep(currentUser, updateUserCallback, r, null, showCustomModal);
-            });
-            await new Promise(r2 => {
-                showBorderStep(currentUser, updateUserCallback, r2, null, showCustomModal);
-            });
+            await new Promise(r => { showBackgroundStep(currentUser, updateUserCallback, r, null, showCustomModal); });
+            await new Promise(r2 => { showBorderStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
             resolve();
         }, showCustomModal);
     });
     // Шаг 4
     await showBannerStep(currentUser, supabase, renderProfileTab, async () => {
-        // назад – перезапускаем шаг 3
-        await new Promise(r => {
-            showBorderStep(currentUser, updateUserCallback, r, null, showCustomModal);
-        });
+        await new Promise(r => { showBorderStep(currentUser, updateUserCallback, r, null, showCustomModal); });
         await showBannerStep(currentUser, supabase, renderProfileTab, null, showCustomModal);
     }, showCustomModal);
 }
 
-// ---------- Основной рендер профиля ----------
+// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
@@ -502,9 +495,9 @@ window.renderProfileTab = async function(
     }
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
     const borderStyle = getBorderStyle(currentUser.avatar_border || 'default');
-    const bannerId = currentUser.banner_id || 1;
-    const bannerUrl = bannerList[bannerId-1] || bannerList[0];
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
+    const bannerId = currentUser.banner_id || 1;
+    const bannerUrl = bannerList[bannerId - 1] || bannerList[0];
 
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div class="profile-banner" style="background-image: url(${bannerUrl}); background-size: cover; background-position: center;">
@@ -552,8 +545,6 @@ window.renderProfileTab = async function(
     document.getElementById('editBannerBtn')?.addEventListener('click', () => {
         showBannerStep(currentUser, supabase, renderProfileTabBound, null, showCustomModal);
     });
-
-    // Обработчики достижений
     document.querySelectorAll('.achi-icon').forEach(icon => {
         icon.addEventListener('click', async () => {
             const slot = parseInt(icon.dataset.slot);
@@ -565,6 +556,5 @@ window.renderProfileTab = async function(
             );
         });
     });
-
     await updateBellBadge();
 };
