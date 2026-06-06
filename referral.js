@@ -1,67 +1,59 @@
-// referral.js – улучшенная версия
-
+// referral.js – улучшенная вёрстка
 window.renderReferralTab = async function() {
     const refCode = window.currentUser.referral_code;
     const refLink = `https://t.me/VoxAction_Bot?start=${refCode || 'REF0000'}`;
     const referralCount = window.currentUser.referral_count || 0;
-    const earnedShares = window.currentUser.total_earned_shares ? window.currentUser.total_earned_shares / 100 : 0;
+    const earnedShares = window.currentUser.total_earned_shares ? (window.currentUser.total_earned_shares / 100).toFixed(2) : '0.00';
     
-    // Получаем список рефералов
     const referralsList = await window.getReferralsList();
     const progress = await window.getReferralRewardsProgress(referralCount);
     
-    // Формируем HTML
     let html = `
         <div class="card">
-            <h2>🔗 Реферальная программа</h2>
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-value">${referralCount}</div>
-                    <div class="stat-label">Приглашено друзей</div>
+            <h2 style="text-align:center;">🔗 Реферальная программа</h2>
+            <div class="referral-stats">
+                <div class="referral-stat-card">
+                    <div class="referral-stat-value">${referralCount}</div>
+                    <div class="referral-stat-label">Приглашено друзей</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">${earnedShares.toFixed(2)}</div>
-                    <div class="stat-label">Заработано акций</div>
+                <div class="referral-stat-card">
+                    <div class="referral-stat-value">${earnedShares}</div>
+                    <div class="referral-stat-label">Заработано акций</div>
                 </div>
             </div>
-            
             <div class="referral-link-block">
                 <h3>Ваша реферальная ссылка</h3>
                 <div class="ref-link-container">
                     <span class="ref-link-text">${refLink}</span>
-                    <button id="copyRefLink" class="copy-btn">📋</button>
+                    <button class="copy-btn" id="copyRefLink">📋</button>
                 </div>
                 <p class="small-text">Приглашайте друзей – они получат <strong>5 ⭐</strong> бонусом, а вы <strong>5 акций</strong>, когда он пополнит на 10 ⭐.</p>
             </div>
     `;
     
-    // Прогресс до следующей награды
     if (progress) {
         html += `
             <div class="reward-progress">
-                <h3>🎁 Следующая награда за рефералов</h3>
+                <div class="reward-title">🎁 Следующая награда</div>
                 <div class="progress-label">Пригласите ${progress.needed} друзей → получите ${progress.rewardShares} акций и достижение "${progress.achievementName}"</div>
-                <div class="progress-bar"><div class="progress-fill" style="width: ${progress.progress}%;"></div></div>
+                <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(100, progress.progress)}%;"></div></div>
                 <div class="progress-stats">${progress.current} / ${progress.needed}</div>
             </div>
         `;
     } else {
-        html += `<div class="reward-progress"><p class="small-text">🏆 Все реферальные награды получены!</p></div>`;
+        html += `<div class="reward-progress" style="text-align:center;"><span>🏆 Все реферальные награды получены!</span></div>`;
     }
     
-    // Кнопка показа списка друзей
     html += `<button id="showReferralsListBtn" class="secondary">👥 Показать приглашённых друзей (${referralsList.length})</button>`;
-    html += `</div>`; // закрываем card
+    html += `</div>`;
     
     document.getElementById('app').innerHTML = html;
     
-    // Копирование ссылки
     document.getElementById('copyRefLink')?.addEventListener('click', () => {
         navigator.clipboard.writeText(refLink);
-        window.showCustomModal('Скопировано', 'Реферальная ссылка скопирована в буфер обмена');
+        window.showCustomModal('Скопировано', 'Реферальная ссылка скопирована');
     });
     
-    // Модалка со списком рефералов
     document.getElementById('showReferralsListBtn')?.addEventListener('click', () => {
         showReferralsModal(referralsList);
     });
