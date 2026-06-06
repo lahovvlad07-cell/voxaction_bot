@@ -1,4 +1,4 @@
-// api.js – полная рабочая версия (без баннеров)
+// api.js – полная версия со стандартным аватаром, без случайных обводок, с функцией покупки
 
 // ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
@@ -12,26 +12,23 @@ async function ensureWelcomeAchievement(userId) {
     } catch(e) { console.error(e); }
 }
 
-// ---------- Пользователи (со случайными начальными параметрами, баннер удалён) ----------
+// ---------- Пользователи (стандартные значения, без обводки) ----------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
     if (!data) {
-        const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
-        const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
-        const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
-        const randomBg = bgOptions[Math.floor(Math.random() * bgOptions.length)];
-        const borderOptions = ['default','thin','thick','gold','neon','none'];
-        const randomBorder = borderOptions[Math.floor(Math.random() * borderOptions.length)];
+        const defaultAvatar = '👤';
+        const defaultBg = 'gradient1';
+        const defaultBorder = 'none';
         const { data: newUser, error: insertError } = await window.supabase.from('users').insert([{
             id: window.userId,
             username: window.username,
             shares: 0,
             stars_balance: 0,
             selected_achievements: [],
-            avatar_url: randomAvatar,
-            avatar_bg: randomBg,
-            avatar_border: randomBorder,
+            avatar_url: defaultAvatar,
+            avatar_bg: defaultBg,
+            avatar_border: defaultBorder,
             registered_at: new Date().toISOString()
         }]).select().single();
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
@@ -43,7 +40,7 @@ window.getOrCreateUser = async function() {
     if (!data.selected_achievements) { data.selected_achievements = []; updated = true; }
     if (!data.avatar_url) { data.avatar_url = '👤'; updated = true; }
     if (!data.avatar_bg) { data.avatar_bg = 'gradient1'; updated = true; }
-    if (!data.avatar_border) { data.avatar_border = 'default'; updated = true; }
+    if (!data.avatar_border) { data.avatar_border = 'none'; updated = true; }
     if (!data.registered_at) { data.registered_at = new Date().toISOString(); updated = true; }
     if (updated) {
         await window.supabase.from('users').update({
@@ -172,7 +169,7 @@ window.getSellerRating = async function(sellerId) {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
-// ---------------------- Функция обновления обводки (обязательно!) ----------------------
+// ---------------------- Функция обновления обводки (базовая) ----------------------
 window.updateUserBorder = async function(borderStyle) {
     const { error } = await window.supabase.from('users').update({ avatar_border: borderStyle }).eq('id', window.userId);
     if (error) throw new Error(error.message);
@@ -180,7 +177,28 @@ window.updateUserBorder = async function(borderStyle) {
     return true;
 };
 
-// ---------------------- Админские и вспомогательные функции (кратко) ----------------------
+// ---------------------- Функция покупки обводки (с проверкой баланса) ----------------------
+window.purchaseBorder = async function(borderId, price, customColor = null) {
+    const user = window.currentUser;
+    if (!user) throw new Error('Пользователь не загружен');
+    if (price > 0 && user.stars_balance < price) {
+        throw new Error(`Недостаточно Stars. Нужно ${price} ⭐, у вас ${user.stars_balance} ⭐`);
+    }
+    // Списываем звезды, если платная
+    if (price > 0) {
+        const newBalance = user.stars_balance - price;
+        const { error: updateError } = await window.supabase.from('users').update({ stars_balance: newBalance }).eq('id', window.userId);
+        if (updateError) throw new Error(updateError.message);
+        user.stars_balance = newBalance;
+    }
+    // Обновляем обводку (если есть customColor, можно сохранять в отдельное поле, пока просто сохраняем borderId)
+    await window.updateUserBorder(borderId);
+    // Здесь можно также сохранить customColor в БД, если нужно
+    // Пока просто вернём успех
+    return true;
+};
+
+// ---------------------- Админские и вспомогательные функции ----------------------
 window.adminFetchStats = async function() {
     const res = await fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) });
     return res.json();
