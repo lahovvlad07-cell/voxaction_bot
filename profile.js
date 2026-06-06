@@ -237,7 +237,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// Основная функция рендера профиля
 window.renderProfileTab = async function(
     currentUser,
     supabase,
