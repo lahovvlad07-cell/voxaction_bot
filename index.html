@@ -7,6 +7,17 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="styles.css">
+    <!-- Вынесенные модули -->
+    <script src="api.js"></script>
+    <script src="notifications.js"></script>
+    <script src="topup.js"></script>
+    <script src="profile.js"></script>
+    <script src="stocks.js"></script>
+    <script src="analytics.js"></script>
+    <script src="rating.js"></script>
+    <script src="wallet.js"></script>
+    <script src="referral.js"></script>
+    <script src="admin.js"></script>
 </head>
 <body>
 <div class="app-header">
@@ -42,25 +53,15 @@
         <button id="confirmTopupBtn">Пополнить</button>
     </div>
 </div>
-<script src="api.js"></script>
-<script src="notifications.js"></script>
-<script src="topup.js"></script>
-<script src="profile.js"></script>
-<script src="stocks.js"></script>
-<script src="analytics.js"></script>
-<script src="rating.js"></script>
-<script src="wallet.js"></script>
-<script src="referral.js"></script>
-<script src="admin.js"></script>
 <script>
+    // Основной скрипт
     (async () => {
-        // Drag tabs
         const tabsWrapper = document.querySelector('.tabs-wrapper');
         let isDown = false, startX, scrollLeft;
         tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
         window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
         window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
-
+        
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
         window.tg = tg;
@@ -68,10 +69,11 @@
         window.username = tg.initDataUnsafe?.user?.username || `user_${window.userId}`;
         if (!window.userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
-
+        
+        // Утилиты
         window.toCents = (v) => Math.round(parseFloat(v) * 100);
         window.fromCents = (c) => (c / 100).toFixed(2);
-
+        
         window.showCustomModal = function(title, message) {
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
@@ -88,7 +90,7 @@
             document.getElementById('closeCustomModal').onclick = () => modal.remove();
             document.getElementById('customModalOkBtn').onclick = () => modal.remove();
         };
-
+        
         window.showToast = function(message) {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -96,13 +98,14 @@
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
         };
-
+        
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
-
+        
+        // Функция настроек (шестерёнка)
         async function renderSettingsTab() {
             const hideRating = window.currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -122,7 +125,8 @@
                 window.showCustomModal('Успех', 'Настройки сохранены');
             };
         }
-
+        
+        // Запуск
         const { user, isNew } = await window.getOrCreateUser();
         window.currentUser = user;
         const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -136,10 +140,10 @@
         setupRealtimeNotifications();
         await window.updateBellBadge();
         initTopupModal();
-
+        
         document.getElementById('headerNotificationBell')?.addEventListener('click', () => window.showNotificationsModal());
         document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
-
+        
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
                 const tabName = tab.dataset.tab;
