@@ -1,4 +1,4 @@
-// profile.js – 3 шага (аватар, фон, обводка), без баннеров
+// profile.js – 3 шага: аватар, фон, обводка (без баннеров)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -153,8 +153,8 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки ==========
-function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
+// ========== ШАГ 1 ==========
+function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
         const isSelected = (emoji === currentAvatar);
@@ -172,7 +172,8 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
                 </div>
                 <div class="avatars-grid">${optionsHtml}</div>
                 <div class="modal-buttons">
-                    <button id="nextBtn" style="width:100%;">Далее →</button>
+                    ${backCallback ? '<button id="backBtn" class="secondary">← Назад</button>' : '<button id="backBtn" class="secondary" style="opacity:0; pointer-events:none;">← Назад</button>'}
+                    <button id="nextBtn">Далее →</button>
                 </div>
             </div>
         </div>
@@ -199,9 +200,12 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
         modal.remove();
         nextCallback();
     };
+    if (backCallback) {
+        document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
+    }
 }
 
-// ========== ШАГ 2: выбор фона ==========
+// ========== ШАГ 2 ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     let optionsHtml = '';
@@ -230,8 +234,8 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
                 </div>
                 <div class="bg-grid">${optionsHtml}</div>
                 <div class="modal-buttons">
-                    <button id="backBtn" class="secondary" style="flex:1;">← Назад</button>
-                    <button id="nextBtn" style="flex:1;">Далее →</button>
+                    <button id="backBtn" class="secondary">← Назад</button>
+                    <button id="nextBtn">Далее →</button>
                 </div>
             </div>
         </div>
@@ -282,8 +286,8 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3: выбор обводки (с сохранением и закрытием) ==========
-function showBorderStep(currentUser, updateCallback, backCallback, showCustomModal, finalCallback) {
+// ========== ШАГ 3 ==========
+function showBorderStep(currentUser, updateCallback, finishCallback, backCallback, showCustomModal) {
     const currentBorder = currentUser.avatar_border || 'default';
     const gridHtml = borderOptions.map(opt => {
         const isSelected = (opt.id === currentBorder);
@@ -314,8 +318,8 @@ function showBorderStep(currentUser, updateCallback, backCallback, showCustomMod
                 </div>
                 <div class="border-grid">${gridHtml}</div>
                 <div class="modal-buttons">
-                    <button id="backBtn" class="secondary" style="flex:1;">← Назад</button>
-                    <button id="saveBtn" style="flex:1;">Сохранить</button>
+                    <button id="backBtn" class="secondary">← Назад</button>
+                    <button id="finishBtn">Сохранить</button>
                 </div>
             </div>
         </div>
@@ -345,44 +349,40 @@ function showBorderStep(currentUser, updateCallback, backCallback, showCustomMod
             updatePreview();
         });
     });
-    document.getElementById('saveBtn').onclick = async () => {
-        await updateCallback({ avatar_border: selectedBorder });
+    document.getElementById('finishBtn').onclick = async () => {
+        await window.updateUserBorder(selectedBorder);
         currentUser.avatar_border = selectedBorder;
         modal.remove();
-        if (finalCallback) finalCallback();
-        showCustomModal('Готово', 'Обводка аватарки обновлена');
+        finishCallback();
     };
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (3 шага) ==========
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
     // Шаг 1
     await new Promise(resolve => {
-        showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal);
+        showAvatarStep(currentUser, updateUserCallback, resolve, null, showCustomModal);
     });
     // Шаг 2
     await new Promise(resolve => {
-        showBackgroundStep(currentUser, updateUserCallback, async () => {
-            resolve();
-        }, async () => {
-            await new Promise(r => { showAvatarStep(currentUser, updateUserCallback, r, showCustomModal); });
+        showBackgroundStep(currentUser, updateUserCallback, resolve, async () => {
+            await new Promise(r => { showAvatarStep(currentUser, updateUserCallback, r, null, showCustomModal); });
             await new Promise(r2 => { showBackgroundStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
             resolve();
         }, showCustomModal);
     });
     // Шаг 3
     await new Promise(resolve => {
-        showBorderStep(currentUser, updateUserCallback, async () => {
+        showBorderStep(currentUser, updateUserCallback, resolve, async () => {
             await new Promise(r => { showBackgroundStep(currentUser, updateUserCallback, r, null, showCustomModal); });
-            await showBorderStep(currentUser, updateUserCallback, null, showCustomModal, resolve);
-        }, showCustomModal, resolve);
+            await new Promise(r2 => { showBorderStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
+            resolve();
+        }, showCustomModal);
     });
-    // После сохранения обводки перерисовываем профиль
-    await renderProfileTab();
 }
 
-// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ (без баннера) ==========
+// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
@@ -429,13 +429,12 @@ window.renderProfileTab = async function(
     const borderStyle = getBorderStyle(currentUser.avatar_border || 'default');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
-    // Простая карточка без баннера
-    const html = `<div class="card" style="text-align: center; overflow: visible !important;">
-        <div id="avatarClickWrapper" style="margin-top: 16px; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
+    const html = `<div class="card" style="text-align: center;">
+        <div style="margin-top: 20px; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; cursor: pointer;" id="avatarClickWrapper">
             <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
             <div class="small-text">Нажмите, чтобы изменить аватар, фон и обводку</div>
         </div>
-        <p style="font-size:20px; font-weight:bold; margin-top:8px;">${currentUser.username}</p>
+        <p style="font-size:20px; font-weight:bold; margin-top:12px;">${currentUser.username}</p>
         <p class="small-text">ID: ${userId}</p>
         <p class="small-text">📅 Регистрация: ${registeredDate}</p>
         <div class="achievement-icons">${iconsHtml.join('')}</div>
@@ -459,7 +458,6 @@ window.renderProfileTab = async function(
     const updateUserCallback = async (updates) => {
         await supabase.from('users').update(updates).eq('id', userId);
         Object.assign(currentUser, updates);
-        await awardAvatarAchievement(supabase, userId, showCustomModal);
     };
     const renderProfileTabBound = async () => {
         await window.renderProfileTab(
