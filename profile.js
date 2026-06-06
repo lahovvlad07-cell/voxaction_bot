@@ -1,9 +1,6 @@
-// profile.js – полная финальная версия с исправленными шагами (аватар, фон, обводка) и случайной инициализацией
-
-// ---------- Баннеры (временно отключены, но массив оставлен для совместимости) ----------
+// profile.js – финальная версия
 const bannerList = ['banners/1.jpg', 'banners/2.jpg', 'banners/3.jpg'];
 
-// ---------- Аватары ----------
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
 ];
@@ -21,7 +18,6 @@ function getAvatarStyle(emoji) {
     return `transform: translateY(${adjust}px); font-size: ${fontSize};`;
 }
 
-// ---------- Фоны ----------
 const bgOptions = [
     { id:'gradient1', name:'Синий', class:'bg-gradient1', isCustom:false },
     { id:'gradient2', name:'Фиолетовый', class:'bg-gradient2', isCustom:false },
@@ -37,7 +33,6 @@ const bgOptions = [
     { id:'custom', name:'🎨 Свой цвет', class:'', isCustom:true }
 ];
 
-// ---------- Обводки ----------
 const borderOptions = [
     { id:'default', name:'Стандартная', style:'3px solid rgba(255,255,255,0.9)' },
     { id:'thin', name:'Тонкая', style:'2px solid rgba(255,255,255,0.9)' },
@@ -51,7 +46,6 @@ function getBorderStyle(borderId) {
     return found ? found.style : borderOptions[0].style;
 }
 
-// ========== ФУНКЦИИ ДОСТИЖЕНИЙ ==========
 async function awardAvatarAchievement(supabase, userId, showCustomModal) {
     try {
         const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
@@ -156,7 +150,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -176,7 +169,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
                 <div class="avatars-grid">${optionsHtml}</div>
                 <div class="modal-buttons">
                     ${backCallback ? '<button id="backBtn" class="secondary">← Назад</button>' : ''}
-                    <button id="nextBtn">Далее →</button>
+                    <button id="nextBtn" style="width:100%">Далее →</button>
                 </div>
             </div>
         </div>
@@ -208,7 +201,6 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
     }
 }
 
-// ========== ШАГ 2: выбор фона ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     let optionsHtml = '';
@@ -289,7 +281,6 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3: выбор обводки (с сохранением) ==========
 function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBorder = currentUser.avatar_border || 'default';
     const gridHtml = borderOptions.map(opt => {
@@ -361,13 +352,10 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (3 шага, баннер пока пропускаем) ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
-    // Шаг 1: аватар (без кнопки "Назад")
     await new Promise(resolve => {
         showAvatarStep(currentUser, updateUserCallback, resolve, null, showCustomModal);
     });
-    // Шаг 2: фон (с кнопкой "Назад")
     await new Promise(resolve => {
         showBackgroundStep(currentUser, updateUserCallback, async () => {
             resolve();
@@ -377,7 +365,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
             resolve();
         }, showCustomModal);
     });
-    // Шаг 3: обводка (с кнопкой "Назад")
     await new Promise(resolve => {
         showBorderStep(currentUser, updateUserCallback, async () => {
             resolve();
@@ -389,7 +376,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     });
 }
 
-// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
@@ -435,7 +421,6 @@ window.renderProfileTab = async function(
     const emojiStyle = getAvatarStyle(currentUser.avatar_url);
     const borderStyle = getBorderStyle(currentUser.avatar_border || 'default');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
-    // Баннер (опционально)
     const bannerId = currentUser.banner_id || 1;
     const bannerUrl = bannerList[bannerId - 1] || bannerList[0];
 
