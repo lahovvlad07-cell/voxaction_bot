@@ -1,18 +1,10 @@
 window.renderReferralTab = async function() {
-    const refCode = window.currentUser.referral_code;
-    const fullLink = `https://t.me/VoxAction_Bot?start=${refCode || 'REF0000'}`;
-    const shortLink = `t.me/VoxAction_Bot?start=${refCode || 'REF0000'}`; // для отображения
-    const referralCount = window.currentUser.referral_count || 0;
-    const earnedShares = window.currentUser.total_earned_shares ? (window.currentUser.total_earned_shares / 100).toFixed(2) : '0.00';
-
-    // Заглушка прогресса (позже заменим реальными данными)
-    const rewards = [
-        { needed: 3, reward: '10 акций', achievement: 'Наставник' },
-        { needed: 5, reward: '20 акций', achievement: 'Лидер' },
-        { needed: 10, reward: '50 акций', achievement: 'Король рефералов' }
-    ];
-    const nextReward = rewards.find(r => referralCount < r.needed) || rewards[0];
-    const progressPercent = (referralCount / nextReward.needed) * 100;
+    const currentUser = window.currentUser;
+    const activeCode = currentUser.custom_ref_code || currentUser.referral_code;
+    const fullLink = `https://t.me/VoxAction_Bot?start=${activeCode}`;
+    const referralCount = currentUser.referral_count || 0;
+    const earnedShares = currentUser.total_earned_shares ? (currentUser.total_earned_shares / 100).toFixed(2) : '0.00';
+    const hasCustomCode = !!currentUser.custom_ref_code;
 
     let html = `
         <div class="card">
@@ -30,10 +22,21 @@ window.renderReferralTab = async function() {
 
             <div class="referral-link-block">
                 <div class="ref-link-container">
-                    <span class="ref-link-text" id="refLinkText">${shortLink}</span>
+                    <span class="ref-link-text" id="refLinkText">${fullLink}</span>
                     <button class="copy-btn" id="copyRefLinkBtn">📋 Копировать</button>
+                    <button class="copy-btn share-btn" id="shareRefLinkBtn">📤 Поделиться</button>
                 </div>
-                <p class="hint-text">Нажмите, чтобы скопировать ссылку и поделиться с друзьями</p>
+                <p class="hint-text">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</p>
+            </div>
+
+            <div class="ref-code-editor">
+                <h3>Ваш уникальный код</h3>
+                <div class="code-input-group">
+                    <span class="code-prefix">t.me/VoxAction_Bot?start=</span>
+                    <input type="text" id="refCodeInput" value="${activeCode}" ${hasCustomCode ? 'disabled' : ''} placeholder="придумайте_код" maxlength="32">
+                    ${!hasCustomCode ? `<button id="saveCodeBtn" class="save-code-btn">💾 Сохранить</button>` : '<span class="code-locked">🔒 Ваш уникальный код</span>'}
+                </div>
+                ${!hasCustomCode ? '<p class="hint-text">Используйте латиницу, цифры и символ подчёркивания (_). До 32 символов.</p>' : ''}
             </div>
 
             <div class="referral-bonus-card">
@@ -47,20 +50,56 @@ window.renderReferralTab = async function() {
             <div class="reward-progress-placeholder">
                 <div class="reward-title">🏆 Достижения за приглашение друзей</div>
                 <div class="reward-step">
-                    <span>${referralCount} / ${nextReward.needed} друзей</span>
-                    <span>→ ${nextReward.reward} + достижение "${nextReward.achievement}"</span>
+                    <span>${referralCount} / 3 друзей</span>
+                    <span>→ 10 акций + достижение "Наставник"</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progressPercent}%;"></div>
+                    <div class="progress-fill" style="width: ${Math.min(100, (referralCount / 3) * 100)}%;"></div>
                 </div>
-                <div class="reward-next">Следующая награда после ${nextReward.needed} друзей</div>
             </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
 
+    // Копирование полной ссылки
     document.getElementById('copyRefLinkBtn')?.addEventListener('click', () => {
         navigator.clipboard.writeText(fullLink);
-        window.showCustomModal('Скопировано', 'Реферальная ссылка скопирована в буфер обмена');
+        window.showCustomModal('Скопировано', 'Реферальная ссылка скопирована');
     });
+
+    // Поделиться через Telegram
+    document.getElementById('shareRefLinkBtn')?.addEventListener('click', () => {
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(fullLink)}&text=${encodeURIComponent('Присоединяйся ко мне в VoxAction бирже! 🚀')}`;
+        if (window.tg && window.tg.openTelegramLink) {
+            window.tg.openTelegramLink(shareUrl);
+        } else {
+            window.open(shareUrl, '_blank');
+        }
+    });
+
+    // Сохранение кастомного кода
+    if (!hasCustomCode) {
+        document.getElementById('saveCodeBtn')?.addEventListener('click', async () => {
+            const newCode = document.getElementById('refCodeInput').value.trim().toLowerCase();
+            if (!newCode) {
+                window.showCustomModal('Ошибка', 'Код не может быть пустым');
+                return;
+            }
+            if (!/^[a-z0-9_]+$/.test(newCode)) {
+                window.showCustomModal('Ошибка', 'Используйте только латиницу, цифры и символ подчёркивания (_)');
+                return;
+            }
+            if (newCode.length > 32) {
+                window.showCustomModal('Ошибка', 'Код не должен превышать 32 символа');
+                return;
+            }
+            try {
+                await window.updateRefCode(newCode);
+                window.showCustomModal('Успех', 'Ваш реферальный код обновлён!');
+                await window.refreshAll();
+            } catch (err) {
+                window.showCustomModal('Ошибка', err.message);
+            }
+        });
+    }
 };
