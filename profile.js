@@ -1,4 +1,4 @@
-// profile.js – полная версия (3 шага: аватар, фон, обводка; платные обводки; фон в превью 3-го шага берётся из currentUser)
+// profile.js – полная версия (шаги: аватар → фон → обводка; исправлена кнопка "Назад", выбор цвета, правильный фон)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -34,11 +34,11 @@ const bgOptions = [
     { id:'custom', name:'🎨 Свой цвет', class:'', isCustom:true }
 ];
 
-// ---------- Обводки (3 варианта) ----------
+// ---------- Обводки ----------
 const borderOptions = [
-    { id:'standard', name:'Стандартная', price:0, defaultColor:'#ffffff' },
-    { id:'gold', name:'Золотая', price:50, defaultColor:'#fbbf24' },
-    { id:'neon', name:'Неоновая', price:30, defaultColor:'#2b6e9e' }
+    { id:'standard', name:'Стандартная', price:0, defaultColor:'#ffffff', hasColorPicker:true },
+    { id:'gold', name:'Золотая', price:50, defaultColor:'#fbbf24', hasColorPicker:false },
+    { id:'neon', name:'Неоновая', price:30, defaultColor:'#2b6e9e', hasColorPicker:true }
 ];
 
 function getBorderStyle(borderId, customColor = null) {
@@ -172,7 +172,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки ==========
+// ========== ШАГ 1: выбор аватарки (без кнопки "Назад") ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -222,7 +222,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
-// ========== ШАГ 2: выбор фона ==========
+// ========== ШАГ 2: выбор фона (с кнопкой "Назад", возвращает в шаг 1) ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     let optionsHtml = '';
@@ -302,14 +302,16 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
         modal.remove();
         nextCallback();
     };
-    document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
+    document.getElementById('backBtn').onclick = () => {
+        modal.remove();
+        if (backCallback) backCallback();
+    };
 }
 
-// ========== ШАГ 3: выбор обводки (с правильным отображением фона) ==========
+// ========== ШАГ 3: выбор обводки (с цветом, с возвратом в шаг 2) ==========
 async function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBorderId = currentUser.avatar_border || 'standard';
     
-    // Правильное получение фона из currentUser
     let bgStylePreview = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
         bgStylePreview = `background: ${currentUser.avatar_bg};`;
@@ -334,6 +336,7 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
                         </div>
                     </div>
                     <div class="border-option-actions">
+                        ${opt.hasColorPicker ? `<input type="color" class="border-color-picker" value="${opt.defaultColor}" data-border="${opt.id}">` : ''}
                         <button class="border-select-btn" data-border="${opt.id}">${isCurrent ? '✓ Выбрано' : 'Выбрать'}</button>
                     </div>
                 </div>
@@ -365,18 +368,19 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
     const modal = document.getElementById('borderModal');
     document.getElementById('closeModal').onclick = () => modal.remove();
     
-    const updatePreview = (borderId) => {
+    const updatePreview = (borderId, customColor = null) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
-        const style = getBorderStyle(borderId);
+        const style = getBorderStyle(borderId, customColor);
         const currentStyle = previewCircle.getAttribute('style') || '';
         const cleaned = currentStyle.replace(/border:[^;]+;?/g, '').replace(/box-shadow:[^;]+;?/g, '');
         previewCircle.setAttribute('style', cleaned + style);
     };
     
     let selectedBorderId = currentBorderId;
+    let selectedColor = borderOptions.find(b => b.id === currentBorderId)?.defaultColor;
     let purchased = (currentBorderId !== 'standard');
     
-    updatePreview(selectedBorderId);
+    updatePreview(selectedBorderId, selectedColor);
     
     const selectButtons = modal.querySelectorAll('.border-select-btn');
     const updateButtonsState = () => {
@@ -391,6 +395,11 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
             const borderId = btn.dataset.border;
             const borderOpt = borderOptions.find(b => b.id === borderId);
             const price = borderOpt.price;
+            let customColor = null;
+            if (borderOpt.hasColorPicker) {
+                const picker = modal.querySelector(`.border-color-picker[data-border="${borderId}"]`);
+                if (picker) customColor = picker.value;
+            }
             if (borderId === selectedBorderId) return;
             if (price > 0 && !purchased && borderId !== currentBorderId) {
                 try {
@@ -407,8 +416,20 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
                 await window.updateUserBorder(borderId);
             }
             selectedBorderId = borderId;
-            updatePreview(selectedBorderId);
+            selectedColor = customColor || borderOpt.defaultColor;
+            updatePreview(selectedBorderId, selectedColor);
             updateButtonsState();
+        });
+    });
+    
+    modal.querySelectorAll('.border-color-picker').forEach(picker => {
+        picker.addEventListener('input', (e) => {
+            const borderId = picker.dataset.border;
+            const color = e.target.value;
+            if (borderId === selectedBorderId) {
+                updatePreview(borderId, color);
+                selectedColor = color;
+            }
         });
     });
     
@@ -431,31 +452,40 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
         modal.remove();
         nextCallback();
     };
-    document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
+    document.getElementById('backBtn').onclick = () => {
+        modal.remove();
+        if (backCallback) backCallback();
+    };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (корректные переходы) ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
+    // Шаг 1
+    await new Promise(resolve => { showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal); });
+    // Шаг 2 (backCallback возвращает в шаг 1)
     await new Promise(resolve => {
-        showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal);
+        showBackgroundStep(currentUser, updateUserCallback, 
+            async () => { resolve(); },   // nextCallback
+            async () => {                 // backCallback
+                await new Promise(r => { showAvatarStep(currentUser, updateUserCallback, r, showCustomModal); });
+                // после возврата заново запускаем шаг 2
+                await new Promise(r2 => { showBackgroundStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
+                resolve();
+            }, 
+            showCustomModal
+        );
     });
+    // Шаг 3 (backCallback возвращает в шаг 2)
     await new Promise(resolve => {
-        showBackgroundStep(currentUser, updateUserCallback, async () => {
-            resolve();
-        }, async () => {
-            await new Promise(r => { showAvatarStep(currentUser, updateUserCallback, r, showCustomModal); });
-            await new Promise(r2 => { showBackgroundStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
-            resolve();
-        }, showCustomModal);
-    });
-    await new Promise(resolve => {
-        showBorderStep(currentUser, updateUserCallback, async () => {
-            resolve();
-        }, async () => {
-            await new Promise(r => { showBackgroundStep(currentUser, updateUserCallback, r, null, showCustomModal); });
-            await new Promise(r2 => { showBorderStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
-            resolve();
-        }, showCustomModal);
+        showBorderStep(currentUser, updateUserCallback,
+            async () => { resolve(); },   // nextCallback
+            async () => {                 // backCallback
+                await new Promise(r => { showBackgroundStep(currentUser, updateUserCallback, r, null, showCustomModal); });
+                await new Promise(r2 => { showBorderStep(currentUser, updateUserCallback, r2, null, showCustomModal); });
+                resolve();
+            },
+            showCustomModal
+        );
     });
     await renderProfileTab();
 }
