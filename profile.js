@@ -1,8 +1,6 @@
 // profile.js – финальная версия
-// Шаг 1: выбор аватарки (эмодзи)
-// Шаг 2: выбор фона аватарки (11 цветов + кастомный)
-// Шаг 3: выбор цвета обводки (11 цветов + кастомный)
-// Исправлено: кликабельна только аватарка и текст под ней
+// Исправлено: клик срабатывает только при наведении на аватарку или текст под ней,
+// а не на всю карточку.
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -228,7 +226,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
-// ========== ШАГ 2: выбор фона (цвета + пикер) ==========
+// ========== ШАГ 2: выбор фона ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     
@@ -373,7 +371,7 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки (цвета + пикер) ==========
+// ========== ШАГ 3: выбор цвета обводки ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
@@ -536,7 +534,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
-// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
+// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ (ИСПРАВЛЕНА ОБЛАСТЬ КЛИКА) ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
@@ -597,8 +595,9 @@ window.renderProfileTab = async function(
     const borderStyle = getBorderStyle(currentUser.avatar_border || '#ffffff');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
+    // Исправлено: кликабельный контейнер занимает только место под свой контент
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
-        <div id="avatarClickWrapper">
+        <div style="display: inline-flex; flex-direction: column; align-items: center; cursor: pointer;" id="avatarClickWrapper">
             <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
             <div class="small-text">Нажмите, чтобы изменить аватар, фон, обводку и баннер</div>
         </div>
