@@ -1,7 +1,8 @@
 // profile.js – финальная версия
 // Шаг 1: выбор аватарки (эмодзи)
-// Шаг 2: выбор фона аватарки (11 цветов + кастомный цвет через пикер)
-// Шаг 3: выбор цвета обводки (11 цветов + кастомный цвет через пикер)
+// Шаг 2: выбор фона аватарки (11 цветов + кастомный)
+// Шаг 3: выбор цвета обводки (11 цветов + кастомный)
+// Исправлено: кликабельна только аватарка и текст под ней
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -231,7 +232,6 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     
-    // Определяем, выбран ли стандартный цвет или кастомный
     let isCustomColor = false;
     let currentColorValue = null;
     if (currentBg && currentBg.startsWith('#')) {
@@ -306,7 +306,6 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     const updatePreview = (color) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
         previewCircle.style.background = color;
-        // Убираем классы градиентов
         previewCircle.classList.remove('bg-gradient1', 'bg-gradient2', 'bg-gradient3', 'bg-gradient4', 'bg-gradient5', 'bg-gradient6', 'bg-gradient7', 'bg-gradient8', 'bg-gradient9', 'bg-gradient10', 'bg-gradient11');
     };
     
@@ -378,7 +377,6 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
-    // Определяем фон для превью
     let bgClass = '';
     let bgStyleInline = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
