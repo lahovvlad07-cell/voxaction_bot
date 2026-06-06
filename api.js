@@ -1,4 +1,4 @@
-// api.js – полная версия с кастомными реферальными кодами
+// api.js – полная версия с обновлённой реферальной системой (аватар и ID в списке)
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -135,23 +135,7 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
-// Функция обновления кастомного кода
-window.updateRefCode = async function(customCode) {
-    const res = await fetch(`${window.BACKEND_URL}/update-ref-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: window.userId, custom_code: customCode })
-    });
-    const result = await res.json();
-    if (result.ok) {
-        window.currentUser.custom_ref_code = customCode;
-        return true;
-    } else {
-        throw new Error(result.error);
-    }
-};
-
-// Остальные функции (ордера, торги, статистика и т.д.)
+// Обновлённая функция getReferralsList – теперь возвращает аватар и ID
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
@@ -161,7 +145,7 @@ window.getReferralsList = async function() {
             topup_completed,
             topup_amount_cents,
             bonus_earned,
-            users:referred_id (username)
+            users:referred_id (username, avatar_url, id)
         `)
         .eq('referrer_id', window.userId)
         .order('registered_at', { ascending: false });
@@ -169,6 +153,7 @@ window.getReferralsList = async function() {
     return data.map(r => ({
         userId: r.referred_id,
         username: r.users?.username || `user_${r.referred_id}`,
+        avatarUrl: r.users?.avatar_url || '👤',
         registeredAt: r.registered_at,
         topupCompleted: r.topup_completed,
         topupAmount: r.topup_amount_cents ? r.topup_amount_cents / 100 : 0,
