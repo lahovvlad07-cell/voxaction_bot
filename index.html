@@ -7,17 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="styles.css">
-    <!-- Вынесенные модули (все) -->
-    <script src="api.js"></script>
-    <script src="notifications.js"></script>
-    <script src="topup.js"></script>
-    <script src="profile.js"></script>
-    <script src="stocks.js"></script>
-    <script src="analytics.js"></script>
-    <script src="rating.js"></script>
-    <script src="wallet.js"></script>
-    <script src="referral.js"></script>
-    <script src="admin.js"></script>
 </head>
 <body>
 <div class="app-header">
@@ -53,8 +42,18 @@
         <button id="confirmTopupBtn">Пополнить</button>
     </div>
 </div>
+<script src="api.js"></script>
+<script src="notifications.js"></script>
+<script src="topup.js"></script>
+<script src="profile.js"></script>
+<script src="stocks.js"></script>
+<script src="analytics.js"></script>
+<script src="rating.js"></script>
+<script src="wallet.js"></script>
+<script src="referral.js"></script>
+<script src="admin.js"></script>
 <script>
-    // Основной скрипт (инициализация, утилиты, настройки, запуск)
+    // Основной скрипт (запуск)
     (async () => {
         // Drag tabs
         const tabsWrapper = document.querySelector('.tabs-wrapper');
@@ -107,7 +106,7 @@
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
-        // Настройки (шестерёнка)
+        // Настройки
         async function renderSettingsTab() {
             const hideRating = window.currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -128,7 +127,6 @@
             };
         }
         
-        // Запуск (дожидаемся загрузки всех модулей)
         const { user, isNew } = await window.getOrCreateUser();
         window.currentUser = user;
         const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -146,7 +144,6 @@
         document.getElementById('headerNotificationBell')?.addEventListener('click', () => window.showNotificationsModal());
         document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
         
-        // Обработчики вкладок
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
                 const tabName = tab.dataset.tab;
