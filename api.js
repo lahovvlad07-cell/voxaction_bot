@@ -1,4 +1,4 @@
-// api.js – полная исправленная версия
+// api.js – полная версия с поддержкой покупки обводок и стандартными начальными значениями
 
 // ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
@@ -180,7 +180,6 @@ window.updateUserBorder = async function(borderStyle) {
 window.purchaseBorder = async function(borderId, price) {
     const user = window.currentUser;
     if (!user) throw new Error('Пользователь не загружен');
-    // Если цена > 0 и обводка ещё не куплена (проверяем, не равна ли она текущей)
     if (price > 0 && user.avatar_border !== borderId) {
         if (user.stars_balance < price) {
             throw new Error(`Недостаточно Stars. Нужно ${price} ⭐, у вас ${user.stars_balance} ⭐`);
@@ -190,7 +189,6 @@ window.purchaseBorder = async function(borderId, price) {
         if (updateError) throw new Error(updateError.message);
         user.stars_balance = newBalance;
     }
-    // Применяем обводку
     await window.updateUserBorder(borderId);
     return true;
 };
