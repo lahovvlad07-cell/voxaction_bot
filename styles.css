@@ -110,7 +110,7 @@ body {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* ===== Аватар ===== */
+/* ===== Аватар (центрирование) ===== */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -126,6 +126,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    line-height: 1;
     font-size: 48px;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
@@ -142,6 +144,7 @@ body {
 .avatar-emoji {
     display: inline-block;
     line-height: 1;
+    vertical-align: middle;
 }
 .small-text {
     font-size: 12px;
@@ -654,7 +657,7 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА (исправленная, с кнопкой списка) ========== */
+/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА (с кнопкой "Приглашённые пользователи") ========== */
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
@@ -771,7 +774,7 @@ canvas {
     color: #9ca3af;
 }
 
-/* Стили для модалки со списком приглашённых */
+/* ===== Стили для модалки со списком приглашённых ===== */
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
