@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Акции – биржа | VoxAction</title>
+    <!-- Telegram WebApp и Supabase -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Подключаем внешний CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">Загрузка...</div>
+
+    <!-- Нижняя панель вкладок -->
+    <div class="tabs-wrapper">
+        <div class="tabs" id="tabs">
+            <div class="tab" data-tab="profile">
+                <div class="tab-icon">👤</div>
+                <div class="tab-label">Профиль</div>
+            </div>
+            <div class="tab active" data-tab="stocks">
+                <div class="tab-icon">📈</div>
+                <div class="tab-label">Акции</div>
+            </div>
+            <div class="tab" data-tab="analytics">
+                <div class="tab-icon">📊</div>
+                <div class="tab-label">Аналитика</div>
+            </div>
+            <div class="tab" data-tab="rating">
+                <div class="tab-icon">🏆</div>
+                <div class="tab-label">Рейтинг</div>
+            </div>
+            <div class="tab" data-tab="wallet">
+                <div class="tab-icon">💳</div>
+                <div class="tab-label">Кошелёк</div>
+            </div>
+            <div class="tab" data-tab="referral">
+                <div class="tab-icon">🔗</div>
+                <div class="tab-label">Рефералка</div>
+            </div>
+            <div class="tab" data-tab="settings">
+                <div class="tab-icon">⚙️</div>
+                <div class="tab-label">Настройки</div>
+            </div>
+            <div class="tab admin-tab" data-tab="admin" style="display: none;">
+                <div class="tab-icon">👑</div>
+                <div class="tab-label">Админ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно пополнения Stars -->
+    <div id="topupModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeTopupModal">&times;</span>
+            <h3>💸 Пополнение Stars</h3>
+            <div class="topup-amounts">
+                <div class="amount-btn" data-amount="200">200 ⭐</div>
+                <div class="amount-btn" data-amount="500">500 ⭐</div>
+                <div class="amount-btn" data-amount="1000">1000 ⭐</div>
+            </div>
+            <div class="custom-amount">
+                <input type="number" id="customTopupAmount" placeholder="Своя сумма (1-10000)" min="1" step="1">
+            </div>
+            <div id="topupFeeInfo" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 20px; text-align: center; margin-bottom: 16px;"></div>
+            <button id="confirmTopupBtn">Пополнить</button>
+        </div>
+    </div>
+
+    <!-- Главный модуль (точка входа) -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
