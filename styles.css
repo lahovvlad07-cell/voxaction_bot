@@ -1,4 +1,4 @@
-/* styles.css – полная финальная версия с анимациями и стилями реферальной системы */
+/* styles.css – полная версия с улучшенной реферальной вкладкой */
 
 * {
     margin: 0;
@@ -99,7 +99,7 @@ body {
     font-weight: bold;
 }
 
-/* ===== Карточка профиля (без баннера, аватарка центрирована) ===== */
+/* ===== Карточка профиля ===== */
 .card {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(16px);
@@ -480,7 +480,7 @@ canvas {
 .bg-gradient10 { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
 .bg-gradient11 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
 
-/* ===== Достижения, статистика, прочее ===== */
+/* ===== Достижения, статистика ===== */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -709,21 +709,26 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – УЛУЧШЕННЫЕ СТИЛИ ===== */
+/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – УЛУЧШЕННЫЙ ДИЗАЙН (без прогресса) ===== */
+.referral-title {
+    text-align: center;
+    margin-bottom: 24px;
+    font-size: 20px;
+}
 .referral-stats {
     display: flex;
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
 }
 .referral-stat-card {
     flex: 1;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 24px;
-    padding: 16px;
+    padding: 20px 16px;
     text-align: center;
 }
 .referral-stat-value {
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 800;
     background: linear-gradient(135deg, #60a5fa, #a78bfa);
     -webkit-background-clip: text;
@@ -732,93 +737,62 @@ canvas {
     line-height: 1.2;
 }
 .referral-stat-label {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
-    margin-top: 6px;
+    margin-top: 8px;
 }
 .referral-link-block {
-    margin: 16px 0;
+    margin: 16px 0 24px 0;
 }
 .ref-link-container {
     display: flex;
     align-items: center;
     gap: 8px;
     background: rgba(0, 0, 0, 0.4);
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-radius: 60px;
-    margin: 10px 0;
+    margin-bottom: 8px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
 }
 .ref-link-text {
     flex: 1;
-    font-size: 13px;
+    font-size: 14px;
     word-break: break-all;
     font-family: monospace;
     color: #eef2ff;
 }
 .copy-btn {
     width: auto;
-    padding: 6px 14px;
+    padding: 6px 16px;
     margin: 0;
     background: #2b6e9e;
     border-radius: 40px;
     font-size: 18px;
     line-height: 1;
 }
-.reward-progress {
-    margin: 20px 0;
-    background: rgba(0, 0, 0, 0.25);
+.hint-text {
+    text-align: center;
+    font-size: 11px;
+    opacity: 0.7;
+}
+.referral-bonus-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(43, 110, 158, 0.15);
     border-radius: 24px;
     padding: 16px;
+    margin-top: 16px;
+    border-left: 4px solid #2b6e9e;
 }
-.reward-title {
-    font-weight: 600;
-    margin-bottom: 12px;
-    font-size: 15px;
+.bonus-icon {
+    font-size: 40px;
 }
-.progress-label {
+.bonus-text {
     font-size: 13px;
-    margin-bottom: 8px;
+    line-height: 1.4;
     color: #cbd5e1;
 }
-.progress-stats {
-    font-size: 12px;
-    text-align: right;
-    margin-top: 6px;
-    color: #94a3b8;
-}
-#showReferralsListBtn {
-    background: rgba(43, 110, 158, 0.3);
-    border: 1px solid rgba(56, 189, 248, 0.5);
-    margin-top: 16px;
-    padding: 12px;
-}
-.referrals-list {
-    max-height: 400px;
-    overflow-y: auto;
-    margin-top: 8px;
-}
-.referral-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    gap: 12px;
-}
-.referral-item strong {
-    font-size: 14px;
-}
-.referral-status .status-success {
-    color: #4ade80;
-    font-size: 12px;
-    background: rgba(74, 222, 128, 0.15);
-    padding: 4px 8px;
-    border-radius: 20px;
-}
-.referral-status .status-pending {
-    color: #fbbf24;
-    font-size: 12px;
-    background: rgba(251, 191, 36, 0.15);
-    padding: 4px 8px;
-    border-radius: 20px;
+.bonus-text strong {
+    color: #eef2ff;
 }
