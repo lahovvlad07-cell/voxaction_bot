@@ -1,4 +1,4 @@
-// profile.js – финальная версия (без баннеров, три обводки, выбор цвета, платные, предпросмотр с реальным фоном)
+// profile.js – полная версия (3 шага: аватар, фон, обводка; платные обводки)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -305,11 +305,9 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3: выбор обводки (исправленный – фон аватарки отображается) ==========
+// ========== ШАГ 3: выбор обводки ==========
 async function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBorderId = currentUser.avatar_border || 'standard';
-    
-    // Функция для получения правильного стиля фона аватарки (реальный фон пользователя)
     const getBgStyleForPreview = () => {
         if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
             return `background: ${currentUser.avatar_bg};`;
@@ -455,13 +453,11 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ (3 шага) ==========
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
-    // Шаг 1
     await new Promise(resolve => {
         showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal);
     });
-    // Шаг 2
     await new Promise(resolve => {
         showBackgroundStep(currentUser, updateUserCallback, async () => {
             resolve();
@@ -471,7 +467,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
             resolve();
         }, showCustomModal);
     });
-    // Шаг 3
     await new Promise(resolve => {
         showBorderStep(currentUser, updateUserCallback, async () => {
             resolve();
