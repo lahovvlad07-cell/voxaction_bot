@@ -1,4 +1,4 @@
-/* styles.css – полная версия с улучшенной реферальной вкладкой */
+/* styles.css – полная версия с улучшенной реферальной вкладкой и редактором кода */
 
 * {
     margin: 0;
@@ -709,7 +709,7 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – УЛУЧШЕННЫЙ ДИЗАЙН ===== */
+/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – ОСНОВНЫЕ СТИЛИ ===== */
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
@@ -821,4 +821,57 @@ canvas {
     font-size: 13px;
     margin-bottom: 8px;
     color: #cbd5e1;
+}
+
+/* ===== РЕДАКТОР КАСТОМНОГО РЕФЕРАЛЬНОГО КОДА ===== */
+.ref-code-editor {
+    margin: 20px 0;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 24px;
+}
+.ref-code-editor h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+.code-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 60px;
+    padding: 6px 12px;
+}
+.code-prefix {
+    font-size: 12px;
+    color: #9ca3af;
+    font-family: monospace;
+}
+#refCodeInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 8px 0;
+    margin: 0;
+    font-size: 14px;
+    font-family: monospace;
+}
+#refCodeInput:focus {
+    outline: none;
+    box-shadow: none;
+}
+.save-code-btn {
+    width: auto;
+    padding: 6px 12px;
+    margin: 0;
+    background: #2b6e9e;
+    font-size: 13px;
+}
+.code-locked {
+    color: #4ade80;
+    font-size: 13px;
+    background: rgba(74, 222, 128, 0.15);
+    padding: 4px 10px;
+    border-radius: 40px;
 }
