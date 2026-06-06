@@ -1,4 +1,4 @@
-// api.js – полный (со всеми функциями, включая updateUserBorder и purchaseBorder)
+// api.js – полная версия с поддержкой покупки обводок и стандартными начальными значениями
 
 // ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
@@ -12,7 +12,7 @@ async function ensureWelcomeAchievement(userId) {
     } catch(e) { console.error(e); }
 }
 
-// ---------- Пользователи (стандартные значения) ----------
+// ---------- Пользователи (стандартные значения, без обводки) ----------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
