@@ -1,4 +1,4 @@
-// profile.js – финальная версия с 4 шагами и предпросмотром
+// profile.js – полная версия с 4 шагами и предпросмотром, все функции реализованы
 
 // ---------- Баннеры ----------
 const bannerList = [
@@ -54,9 +54,113 @@ function getBorderStyle(borderId) {
     return found ? found.style : borderOptions[0].style;
 }
 
-// ---------- Вспомогательные функции (достижения) ----------
-async function awardAvatarAchievement(supabase, userId, showCustomModal) { /* ... (как была) */ }
-async function getNextAchievementsProgress(supabase, userId, currentUser, getUserStats, getAllAchievements, getEarnedAchievements) { /* ... (как была) */ }
+// ---------- Вспомогательные функции (достижения) – реализованы ----------
+async function awardAvatarAchievement(supabase, userId, showCustomModal) {
+    try {
+        const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
+        if (!achData) return;
+        const { data: existing } = await supabase.from('user_achievements').select('achievement_id').eq('user_id', userId).eq('achievement_id', achData.id).maybeSingle();
+        if (!existing) {
+            await supabase.from('user_achievements').insert({ user_id: userId, achievement_id: achData.id, earned_at: new Date().toISOString() });
+            showCustomModal('🎉 Новое достижение!', 'Вы получили достижение "🎨 Стилист" за выбор аватарки или фона!');
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function getNextAchievementsProgress(supabase, userId, currentUser, getUserStats, getAllAchievements, getEarnedAchievements) {
+    const allAchievements = await getAllAchievements();
+    const earned = await getEarnedAchievements();
+    const earnedIds = new Set(earned.map(a => a.id));
+    const ignoreNames = ['🌟 Первый шаг', '🎨 Стилист', '✅ Абсолютный чемпион'];
+    const notEarned = allAchievements.filter(a => !earnedIds.has(a.id) && !ignoreNames.includes(a.name));
+    if (notEarned.length === 0) return [];
+
+    const tradesCount = (await getUserStats()).totalTrades;
+    const sharesCents = currentUser.shares;
+    const referralsCount = currentUser.referral_count || 0;
+    const totalTopupCents = currentUser.total_topup || 0;
+
+    const nextAchievements = [];
+    for (let ach of notEarned) {
+        let current = 0, needed = ach.condition_value;
+        switch (ach.condition_type) {
+            case 'trades_count': current = tradesCount; break;
+            case 'shares_held': current = sharesCents; break;
+            case 'referrals_count': current = referralsCount; break;
+            case 'total_topup': current = totalTopupCents; break;
+            default: continue;
+        }
+        if (current < needed) {
+            nextAchievements.push({ ...ach, current, needed, progress: Math.min(100, (current / needed) * 100) });
+        }
+        if (nextAchievements.length >= 3) break;
+    }
+    return nextAchievements;
+}
+
+// ---------- Функция выбора достижения для слота ----------
+async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
+    if (!earnedAchievements.length) {
+        showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
+        return;
+    }
+    const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
+    const isSlotOccupied = currentSlotAchievementId !== null;
+    const gridHtml = earnedAchievements.map(ach => {
+        const isSelected = (currentSlotAchievementId === ach.id);
+        const isUsedElsewhere = otherSelected.includes(ach.id);
+        const disabledClass = isUsedElsewhere ? 'disabled' : '';
+        const selectedClass = isSelected ? 'selected' : '';
+        const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleString() : 'дата не указана';
+        let conditionText = '';
+        const hideCondition = ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '✅ Абсолютный чемпион';
+        if (!hideCondition && ach.condition_type !== 'all_achievements') {
+            switch(ach.condition_type) {
+                case 'trades_count': conditionText = `📊 Сделок: ${ach.condition_value}`; break;
+                case 'shares_held': conditionText = `📈 Акций: ${ach.condition_value/100}`; break;
+                case 'referrals_count': conditionText = `👥 Приглашений: ${ach.condition_value}`; break;
+                case 'total_topup': conditionText = `💰 Пополнено: ${ach.condition_value/100} ⭐`; break;
+            }
+        }
+        return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}"><div class="achievement-icon">${ach.icon}</div><div class="achievement-name">${ach.name}</div><div class="achievement-desc">${ach.description}</div>${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}<div class="achievement-date">🏅 Получено: ${earnedDate}</div></div>`;
+    }).join('');
+    const modalHtml = `<div class="modal" id="achiSelectorModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAchiSelector">&times;</span><h3>Выберите достижение для слота ${slot+1}</h3><div class="achievements-grid" id="achiGrid">${gridHtml}</div>${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}<button id="saveAchiSelection">Сохранить</button></div></div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('closeAchiSelector').onclick = () => document.getElementById('achiSelectorModal').remove();
+    if (isSlotOccupied) {
+        document.getElementById('clearSlotBtn').onclick = async () => {
+            let newSelectedIds = [...currentSelectedIds];
+            newSelectedIds[slot] = null;
+            newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
+            await updateUserCallback({ selected_achievements: newSelectedIds });
+            currentUser.selected_achievements = newSelectedIds;
+            document.getElementById('achiSelectorModal').remove();
+            await renderProfileTab();
+        };
+    }
+    document.getElementById('saveAchiSelection').onclick = async () => {
+        const selectedCard = document.querySelector('#achiGrid .achievement-card.selected:not(.disabled)');
+        let newSelectedIds = [...currentSelectedIds];
+        if (selectedCard) {
+            const selectedId = parseInt(selectedCard.dataset.achId);
+            newSelectedIds[slot] = selectedId;
+        }
+        newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
+        while (newSelectedIds.length < 3) newSelectedIds.push(null);
+        const saveArray = newSelectedIds.filter(v => v !== null);
+        await updateUserCallback({ selected_achievements: saveArray });
+        currentUser.selected_achievements = saveArray;
+        document.getElementById('achiSelectorModal').remove();
+        await renderProfileTab();
+    };
+    document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
+        card.addEventListener('click', () => {
+            if (card.dataset.disabled === 'true') { showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.'); return; }
+            document.querySelectorAll('#achiGrid .achievement-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+        });
+    });
+}
 
 // ---------- ШАГ 1: выбор аватарки ----------
 function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
@@ -92,7 +196,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
             document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
             opt.classList.add('selected');
             selectedAvatar = opt.dataset.avatar;
-            const preview = modal.querySelector('.avatar-emoji');
+            const preview = modal.querySelector('.modal-preview .avatar-emoji');
             if (preview) {
                 preview.textContent = selectedAvatar;
                 preview.setAttribute('style', getAvatarStyle(selectedAvatar));
@@ -105,10 +209,10 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, backCallback,
         modal.remove();
         nextCallback();
     };
-    if (backCallback) {
+    if (!backCallback) {
         document.getElementById('backBtn').style.display = 'none';
     } else {
-        document.getElementById('backBtn').onclick = () => { modal.remove(); if (backCallback) backCallback(); };
+        document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
     }
 }
 
@@ -203,7 +307,7 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
         else if (opt.id === 'neon') previewStyle = 'border: 3px solid #2b6e9e; box-shadow: 0 0 8px #2b6e9e;';
         else previewStyle = `border: ${opt.style};`;
         return `<div style="text-align:center;">
-                    <div class="border-option ${isSelected ? 'selected' : ''}" data-border="${opt.id}" style="${previewStyle} background:#2b6e9e;"></div>
+                    <div class="border-option ${isSelected ? 'selected' : ''}" data-border="${opt.id}" style="${previewStyle} background:#2b6e9e; width:80px; height:80px; border-radius:50%; margin:0 auto;"></div>
                     <div class="border-label">${opt.name}</div>
                 </div>`;
     }).join('');
@@ -244,7 +348,7 @@ function showBorderStep(currentUser, updateCallback, nextCallback, backCallback,
             const opt = borderOptions.find(b => b.id === selectedBorder);
             newStyle = opt ? `border: ${opt.style};` : '';
         }
-        previewCircle.setAttribute('style', (previewCircle.getAttribute('style') || '') + newStyle);
+        previewCircle.setAttribute('style', (previewCircle.getAttribute('style') || '') + '; ' + newStyle);
     };
     document.querySelectorAll('.border-option').forEach(opt => {
         opt.addEventListener('click', () => {
@@ -301,7 +405,11 @@ async function showBannerStep(currentUser, supabase, renderProfileTab, backCallb
         await renderProfileTab();
         showCustomModal('Готово', 'Баннер профиля обновлён');
     };
-    document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
+    if (backCallback) {
+        document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
+    } else {
+        document.getElementById('backBtn').onclick = () => modal.remove();
+    }
 }
 
 // ---------- Запуск полной кастомизации ----------
@@ -355,15 +463,6 @@ window.renderProfileTab = async function(
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
     updateBellBadge, showNotificationsModal
 ) {
-    // ... (статистика, достижения, ранги – без изменений, как в предыдущей версии)
-    // Я сокращу для краткости, но вы можете оставить свой работающий код.
-    // Главное – чтобы в конце был вызов startFullCustomization при клике на аватар.
-    
-    // ВНИМАНИЕ: Ниже показаны только ключевые части. 
-    // Вставьте сюда ваш полный рабочий код получения статистики, достижений и формирования HTML,
-    // который уже был у вас. Я приведу только ту часть, где задаётся HTML и обработчики.
-    
-    // Пример (адаптируйте под ваш существующий код):
     const stats = await getUserStats();
     const earnedAchievements = await getEarnedAchievements();
     const selectedIds = currentUser.selected_achievements || [];
@@ -371,14 +470,15 @@ window.renderProfileTab = async function(
     for (let i = 0; i < 3; i++) {
         const achId = selectedIds[i];
         const ach = earnedAchievements.find(a => a.id === achId);
-        iconsHtml.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
+        iconsHtml.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
     }
     const rank = await getUserRank();
-    const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span>#${rank}</span></div>` : '';
+    const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px; font-weight:bold;">#${rank}</span></div>` : '';
+
     const nextAchievements = await getNextAchievementsProgress(supabase, userId, currentUser, getUserStats, getAllAchievements, getEarnedAchievements);
     let nextHtml = '';
-    if (nextAchievements.length) {
-        nextHtml = `<div class="next-achievements"><div class="small-text">📋 Ближайшие достижения:</div>`;
+    if (nextAchievements.length > 0) {
+        nextHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px;">📋 Ближайшие достижения:</div>`;
         for (let ach of nextAchievements) {
             let conditionStr = '';
             switch (ach.condition_type) {
@@ -387,10 +487,11 @@ window.renderProfileTab = async function(
                 case 'referrals_count': conditionStr = `${ach.current}/${ach.needed} приглашений`; break;
                 case 'total_topup': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐`; break;
             }
-            nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between;"><span>${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${ach.progress}%;"></div></div></div>`;
+            nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between;"><span style="font-size:28px;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div></div>`;
         }
         nextHtml += `</div>`;
     }
+
     let avatarClass = 'avatar-circle';
     let avatarStyle = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
@@ -404,9 +505,9 @@ window.renderProfileTab = async function(
     const bannerId = currentUser.banner_id || 1;
     const bannerUrl = bannerList[bannerId-1] || bannerList[0];
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
-    
-    const html = `<div class="card" style="text-align:center; overflow:visible !important;">
-        <div class="profile-banner" style="background-image:url(${bannerUrl}); background-size:cover; background-position:center;">
+
+    const html = `<div class="card" style="text-align: center; overflow: visible !important;">
+        <div class="profile-banner" style="background-image: url(${bannerUrl}); background-size: cover; background-position: center;">
             <div class="profile-banner-edit" id="editBannerBtn">🖌️ Сменить баннер</div>
         </div>
         <div class="profile-avatar" id="avatarClick">
@@ -431,8 +532,9 @@ window.renderProfileTab = async function(
         ${rankHtml}
         ${nextHtml}
     </div>`;
+
     document.getElementById('app').innerHTML = html;
-    
+
     const updateUserCallback = async (updates) => {
         await supabase.from('users').update(updates).eq('id', userId);
         Object.assign(currentUser, updates);
@@ -450,7 +552,8 @@ window.renderProfileTab = async function(
     document.getElementById('editBannerBtn')?.addEventListener('click', () => {
         showBannerStep(currentUser, supabase, renderProfileTabBound, null, showCustomModal);
     });
-    // Обработчики достижений (скопируйте из вашего старого profile.js)
+
+    // Обработчики достижений
     document.querySelectorAll('.achi-icon').forEach(icon => {
         icon.addEventListener('click', async () => {
             const slot = parseInt(icon.dataset.slot);
@@ -462,7 +565,6 @@ window.renderProfileTab = async function(
             );
         });
     });
+
     await updateBellBadge();
 };
-
-// Функция openAchievementSelectorForSlot (скопируйте её из вашего старого profile.js, она не изменилась)
