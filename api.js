@@ -1,4 +1,4 @@
-// api.js – полная версия с улучшенной реферальной системой
+// api.js – полная версия с кастомными реферальными кодами
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -50,6 +50,7 @@ window.getOrCreateUser = async function() {
             avatar_bg: randomBg,
             avatar_border: randomBorder,
             referral_code: referralCode,
+            custom_ref_code: null,
             referred_by: referredById,
             registered_at: new Date().toISOString(),
             total_earned_shares: 0,
@@ -106,6 +107,7 @@ window.getOrCreateUser = async function() {
         data.referral_code = newCode;
         updated = true;
     }
+    if (data.custom_ref_code === undefined) { data.custom_ref_code = null; updated = true; }
     if (data.total_earned_shares === undefined) { data.total_earned_shares = 0; updated = true; }
     if (data.referral_count === undefined) { data.referral_count = 0; updated = true; }
     if (data.hide_rating === undefined) { data.hide_rating = false; updated = true; }
@@ -120,6 +122,7 @@ window.getOrCreateUser = async function() {
             avatar_bg: data.avatar_bg,
             avatar_border: data.avatar_border,
             referral_code: data.referral_code,
+            custom_ref_code: data.custom_ref_code,
             registered_at: data.registered_at,
             total_earned_shares: data.total_earned_shares,
             referral_count: data.referral_count,
@@ -132,6 +135,23 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
+// Функция обновления кастомного кода
+window.updateRefCode = async function(customCode) {
+    const res = await fetch(`${window.BACKEND_URL}/update-ref-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: window.userId, custom_code: customCode })
+    });
+    const result = await res.json();
+    if (result.ok) {
+        window.currentUser.custom_ref_code = customCode;
+        return true;
+    } else {
+        throw new Error(result.error);
+    }
+};
+
+// Остальные функции (ордера, торги, статистика и т.д.)
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
@@ -145,10 +165,7 @@ window.getReferralsList = async function() {
         `)
         .eq('referrer_id', window.userId)
         .order('registered_at', { ascending: false });
-    if (error) {
-        console.error(error);
-        return [];
-    }
+    if (error) return [];
     return data.map(r => ({
         userId: r.referred_id,
         username: r.users?.username || `user_${r.referred_id}`,
@@ -178,7 +195,6 @@ window.getReferralRewardsProgress = async function(referralCount) {
     };
 };
 
-// ---------- Остальные функции (ордера, торги, статистика и т.д.) ----------
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
