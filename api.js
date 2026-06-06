@@ -1,4 +1,5 @@
-// api.js – полная версия со случайными начальными параметрами, реферальным кодом и updateUserBorder
+// api.js – полная версия с улучшенной реферальной системой
+// Включает все функции: пользователи, ордера, торги, аналитика, админка, рефералы
 
 // ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
@@ -12,30 +13,36 @@ async function ensureWelcomeAchievement(userId) {
     } catch(e) { console.error(e); }
 }
 
-// Генерация уникального реферального кода
 function generateReferralCode() {
     return 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// ---------- Пользователи (случайные начальные параметры + реферальный код) ----------
+// ---------- Пользователи (с бонусом за регистрацию по рефералке) ----------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
+    
     if (!data) {
-        // Случайные значения для нового пользователя
+        // Случайные начальные параметры
         const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
         const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
         const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
         const randomBg = bgOptions[Math.floor(Math.random() * bgOptions.length)];
-        const borderOptions = ['standard','gold','neon','none'];
+        const borderOptions = ['#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff69b4', '#00ffff', '#9b30ff'];
         const randomBorder = borderOptions[Math.floor(Math.random() * borderOptions.length)];
         
-        // Генерация уникального реферального кода
         let referralCode = generateReferralCode();
         let existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
         while (existingCode.data) {
             referralCode = generateReferralCode();
             existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
+        }
+        
+        // Проверяем, есть ли referred_by (установленный ботом при переходе по ссылке)
+        let referredById = null;
+        const userCheck = await window.supabase.from('users').select('referred_by').eq('id', window.userId).maybeSingle();
+        if (userCheck.data && userCheck.data.referred_by) {
+            referredById = userCheck.data.referred_by;
         }
         
         const { data: newUser, error: insertError } = await window.supabase.from('users').insert([{
@@ -48,18 +55,60 @@ window.getOrCreateUser = async function() {
             avatar_bg: randomBg,
             avatar_border: randomBorder,
             referral_code: referralCode,
-            registered_at: new Date().toISOString()
+            referred_by: referredById,
+            registered_at: new Date().toISOString(),
+            total_earned_shares: 0,
+            referral_bonus_claimed: false,
+            referral_count: 0,
+            hide_rating: false,
+            notify_trades: true,
+            notify_topup: true,
+            notify_referral: true
         }]).select().single();
+        
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
+        
+        // Начисляем бонус новому пользователю, если он пришёл по рефералке
+        if (referredById) {
+            // Бонус новичку: 5 звёзд (500 центов)
+            await window.supabase.from('users').update({ stars_balance: 500 }).eq('id', window.userId);
+            
+            // Создаём запись в таблице referrals
+            await window.supabase.from('referrals').insert({
+                referrer_id: referredById,
+                referred_id: window.userId,
+                registered_at: new Date().toISOString(),
+                topup_completed: false,
+                bonus_earned: false
+            });
+            
+            // Увеличиваем referral_count реферера
+            const referrer = await window.supabase.from('users').select('referral_count').eq('id', referredById).single();
+            if (referrer.data) {
+                const newCount = (referrer.data.referral_count || 0) + 1;
+                await window.supabase.from('users').update({ referral_count: newCount }).eq('id', referredById);
+            }
+            
+            // Уведомление рефереру
+            await window.supabase.from('notifications').insert({
+                user_id: referredById,
+                message: `🎉 Новый реферал! ${window.username} зарегистрировался по вашей ссылке.`,
+                type: 'notify_referral',
+                is_read: false
+            });
+        }
+        
         await ensureWelcomeAchievement(window.userId);
         return { user: newUser, isNew: true };
     }
+    
+    // Существующий пользователь – обновляем недостающие поля
     await ensureWelcomeAchievement(window.userId);
     let updated = false;
     if (!data.selected_achievements) { data.selected_achievements = []; updated = true; }
     if (!data.avatar_url) { data.avatar_url = '👤'; updated = true; }
     if (!data.avatar_bg) { data.avatar_bg = 'gradient1'; updated = true; }
-    if (!data.avatar_border) { data.avatar_border = 'standard'; updated = true; }
+    if (!data.avatar_border) { data.avatar_border = '#ffffff'; updated = true; }
     if (!data.registered_at) { data.registered_at = new Date().toISOString(); updated = true; }
     if (!data.referral_code) {
         let newCode = generateReferralCode();
@@ -71,6 +120,13 @@ window.getOrCreateUser = async function() {
         data.referral_code = newCode;
         updated = true;
     }
+    if (data.total_earned_shares === undefined) { data.total_earned_shares = 0; updated = true; }
+    if (data.referral_count === undefined) { data.referral_count = 0; updated = true; }
+    if (data.hide_rating === undefined) { data.hide_rating = false; updated = true; }
+    if (data.notify_trades === undefined) { data.notify_trades = true; updated = true; }
+    if (data.notify_topup === undefined) { data.notify_topup = true; updated = true; }
+    if (data.notify_referral === undefined) { data.notify_referral = true; updated = true; }
+    
     if (updated) {
         await window.supabase.from('users').update({
             selected_achievements: data.selected_achievements,
@@ -78,10 +134,65 @@ window.getOrCreateUser = async function() {
             avatar_bg: data.avatar_bg,
             avatar_border: data.avatar_border,
             referral_code: data.referral_code,
-            registered_at: data.registered_at
+            registered_at: data.registered_at,
+            total_earned_shares: data.total_earned_shares,
+            referral_count: data.referral_count,
+            hide_rating: data.hide_rating,
+            notify_trades: data.notify_trades,
+            notify_topup: data.notify_topup,
+            notify_referral: data.notify_referral
         }).eq('id', window.userId);
     }
     return { user: data, isNew: false };
+};
+
+// ---------- Реферальные функции ----------
+window.getReferralsList = async function() {
+    const { data, error } = await window.supabase
+        .from('referrals')
+        .select(`
+            referred_id,
+            registered_at,
+            topup_completed,
+            topup_amount_cents,
+            bonus_earned,
+            users:referred_id (username)
+        `)
+        .eq('referrer_id', window.userId)
+        .order('registered_at', { ascending: false });
+    if (error) {
+        console.error(error);
+        return [];
+    }
+    return data.map(r => ({
+        userId: r.referred_id,
+        username: r.users?.username || `user_${r.referred_id}`,
+        registeredAt: r.registered_at,
+        topupCompleted: r.topup_completed,
+        topupAmount: r.topup_amount_cents ? r.topup_amount_cents / 100 : 0,
+        bonusEarned: r.bonus_earned
+    }));
+};
+
+window.getReferralRewardsProgress = async function(referralCount) {
+    const rewards = [
+        { count: 3, shares: 1000, achievement: '🤝 Наставник' },    // 10 акций
+        { count: 5, shares: 2000, achievement: '🌟 Лидер' },        // 20 акций
+        { count: 10, shares: 5000, achievement: '👑 Король рефералов' } // 50 акций
+    ];
+    const earnedAchievements = await window.getEarnedAchievements();
+    const earnedNames = new Set(earnedAchievements.map(a => a.name));
+    
+    const nextReward = rewards.find(r => referralCount < r.count && !earnedNames.has(r.achievement));
+    if (!nextReward) return null;
+    
+    return {
+        needed: nextReward.count,
+        current: referralCount,
+        rewardShares: nextReward.shares / 100,
+        achievementName: nextReward.achievement,
+        progress: (referralCount / nextReward.count) * 100
+    };
 };
 
 // ---------------------- Ордера и торги (основные функции) ----------------------
@@ -199,7 +310,7 @@ window.getSellerRating = async function(sellerId) {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
-// ---------------------- Функция обновления цвета обводки ----------------------
+// ---------------------- Обновление цвета обводки ----------------------
 window.updateUserBorder = async function(color) {
     const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
     if (error) throw new Error(error.message);
