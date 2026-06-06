@@ -1,4 +1,4 @@
-/* styles.css – полная финальная версия с анимациями и стилями для реферальной системы */
+/* styles.css – полная финальная версия с анимациями и стилями реферальной системы */
 
 * {
     margin: 0;
@@ -467,7 +467,7 @@ canvas {
     box-shadow: none;
 }
 
-/* ===== Градиенты для фона аватарки (сохранены для совместимости) ===== */
+/* ===== Градиенты для фона аватарки ===== */
 .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
 .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
@@ -674,7 +674,7 @@ canvas {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
 }
-.leaderboard-item, .history-item, .referral-item {
+.leaderboard-item, .history-item {
     display: flex;
     justify-content: space-between;
     padding: 10px 0;
@@ -709,59 +709,116 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ===== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ ===== */
+/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – УЛУЧШЕННЫЕ СТИЛИ ===== */
+.referral-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.referral-stat-card {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 24px;
+    padding: 16px;
+    text-align: center;
+}
+.referral-stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1.2;
+}
+.referral-stat-label {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 6px;
+}
+.referral-link-block {
+    margin: 16px 0;
+}
 .ref-link-container {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px 14px;
     border-radius: 60px;
-    margin: 12px 0;
+    margin: 10px 0;
 }
 .ref-link-text {
     flex: 1;
     font-size: 13px;
     word-break: break-all;
     font-family: monospace;
+    color: #eef2ff;
 }
 .copy-btn {
     width: auto;
-    padding: 6px 12px;
+    padding: 6px 14px;
     margin: 0;
     background: #2b6e9e;
     border-radius: 40px;
     font-size: 18px;
+    line-height: 1;
 }
 .reward-progress {
-    margin: 16px 0;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 20px;
-    padding: 12px;
+    margin: 20px 0;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 24px;
+    padding: 16px;
+}
+.reward-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 15px;
 }
 .progress-label {
     font-size: 13px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    color: #cbd5e1;
 }
 .progress-stats {
     font-size: 12px;
     text-align: right;
-    margin-top: 4px;
+    margin-top: 6px;
+    color: #94a3b8;
+}
+#showReferralsListBtn {
+    background: rgba(43, 110, 158, 0.3);
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    margin-top: 16px;
+    padding: 12px;
 }
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
+    margin-top: 8px;
 }
 .referral-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 12px;
+}
+.referral-item strong {
+    font-size: 14px;
 }
 .referral-status .status-success {
-    color: #2ecc71;
+    color: #4ade80;
+    font-size: 12px;
+    background: rgba(74, 222, 128, 0.15);
+    padding: 4px 8px;
+    border-radius: 20px;
 }
 .referral-status .status-pending {
-    color: #f39c12;
+    color: #fbbf24;
+    font-size: 12px;
+    background: rgba(251, 191, 36, 0.15);
+    padding: 4px 8px;
+    border-radius: 20px;
 }
