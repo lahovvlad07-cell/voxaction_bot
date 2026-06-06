@@ -1,4 +1,4 @@
-// profile.js – финальная версия (шаги: аватар → фон → выбор цвета обводки)
+// profile.js – финальная версия (шаги: аватар → фон → выбор цвета обводки (12 цветов + кастомный в сетке))
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -34,7 +34,7 @@ const bgOptions = [
     { id:'custom', name:'🎨 Свой цвет', class:'', isCustom:true }
 ];
 
-// ---------- Цвета обводки ----------
+// ---------- Цвета обводки (11 стандартных + кастомный в виде пикера) ----------
 const borderColors = [
     { name: 'Белый', value: '#ffffff' },
     { name: 'Чёрный', value: '#000000' },
@@ -311,11 +311,11 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки (ИСПРАВЛЕН: правильно отображается фон) ==========
+// ========== ШАГ 3: выбор цвета обводки (12 цветов + пикер в сетке) ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
-    // Определяем класс фона и инлайн-стиль
+    // Определяем класс фона и инлайн-стиль для превью
     let bgClass = '';
     let bgStyleInline = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
@@ -323,17 +323,31 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     } else {
         const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
         bgClass = found ? found.class : 'bg-gradient1';
-        // Инлайн-стиль не нужен, полагаемся на класс
     }
     
+    // Создаём 12 цветов: 11 стандартных + 12-й кастомный (пикер)
+    const colors = [
+        ...borderColors,
+        { name: '🎨 Свой цвет', value: 'custom', isPicker: true }
+    ];
+    
     const generateColorsHtml = () => {
-        return borderColors.map(color => {
-            const isSelected = (color.value === currentColor);
-            return `
-                <div class="color-option ${isSelected ? 'selected' : ''}" data-color="${color.value}" style="background: ${color.value}; border: 2px solid ${color.value === '#ffffff' ? '#ccc' : 'transparent'};">
-                    ${isSelected ? '<span class="color-check">✓</span>' : ''}
-                </div>
-            `;
+        return colors.map(color => {
+            if (color.isPicker) {
+                const isSelected = (currentColor !== '#ffffff' && !borderColors.some(c => c.value === currentColor));
+                return `
+                    <div class="color-option picker-option ${isSelected ? 'selected' : ''}" data-color="custom" style="background: linear-gradient(135deg, #ff0000, #00ff00, #0000ff); display: flex; align-items: center; justify-content: center; font-size: 28px;">
+                        🎨
+                    </div>
+                `;
+            } else {
+                const isSelected = (color.value === currentColor);
+                return `
+                    <div class="color-option ${isSelected ? 'selected' : ''}" data-color="${color.value}" style="background: ${color.value}; border: 2px solid ${color.value === '#ffffff' ? '#ccc' : 'transparent'};">
+                        ${isSelected ? '<span class="color-check">✓</span>' : ''}
+                    </div>
+                `;
+            }
         }).join('');
     };
     
@@ -348,9 +362,6 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
                 <div class="scrollable-content">
                     <div class="colors-grid" id="colorsGrid">
                         ${generateColorsHtml()}
-                    </div>
-                    <div class="custom-color-container">
-                        <button id="customColorBtn" class="secondary">🎨 Свой цвет</button>
                     </div>
                 </div>
                 <div class="modal-buttons">
@@ -378,33 +389,36 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     // Обработчики выбора цвета
     document.querySelectorAll('.color-option').forEach(opt => {
         opt.addEventListener('click', () => {
-            const color = opt.dataset.color;
-            selectedColor = color;
-            updatePreview(selectedColor);
-            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-            opt.classList.add('selected');
-            document.querySelectorAll('.color-check').forEach(c => c.remove());
-            opt.innerHTML = `<span class="color-check">✓</span>`;
-        });
-    });
-    
-    // Кастомный цвет
-    const customBtn = document.getElementById('customColorBtn');
-    if (customBtn) {
-        customBtn.addEventListener('click', () => {
-            const colorInput = document.createElement('input');
-            colorInput.type = 'color';
-            colorInput.value = selectedColor;
-            colorInput.addEventListener('input', (e) => {
-                const newColor = e.target.value;
-                selectedColor = newColor;
+            const colorValue = opt.dataset.color;
+            if (colorValue === 'custom') {
+                // Открываем стандартный пикер цвета
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = selectedColor === '#ffffff' ? '#ffffff' : (selectedColor.startsWith('#') ? selectedColor : '#ffffff');
+                colorInput.addEventListener('input', (e) => {
+                    const newColor = e.target.value;
+                    selectedColor = newColor;
+                    updatePreview(selectedColor);
+                    // Снимаем выделение со всех цветов
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    document.querySelectorAll('.color-check').forEach(c => c.remove());
+                    // Отмечаем кастомный как выбранный (визуально)
+                    opt.classList.add('selected');
+                    // Убираем галочку у остальных
+                });
+                colorInput.click();
+            } else {
+                selectedColor = colorValue;
                 updatePreview(selectedColor);
                 document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
                 document.querySelectorAll('.color-check').forEach(c => c.remove());
-            });
-            colorInput.click();
+                if (!opt.querySelector('.color-check')) {
+                    opt.innerHTML = `<span class="color-check">✓</span>`;
+                }
+            }
         });
-    }
+    });
     
     document.getElementById('nextBtn').onclick = async () => {
         if (selectedColor !== currentColor) {
