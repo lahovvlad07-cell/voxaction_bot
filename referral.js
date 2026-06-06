@@ -1,4 +1,3 @@
-// referral.js – чистая реферальная вкладка без кастомного кода
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     const activeCode = currentUser.referral_code;
@@ -6,7 +5,6 @@ window.renderReferralTab = async function() {
     const referralCount = currentUser.referral_count || 0;
     const earnedShares = currentUser.total_earned_shares ? (currentUser.total_earned_shares / 100).toFixed(2) : '0.00';
 
-    // Заглушка прогресса (позже замените реальной логикой)
     const nextMilestone = 3;
     const progressPercent = Math.min(100, (referralCount / nextMilestone) * 100);
     const remaining = nextMilestone - referralCount;
@@ -59,13 +57,11 @@ window.renderReferralTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // Копирование ссылки
     document.getElementById('copyRefLinkBtn')?.addEventListener('click', () => {
         navigator.clipboard.writeText(fullLink);
         window.showCustomModal('Скопировано', 'Реферальная ссылка скопирована');
     });
 
-    // Поделиться через Telegram
     document.getElementById('shareRefLinkBtn')?.addEventListener('click', () => {
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(fullLink)}&text=${encodeURIComponent('Присоединяйся ко мне в VoxAction бирже! 🚀')}`;
         if (window.tg && window.tg.openTelegramLink) {
@@ -75,14 +71,12 @@ window.renderReferralTab = async function() {
         }
     });
 
-    // Кнопка «Приглашённые пользователи» – открывает модалку со списком
     document.getElementById('showReferralsListBtn')?.addEventListener('click', async () => {
         const referralsList = await window.getReferralsList();
         showReferralsModal(referralsList);
     });
 };
 
-// Модальное окно со списком приглашённых
 async function showReferralsModal(referrals) {
     let listHtml = '';
     if (referrals.length === 0) {
