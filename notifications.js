@@ -1,4 +1,5 @@
-// notifications.js
+// notifications.js – полная версия (уведомления, бейдж, реалтайм)
+
 let notificationsChannel = null;
 
 async function loadNotifications() {
@@ -60,8 +61,10 @@ window.showNotificationsModal = async function() {
             <div class="modal-content">
                 <span class="close-modal" id="closeNotifModal">&times;</span>
                 <h3>🔔 Уведомления</h3>
-                <div class="notifications-list">${listHtml || '<p style="text-align:center; padding:20px;">Нет уведомлений</p>'}</div>
-                ${notifications.length ? '<button id="markAllReadBtn" class="secondary">Отметить все прочитанными</button>' : ''}
+                <div class="scrollable-content">
+                    <div class="notifications-list">${listHtml || '<p style="text-align:center; padding:20px;">Нет уведомлений</p>'}</div>
+                </div>
+                ${notifications.length ? '<div class="modal-buttons"><button id="markAllReadBtn" class="secondary">Отметить все прочитанными</button></div>' : ''}
             </div>
         </div>
     `;
