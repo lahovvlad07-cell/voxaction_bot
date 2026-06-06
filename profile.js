@@ -1,4 +1,4 @@
-// profile.js – финальная версия (3 шага: аватар → фон → выбор цвета обводки)
+// profile.js – финальная версия (шаги: аватар → фон → выбор цвета обводки)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -311,10 +311,11 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки ==========
+// ========== ШАГ 3: выбор цвета обводки (исправленный, с правильным фоном) ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
+    // Получаем актуальный фон из currentUser (должен быть обновлён после шага 2)
     let bgStylePreview = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
         bgStylePreview = `background: ${currentUser.avatar_bg};`;
@@ -387,19 +388,22 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     });
     
     // Кастомный цвет
-    document.getElementById('customColorBtn').addEventListener('click', () => {
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.value = selectedColor;
-        colorInput.addEventListener('input', (e) => {
-            const newColor = e.target.value;
-            selectedColor = newColor;
-            updatePreview(selectedColor);
-            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-            document.querySelectorAll('.color-check').forEach(c => c.remove());
+    const customBtn = document.getElementById('customColorBtn');
+    if (customBtn) {
+        customBtn.addEventListener('click', () => {
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = selectedColor;
+            colorInput.addEventListener('input', (e) => {
+                const newColor = e.target.value;
+                selectedColor = newColor;
+                updatePreview(selectedColor);
+                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                document.querySelectorAll('.color-check').forEach(c => c.remove());
+            });
+            colorInput.click();
         });
-        colorInput.click();
-    });
+    }
     
     document.getElementById('nextBtn').onclick = async () => {
         if (selectedColor !== currentColor) {
