@@ -1,4 +1,4 @@
-/* styles.css – финальная версия с исправлениями для баннера, аватарки и модальных кнопок */
+/* styles.css – финальная версия с исправлениями для баннера, аватарки, модальных кнопок и сетки баннеров */
 
 * {
     margin: 0;
@@ -98,9 +98,9 @@ body {
     overflow: visible;
 }
 
-/* Аватарка – наезжает на баннер */
-.profile-avatar {
-    margin-top: -35px !important;
+/* Аватарка – наезжает на баннер (обёртка, кликабельная зона) */
+#avatarClickWrapper {
+    margin-top: -40px !important;
     position: relative;
     z-index: 2;
     display: flex;
@@ -301,10 +301,10 @@ canvas {
     margin-top: 0;
 }
 
-/* ===== Модалка выбора баннера ===== */
+/* ===== Модалка выбора баннера (одна колонка) ===== */
 .banner-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr !important;
     gap: 16px;
     max-height: 300px;
     overflow-y: auto;
