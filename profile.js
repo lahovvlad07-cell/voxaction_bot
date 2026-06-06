@@ -1,4 +1,4 @@
-// profile.js – финальная рабочая версия (аватарка в модалке по центру)
+// profile.js – финальная рабочая версия (аватар в кастомизации по центру)
 
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
@@ -170,6 +170,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
+// ========== ШАГ 1: выбор аватарки (с кругом по центру) ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -178,13 +179,15 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
         return `<div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar="${emoji}"><span class="avatar-emoji" style="${style}">${emoji}</span></div>`;
     }).join('');
     const previewEmojiStyle = getAvatarStyle(currentAvatar);
+    
+    // Ключевое: блок modal-preview с кругом и эмодзи
     const modalHtml = `
         <div class="modal" id="stepModal" style="display:flex;">
             <div class="modal-content">
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>1/3 – Выберите аватар</h3>
-                <div class="modal-preview">
-                    <div class="avatar-circle" style="background: #2b6e9e;">
+                <div class="modal-preview" style="display:flex; justify-content:center; margin:20px 0;">
+                    <div class="avatar-circle" style="background: #2b6e9e; width:88px; height:88px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
                         <span class="avatar-emoji" style="${previewEmojiStyle}">${currentAvatar}</span>
                     </div>
                 </div>
@@ -221,6 +224,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
+// ========== ШАГ 2: выбор фона ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     
@@ -276,8 +280,10 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
             <div class="modal-content">
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>2/3 – Выберите фон аватарки</h3>
-                <div class="modal-preview">
-                    <div class="avatar-circle" style="background: ${currentColorValue};"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
+                <div class="modal-preview" style="display:flex; justify-content:center; margin:20px 0;">
+                    <div class="avatar-circle" style="background: ${currentColorValue}; width:88px; height:88px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                        <span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span>
+                    </div>
                 </div>
                 <div class="scrollable-content">
                     <div class="colors-grid" id="colorsGrid">
@@ -365,6 +371,7 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
+// ========== ШАГ 3: выбор цвета обводки ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
@@ -425,8 +432,10 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
             <div class="modal-content">
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>3/3 – Выберите цвет обводки аватарки</h3>
-                <div class="modal-preview">
-                    <div class="avatar-circle" style="${bgStyleInline}"><span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span></div>
+                <div class="modal-preview" style="display:flex; justify-content:center; margin:20px 0;">
+                    <div class="avatar-circle" style="${bgStyleInline}; width:88px; height:88px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                        <span class="avatar-emoji" style="${getAvatarStyle(currentUser.avatar_url)}">${currentUser.avatar_url}</span>
+                    </div>
                 </div>
                 <div class="scrollable-content">
                     <div class="colors-grid" id="colorsGrid">
@@ -498,6 +507,7 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     };
 }
 
+// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
     await new Promise(resolve => { showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal); });
     await new Promise(resolve => {
@@ -525,6 +535,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
+// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
