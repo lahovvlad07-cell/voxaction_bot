@@ -282,7 +282,9 @@ canvas {
     z-index: 1;
 }
 .modal-preview {
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin: 16px 0;
     flex-shrink: 0;
 }
