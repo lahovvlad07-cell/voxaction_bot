@@ -1,4 +1,4 @@
-/* styles.css – финальная версия */
+/* styles.css – полная версия с улучшенной реферальной вкладкой и редактором кода */
 
 * {
     margin: 0;
@@ -104,13 +104,14 @@ body {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(16px);
     border-radius: 28px;
-    padding: 20px;
+    padding: 18px;
     margin: 12px 16px;
     border: 1px solid rgba(56, 189, 248, 0.2);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: visible !important;
+    cursor: default;
 }
-
-/* ===== Аватар (центрирование) ===== */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -126,8 +127,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    line-height: 1;
     font-size: 48px;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
@@ -144,7 +143,6 @@ body {
 .avatar-emoji {
     display: inline-block;
     line-height: 1;
-    vertical-align: middle;
 }
 .small-text {
     font-size: 12px;
@@ -193,13 +191,13 @@ body {
 button {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border: none;
-    padding: 12px 20px;
+    padding: 14px 20px;
     border-radius: 44px;
     font-size: 16px;
     font-weight: 600;
     color: white;
     width: 100%;
-    margin-top: 12px;
+    margin-top: 14px;
     cursor: pointer;
     transition: 0.2s;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -259,7 +257,7 @@ canvas {
     height: 100%;
 }
 
-/* ===== Модальные окна ===== */
+/* ===== Модальные окна общие ===== */
 .modal {
     display: none;
     position: fixed;
@@ -301,6 +299,13 @@ canvas {
     color: #9ca3af;
     z-index: 1;
 }
+.modal-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 16px 0;
+    flex-shrink: 0;
+}
 .scrollable-content {
     flex: 1;
     overflow-y: auto;
@@ -319,6 +324,10 @@ canvas {
 .modal-buttons button {
     flex: 1;
     margin-top: 0;
+}
+.modal-buttons button:only-child {
+    width: 100%;
+    flex: none;
 }
 
 /* ===== Сетки выбора ===== */
@@ -349,6 +358,38 @@ canvas {
     font-size: 40px;
     line-height: 1;
 }
+.bg-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+}
+.bg-option {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: 0.2s;
+    margin: 0 auto;
+    border: 2px solid transparent;
+}
+.bg-option.selected {
+    border-color: #2b6e9e;
+    transform: scale(1.05);
+}
+.custom-color-preview {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    cursor: pointer;
+    margin: 0 auto;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2b6e9e;
+    font-size: 28px;
+}
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -367,6 +408,9 @@ canvas {
     margin: 0 auto;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
+.color-option:hover {
+    transform: scale(1.05);
+}
 .color-option.selected {
     box-shadow: 0 0 0 3px #2b6e9e;
 }
@@ -374,6 +418,14 @@ canvas {
     color: white;
     font-size: 24px;
     text-shadow: 0 0 2px black;
+}
+.custom-color-container {
+    text-align: center;
+    margin: 16px 0;
+}
+.custom-color-container button {
+    width: auto;
+    padding: 10px 24px;
 }
 
 /* ===== Уведомления ===== */
@@ -657,25 +709,25 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА (с кнопкой "Приглашённые пользователи") ========== */
+/* ===== РЕФЕРАЛЬНАЯ ВКЛАДКА – ОСНОВНЫЕ СТИЛИ ===== */
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
-    font-size: 22px;
+    font-size: 20px;
 }
 .referral-stats {
     display: flex;
     gap: 16px;
-    margin-bottom: 28px;
+    margin-bottom: 32px;
 }
-.stat-block {
+.referral-stat-card {
     flex: 1;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 24px;
-    padding: 16px;
+    padding: 20px 16px;
     text-align: center;
 }
-.stat-number {
+.referral-stat-value {
     font-size: 36px;
     font-weight: 800;
     background: linear-gradient(135deg, #60a5fa, #a78bfa);
@@ -684,63 +736,65 @@ canvas {
     color: transparent;
     line-height: 1.2;
 }
-.stat-label {
+.referral-stat-label {
     font-size: 13px;
     color: #9ca3af;
-    margin-top: 6px;
+    margin-top: 8px;
 }
-.link-section {
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 24px;
-    padding: 16px;
-    margin-bottom: 20px;
+.referral-link-block {
+    margin: 16px 0 24px 0;
 }
-.link-url {
-    background: #0f1320;
-    padding: 12px;
-    border-radius: 40px;
-    font-family: monospace;
-    font-size: 13px;
-    text-align: center;
-    word-break: break-all;
-    margin-bottom: 12px;
-    color: #60a5fa;
-}
-.link-buttons {
+.ref-link-container {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 12px 16px;
+    border-radius: 60px;
     margin-bottom: 8px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
 }
-.link-buttons button {
+.ref-link-text {
     flex: 1;
-    margin-top: 0;
-    padding: 10px;
     font-size: 14px;
+    word-break: break-all;
+    font-family: monospace;
+    color: #eef2ff;
 }
 .copy-btn {
+    width: auto;
+    padding: 6px 14px;
+    margin: 0;
     background: #2b6e9e;
+    border-radius: 40px;
+    font-size: 14px;
+    line-height: 1;
 }
 .share-btn {
     background: rgba(56, 189, 248, 0.2);
     border: 1px solid #38bdf8;
 }
-.link-hint {
+.share-btn:hover {
+    background: rgba(56, 189, 248, 0.4);
+}
+.hint-text {
     text-align: center;
     font-size: 11px;
-    color: #9ca3af;
+    opacity: 0.7;
+    margin-top: 8px;
 }
-.bonus-card {
+.referral-bonus-card {
     display: flex;
     align-items: center;
     gap: 16px;
     background: rgba(43, 110, 158, 0.15);
-    border-radius: 20px;
-    padding: 14px;
-    margin-bottom: 20px;
+    border-radius: 24px;
+    padding: 16px;
+    margin-top: 16px;
     border-left: 4px solid #2b6e9e;
 }
 .bonus-icon {
-    font-size: 36px;
+    font-size: 40px;
 }
 .bonus-text {
     font-size: 13px;
@@ -748,72 +802,76 @@ canvas {
     color: #cbd5e1;
 }
 .bonus-text strong {
-    color: white;
+    color: #eef2ff;
 }
-.progress-card {
+.reward-progress-placeholder {
+    margin-top: 20px;
     background: rgba(0, 0, 0, 0.25);
-    border-radius: 20px;
+    border-radius: 24px;
     padding: 16px;
 }
-.progress-title {
+.reward-title {
     font-weight: 600;
     margin-bottom: 12px;
     font-size: 15px;
 }
-.progress-info {
+.reward-step {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 13px;
     margin-bottom: 8px;
     color: #cbd5e1;
 }
-.progress-stats {
-    text-align: right;
-    font-size: 11px;
-    margin-top: 6px;
-    color: #9ca3af;
-}
 
-/* ===== Стили для модалки со списком приглашённых ===== */
-.referrals-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-.referral-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* ===== РЕДАКТОР КАСТОМНОГО РЕФЕРАЛЬНОГО КОДА ===== */
+.ref-code-editor {
+    margin: 20px 0;
     padding: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    gap: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 24px;
 }
-.referral-user {
+.ref-code-editor h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+.code-input-group {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 60px;
+    padding: 6px 12px;
 }
-.referral-avatar {
-    font-size: 32px;
-}
-.referral-username {
-    font-size: 14px;
-    margin-bottom: 2px;
-}
-.referral-date {
-    font-size: 10px;
+.code-prefix {
+    font-size: 12px;
     color: #9ca3af;
+    font-family: monospace;
 }
-.referral-status .status-success {
+#refCodeInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 8px 0;
+    margin: 0;
+    font-size: 14px;
+    font-family: monospace;
+}
+#refCodeInput:focus {
+    outline: none;
+    box-shadow: none;
+}
+.save-code-btn {
+    width: auto;
+    padding: 6px 12px;
+    margin: 0;
+    background: #2b6e9e;
+    font-size: 13px;
+}
+.code-locked {
     color: #4ade80;
-    font-size: 12px;
+    font-size: 13px;
     background: rgba(74, 222, 128, 0.15);
-    padding: 4px 8px;
-    border-radius: 20px;
-}
-.referral-status .status-pending {
-    color: #fbbf24;
-    font-size: 12px;
-    background: rgba(251, 191, 36, 0.15);
-    padding: 4px 8px;
-    border-radius: 20px;
+    padding: 4px 10px;
+    border-radius: 40px;
 }
