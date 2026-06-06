@@ -1,4 +1,4 @@
-// profile.js – финальная версия (баннеры удалены, кнопки закреплены внизу, аватарка по центру)
+// profile.js – финальная версия (баннеры удалены, кнопки закреплены внизу, аватарка по центру, обводка сохраняется)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -90,6 +90,7 @@ async function getNextAchievementsProgress(supabase, userId, currentUser, getUse
     return nextAchievements;
 }
 
+// ---------- Выбор достижения для слота (исправленная версия) ----------
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
     if (!earnedAchievements.length) {
         showCustomModal('Достижения', 'У вас пока нет заработанных достижений.\nСовершайте сделки, пополняйте баланс и приглашайте друзей!');
@@ -115,7 +116,21 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         }
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}"><div class="achievement-icon">${ach.icon}</div><div class="achievement-name">${ach.name}</div><div class="achievement-desc">${ach.description}</div>${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}<div class="achievement-date">🏅 Получено: ${earnedDate}</div></div>`;
     }).join('');
-    const modalHtml = `<div class="modal" id="achiSelectorModal" style="display:flex;"><div class="modal-content"><span class="close-modal" id="closeAchiSelector">&times;</span><h3>Выберите достижение для слота ${slot+1}</h3><div class="scrollable-content"><div class="achievements-grid">${gridHtml}</div></div><div class="modal-buttons">${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}<button id="saveAchiSelection">Сохранить</button></div></div></div>`;
+    const modalHtml = `
+        <div class="modal" id="achiSelectorModal" style="display:flex;">
+            <div class="modal-content">
+                <span class="close-modal" id="closeAchiSelector">&times;</span>
+                <h3>Выберите достижение для слота ${slot+1}</h3>
+                <div class="scrollable-content">
+                    <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
+                </div>
+                <div class="modal-buttons">
+                    ${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}
+                    <button id="saveAchiSelection">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modal = document.getElementById('achiSelectorModal');
     document.getElementById('closeAchiSelector').onclick = () => modal.remove();
@@ -123,7 +138,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         document.getElementById('clearSlotBtn').onclick = async () => {
             let newSelectedIds = [...currentSelectedIds];
             newSelectedIds[slot] = null;
-            newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
+            newSelectedIds = newSelectedIds.filter(id => id !== null);
             await updateUserCallback({ selected_achievements: newSelectedIds });
             currentUser.selected_achievements = newSelectedIds;
             modal.remove();
@@ -137,9 +152,8 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
             const selectedId = parseInt(selectedCard.dataset.achId);
             newSelectedIds[slot] = selectedId;
         }
-        newSelectedIds = newSelectedIds.filter(id => id !== null && id !== undefined);
-        while (newSelectedIds.length < 3) newSelectedIds.push(null);
-        const saveArray = newSelectedIds.filter(v => v !== null);
+        newSelectedIds = newSelectedIds.filter(id => id !== null);
+        const saveArray = newSelectedIds;
         await updateUserCallback({ selected_achievements: saveArray });
         currentUser.selected_achievements = saveArray;
         modal.remove();
@@ -147,7 +161,10 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     };
     document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
         card.addEventListener('click', () => {
-            if (card.dataset.disabled === 'true') { showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.'); return; }
+            if (card.dataset.disabled === 'true') {
+                showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте. Сначала уберите его оттуда.');
+                return;
+            }
             document.querySelectorAll('#achiGrid .achievement-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
         });
@@ -436,7 +453,6 @@ window.renderProfileTab = async function(
     const borderStyle = getBorderStyle(currentUser.avatar_border || 'default');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
-    // HTML без баннера, аватарка обёрнута в #avatarClickWrapper
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div id="avatarClickWrapper">
             <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
