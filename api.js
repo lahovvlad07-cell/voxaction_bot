@@ -1,4 +1,4 @@
-// api.js – полная версия (без кастомного кода, но с реферальной системой)
+// api.js – полная версия с кастомными реферальными кодами
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -50,6 +50,7 @@ window.getOrCreateUser = async function() {
             avatar_bg: randomBg,
             avatar_border: randomBorder,
             referral_code: referralCode,
+            custom_ref_code: null,
             referred_by: referredById,
             registered_at: new Date().toISOString(),
             total_earned_shares: 0,
@@ -106,6 +107,7 @@ window.getOrCreateUser = async function() {
         data.referral_code = newCode;
         updated = true;
     }
+    if (data.custom_ref_code === undefined) { data.custom_ref_code = null; updated = true; }
     if (data.total_earned_shares === undefined) { data.total_earned_shares = 0; updated = true; }
     if (data.referral_count === undefined) { data.referral_count = 0; updated = true; }
     if (data.hide_rating === undefined) { data.hide_rating = false; updated = true; }
@@ -120,6 +122,7 @@ window.getOrCreateUser = async function() {
             avatar_bg: data.avatar_bg,
             avatar_border: data.avatar_border,
             referral_code: data.referral_code,
+            custom_ref_code: data.custom_ref_code,
             registered_at: data.registered_at,
             total_earned_shares: data.total_earned_shares,
             referral_count: data.referral_count,
@@ -132,6 +135,23 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
+// Функция обновления кастомного кода
+window.updateRefCode = async function(customCode) {
+    const res = await fetch(`${window.BACKEND_URL}/update-ref-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: window.userId, custom_code: customCode })
+    });
+    const result = await res.json();
+    if (result.ok) {
+        window.currentUser.custom_ref_code = customCode;
+        return true;
+    } else {
+        throw new Error(result.error);
+    }
+};
+
+// Остальные функции (ордера, торги, статистика и т.д.)
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
@@ -154,6 +174,25 @@ window.getReferralsList = async function() {
         topupAmount: r.topup_amount_cents ? r.topup_amount_cents / 100 : 0,
         bonusEarned: r.bonus_earned
     }));
+};
+
+window.getReferralRewardsProgress = async function(referralCount) {
+    const rewards = [
+        { count: 3, shares: 1000, achievement: '🤝 Наставник' },
+        { count: 5, shares: 2000, achievement: '🌟 Лидер' },
+        { count: 10, shares: 5000, achievement: '👑 Король рефералов' }
+    ];
+    const earnedAchievements = await window.getEarnedAchievements();
+    const earnedNames = new Set(earnedAchievements.map(a => a.name));
+    const nextReward = rewards.find(r => referralCount < r.count && !earnedNames.has(r.achievement));
+    if (!nextReward) return null;
+    return {
+        needed: nextReward.count,
+        current: referralCount,
+        rewardShares: nextReward.shares / 100,
+        achievementName: nextReward.achievement,
+        progress: (referralCount / nextReward.count) * 100
+    };
 };
 
 window.getActiveOrders = async function() {
