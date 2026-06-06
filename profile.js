@@ -2,7 +2,7 @@
 // Шаг 1: выбор аватарки (эмодзи)
 // Шаг 2: выбор фона аватарки (11 цветов + кастомный)
 // Шаг 3: выбор цвета обводки (11 цветов + кастомный)
-// Исправлено: текст под аватаркой, область клика только на аватарку
+// Исправлено: аватар отображается в модальном окне при кастомизации
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -178,7 +178,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки ==========
+// ========== ШАГ 1: выбор аватарки (ИСПРАВЛЕНО: добавлен preview) ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -193,7 +193,9 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
                 <span class="close-modal" id="closeModal">&times;</span>
                 <h3>1/3 – Выберите аватар</h3>
                 <div class="modal-preview">
-                    <div class="avatar-circle" style="background: #2b6e9e;"><span class="avatar-emoji" style="${previewEmojiStyle}">${currentAvatar}</span></div>
+                    <div class="avatar-circle" style="background: #2b6e9e;">
+                        <span class="avatar-emoji" style="${previewEmojiStyle}">${currentAvatar}</span>
+                    </div>
                 </div>
                 <div class="scrollable-content">
                     <div class="avatars-grid">${optionsHtml}</div>
@@ -377,7 +379,6 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
-    let bgClass = '';
     let bgStyleInline = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
         bgStyleInline = `background: ${currentUser.avatar_bg};`;
