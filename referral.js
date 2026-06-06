@@ -1,12 +1,9 @@
-// referral.js – чистая и аккуратная реферальная вкладка
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
-    const activeCode = currentUser.referral_code;
-    const fullLink = `https://t.me/VoxAction_Bot?start=${activeCode}`;
+    const activeCode = currentUser.custom_ref_code || currentUser.referral_code;
     const referralCount = currentUser.referral_count || 0;
     const earnedShares = currentUser.total_earned_shares ? (currentUser.total_earned_shares / 100).toFixed(2) : '0.00';
 
-    // Прогресс до следующей награды (заглушка, позже заменим реальной логикой)
     const nextMilestone = 3;
     const progressPercent = Math.min(100, (referralCount / nextMilestone) * 100);
     const remaining = nextMilestone - referralCount;
@@ -26,13 +23,15 @@ window.renderReferralTab = async function() {
                 </div>
             </div>
 
-            <div class="link-section">
-                <div class="link-url" id="refLinkText">${fullLink}</div>
-                <div class="link-buttons">
-                    <button class="copy-btn" id="copyRefLinkBtn">📋 Копировать</button>
-                    <button class="share-btn" id="shareRefLinkBtn">📤 Поделиться</button>
+            <div class="custom-code-section">
+                <h3>Ваш уникальный код</h3>
+                <div class="code-input-group">
+                    <span class="code-prefix">t.me/VoxAction_Bot?start=</span>
+                    <input type="text" id="refCodeInput" value="${activeCode}" placeholder="придумайте_код" maxlength="32">
+                    <button id="saveCodeBtn" class="save-code-btn">💾 Сохранить</button>
                 </div>
-                <div class="link-hint">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</div>
+                <p class="hint-text">Используйте латиницу, цифры и символ подчёркивания (_). До 32 символов.</p>
+                <p class="small-text" style="margin-top: 8px;">После сохранения ваша ссылка станет такой: <strong>t.me/VoxAction_Bot?start=${activeCode}</strong></p>
             </div>
 
             <div class="bonus-card">
@@ -58,19 +57,34 @@ window.renderReferralTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // Копирование ссылки
-    document.getElementById('copyRefLinkBtn')?.addEventListener('click', () => {
-        navigator.clipboard.writeText(fullLink);
-        window.showCustomModal('Скопировано', 'Реферальная ссылка скопирована');
-    });
+    const inputField = document.getElementById('refCodeInput');
+    const saveBtn = document.getElementById('saveCodeBtn');
 
-    // Поделиться через Telegram
-    document.getElementById('shareRefLinkBtn')?.addEventListener('click', () => {
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(fullLink)}&text=${encodeURIComponent('Присоединяйся ко мне в VoxAction бирже! 🚀')}`;
-        if (window.tg && window.tg.openTelegramLink) {
-            window.tg.openTelegramLink(shareUrl);
-        } else {
-            window.open(shareUrl, '_blank');
+    saveBtn?.addEventListener('click', async () => {
+        const newCode = inputField.value.trim().toLowerCase();
+        if (!newCode) {
+            window.showCustomModal('Ошибка', 'Код не может быть пустым');
+            return;
+        }
+        if (!/^[a-z0-9_]+$/.test(newCode)) {
+            window.showCustomModal('Ошибка', 'Используйте только латиницу, цифры и символ подчёркивания (_)');
+            return;
+        }
+        if (newCode.length > 32) {
+            window.showCustomModal('Ошибка', 'Код не должен превышать 32 символа');
+            return;
+        }
+        // Если код не изменился, не сохраняем
+        if (newCode === window.currentUser.custom_ref_code) {
+            window.showCustomModal('Внимание', 'Этот код уже используется');
+            return;
+        }
+        try {
+            await window.updateRefCode(newCode);
+            window.showCustomModal('Успех', 'Ваш реферальный код обновлён!');
+            await window.refreshAll();
+        } catch (err) {
+            window.showCustomModal('Ошибка', err.message);
         }
     });
 };
