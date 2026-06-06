@@ -1,4 +1,4 @@
-// api.js – полная версия (без кастомного кода)
+// api.js – полная версия (без кастомного кода, но с реферальной системой)
 
 async function ensureWelcomeAchievement(userId) {
     try {
