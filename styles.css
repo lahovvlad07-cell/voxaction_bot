@@ -1,4 +1,4 @@
-/* styles.css – финальная версия без кастомного кода */
+/* styles.css – финальная версия */
 
 * {
     margin: 0;
@@ -502,6 +502,24 @@ canvas {
     border-color: #2b6e9e;
     background: rgba(43, 110, 158, 0.2);
 }
+.achievement-card.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+}
+.achievement-icon {
+    font-size: 28px;
+    margin-bottom: 4px;
+}
+.achievement-name {
+    font-weight: 600;
+    font-size: 13px;
+}
+.achievement-desc, .achievement-condition, .achievement-date {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
 .progress-bar {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
@@ -514,6 +532,15 @@ canvas {
     height: 100%;
     width: 0%;
     border-radius: 10px;
+}
+.next-achievements {
+    margin-top: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    padding: 12px;
+}
+.next-achievement-item {
+    margin-bottom: 12px;
 }
 .rank-card {
     display: flex;
@@ -627,7 +654,7 @@ canvas {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА – УПРОЩЁННАЯ (БЕЗ КАСТОМНОГО КОДА) ========== */
+/* ========== РЕФЕРАЛЬНАЯ ВКЛАДКА (исправленная, с кнопкой списка) ========== */
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
@@ -742,4 +769,48 @@ canvas {
     font-size: 11px;
     margin-top: 6px;
     color: #9ca3af;
+}
+
+/* Стили для модалки со списком приглашённых */
+.referrals-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.referral-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 12px;
+}
+.referral-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.referral-avatar {
+    font-size: 32px;
+}
+.referral-username {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+.referral-date {
+    font-size: 10px;
+    color: #9ca3af;
+}
+.referral-status .status-success {
+    color: #4ade80;
+    font-size: 12px;
+    background: rgba(74, 222, 128, 0.15);
+    padding: 4px 8px;
+    border-radius: 20px;
+}
+.referral-status .status-pending {
+    color: #fbbf24;
+    font-size: 12px;
+    background: rgba(251, 191, 36, 0.15);
+    padding: 4px 8px;
+    border-radius: 20px;
 }
