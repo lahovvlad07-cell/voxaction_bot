@@ -5,7 +5,6 @@ window.renderReferralTab = async function() {
     const referralCount = currentUser.referral_count || 0;
     const earnedShares = currentUser.total_earned_shares ? (currentUser.total_earned_shares / 100).toFixed(2) : '0.00';
 
-    // Заглушка прогресса
     const nextMilestone = 3;
     const progressPercent = Math.min(100, (referralCount / nextMilestone) * 100);
     const remaining = nextMilestone - referralCount;
@@ -33,6 +32,9 @@ window.renderReferralTab = async function() {
                 <div class="link-hint">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</div>
             </div>
 
+            <!-- Кнопка "Приглашённые пользователи" размещена сразу под ссылкой -->
+            <button id="showReferralsListBtn" class="secondary" style="margin: 16px 0;">👥 Приглашённые пользователи (${referralCount})</button>
+
             <div class="bonus-card">
                 <div class="bonus-icon">🎁</div>
                 <div class="bonus-text">
@@ -52,8 +54,6 @@ window.renderReferralTab = async function() {
                 </div>
                 <div class="progress-stats">${referralCount} / ${nextMilestone}</div>
             </div>
-
-            <button id="showReferralsListBtn" class="secondary" style="margin-top:16px;">👥 Показать приглашённых друзей (${referralCount})</button>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
@@ -72,7 +72,6 @@ window.renderReferralTab = async function() {
         }
     });
 
-    // Обработчик кнопки "Показать приглашённых"
     document.getElementById('showReferralsListBtn')?.addEventListener('click', async () => {
         const referralsList = await window.getReferralsList();
         showReferralsModal(referralsList);
@@ -106,7 +105,7 @@ async function showReferralsModal(referrals) {
         <div class="modal" id="referralsModal" style="display:flex;">
             <div class="modal-content">
                 <span class="close-modal" id="closeReferralsModal">&times;</span>
-                <h3>👥 Приглашённые друзья</h3>
+                <h3>👥 Приглашённые пользователи</h3>
                 <div class="scrollable-content">
                     <div class="referrals-list">${listHtml}</div>
                 </div>
