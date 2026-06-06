@@ -1,4 +1,4 @@
-// profile.js – полная версия (3 шага: аватар, фон, обводка; платные обводки)
+// profile.js – полная версия (3 шага: аватар, фон, обводка; платные обводки; фон в превью 3-го шага берётся из currentUser)
 
 // ---------- Аватары ----------
 const avatarEmojis = [
@@ -305,19 +305,19 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.getElementById('backBtn').onclick = () => { modal.remove(); backCallback(); };
 }
 
-// ========== ШАГ 3: выбор обводки ==========
+// ========== ШАГ 3: выбор обводки (с правильным отображением фона) ==========
 async function showBorderStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBorderId = currentUser.avatar_border || 'standard';
-    const getBgStyleForPreview = () => {
-        if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
-            return `background: ${currentUser.avatar_bg};`;
-        } else {
-            const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
-            const bgClass = found ? found.class : 'bg-gradient1';
-            return `background: ${bgClass};`;
-        }
-    };
-    const bgStylePreview = getBgStyleForPreview();
+    
+    // Правильное получение фона из currentUser
+    let bgStylePreview = '';
+    if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
+        bgStylePreview = `background: ${currentUser.avatar_bg};`;
+    } else {
+        const found = bgOptions.find(b => b.id === currentUser.avatar_bg);
+        const bgClass = found ? found.class : 'bg-gradient1';
+        bgStylePreview = `background: ${bgClass};`;
+    }
     
     const generateOptionsHtml = () => {
         return borderOptions.map(opt => {
@@ -334,7 +334,6 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
                         </div>
                     </div>
                     <div class="border-option-actions">
-                        ${opt.id !== 'gold' ? `<input type="color" class="border-color-picker" value="${opt.defaultColor}" data-border="${opt.id}">` : ''}
                         <button class="border-select-btn" data-border="${opt.id}">${isCurrent ? '✓ Выбрано' : 'Выбрать'}</button>
                     </div>
                 </div>
@@ -366,19 +365,18 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
     const modal = document.getElementById('borderModal');
     document.getElementById('closeModal').onclick = () => modal.remove();
     
-    const updatePreview = (borderId, customColor = null) => {
+    const updatePreview = (borderId) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
-        const style = getBorderStyle(borderId, customColor);
+        const style = getBorderStyle(borderId);
         const currentStyle = previewCircle.getAttribute('style') || '';
         const cleaned = currentStyle.replace(/border:[^;]+;?/g, '').replace(/box-shadow:[^;]+;?/g, '');
         previewCircle.setAttribute('style', cleaned + style);
     };
     
     let selectedBorderId = currentBorderId;
-    let selectedColor = borderOptions.find(b => b.id === currentBorderId)?.defaultColor;
     let purchased = (currentBorderId !== 'standard');
     
-    updatePreview(selectedBorderId, selectedColor);
+    updatePreview(selectedBorderId);
     
     const selectButtons = modal.querySelectorAll('.border-select-btn');
     const updateButtonsState = () => {
@@ -393,11 +391,6 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
             const borderId = btn.dataset.border;
             const borderOpt = borderOptions.find(b => b.id === borderId);
             const price = borderOpt.price;
-            let customColor = null;
-            if (borderId !== 'gold') {
-                const picker = modal.querySelector(`.border-color-picker[data-border="${borderId}"]`);
-                if (picker) customColor = picker.value;
-            }
             if (borderId === selectedBorderId) return;
             if (price > 0 && !purchased && borderId !== currentBorderId) {
                 try {
@@ -414,20 +407,8 @@ async function showBorderStep(currentUser, updateCallback, nextCallback, backCal
                 await window.updateUserBorder(borderId);
             }
             selectedBorderId = borderId;
-            selectedColor = customColor || borderOpt.defaultColor;
-            updatePreview(selectedBorderId, selectedColor);
+            updatePreview(selectedBorderId);
             updateButtonsState();
-        });
-    });
-    
-    modal.querySelectorAll('.border-color-picker').forEach(picker => {
-        picker.addEventListener('input', (e) => {
-            const borderId = picker.dataset.border;
-            const color = e.target.value;
-            if (borderId === selectedBorderId) {
-                updatePreview(borderId, color);
-                selectedColor = color;
-            }
         });
     });
     
