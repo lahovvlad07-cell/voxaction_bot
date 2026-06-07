@@ -1,31 +1,11 @@
-// rating.js – простой и надёжный рейтинг с аватарками и пагинацией
+// rating.js – красивый рейтинг с аватарками, медалями, пагинацией и просмотром профиля
 
 let currentPage = 1;
 const itemsPerPage = 10;
 let allUsers = [];
 let totalPages = 1;
 
-// Простая функция для отображения аватарки (чтобы не зависеть от других файлов)
-function renderAvatarSimple(avatarUrl, avatarBg, avatarBorder, size = '52px') {
-    const emoji = avatarUrl || '👤';
-    let bgColor = '#2b6e9e';
-    if (avatarBg) {
-        if (avatarBg.startsWith('#')) bgColor = avatarBg;
-        else {
-            const map = {
-                'gradient1': '#2b6e9e', 'gradient2': '#9b59b6', 'gradient3': '#e67e22',
-                'gradient4': '#27ae60', 'gradient5': '#f1c40f', 'gradient6': '#e74c3c',
-                'gradient7': '#1abc9c', 'gradient8': '#3498db', 'gradient9': '#2c3e50',
-                'gradient10': '#ff9a9e', 'gradient11': '#a18cd1'
-            };
-            bgColor = map[avatarBg] || '#2b6e9e';
-        }
-    }
-    const border = avatarBorder || '#ffffff';
-    const fontSize = parseInt(size) * 0.7 + 'px';
-    return `<div class="avatar-circle" style="width: ${size}; height: ${size}; background: ${bgColor}; border: 3px solid ${border}; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;"><span class="avatar-emoji" style="font-size: ${fontSize};">${emoji}</span></div>`;
-}
-
+// Загрузка списка пользователей
 async function loadUsers() {
     const { data, error } = await window.supabase
         .from('users')
@@ -36,6 +16,7 @@ async function loadUsers() {
     return data;
 }
 
+// Отрисовка текущей страницы
 function renderPage() {
     const container = document.getElementById('ratingListContainer');
     if (!container) return;
@@ -49,18 +30,24 @@ function renderPage() {
         const user = pageUsers[i];
         const idx = allUsers.indexOf(user);
         const place = idx + 1;
-        let medalHtml = '';
-        if (place === 1) medalHtml = '<span class="medal gold">🥇</span>';
-        else if (place === 2) medalHtml = '<span class="medal silver">🥈</span>';
-        else if (place === 3) medalHtml = '<span class="medal bronze">🥉</span>';
-        else medalHtml = `<span class="rank-number">${place}</span>`;
 
-        const avatarHtml = renderAvatarSimple(user.avatar_url, user.avatar_bg, user.avatar_border, '52px');
+        // Медали для топ-3
+        let rankDisplay = '';
+        if (place === 1) rankDisplay = '<span class="medal gold">🥇</span>';
+        else if (place === 2) rankDisplay = '<span class="medal silver">🥈</span>';
+        else if (place === 3) rankDisplay = '<span class="medal bronze">🥉</span>';
+        else rankDisplay = `<span class="rank-number">${place}</span>`;
+
+        // Аватарка с фоном и обводкой
+        const avatarHtml = window.renderAvatarHtml
+            ? window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '52px')
+            : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
+
         const sharesFormatted = (user.shares / 100).toFixed(2);
 
         html += `
             <div class="rating-item" data-user-id="${user.id}">
-                <div class="rating-rank">${medalHtml}</div>
+                <div class="rating-rank">${rankDisplay}</div>
                 <div class="rating-avatar">${avatarHtml}</div>
                 <div class="rating-info">
                     <div class="rating-username">${escapeHtml(user.username)}</div>
@@ -71,6 +58,7 @@ function renderPage() {
     }
     container.innerHTML = html;
 
+    // Пагинация
     const paginationDiv = document.getElementById('ratingPagination');
     if (totalPages > 1) {
         paginationDiv.innerHTML = `
@@ -96,18 +84,26 @@ function renderPage() {
         paginationDiv.innerHTML = '';
     }
 
+    // Кликабельность строк
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', () => {
             const userId = parseInt(item.dataset.userId);
             if (userId === window.userId) {
+                // Переход на свой профиль
                 document.querySelector('.tab[data-tab="profile"]').click();
             } else {
-                window.showUserProfile(userId);
+                // Показ чужого профиля (если функция существует)
+                if (typeof window.showUserProfile === 'function') {
+                    window.showUserProfile(userId);
+                } else {
+                    window.showCustomModal('Информация', 'Просмотр профиля будет доступен позже');
+                }
             }
         });
     });
 }
 
+// Основная функция рендеринга вкладки
 window.renderRatingTab = async function() {
     try {
         allUsers = await loadUsers();
@@ -120,6 +116,8 @@ window.renderRatingTab = async function() {
                 <div id="ratingListContainer"></div>
                 <div id="ratingPagination"></div>
         `;
+
+        // Карточка «Ваше место»
         const currentUserData = allUsers.find(u => u.id === window.userId);
         if (currentUserData) {
             const rank = allUsers.findIndex(u => u.id === window.userId) + 1;
@@ -136,6 +134,7 @@ window.renderRatingTab = async function() {
         } else if (window.userId) {
             html += `<div class="my-rank-card"><div class="my-rank-title">🔒 Вы не отображаетесь в рейтинге</div></div>`;
         }
+
         html += `</div>`;
         document.getElementById('app').innerHTML = html;
         renderPage();
@@ -145,10 +144,8 @@ window.renderRatingTab = async function() {
     }
 };
 
+// Вспомогательная функция для экранирования HTML
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
 }
-
-// Для совместимости с другими файлами, если требуется
-if (!window.renderAvatarHtml) window.renderAvatarHtml = renderAvatarSimple;
