@@ -257,32 +257,3 @@
     justify-content: center;
     border-radius: 50%;
 }
-
-/* ===== Мобильные устройства: фикс вылетающих эмодзи ===== */
-@media (max-width: 560px) {
-    .avatar-emoji {
-        transform: translateY(0) !important;
-        font-size: 40px !important;
-        line-height: 1 !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    .avatar-circle {
-        width: 70px !important;
-        height: 70px !important;
-        overflow: visible !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    @media (max-width: 400px) {
-        .avatar-circle {
-            width: 64px !important;
-            height: 64px !important;
-        }
-        .avatar-emoji {
-            font-size: 38px !important;
-        }
-    }
-}
