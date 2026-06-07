@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с балансировкой иконок и чёткой кнопкой */
+/* referral.css – унифицированные шрифты и размеры эмодзи */
 
 .referral-title {
     text-align: center;
@@ -75,13 +75,13 @@
     margin-top: 8px;
 }
 
-/* Кнопка "Приглашённые пользователи" – принудительно задаём фон */
+/* Кнопка "Приглашённые пользователи" – единый стиль */
 .referral-list-btn {
     display: flex !important;
     align-items: center;
     justify-content: space-between;
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(56, 189, 248, 0.6) !important;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.6);
     border-radius: 60px;
     padding: 12px 20px;
     margin: 16px 0;
@@ -93,8 +93,8 @@
     color: #eef2ff;
 }
 .referral-list-btn:hover {
-    background: rgba(56, 189, 248, 0.25) !important;
-    border-color: #38bdf8 !important;
+    background: rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
 }
 .btn-icon {
     font-size: 24px;
@@ -111,7 +111,7 @@
     text-align: center;
 }
 
-/* Бонус-карточка – иконка подарка 30px, чтобы был как трофей */
+/* Бонус-карточка – иконка 30px (как трофей) */
 .bonus-card {
     display: flex;
     align-items: center;
@@ -135,7 +135,7 @@
     color: white;
 }
 
-/* Блок достижений – трофей 28px, текст ровно */
+/* Блок достижений – трофей 30px, текст ровно */
 .progress-card {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 24px;
@@ -152,22 +152,19 @@
 }
 .progress-title::before {
     content: "🏆";
-    font-size: 28px;
+    font-size: 30px;
 }
 .progress-info {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 8px;
-    font-size: 12px;
+    font-size: 13px;
     margin-bottom: 12px;
     color: #cbd5e1;
     background: rgba(0, 0, 0, 0.3);
     padding: 8px 12px;
     border-radius: 20px;
-}
-.progress-info span:first-child {
-    white-space: nowrap;
 }
 .progress-bar {
     background: rgba(255, 255, 255, 0.15);
@@ -183,7 +180,7 @@
 }
 .progress-stats {
     text-align: right;
-    font-size: 12px;
+    font-size: 13px;
     margin-top: 8px;
     color: #e2e8f0;
     font-weight: 500;
