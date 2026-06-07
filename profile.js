@@ -1,4 +1,4 @@
-// profile.js – финальная рабочая версия с центрированными аватарами и всеми функциями
+// profile.js – полная версия со всеми функциями кастомизации и достижений
 
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
@@ -12,7 +12,7 @@ const avatarFontSizes = {
     '🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px'
 };
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ – возвращает только размер шрифта, без transform
+// Функция возвращает только размер шрифта (без transform, чтобы CSS управлял позицией)
 function getAvatarStyle(emoji) {
     const fontSize = avatarFontSizes[emoji] || '48px';
     return `font-size: ${fontSize};`;
@@ -500,7 +500,7 @@ window.renderProfileTab = async function(
         nextHtml += `</div>`;
     }
 
-    // Генерация аватара
+    // Аватар
     const avatarUrl = currentUser.avatar_url || '👤';
     const avatarBg = currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#') 
         ? currentUser.avatar_bg 
