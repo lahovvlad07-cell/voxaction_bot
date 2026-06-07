@@ -11,7 +11,7 @@ window.renderReferralTab = async function() {
 
     let html = `
         <div class="card">
-            <h2 class="referral-title">🔗 Реферальная программа</h2>
+            <h2 style="text-align: center; margin-bottom: 24px; font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6, #60a5fa); background-size: 200% 200%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: gradientShift 3s ease infinite;">🔗 Реферальная программа</h2>
             <div class="referral-stats">
                 <div class="stat-block">
                     <div class="stat-number">${referralCount}</div>
@@ -32,7 +32,6 @@ window.renderReferralTab = async function() {
                 <div class="link-hint">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</div>
             </div>
 
-            <!-- Бонус за друга -->
             <div class="bonus-card">
                 <div class="bonus-icon">🎁</div>
                 <div class="bonus-text">
@@ -41,14 +40,12 @@ window.renderReferralTab = async function() {
                 </div>
             </div>
 
-            <!-- Кнопка приглашённых с центрированием текста -->
             <button id="showReferralsListBtn" class="referral-list-btn">
                 <span class="btn-icon">👥</span>
                 <span class="btn-text">Приглашённые пользователи</span>
                 <span class="badge-count">${referralCount}</span>
             </button>
 
-            <!-- Достижения с увеличенным трофеем -->
             <div class="progress-card">
                 <div class="progress-title">
                     <span class="trophy-icon">🏆</span>
