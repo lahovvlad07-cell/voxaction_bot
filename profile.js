@@ -1,4 +1,4 @@
-// profile.js – финальная рабочая версия (аватар в кастомизации по центру)
+// profile.js – финальная рабочая версия (аватар виден в кастомизации)
 
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
@@ -180,7 +180,6 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     }).join('');
     const previewEmojiStyle = getAvatarStyle(currentAvatar);
     
-    // Ключевое: блок modal-preview с кругом и эмодзи
     const modalHtml = `
         <div class="modal" id="stepModal" style="display:flex;">
             <div class="modal-content">
@@ -224,7 +223,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
-// ========== ШАГ 2: выбор фона ==========
+// ========== ШАГ 2: выбор фона (с кругом) ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     
@@ -371,7 +370,7 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки ==========
+// ========== ШАГ 3: выбор цвета обводки (с кругом) ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     
