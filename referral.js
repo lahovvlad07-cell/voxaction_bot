@@ -47,7 +47,7 @@ window.renderReferralTab = async function() {
             </div>
 
             <div class="progress-card">
-                <div class="progress-title">🏆 Достижения за приглашение друзей</div>
+                <div class="progress-title">Достижения за приглашение друзей</div>
                 <div class="progress-info">
                     <span>Пригласите ещё <strong>${remaining}</strong> друга(ей)</span>
                     <span>→ 10 акций + достижение "Наставник"</span>
