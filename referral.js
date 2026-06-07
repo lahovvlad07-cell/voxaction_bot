@@ -250,7 +250,7 @@ window.renderReferralTab = async function() {
             if (data.error && (data.error.includes('уже занят') || data.error.includes('already'))) {
                 window.showCustomModal('Ошибка', 'Этот код уже занят');
             } else {
-                window.showCustomModal('Ошибка', data.error || 'Не удалось сохранить код');
+                window.showCustomModal('Ошибка', data.error || 'Этот код уже занят');
             }
         }
     });
