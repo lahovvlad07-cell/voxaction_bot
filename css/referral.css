@@ -1,5 +1,5 @@
 /* referral.css – финальная версия с центрированной кнопкой и большим трофеем */
-/* + переливающийся заголовок */
+/* + переливающийся заголовок + мобильная адаптация */
 
 .referral-title {
     text-align: center;
@@ -249,4 +249,12 @@
     background: rgba(251, 191, 36, 0.15);
     padding: 4px 8px;
     border-radius: 20px;
+}
+
+/* ===== Мобильные устройства: уменьшаем заголовок ===== */
+@media (max-width: 480px) {
+    .referral-title {
+        font-size: 18px !important;
+        margin-bottom: 16px !important;
+    }
 }
