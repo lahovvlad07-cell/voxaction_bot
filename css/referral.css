@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с точным выравниванием и увеличенными шрифтами */
+/* referral.css – финальная версия с поднятой иконкой человечка */
 
 .referral-header {
     text-align: center;
@@ -170,7 +170,7 @@
     border: 1px solid #38bdf8;
 }
 
-/* Кнопка «Приглашённые» – идеальное выравнивание */
+/* Кнопка «Приглашённые» с поднятой иконкой */
 .referrals-toggle {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -194,6 +194,8 @@
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
+    position: relative;
+    top: -1px;
 }
 .referrals-toggle .label-text {
     font-size: 16px;
@@ -384,7 +386,6 @@
     border-radius: 24px;
 }
 
-/* Мобильная адаптация – увеличенные шрифты */
 @media (max-width: 560px) {
     .stat-circle {
         width: 110px;
@@ -425,6 +426,7 @@
     }
     .referrals-toggle .btn-icon {
         font-size: 28px;
+        top: -1px;
     }
     .referrals-toggle .label-text {
         font-size: 16px;
