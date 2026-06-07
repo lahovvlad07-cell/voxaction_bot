@@ -1,4 +1,18 @@
 window.renderReferralTab = async function() {
+    // Гарантируем наличие keyframes
+    if (!document.getElementById('inlineKeyframes')) {
+        const style = document.createElement('style');
+        style.id = 'inlineKeyframes';
+        style.textContent = `
+            @keyframes gradientShift {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     const currentUser = window.currentUser;
     const activeCode = currentUser.referral_code;
     const fullLink = `https://t.me/VoxAction_Bot?start=${activeCode}`;
@@ -11,7 +25,7 @@ window.renderReferralTab = async function() {
 
     let html = `
         <div class="card">
-            <h2 style="text-align: center; margin-bottom: 24px; font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6, #60a5fa); background-size: 200% 200%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: gradientShift 3s ease infinite;">🔗 Реферальная программа</h2>
+            <h2 style="text-align: center; margin-bottom: 24px; font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6, #60a5fa); background-size: 200% 200%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: gradientShift 3s ease infinite;">🔗 Реферальная система</h2>
             <div class="referral-stats">
                 <div class="stat-block">
                     <div class="stat-number">${referralCount}</div>
