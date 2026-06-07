@@ -1,5 +1,4 @@
-// api.js – полная версия с кастомным реферальным кодом, без стандартного REF-кода
-// и с добавленными функциями для просмотра профилей других пользователей
+// api.js – стабильная версия с поддержкой кастомных кодов и бонусов
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -12,8 +11,9 @@ async function ensureWelcomeAchievement(userId) {
     } catch(e) { console.error(e); }
 }
 
-// Генерация стандартного REF-кода больше не используется
-// function generateReferralCode() { ... } – удалено
+function generateReferralCode() {
+    return 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
 
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
@@ -27,7 +27,13 @@ window.getOrCreateUser = async function() {
         const borderOptions = ['#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff69b4', '#00ffff', '#9b30ff'];
         const randomBorder = borderOptions[Math.floor(Math.random() * borderOptions.length)];
         
-        // Стандартный реферальный код НЕ ГЕНЕРИРУЕМ, используем только custom_ref_code (пока null)
+        let referralCode = generateReferralCode();
+        let existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
+        while (existingCode.data) {
+            referralCode = generateReferralCode();
+            existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
+        }
+        
         let referredById = null;
         const userCheck = await window.supabase.from('users').select('referred_by').eq('id', window.userId).maybeSingle();
         if (userCheck.data && userCheck.data.referred_by) {
@@ -43,8 +49,8 @@ window.getOrCreateUser = async function() {
             avatar_url: randomAvatar,
             avatar_bg: randomBg,
             avatar_border: randomBorder,
-            referral_code: null,           // больше не используется
-            custom_ref_code: null,         // кастомный код, задаётся отдельно
+            referral_code: referralCode,
+            custom_ref_code: null,
             referred_by: referredById,
             registered_at: new Date().toISOString(),
             total_earned_shares: 0,
@@ -91,7 +97,16 @@ window.getOrCreateUser = async function() {
     if (!data.avatar_bg) { data.avatar_bg = 'gradient1'; updated = true; }
     if (!data.avatar_border) { data.avatar_border = '#ffffff'; updated = true; }
     if (!data.registered_at) { data.registered_at = new Date().toISOString(); updated = true; }
-    // referral_code больше не обновляем, оставляем как есть (null или старый)
+    if (!data.referral_code) {
+        let newCode = generateReferralCode();
+        let existing = await window.supabase.from('users').select('referral_code').eq('referral_code', newCode).maybeSingle();
+        while (existing.data) {
+            newCode = generateReferralCode();
+            existing = await window.supabase.from('users').select('referral_code').eq('referral_code', newCode).maybeSingle();
+        }
+        data.referral_code = newCode;
+        updated = true;
+    }
     if (data.custom_ref_code === undefined) { data.custom_ref_code = null; updated = true; }
     if (data.total_earned_shares === undefined) { data.total_earned_shares = 0; updated = true; }
     if (data.referral_count === undefined) { data.referral_count = 0; updated = true; }
@@ -106,7 +121,7 @@ window.getOrCreateUser = async function() {
             avatar_url: data.avatar_url,
             avatar_bg: data.avatar_bg,
             avatar_border: data.avatar_border,
-            referral_code: data.referral_code,   // оставляем старый (может быть null)
+            referral_code: data.referral_code,
             custom_ref_code: data.custom_ref_code,
             registered_at: data.registered_at,
             total_earned_shares: data.total_earned_shares,
