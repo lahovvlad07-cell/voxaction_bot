@@ -1,4 +1,84 @@
-// rating.js – улучшенный рейтинг с полноценными аватарами и просмотром профиля
+// rating.js – улучшенный рейтинг с аватарами, пагинацией и просмотром профиля
+
+let currentRatingPage = 1;
+const ratingItemsPerPage = 10;
+let fullRatingList = [];
+let totalRatingPages = 0;
+
+async function loadRatingPage(page) {
+    const container = document.getElementById('ratingListContainer');
+    if (!container) return;
+
+    const start = (page - 1) * ratingItemsPerPage;
+    const end = start + ratingItemsPerPage;
+    const pageUsers = fullRatingList.slice(start, end);
+
+    let html = '';
+    for (let i = 0; i < pageUsers.length; i++) {
+        const user = pageUsers[i];
+        const idx = fullRatingList.indexOf(user); // реальная позиция в общем списке
+        const place = idx + 1;
+        let medalHtml = '';
+        if (place === 1) medalHtml = '<span class="medal gold">🥇</span>';
+        else if (place === 2) medalHtml = '<span class="medal silver">🥈</span>';
+        else if (place === 3) medalHtml = '<span class="medal bronze">🥉</span>';
+        else medalHtml = `<span class="rank-number">${place}</span>`;
+
+        const avatarHtml = window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '48px');
+        const sharesFormatted = (user.shares / 100).toFixed(2);
+
+        html += `
+            <div class="rating-item" data-user-id="${user.id}">
+                <div class="rating-rank">${medalHtml}</div>
+                <div class="rating-avatar">${avatarHtml}</div>
+                <div class="rating-info">
+                    <div class="rating-username">${escapeHtml(user.username)}</div>
+                    <div class="rating-shares">📊 ${sharesFormatted} акций</div>
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+
+    // Пагинация
+    const paginationDiv = document.getElementById('ratingPagination');
+    if (totalRatingPages > 1) {
+        paginationDiv.innerHTML = `
+            <div class="pagination-controls">
+                <button class="pag-prev" ${page === 1 ? 'disabled' : ''}>← Назад</button>
+                <span class="pag-info">${page} / ${totalRatingPages}</span>
+                <button class="pag-next" ${page === totalRatingPages ? 'disabled' : ''}>Вперёд →</button>
+            </div>
+        `;
+        document.querySelector('.pag-prev')?.addEventListener('click', () => {
+            if (currentRatingPage > 1) {
+                currentRatingPage--;
+                loadRatingPage(currentRatingPage);
+            }
+        });
+        document.querySelector('.pag-next')?.addEventListener('click', () => {
+            if (currentRatingPage < totalRatingPages) {
+                currentRatingPage++;
+                loadRatingPage(currentRatingPage);
+            }
+        });
+    } else {
+        paginationDiv.innerHTML = '';
+    }
+
+    // Обработчики кликов по элементам рейтинга
+    document.querySelectorAll('.rating-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const userId = parseInt(item.dataset.userId);
+            if (userId === window.userId) {
+                document.querySelector('.tab[data-tab="profile"]').click();
+            } else {
+                window.showUserProfile(userId);
+            }
+        });
+    });
+}
 
 window.renderRatingTab = async function() {
     try {
@@ -7,43 +87,23 @@ window.renderRatingTab = async function() {
             .select('id, username, shares, avatar_url, avatar_bg, avatar_border')
             .eq('hide_rating', false)
             .order('shares', { ascending: false })
-            .limit(100);
+            .limit(100); // берём до 100, но потом пагинация
         if (error) throw error;
-        
-        let html = `<div class="card"><h2 class="rating-title">🏆 Рейтинг держателей акций</h2>`;
-        if (!users || users.length === 0) {
-            html += `<p class="no-data">Нет данных</p>`;
-        } else {
-            html += `<div class="rating-list">`;
-            users.forEach((user, index) => {
-                const place = index + 1;
-                let medalHtml = '';
-                if (place === 1) medalHtml = '<span class="medal gold">🥇</span>';
-                else if (place === 2) medalHtml = '<span class="medal silver">🥈</span>';
-                else if (place === 3) medalHtml = '<span class="medal bronze">🥉</span>';
-                else medalHtml = `<span class="rank-number">${place}</span>`;
-                
-                const avatarHtml = window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '48px');
-                const sharesFormatted = (user.shares / 100).toFixed(2);
-                
-                html += `
-                    <div class="rating-item" data-user-id="${user.id}">
-                        <div class="rating-rank">${medalHtml}</div>
-                        <div class="rating-avatar">${avatarHtml}</div>
-                        <div class="rating-info">
-                            <div class="rating-username">${escapeHtml(user.username)}</div>
-                            <div class="rating-shares">📊 ${sharesFormatted} акций</div>
-                        </div>
-                    </div>
-                `;
-            });
-            html += `</div>`;
-        }
-        
+
+        fullRatingList = users || [];
+        totalRatingPages = Math.ceil(fullRatingList.length / ratingItemsPerPage);
+        currentRatingPage = 1;
+
+        let html = `
+            <div class="card">
+                <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
+                <div id="ratingListContainer"></div>
+                <div id="ratingPagination"></div>
+        `;
         const currentUserId = window.userId;
-        const currentUserData = users?.find(u => u.id === currentUserId);
+        const currentUserData = fullRatingList.find(u => u.id === currentUserId);
         if (currentUserData) {
-            const rank = users.findIndex(u => u.id === currentUserId) + 1;
+            const rank = fullRatingList.findIndex(u => u.id === currentUserId) + 1;
             const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
             html += `
                 <div class="my-rank-card">
@@ -59,24 +119,15 @@ window.renderRatingTab = async function() {
         }
         html += `</div>`;
         document.getElementById('app').innerHTML = html;
-        
-        document.querySelectorAll('.rating-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const userId = parseInt(item.dataset.userId);
-                if (userId === window.userId) {
-                    document.querySelector('.tab[data-tab="profile"]').click();
-                } else {
-                    window.showUserProfile(userId);
-                }
-            });
-        });
+
+        await loadRatingPage(1);
     } catch (err) {
         console.error(err);
         document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки рейтинга</div>';
     }
 };
 
+// Вспомогательная функция renderAvatarHtml (если её нет в rating.js)
 window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '48px') {
     const emoji = avatarUrl || '👤';
     const adjustments = {
@@ -90,7 +141,7 @@ window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '48
     const adjust = adjustments[emoji] || 0;
     const fontSize = fontSizeMap[emoji] || (parseInt(size) * 0.8) + 'px';
     const emojiStyle = `transform: translateY(${adjust}px); font-size: ${fontSize}; line-height: 1; display: inline-block;`;
-    
+
     let bgStyle = '';
     if (avatarBg && avatarBg.startsWith('#')) {
         bgStyle = `background: ${avatarBg};`;
@@ -104,10 +155,16 @@ window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '48
         bgStyle = `background: ${mapping[avatarBg] || '#2b6e9e'};`;
     }
     const borderStyle = `border: 3px solid ${avatarBorder || '#ffffff'}; box-shadow: 0 2px 6px rgba(0,0,0,0.2);`;
-    
+
     return `<div class="avatar-circle" style="width: ${size}; height: ${size}; ${bgStyle} ${borderStyle} display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;"><span class="avatar-emoji" style="${emojiStyle}">${emoji}</span></div>`;
 };
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
+}
+
+// Функция для показа профиля другого пользователя (только чтение) – если её нет в rating.js, добавьте
 window.showUserProfile = async function(userId) {
     try {
         const { data: userData, error: userError } = await window.supabase
@@ -116,13 +173,13 @@ window.showUserProfile = async function(userId) {
             .eq('id', userId)
             .single();
         if (userError) throw userError;
-        
+
         const earnedAchievements = await window.getEarnedAchievementsForUser(userId);
         const selectedIds = userData.selected_achievements || [];
         const stats = await window.getUserStatsForUser(userId);
         const rank = await window.getUserRankForUser(userId);
         const avatarHtml = window.renderAvatarHtml(userData.avatar_url, userData.avatar_bg, userData.avatar_border, '88px');
-        
+
         let iconsHtml = '';
         for (let i = 0; i < 3; i++) {
             const achId = selectedIds[i];
@@ -133,9 +190,9 @@ window.showUserProfile = async function(userId) {
                 iconsHtml += `<div class="achi-icon">?</div>`;
             }
         }
-        
+
         const registeredDate = userData.registered_at ? new Date(userData.registered_at).toLocaleDateString() : 'неизвестно';
-        
+
         const html = `
             <div class="card" style="text-align: center;">
                 <div style="margin-bottom: 8px;">${avatarHtml}</div>
@@ -157,7 +214,6 @@ window.showUserProfile = async function(userId) {
                 <button id="backToRatingBtn" class="secondary" style="margin-top: 16px;">← Назад к рейтингу</button>
             </div>
         `;
-        
         document.getElementById('app').innerHTML = html;
         document.getElementById('backToRatingBtn').addEventListener('click', () => {
             window.renderRatingTab();
@@ -168,13 +224,3 @@ window.showUserProfile = async function(userId) {
         window.renderRatingTab();
     }
 };
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
