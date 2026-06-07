@@ -1,6 +1,4 @@
 // profile.js – финальная рабочая версия (сетки аватарок, палитра цветов, превью)
-// Использует window.renderAvatarHtml из rating.js для отображения аватара
-
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
 ];
@@ -172,7 +170,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки (сетка 4xN, круг-превью) ==========
+// ========== ШАГ 1: выбор аватарки ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -224,7 +222,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
-// ========== ШАГ 2: выбор фона (сетка цветов) ==========
+// ========== ШАГ 2: выбор фона ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     let isCustomColor = false;
@@ -350,7 +348,7 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки (сетка цветов) ==========
+// ========== ШАГ 3: выбор цвета обводки ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     let bgStyleInline = '';
@@ -521,13 +519,35 @@ window.renderProfileTab = async function(
         nextHtml += `</div>`;
     }
 
-    // Используем общую функцию renderAvatarHtml из rating.js
-    const avatarHtml = window.renderAvatarHtml(currentUser.avatar_url, currentUser.avatar_bg, currentUser.avatar_border, '88px');
+    let avatarClass = 'avatar-circle';
+    let avatarStyle = '';
+    if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
+        avatarStyle = `background: ${currentUser.avatar_bg};`;
+    } else {
+        const mapping = {
+            'gradient1': '#2b6e9e',
+            'gradient2': '#9b59b6',
+            'gradient3': '#e67e22',
+            'gradient4': '#27ae60',
+            'gradient5': '#f1c40f',
+            'gradient6': '#e74c3c',
+            'gradient7': '#1abc9c',
+            'gradient8': '#3498db',
+            'gradient9': '#2c3e50',
+            'gradient10': '#ff9a9e',
+            'gradient11': '#a18cd1'
+        };
+        const bgColor = mapping[currentUser.avatar_bg] || '#2b6e9e';
+        avatarStyle = `background: ${bgColor};`;
+        avatarClass = 'avatar-circle';
+    }
+    const emojiStyle = getAvatarStyle(currentUser.avatar_url);
+    const borderStyle = getBorderStyle(currentUser.avatar_border || '#ffffff');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div id="avatarClickWrapper">
-            ${avatarHtml}
+            <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
             <div class="small-text">Нажмите на аватар для кастомизации</div>
         </div>
         <p style="font-size:20px; font-weight:bold; margin-top:8px;">${currentUser.username}</p>
