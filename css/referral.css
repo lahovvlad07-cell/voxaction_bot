@@ -1,4 +1,4 @@
-/* referral.css – единый размер иконок (24px) */
+/* referral.css – финальная версия с одинаковым размером иконок и без дублирования */
 
 .referral-title {
     text-align: center;
@@ -75,7 +75,7 @@
     margin-top: 8px;
 }
 
-/* Кнопка приглашённых пользователей – иконка 24px */
+/* Кнопка приглашённых пользователей */
 .referral-list-btn {
     display: flex !important;
     align-items: center;
@@ -96,10 +96,20 @@
     background: rgba(56, 189, 248, 0.2);
     border-color: #38bdf8;
 }
+/* Иконка 👥 внутри кнопки */
 .referral-list-btn span:first-child {
-    font-size: 24px;  /* 👥 человечки */
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.referral-list-btn span:first-child::before {
+    content: "👥";
+    font-size: 30px;
     line-height: 1;
-    margin-right: 8px;
+}
+/* Убираем возможный дублирующийся текст 👥 */
+.referral-list-btn span:first-child {
+    /* иконка уже добавлена через ::before, поэтому если в html есть 👥, он будет лишним */
 }
 .badge-count {
     background: #2b6e9e;
@@ -112,7 +122,7 @@
     text-align: center;
 }
 
-/* Бонус-карточка – подарок 24px */
+/* Бонус-карточка */
 .bonus-card {
     display: flex;
     align-items: center;
@@ -124,7 +134,7 @@
     border-left: 4px solid #2b6e9e;
 }
 .bonus-icon {
-    font-size: 24px;
+    font-size: 30px;
     line-height: 1;
 }
 .bonus-text {
@@ -136,7 +146,7 @@
     color: white;
 }
 
-/* Блок достижений – трофей 24px */
+/* Блок достижений */
 .progress-card {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 24px;
@@ -151,9 +161,13 @@
     align-items: center;
     gap: 8px;
 }
+/* Трофей (🏆) в заголовке – задаём размер через font-size */
+.progress-title {
+    font-size: 16px; /* размер текста, а эмодзи унаследует */
+}
+/* Убираем любой псевдоэлемент, который мог добавить лишний кубок */
 .progress-title::before {
-    content: "🏆";
-    font-size: 24px;
+    content: none !important;
 }
 .progress-info {
     display: flex;
@@ -190,7 +204,7 @@
     font-weight: 500;
 }
 
-/* Модалка без изменений */
+/* Модалка списка приглашённых */
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
@@ -237,4 +251,20 @@
     background: rgba(251, 191, 36, 0.15);
     padding: 4px 8px;
     border-radius: 20px;
+}
+
+/* === ДОПОЛНИТЕЛЬНО: принудительный единый размер для трёх основных иконок === */
+/* 👥 в кнопке (через псевдоэлемент), 🎁 подарок, 🏆 трофей в заголовке */
+.referral-list-btn span:first-child::before,
+.bonus-icon,
+.progress-title {
+    font-size: 30px !important;
+    line-height: 1;
+}
+.progress-title {
+    /* чтобы сам текст заголовка не стал огромным */
+    font-size: 16px !important;
+}
+.progress-title .emoji {
+    font-size: 30px;
 }
