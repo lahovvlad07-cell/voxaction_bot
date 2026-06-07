@@ -1,5 +1,4 @@
-// profile.js – финальная рабочая версия (аватар виден в кастомизации)
-
+// profile.js – финальная рабочая версия (сетки аватарок, палитра цветов, превью)
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
 ];
@@ -49,6 +48,7 @@ function getBorderStyle(color) {
     return `border: 3px solid ${color}; box-shadow: 0 2px 8px rgba(0,0,0,0.2);`;
 }
 
+// ========== Достижения (оставляем как есть, они не менялись) ==========
 async function awardAvatarAchievement(supabase, userId, showCustomModal) {
     try {
         const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
@@ -170,7 +170,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// ========== ШАГ 1: выбор аватарки (с кругом по центру) ==========
+// ========== ШАГ 1: выбор аватарки (сетка 4xN, круг-превью) ==========
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -179,7 +179,6 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
         return `<div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar="${emoji}"><span class="avatar-emoji" style="${style}">${emoji}</span></div>`;
     }).join('');
     const previewEmojiStyle = getAvatarStyle(currentAvatar);
-    
     const modalHtml = `
         <div class="modal" id="stepModal" style="display:flex;">
             <div class="modal-content">
@@ -223,10 +222,9 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
-// ========== ШАГ 2: выбор фона (с кругом) ==========
+// ========== ШАГ 2: выбор фона (сетка цветов) ==========
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
-    
     let isCustomColor = false;
     let currentColorValue = null;
     if (currentBg && currentBg.startsWith('#')) {
@@ -248,32 +246,18 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
         };
         currentColorValue = mapping[currentBg] || '#2b6e9e';
     }
-    
-    const colors = [
-        ...bgColors,
-        { name: '🎨 Свой цвет', value: 'custom', isPicker: true }
-    ];
-    
+    const colors = [...bgColors, { name: '🎨 Свой цвет', value: 'custom', isPicker: true }];
     const generateColorsHtml = () => {
         return colors.map(color => {
             if (color.isPicker) {
                 const isSelected = isCustomColor;
-                return `
-                    <div class="color-option picker-option ${isSelected ? 'selected' : ''}" data-bg="custom" style="background: linear-gradient(135deg, #ff0000, #00ff00, #0000ff); display: flex; align-items: center; justify-content: center; font-size: 28px;">
-                        🎨
-                    </div>
-                `;
+                return `<div class="color-option picker-option ${isSelected ? 'selected' : ''}" data-bg="custom" style="background: linear-gradient(135deg, #ff0000, #00ff00, #0000ff); display: flex; align-items: center; justify-content: center; font-size: 28px;">🎨</div>`;
             } else {
                 const isSelected = (!isCustomColor && currentColorValue === color.value);
-                return `
-                    <div class="color-option ${isSelected ? 'selected' : ''}" data-bg="${color.value}" style="background: ${color.value}; border: 2px solid ${color.value === '#ffffff' ? '#ccc' : 'transparent'};">
-                        ${isSelected ? '<span class="color-check">✓</span>' : ''}
-                    </div>
-                `;
+                return `<div class="color-option ${isSelected ? 'selected' : ''}" data-bg="${color.value}" style="background: ${color.value}; border: 2px solid ${color.value === '#ffffff' ? '#ccc' : 'transparent'};">${isSelected ? '<span class="color-check">✓</span>' : ''}</div>`;
             }
         }).join('');
     };
-    
     const modalHtml = `
         <div class="modal" id="stepModal" style="display:flex;">
             <div class="modal-content">
@@ -285,9 +269,7 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
                     </div>
                 </div>
                 <div class="scrollable-content">
-                    <div class="colors-grid" id="colorsGrid">
-                        ${generateColorsHtml()}
-                    </div>
+                    <div class="colors-grid" id="colorsGrid">${generateColorsHtml()}</div>
                 </div>
                 <div class="modal-buttons">
                     <button id="backBtn" class="secondary">← Назад</button>
@@ -299,17 +281,14 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modal = document.getElementById('stepModal');
     document.getElementById('closeModal').onclick = () => modal.remove();
-    
     const updatePreview = (color) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
         previewCircle.style.background = color;
         previewCircle.classList.remove('bg-gradient1', 'bg-gradient2', 'bg-gradient3', 'bg-gradient4', 'bg-gradient5', 'bg-gradient6', 'bg-gradient7', 'bg-gradient8', 'bg-gradient9', 'bg-gradient10', 'bg-gradient11');
     };
-    
     let selectedBgValue = currentColorValue;
     let isSelectedCustom = isCustomColor;
     updatePreview(selectedBgValue);
-    
     document.querySelectorAll('.color-option').forEach(opt => {
         opt.addEventListener('click', () => {
             const bgValue = opt.dataset.bg;
@@ -338,7 +317,6 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
             }
         });
     });
-    
     document.getElementById('nextBtn').onclick = async () => {
         let saveBgValue;
         if (isSelectedCustom || !bgColors.some(c => c.value === selectedBgValue)) {
@@ -370,10 +348,9 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// ========== ШАГ 3: выбор цвета обводки (с кругом) ==========
+// ========== ШАГ 3: выбор цвета обводки (сетка цветов) ==========
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
-    
     let bgStyleInline = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
         bgStyleInline = `background: ${currentUser.avatar_bg};`;
@@ -394,38 +371,21 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
             };
             return mapping[c.value] === currentUser.avatar_bg;
         });
-        if (found) {
-            bgStyleInline = `background: ${found.value};`;
-        } else {
-            bgStyleInline = `background: #2b6e9e;`;
-        }
+        if (found) bgStyleInline = `background: ${found.value};`;
+        else bgStyleInline = `background: #2b6e9e;`;
     }
-    
-    const colors = [
-        ...borderColors,
-        { name: '🎨 Свой цвет', value: 'custom', isPicker: true }
-    ];
-    
+    const colors = [...borderColors, { name: '🎨 Свой цвет', value: 'custom', isPicker: true }];
     const generateColorsHtml = () => {
         return colors.map(color => {
             if (color.isPicker) {
                 const isSelected = (currentColor !== '#ffffff' && !borderColors.some(c => c.value === currentColor));
-                return `
-                    <div class="color-option picker-option ${isSelected ? 'selected' : ''}" data-color="custom" style="background: linear-gradient(135deg, #ff0000, #00ff00, #0000ff); display: flex; align-items: center; justify-content: center; font-size: 28px;">
-                        🎨
-                    </div>
-                `;
+                return `<div class="color-option picker-option ${isSelected ? 'selected' : ''}" data-color="custom" style="background: linear-gradient(135deg, #ff0000, #00ff00, #0000ff); display: flex; align-items: center; justify-content: center; font-size: 28px;">🎨</div>`;
             } else {
                 const isSelected = (color.value === currentColor);
-                return `
-                    <div class="color-option ${isSelected ? 'selected' : ''}" data-color="${color.value}" style="background: ${color.value}; border: 2px solid ${color.value === '#ffffff' ? '#ccc' : 'transparent'};">
-                        ${isSelected ? '<span class="color-check">✓</span>' : ''}
-                    </div>
-                `;
+                return `<div class="color-option ${isSelected ? 'selected' : ''}" data-color="${color.value}" style="background: ${color.value}; border: 2px solid ${color.value === '#ffffff' ? '#ccc' : 'transparent'};">${isSelected ? '<span class="color-check">✓</span>' : ''}</div>`;
             }
         }).join('');
     };
-    
     const modalHtml = `
         <div class="modal" id="borderModal" style="display:flex;">
             <div class="modal-content">
@@ -437,9 +397,7 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
                     </div>
                 </div>
                 <div class="scrollable-content">
-                    <div class="colors-grid" id="colorsGrid">
-                        ${generateColorsHtml()}
-                    </div>
+                    <div class="colors-grid" id="colorsGrid">${generateColorsHtml()}</div>
                 </div>
                 <div class="modal-buttons">
                     <button id="backBtn" class="secondary">← Назад</button>
@@ -451,7 +409,6 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modal = document.getElementById('borderModal');
     document.getElementById('closeModal').onclick = () => modal.remove();
-    
     const updatePreview = (color) => {
         const previewCircle = modal.querySelector('.modal-preview .avatar-circle');
         const style = getBorderStyle(color);
@@ -459,10 +416,8 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
         const cleaned = currentStyle.replace(/border:[^;]+;?/g, '').replace(/box-shadow:[^;]+;?/g, '');
         previewCircle.setAttribute('style', cleaned + style);
     };
-    
     let selectedColor = currentColor;
     updatePreview(selectedColor);
-    
     document.querySelectorAll('.color-option').forEach(opt => {
         opt.addEventListener('click', () => {
             const colorValue = opt.dataset.color;
@@ -485,13 +440,10 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
                 document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
                 opt.classList.add('selected');
                 document.querySelectorAll('.color-check').forEach(c => c.remove());
-                if (!opt.querySelector('.color-check')) {
-                    opt.innerHTML = `<span class="color-check">✓</span>`;
-                }
+                if (!opt.querySelector('.color-check')) opt.innerHTML = `<span class="color-check">✓</span>`;
             }
         });
     });
-    
     document.getElementById('nextBtn').onclick = async () => {
         if (selectedColor !== currentColor) {
             await window.updateUserBorder(selectedColor);
@@ -506,7 +458,6 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     };
 }
 
-// ========== ЗАПУСК ПОЛНОЙ КАСТОМИЗАЦИИ ==========
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
     await new Promise(resolve => { showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal); });
     await new Promise(resolve => {
@@ -534,7 +485,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
-// ========== ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
