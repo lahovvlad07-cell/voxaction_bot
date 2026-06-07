@@ -1,4 +1,6 @@
 // profile.js – финальная рабочая версия (сетки аватарок, палитра цветов, превью)
+// Использует window.renderAvatarHtml из rating.js для отображения аватара
+
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
 ];
@@ -48,7 +50,7 @@ function getBorderStyle(color) {
     return `border: 3px solid ${color}; box-shadow: 0 2px 8px rgba(0,0,0,0.2);`;
 }
 
-// ========== Достижения (оставляем как есть, они не менялись) ==========
+// ========== Достижения ==========
 async function awardAvatarAchievement(supabase, userId, showCustomModal) {
     try {
         const { data: achData } = await supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
@@ -519,35 +521,13 @@ window.renderProfileTab = async function(
         nextHtml += `</div>`;
     }
 
-    let avatarClass = 'avatar-circle';
-    let avatarStyle = '';
-    if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
-        avatarStyle = `background: ${currentUser.avatar_bg};`;
-    } else {
-        const mapping = {
-            'gradient1': '#2b6e9e',
-            'gradient2': '#9b59b6',
-            'gradient3': '#e67e22',
-            'gradient4': '#27ae60',
-            'gradient5': '#f1c40f',
-            'gradient6': '#e74c3c',
-            'gradient7': '#1abc9c',
-            'gradient8': '#3498db',
-            'gradient9': '#2c3e50',
-            'gradient10': '#ff9a9e',
-            'gradient11': '#a18cd1'
-        };
-        const bgColor = mapping[currentUser.avatar_bg] || '#2b6e9e';
-        avatarStyle = `background: ${bgColor};`;
-        avatarClass = 'avatar-circle';
-    }
-    const emojiStyle = getAvatarStyle(currentUser.avatar_url);
-    const borderStyle = getBorderStyle(currentUser.avatar_border || '#ffffff');
+    // Используем общую функцию renderAvatarHtml из rating.js
+    const avatarHtml = window.renderAvatarHtml(currentUser.avatar_url, currentUser.avatar_bg, currentUser.avatar_border, '88px');
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div id="avatarClickWrapper">
-            <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
+            ${avatarHtml}
             <div class="small-text">Нажмите на аватар для кастомизации</div>
         </div>
         <p style="font-size:20px; font-weight:bold; margin-top:8px;">${currentUser.username}</p>
