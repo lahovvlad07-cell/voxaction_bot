@@ -1,9 +1,30 @@
-// rating.js – простой и красивый рейтинг с аватарками, пагинацией и просмотром профиля
+// rating.js – простой и надёжный рейтинг с аватарками и пагинацией
 
 let currentPage = 1;
 const itemsPerPage = 10;
 let allUsers = [];
 let totalPages = 1;
+
+// Простая функция для отображения аватарки (чтобы не зависеть от других файлов)
+function renderAvatarSimple(avatarUrl, avatarBg, avatarBorder, size = '52px') {
+    const emoji = avatarUrl || '👤';
+    let bgColor = '#2b6e9e';
+    if (avatarBg) {
+        if (avatarBg.startsWith('#')) bgColor = avatarBg;
+        else {
+            const map = {
+                'gradient1': '#2b6e9e', 'gradient2': '#9b59b6', 'gradient3': '#e67e22',
+                'gradient4': '#27ae60', 'gradient5': '#f1c40f', 'gradient6': '#e74c3c',
+                'gradient7': '#1abc9c', 'gradient8': '#3498db', 'gradient9': '#2c3e50',
+                'gradient10': '#ff9a9e', 'gradient11': '#a18cd1'
+            };
+            bgColor = map[avatarBg] || '#2b6e9e';
+        }
+    }
+    const border = avatarBorder || '#ffffff';
+    const fontSize = parseInt(size) * 0.7 + 'px';
+    return `<div class="avatar-circle" style="width: ${size}; height: ${size}; background: ${bgColor}; border: 3px solid ${border}; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;"><span class="avatar-emoji" style="font-size: ${fontSize};">${emoji}</span></div>`;
+}
 
 async function loadUsers() {
     const { data, error } = await window.supabase
@@ -34,7 +55,7 @@ function renderPage() {
         else if (place === 3) medalHtml = '<span class="medal bronze">🥉</span>';
         else medalHtml = `<span class="rank-number">${place}</span>`;
 
-        const avatarHtml = window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '52px');
+        const avatarHtml = renderAvatarSimple(user.avatar_url, user.avatar_bg, user.avatar_border, '52px');
         const sharesFormatted = (user.shares / 100).toFixed(2);
 
         html += `
@@ -128,3 +149,6 @@ function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
 }
+
+// Для совместимости с другими файлами, если требуется
+if (!window.renderAvatarHtml) window.renderAvatarHtml = renderAvatarSimple;
