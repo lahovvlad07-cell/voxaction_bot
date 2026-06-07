@@ -13,7 +13,7 @@ window.renderReferralTab = async function() {
     ];
 
     // Загружаем уже полученные бонусы и считаем общее количество заработанных звёзд
-    let claimedBonuses = [];  // список friends_required
+    let claimedBonuses = [];
     let totalEarnedStars = 0;
     try {
         const { data } = await window.supabase
@@ -45,7 +45,6 @@ window.renderReferralTab = async function() {
     let fullReferralsList = [];
     let totalPages = 0;
 
-    // Функция загрузки и отображения страницы рефералов
     async function loadReferralsPage(page) {
         if (fullReferralsList.length === 0) {
             fullReferralsList = await window.getReferralsList();
@@ -83,7 +82,6 @@ window.renderReferralTab = async function() {
         }
         container.innerHTML = html;
 
-        // Пагинация
         let paginationHtml = '';
         if (totalPages > 1) {
             paginationHtml = `
@@ -106,7 +104,6 @@ window.renderReferralTab = async function() {
         }
         if (pagContainer) pagContainer.innerHTML = paginationHtml;
 
-        // обработчики пагинации
         document.querySelectorAll('.pag-prev').forEach(btn => {
             btn.onclick = () => {
                 if (currentPage > 1) {
@@ -166,7 +163,7 @@ window.renderReferralTab = async function() {
                 </div>
             </div>
             <div class="referrals-toggle" id="referralsToggle">
-                <span>👥 Приглашённые</span>
+                <span><span class="btn-icon">👥</span> Приглашённые</span>
                 <span class="badge">${referralCount}</span>
             </div>
             <div class="referrals-list-collapsible" id="referralsListCollapsible">
@@ -222,7 +219,7 @@ window.renderReferralTab = async function() {
                 window.showToast(`🎉 Получено ${stars} ⭐!`);
                 const { user } = await window.getOrCreateUser();
                 window.currentUser = user;
-                await window.renderReferralTab();  // перезагружаем страницу с новыми данными
+                await window.renderReferralTab();
             } else {
                 window.showCustomModal('Ошибка', result.error || 'Не удалось получить');
             }
@@ -230,4 +227,7 @@ window.renderReferralTab = async function() {
     }
 };
 
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
+}
