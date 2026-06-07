@@ -1,4 +1,4 @@
-// referral.js – финальная версия (с аватаром и ID в списке приглашённых)
+// referral.js – улучшенный дизайн реферальной вкладки
 
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
@@ -12,16 +12,23 @@ window.renderReferralTab = async function() {
     const remaining = nextMilestone - referralCount;
 
     let html = `
-        <div class="card">
+        <div class="card" style="padding: 20px;">
             <h2 class="referral-title">🔗 Реферальная программа</h2>
+            
             <div class="referral-stats">
-                <div class="stat-block">
-                    <div class="stat-number">${referralCount}</div>
-                    <div class="stat-label">Приглашено друзей</div>
+                <div class="stat-card-horizontal">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <div class="stat-number">${referralCount}</div>
+                        <div class="stat-label">Приглашено друзей</div>
+                    </div>
                 </div>
-                <div class="stat-block">
-                    <div class="stat-number">${earnedShares}</div>
-                    <div class="stat-label">Заработано акций</div>
+                <div class="stat-card-horizontal">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <div class="stat-number">${earnedShares}</div>
+                        <div class="stat-label">Заработано акций</div>
+                    </div>
                 </div>
             </div>
 
@@ -34,7 +41,10 @@ window.renderReferralTab = async function() {
                 <div class="link-hint">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</div>
             </div>
 
-            <button id="showReferralsListBtn" class="secondary" style="margin: 16px 0;">👥 Приглашённые пользователи (${referralCount})</button>
+            <button id="showReferralsListBtn" class="secondary referral-list-btn">
+                <span>👥 Приглашённые пользователи</span>
+                <span class="badge-count">${referralCount}</span>
+            </button>
 
             <div class="bonus-card">
                 <div class="bonus-icon">🎁</div>
@@ -50,10 +60,12 @@ window.renderReferralTab = async function() {
                     <span>Пригласите ещё <strong>${remaining}</strong> друга(ей)</span>
                     <span>→ 10 акций + достижение "Наставник"</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progressPercent}%;"></div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progressPercent}%;"></div>
+                    </div>
+                    <div class="progress-stats">${referralCount} / ${nextMilestone}</div>
                 </div>
-                <div class="progress-stats">${referralCount} / ${nextMilestone}</div>
             </div>
         </div>
     `;
@@ -79,7 +91,6 @@ window.renderReferralTab = async function() {
     });
 };
 
-// Обновлённая модалка с аватаром, username, ID, датой и статусом
 async function showReferralsModal(referrals) {
     let listHtml = '';
     if (referrals.length === 0) {
