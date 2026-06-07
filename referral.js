@@ -4,6 +4,7 @@ window.renderReferralTab = async function() {
     const fullLink = `https://t.me/VoxAction_Bot?start=${activeCode}`;
     const referralCount = currentUser.referral_count || 0;
 
+    // Бонусные уровни (друзей → звёзд)
     const bonusLevels = [
         { friends: 1, stars: 3 },
         { friends: 3, stars: 5 },
@@ -11,18 +12,22 @@ window.renderReferralTab = async function() {
         { friends: 10, stars: 25 }
     ];
 
-    let claimedFriends = [];
+    // Загружаем уже полученные бонусы и считаем общее количество заработанных звёзд
+    let claimedBonuses = [];  // список friends_required
+    let totalEarnedStars = 0;
     try {
         const { data } = await window.supabase
             .from('referral_bonuses')
-            .select('friends_required')
+            .select('friends_required, stars_received')
             .eq('user_id', window.userId);
-        claimedFriends = data.map(b => b.friends_required);
-    } catch(e) {}
+        claimedBonuses = data.map(b => b.friends_required);
+        totalEarnedStars = data.reduce((sum, b) => sum + b.stars_received, 0);
+    } catch(e) { console.warn(e); }
 
+    // Определяем текущий следующий неполученный уровень
     let nextLevel = null;
     for (let l of bonusLevels) {
-        if (!claimedFriends.includes(l.friends)) {
+        if (!claimedBonuses.includes(l.friends)) {
             nextLevel = l;
             break;
         }
@@ -34,6 +39,93 @@ window.renderReferralTab = async function() {
     const rewardStars = nextLevel ? nextLevel.stars : 0;
     const canClaim = (referralCount >= target) && nextLevel !== null;
 
+    // --- Пагинация для списка приглашённых ---
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let fullReferralsList = [];
+    let totalPages = 0;
+
+    // Функция загрузки и отображения страницы рефералов
+    async function loadReferralsPage(page) {
+        if (fullReferralsList.length === 0) {
+            fullReferralsList = await window.getReferralsList();
+            totalPages = Math.ceil(fullReferralsList.length / itemsPerPage);
+        }
+        const start = (page - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageItems = fullReferralsList.slice(start, end);
+        const container = document.getElementById('referralsListContent');
+        if (!container) return;
+
+        if (fullReferralsList.length === 0) {
+            container.innerHTML = '<div style="padding:20px;text-align:center;">Нет приглашённых</div>';
+            document.getElementById('referralsPagination')?.remove();
+            return;
+        }
+
+        let html = '';
+        for (let r of pageItems) {
+            html += `
+                <div class="referral-item">
+                    <div class="referral-user-info">
+                        <div class="referral-avatar-wrapper">${r.avatarUrl}</div>
+                        <div class="referral-details">
+                            <div class="referral-name">${escapeHtml(r.username)}</div>
+                            <div class="referral-id">ID: ${r.userId}</div>
+                            <div class="referral-date">${new Date(r.registeredAt).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    <div class="referral-status-badge">
+                        ${r.topupCompleted ? '<span class="status-success">✅ Пополнил</span>' : '<span class="status-pending">⏳ Ожидает пополнения</span>'}
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+
+        // Пагинация
+        let paginationHtml = '';
+        if (totalPages > 1) {
+            paginationHtml = `
+                <div class="pagination-controls">
+                    <button class="pag-prev" ${page === 1 ? 'disabled' : ''}>← Назад</button>
+                    <span class="pag-info">${page} / ${totalPages}</span>
+                    <button class="pag-next" ${page === totalPages ? 'disabled' : ''}>Вперёд →</button>
+                </div>
+            `;
+        }
+        let pagContainer = document.getElementById('referralsPagination');
+        if (!pagContainer) {
+            const wrapper = document.getElementById('referralsListCollapsible');
+            if (wrapper && !wrapper.querySelector('#referralsPagination')) {
+                const div = document.createElement('div');
+                div.id = 'referralsPagination';
+                wrapper.appendChild(div);
+                pagContainer = div;
+            }
+        }
+        if (pagContainer) pagContainer.innerHTML = paginationHtml;
+
+        // обработчики пагинации
+        document.querySelectorAll('.pag-prev').forEach(btn => {
+            btn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadReferralsPage(currentPage);
+                }
+            };
+        });
+        document.querySelectorAll('.pag-next').forEach(btn => {
+            btn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadReferralsPage(currentPage);
+                }
+            };
+        });
+    }
+
+    // --- Формирование HTML ---
     let html = `
         <div class="card" style="overflow: visible !important;">
             <div class="referral-header">
@@ -46,8 +138,8 @@ window.renderReferralTab = async function() {
                     <div class="label">друзей</div>
                 </div>
                 <div class="stat-circle">
-                    <div class="value">${window.fromCents(currentUser.stars_balance)}</div>
-                    <div class="label">баланс ⭐</div>
+                    <div class="value">${totalEarnedStars}</div>
+                    <div class="label">заработано ⭐</div>
                 </div>
             </div>
     `;
@@ -73,15 +165,14 @@ window.renderReferralTab = async function() {
                     <button class="share-btn" id="shareRefLinkBtn">📤 Поделиться</button>
                 </div>
             </div>
-            <!-- Кнопка-аккордеон для списка приглашённых -->
             <div class="referrals-toggle" id="referralsToggle">
                 <span>👥 Приглашённые</span>
                 <span class="badge">${referralCount}</span>
             </div>
             <div class="referrals-list-collapsible" id="referralsListCollapsible">
                 <div id="referralsListContent"></div>
+                <div id="referralsPagination"></div>
             </div>
-            <!-- Бонус за пополнение друга (после списка) -->
             <div class="bonus-stock-card">
                 <div class="bonus-stock-icon">🎁</div>
                 <div class="bonus-stock-text">
@@ -96,6 +187,7 @@ window.renderReferralTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
+    // Обработчики кнопок
     document.getElementById('copyRefLinkBtn')?.addEventListener('click', () => {
         navigator.clipboard.writeText(fullLink);
         window.showCustomModal('Скопировано', 'Ссылка скопирована');
@@ -106,37 +198,20 @@ window.renderReferralTab = async function() {
         else window.open(shareUrl, '_blank');
     });
 
+    // Аккордеон списка рефералов
     const toggleBtn = document.getElementById('referralsToggle');
     const collapsible = document.getElementById('referralsListCollapsible');
     if (toggleBtn) {
         toggleBtn.addEventListener('click', async () => {
             collapsible.classList.toggle('open');
             if (collapsible.classList.contains('open') && !document.getElementById('referralsListContent').innerHTML) {
-                const list = await window.getReferralsList();
-                let content = '';
-                if (list.length === 0) content = '<div style="padding:20px;text-align:center;">Нет приглашённых</div>';
-                else {
-                    content = list.map(r => `
-                        <div class="referral-item">
-                            <div class="referral-user-info">
-                                <div class="referral-avatar-wrapper">${r.avatarUrl}</div>
-                                <div class="referral-details">
-                                    <div class="referral-name">${escapeHtml(r.username)}</div>
-                                    <div class="referral-id">ID: ${r.userId}</div>
-                                    <div class="referral-date">${new Date(r.registeredAt).toLocaleDateString()}</div>
-                                </div>
-                            </div>
-                            <div class="referral-status-badge">
-                                ${r.topupCompleted ? '<span class="status-success">✅ Пополнил</span>' : '<span class="status-pending">⏳ Ожидает пополнения</span>'}
-                            </div>
-                        </div>
-                    `).join('');
-                }
-                document.getElementById('referralsListContent').innerHTML = content;
+                currentPage = 1;
+                await loadReferralsPage(1);
             }
         });
     }
 
+    // Кнопка получения бонуса
     const claimBtn = document.querySelector('.claim-btn');
     if (claimBtn) {
         claimBtn.addEventListener('click', async () => {
@@ -147,7 +222,7 @@ window.renderReferralTab = async function() {
                 window.showToast(`🎉 Получено ${stars} ⭐!`);
                 const { user } = await window.getOrCreateUser();
                 window.currentUser = user;
-                await window.renderReferralTab();
+                await window.renderReferralTab();  // перезагружаем страницу с новыми данными
             } else {
                 window.showCustomModal('Ошибка', result.error || 'Не удалось получить');
             }
