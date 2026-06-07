@@ -1,4 +1,4 @@
-/* referral.css – финальная версия (всё аккуратно) */
+/* referral.css – финальная версия (порядок блоков изменён в JS, CSS тот же) */
 
 .referral-title {
     text-align: center;
@@ -75,7 +75,7 @@
     margin-top: 8px;
 }
 
-/* Кнопка "Приглашённые пользователи" – человечки увеличены, текст нормальный */
+/* Кнопка приглашённых */
 .referral-list-btn {
     display: flex !important;
     align-items: center;
@@ -102,6 +102,7 @@
     margin-right: 8px;
 }
 
+/* Бонус-карточка */
 .bonus-card {
     display: flex;
     align-items: center;
@@ -125,6 +126,7 @@
     color: white;
 }
 
+/* Блок достижений */
 .progress-card {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 24px;
@@ -134,12 +136,11 @@
 .progress-title {
     font-weight: 700;
     margin-bottom: 12px;
-    font-size: 16px; /* Нормальный размер, не огромный */
+    font-size: 16px;
     display: flex;
     align-items: center;
     gap: 8px;
 }
-/* Убираем псевдоэлемент, если был */
 .progress-title::before {
     content: none;
 }
@@ -178,7 +179,7 @@
     font-weight: 500;
 }
 
-/* Модалка со списком */
+/* Модалка */
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
