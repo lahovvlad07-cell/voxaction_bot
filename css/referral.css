@@ -1,4 +1,4 @@
-/* referral.css – исправленная версия для ровной вёрстки */
+/* referral.css – финальная версия со счётчиком и ровными отступами */
 
 .referral-title {
     text-align: center;
@@ -75,7 +75,7 @@
     margin-top: 8px;
 }
 
-/* Кнопка "Приглашённые пользователи" – ровная, со счётчиком */
+/* Кнопка "Приглашённые пользователи" – чётко, со счётчиком */
 .referral-list-btn {
     display: flex !important;
     align-items: center;
@@ -108,6 +108,8 @@
     font-size: 14px;
     font-weight: bold;
     color: white;
+    min-width: 32px;
+    text-align: center;
 }
 
 .bonus-card {
@@ -133,7 +135,7 @@
     color: white;
 }
 
-/* Блок достижений – ровные отступы и выравнивание */
+/* Блок достижений – выровнен */
 .progress-card {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 24px;
