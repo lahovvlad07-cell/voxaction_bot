@@ -1,4 +1,4 @@
-/* referral.css – финальная версия со счётчиком и ровными отступами */
+/* referral.css – чистая и аккуратная версия */
 
 .referral-title {
     text-align: center;
@@ -75,7 +75,7 @@
     margin-top: 8px;
 }
 
-/* Кнопка "Приглашённые пользователи" – чётко, со счётчиком */
+/* Кнопка приглашённых – как полноценная кнопка */
 .referral-list-btn {
     display: flex !important;
     align-items: center;
@@ -99,7 +99,6 @@
 .btn-icon {
     font-size: 22px;
     line-height: 1;
-    margin-right: 4px;
 }
 .badge-count {
     background: #2b6e9e;
@@ -112,6 +111,7 @@
     text-align: center;
 }
 
+/* Бонус-карточка – иконка не слишком большая */
 .bonus-card {
     display: flex;
     align-items: center;
@@ -123,7 +123,7 @@
     border-left: 4px solid #2b6e9e;
 }
 .bonus-icon {
-    font-size: 36px;
+    font-size: 28px;
     line-height: 1;
 }
 .bonus-text {
@@ -135,7 +135,7 @@
     color: white;
 }
 
-/* Блок достижений – выровнен */
+/* Блок достижений – без лишнего трофея */
 .progress-card {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 24px;
@@ -146,13 +146,6 @@
     font-weight: 700;
     margin-bottom: 12px;
     font-size: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.progress-title::before {
-    content: "🏆";
-    font-size: 20px;
 }
 .progress-info {
     display: flex;
@@ -184,7 +177,7 @@
     font-weight: 500;
 }
 
-/* Модалка со списком – без изменений */
+/* Модалка – без изменений */
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
