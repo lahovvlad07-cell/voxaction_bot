@@ -1,4 +1,4 @@
-/* profile.css – полная версия с индивидуальной центровкой аватарок на ПК (включая модалки) */
+/* profile.css – аватар увеличен, эмодзи по центру на ПК (индивидуальные смещения) и модалках */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -36,32 +36,40 @@
     position: static !important;
 }
 
-/* Индивидуальная коррекция для каждой аватарки – только на ПК (основной профиль и модалки) */
+/* Индивидуальная коррекция для каждой аватарки – только на ПК (основной профиль) */
 @media (min-width: 561px) {
-    .avatar-emoji[style*="👤"], #stepModal .avatar-emoji[style*="👤"], #borderModal .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
-    .avatar-emoji[style*="😀"], #stepModal .avatar-emoji[style*="😀"], #borderModal .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="😎"], #stepModal .avatar-emoji[style*="😎"], #borderModal .avatar-emoji[style*="😎"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🐱"], #stepModal .avatar-emoji[style*="🐱"], #borderModal .avatar-emoji[style*="🐱"] { transform: translateY(-7px) !important; }
-    .avatar-emoji[style*="🐶"], #stepModal .avatar-emoji[style*="🐶"], #borderModal .avatar-emoji[style*="🐶"] { transform: translateY(-5px) !important; }
-    .avatar-emoji[style*="🦊"], #stepModal .avatar-emoji[style*="🦊"], #borderModal .avatar-emoji[style*="🦊"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🐼"], #stepModal .avatar-emoji[style*="🐼"], #borderModal .avatar-emoji[style*="🐼"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="⭐"], #stepModal .avatar-emoji[style*="⭐"], #borderModal .avatar-emoji[style*="⭐"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="🎮"], #stepModal .avatar-emoji[style*="🎮"], #borderModal .avatar-emoji[style*="🎮"] { transform: translateY(-12px) !important; }
-    .avatar-emoji[style*="⚽"], #stepModal .avatar-emoji[style*="⚽"], #borderModal .avatar-emoji[style*="⚽"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🚀"], #stepModal .avatar-emoji[style*="🚀"], #borderModal .avatar-emoji[style*="🚀"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="💎"], #stepModal .avatar-emoji[style*="💎"], #borderModal .avatar-emoji[style*="💎"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🌸"], #stepModal .avatar-emoji[style*="🌸"], #borderModal .avatar-emoji[style*="🌸"] { transform: translateY(-5px) !important; }
-    .avatar-emoji[style*="🔥"], #stepModal .avatar-emoji[style*="🔥"], #borderModal .avatar-emoji[style*="🔥"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="❤️"], #stepModal .avatar-emoji[style*="❤️"], #borderModal .avatar-emoji[style*="❤️"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="👍"], #stepModal .avatar-emoji[style*="👍"], #borderModal .avatar-emoji[style*="👍"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="🎉"], #stepModal .avatar-emoji[style*="🎉"], #borderModal .avatar-emoji[style*="🎉"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🌟"], #stepModal .avatar-emoji[style*="🌟"], #borderModal .avatar-emoji[style*="🌟"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🍕"], #stepModal .avatar-emoji[style*="🍕"], #borderModal .avatar-emoji[style*="🍕"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="🏆"], #stepModal .avatar-emoji[style*="🏆"], #borderModal .avatar-emoji[style*="🏆"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🎨"], #stepModal .avatar-emoji[style*="🎨"], #borderModal .avatar-emoji[style*="🎨"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="📷"], #stepModal .avatar-emoji[style*="📷"], #borderModal .avatar-emoji[style*="📷"] { transform: translateY(-13px) !important; }
-    .avatar-emoji[style*="⚡"], #stepModal .avatar-emoji[style*="⚡"], #borderModal .avatar-emoji[style*="⚡"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🔮"], #stepModal .avatar-emoji[style*="🔮"], #borderModal .avatar-emoji[style*="🔮"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
+    .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="😎"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🐱"] { transform: translateY(-7px) !important; }
+    .avatar-emoji[style*="🐶"] { transform: translateY(-5px) !important; }
+    .avatar-emoji[style*="🦊"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🐼"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="⭐"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="🎮"] { transform: translateY(-12px) !important; }
+    .avatar-emoji[style*="⚽"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🚀"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="💎"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🌸"] { transform: translateY(-5px) !important; }
+    .avatar-emoji[style*="🔥"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="❤️"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="👍"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="🎉"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🌟"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🍕"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🏆"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🎨"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="📷"] { transform: translateY(-13px) !important; }
+    .avatar-emoji[style*="⚡"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🔮"] { transform: translateY(-4px) !important; }
+}
+
+/* Общее смещение для превью в модалках (шаги 1-3) – при необходимости */
+@media (min-width: 561px) {
+    #stepModal .avatar-circle .avatar-emoji,
+    #borderModal .avatar-circle .avatar-emoji {
+        transform: translateY(-6px) !important;
+    }
 }
 
 .small-text {
@@ -98,7 +106,6 @@
     line-height: 1;
     transform: none !important;
 }
-
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
