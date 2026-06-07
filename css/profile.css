@@ -1,4 +1,4 @@
-/* profile.css – полная версия с кастомизацией, достижениями и центровкой аватаров */
+/* profile.css – полная версия с индивидуальной центровкой аватарок на ПК */
 
 #avatarClickWrapper {
     display: flex;
@@ -39,11 +39,32 @@
     position: static !important;
 }
 
-/* Коррекция для ПК – поднимите значение если нужно выше */
+/* Индивидуальная коррекция для каждой аватарки на ПК */
 @media (min-width: 561px) {
-    .avatar-circle .avatar-emoji {
-        transform: translateY(-6px) !important;
-    }
+    .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
+    .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="😎"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🐱"] { transform: translateY(-7px) !important; }
+    .avatar-emoji[style*="🐶"] { transform: translateY(-5px) !important; }
+    .avatar-emoji[style*="🦊"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🐼"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="⭐"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="🎮"] { transform: translateY(-12px) !important; }
+    .avatar-emoji[style*="⚽"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🚀"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="💎"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🌸"] { transform: translateY(-5px) !important; }
+    .avatar-emoji[style*="🔥"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="❤️"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="👍"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="🎉"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🌟"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🍕"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🏆"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🎨"] { transform: translateY(-6px) !important; }
+    .avatar-emoji[style*="📷"] { transform: translateY(-13px) !important; }
+    .avatar-emoji[style*="⚡"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🔮"] { transform: translateY(-4px) !important; }
 }
 
 .small-text {
