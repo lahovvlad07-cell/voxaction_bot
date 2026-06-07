@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с увеличенными кружками, грустным смайликом, кнопкой приглашённых по центру */
+/* referral.css – финальная версия с центрированной кнопкой "Приглашённые" и грустным смайликом */
 
 .referral-header {
     text-align: center;
@@ -169,7 +169,7 @@
     border: 1px solid #38bdf8;
 }
 
-/* Кнопка-аккордеон с центрированным текстом */
+/* Кнопка «Приглашённые» с центрированным текстом и счётчиком справа */
 .referrals-toggle {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -178,21 +178,28 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     cursor: pointer;
     margin: 20px 0 10px;
     transition: all 0.2s ease;
+    position: relative;
 }
 .referrals-toggle:hover {
     background: rgba(56, 189, 248, 0.08);
     border-color: rgba(56, 189, 248, 0.6);
 }
-.referrals-toggle span:first-child {
+/* Левая и правая заглушки для центрирования */
+.referrals-toggle .left-spacer {
     flex: 1;
+}
+.referrals-toggle .center-content {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 8px;
+}
+.referrals-toggle .right-spacer {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
 }
 .referrals-toggle .btn-icon {
     font-size: 24px;
@@ -285,7 +292,7 @@
     color: #fbbf24;
 }
 
-/* Пустой список – грустный смайлик сверху, текст и кнопка */
+/* Пустой список – грустный смайлик, текст, кнопка */
 .empty-referrals-message {
     display: flex;
     flex-direction: column;
