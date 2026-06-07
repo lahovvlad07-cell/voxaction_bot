@@ -258,16 +258,19 @@
     border-radius: 50%;
 }
 
-/* ===== Мобильные устройства: фикс вылетающих эмодзи ===== */
+/* ===== Мобильные устройства: принудительное выравнивание аватаров ===== */
 @media (max-width: 560px) {
+    /* Переопределяем inline-стили для эмодзи (сбрасываем transform) */
     .avatar-emoji {
         transform: translateY(0) !important;
-        font-size: 40px !important;
+        font-size: 42px !important;
         line-height: 1 !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
+        vertical-align: middle !important;
     }
+    /* Уменьшаем круг аватара, чтобы он был пропорционален */
     .avatar-circle {
         width: 70px !important;
         height: 70px !important;
@@ -276,7 +279,7 @@
         align-items: center !important;
         justify-content: center !important;
     }
-    /* для совсем маленьких экранов */
+    /* Для очень маленьких экранов (ширина <400px) */
     @media (max-width: 400px) {
         .avatar-circle {
             width: 64px !important;
