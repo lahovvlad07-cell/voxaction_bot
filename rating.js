@@ -1,4 +1,4 @@
-// rating.js – чистый и красивый рейтинг с аватарками, пагинацией и просмотром профиля
+// rating.js – простой и красивый рейтинг с аватарками, пагинацией и просмотром профиля
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -24,9 +24,10 @@ function renderPage() {
     const pageUsers = allUsers.slice(start, end);
 
     let html = '';
-    pageUsers.forEach((user, idx) => {
-        const globalIndex = allUsers.indexOf(user);
-        const place = globalIndex + 1;
+    for (let i = 0; i < pageUsers.length; i++) {
+        const user = pageUsers[i];
+        const idx = allUsers.indexOf(user);
+        const place = idx + 1;
         let medalHtml = '';
         if (place === 1) medalHtml = '<span class="medal gold">🥇</span>';
         else if (place === 2) medalHtml = '<span class="medal silver">🥈</span>';
@@ -46,7 +47,7 @@ function renderPage() {
                 </div>
             </div>
         `;
-    });
+    }
     container.innerHTML = html;
 
     const paginationDiv = document.getElementById('ratingPagination');
@@ -91,7 +92,6 @@ window.renderRatingTab = async function() {
         allUsers = await loadUsers();
         totalPages = Math.ceil(allUsers.length / itemsPerPage);
         currentPage = 1;
-        renderPage();
 
         let html = `
             <div class="card">
@@ -112,12 +112,12 @@ window.renderRatingTab = async function() {
                     </div>
                 </div>
             `;
-        } else {
+        } else if (window.userId) {
             html += `<div class="my-rank-card"><div class="my-rank-title">🔒 Вы не отображаетесь в рейтинге</div></div>`;
         }
         html += `</div>`;
         document.getElementById('app').innerHTML = html;
-        renderPage(); // повторный рендер после вставки HTML
+        renderPage();
     } catch (err) {
         console.error(err);
         document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки рейтинга</div>';
