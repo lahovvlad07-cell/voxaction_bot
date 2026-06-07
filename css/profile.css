@@ -1,5 +1,6 @@
-/* profile.css – полная версия с поднятием эмодзи на ПК */
+/* profile.css – аватар увеличен, эмодзи приподняты на ПК */
 
+/* ===== Аватар ===== */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -8,7 +9,6 @@
     cursor: pointer;
     margin: 0 auto;
 }
-
 .avatar-circle {
     width: 140px !important;
     height: 140px !important;
@@ -28,7 +28,6 @@
     overflow: visible;
     line-height: 1;
 }
-
 .avatar-circle .avatar-emoji {
     display: inline-flex !important;
     align-items: center !important;
@@ -38,20 +37,18 @@
     transform: none !important;
     position: static !important;
 }
-
-/* Поднимаем эмодзи на ПК вверх */
+/* Поднимаем эмодзи на ПК (камера выше) */
 @media (min-width: 561px) {
     .avatar-circle .avatar-emoji {
-        transform: translateY(-6px) !important;
+        transform: translateY(-8px) !important;
     }
 }
-
 .small-text {
     font-size: 12px;
     color: #9ca3af;
 }
 
-/* ===== Сетки выбора (кастомизация) ===== */
+/* ===== Сетки выбора (кастомизация) – без изменений ===== */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -80,7 +77,6 @@
     line-height: 1;
     transform: none !important;
 }
-
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -203,9 +199,7 @@
     font-weight: 600;
     font-size: 13px;
 }
-.achievement-desc,
-.achievement-condition,
-.achievement-date {
+.achievement-desc, .achievement-condition, .achievement-date {
     font-size: 10px;
     color: #9ca3af;
     margin-top: 4px;
@@ -282,7 +276,7 @@
     }
     .avatar-circle .avatar-emoji {
         font-size: 56px !important;
-        transform: translateY(0) !important; /* на телефоне не поднимаем */
+        transform: translateY(0) !important;
     }
     .achi-icon {
         width: 48px;
@@ -296,7 +290,6 @@
         padding: 12px;
     }
 }
-
 @media (max-width: 400px) {
     .avatar-circle {
         width: 85px !important;
