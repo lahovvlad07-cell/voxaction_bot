@@ -33,8 +33,7 @@ window.renderReferralTab = async function() {
             </div>
 
             <button id="showReferralsListBtn" class="referral-list-btn">
-                <span>👥 Приглашённые пользователи</span>
-                <span class="badge-count">${referralCount}</span>
+                👥 Приглашённые пользователи (${referralCount})
             </button>
 
             <div class="bonus-card">
