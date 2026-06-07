@@ -1,5 +1,4 @@
-// referral.js – улучшенный дизайн реферальной вкладки
-
+// referral.js – рабочая версия (без псевдоэлементов, всё через HTML)
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     const activeCode = currentUser.referral_code;
@@ -12,9 +11,8 @@ window.renderReferralTab = async function() {
     const remaining = nextMilestone - referralCount;
 
     let html = `
-        <div class="card" style="padding: 20px;">
+        <div class="card">
             <h2 class="referral-title">🔗 Реферальная программа</h2>
-            
             <div class="referral-stats">
                 <div class="stat-card-horizontal">
                     <div class="stat-icon">👥</div>
@@ -60,12 +58,10 @@ window.renderReferralTab = async function() {
                     <span>Пригласите ещё <strong>${remaining}</strong> друга(ей)</span>
                     <span>→ 10 акций + достижение "Наставник"</span>
                 </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${progressPercent}%;"></div>
-                    </div>
-                    <div class="progress-stats">${referralCount} / ${nextMilestone}</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progressPercent}%;"></div>
                 </div>
+                <div class="progress-stats">${referralCount} / ${nextMilestone}</div>
             </div>
         </div>
     `;
