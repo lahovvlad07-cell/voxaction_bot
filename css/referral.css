@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с грустным смайликом */
+/* referral.css – финальная версия с центрированной кнопкой "Приглашённые" и грустным смайликом */
 
 .referral-header {
     text-align: center;
@@ -169,6 +169,7 @@
     border: 1px solid #38bdf8;
 }
 
+/* Кнопка «Приглашённые» с центрированным текстом и счётчиком справа */
 .referrals-toggle {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -176,30 +177,37 @@
     padding: 12px 20px;
     width: 100%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     cursor: pointer;
     margin: 20px 0 10px;
     transition: all 0.2s ease;
+    position: relative;
 }
 .referrals-toggle:hover {
     background: rgba(56, 189, 248, 0.08);
     border-color: rgba(56, 189, 248, 0.6);
 }
+/* Левая и правая заглушки для центрирования */
+.referrals-toggle .left-spacer {
+    flex: 1;
+}
+.referrals-toggle .center-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.referrals-toggle .right-spacer {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+}
 .referrals-toggle .btn-icon {
     font-size: 24px;
-    margin-right: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     line-height: 1;
 }
 .referrals-toggle .label-text {
     font-size: 16px;
     font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    line-height: 1.4;
 }
 .referrals-toggle .badge {
     background: #2b6e9e;
@@ -208,7 +216,6 @@
     font-size: 13px;
     font-weight: 600;
     color: white;
-    margin-left: auto;
 }
 
 .referrals-list-collapsible {
@@ -285,7 +292,7 @@
     color: #fbbf24;
 }
 
-/* Пустой список – грустный смайлик сверху, текст и кнопка */
+/* Пустой список – грустный смайлик, текст, кнопка */
 .empty-referrals-message {
     display: flex;
     flex-direction: column;
@@ -422,7 +429,6 @@
     }
     .referrals-toggle .btn-icon {
         font-size: 28px;
-        margin-right: 8px;
     }
     .referrals-toggle .label-text {
         font-size: 15px;
