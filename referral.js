@@ -167,14 +167,9 @@ window.renderReferralTab = async function() {
                 </div>
             </div>
             <div class="referrals-toggle" id="referralsToggle">
-                <span class="left-spacer"></span>
-                <span class="center-content">
-                    <span class="btn-icon">👥</span>
-                    <span class="label-text">Приглашённые</span>
-                </span>
-                <span class="right-spacer">
-                    <span class="badge">${referralCount}</span>
-                </span>
+                <span class="btn-icon">👥</span>
+                <span class="label-text">Приглашённые</span>
+                <span class="badge">${referralCount}</span>
             </div>
             <div class="referrals-list-collapsible" id="referralsListCollapsible">
                 <div id="referralsListContent"></div>
