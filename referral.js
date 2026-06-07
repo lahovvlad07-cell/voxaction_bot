@@ -3,12 +3,10 @@ window.renderReferralTab = async function() {
     let referralCount = currentUser.referral_count || 0;
     let totalEarnedStars = 0;
 
-    // Функция для загрузки актуальных данных (бонусы, количество друзей)
     async function loadFreshData() {
         const { user } = await window.getOrCreateUser();
         window.currentUser = user;
         referralCount = user.referral_count || 0;
-        // Обновляем заработанные звёзды
         try {
             const { data } = await window.supabase
                 .from('referral_bonuses')
@@ -17,10 +15,8 @@ window.renderReferralTab = async function() {
             totalEarnedStars = data.reduce((sum, b) => sum + b.stars_received, 0);
         } catch(e) { console.warn(e); }
     }
-
     await loadFreshData();
 
-    // Бонусные уровни (друзей → звёзд)
     const bonusLevels = [
         { friends: 1, stars: 3 },
         { friends: 3, stars: 5 },
@@ -28,7 +24,6 @@ window.renderReferralTab = async function() {
         { friends: 10, stars: 25 }
     ];
 
-    // Полученные бонусы
     let claimedBonuses = [];
     try {
         const { data } = await window.supabase
@@ -38,7 +33,6 @@ window.renderReferralTab = async function() {
         claimedBonuses = data.map(b => b.friends_required);
     } catch(e) { console.warn(e); }
 
-    // Определяем следующий уровень
     let nextLevel = null;
     for (let l of bonusLevels) {
         if (!claimedBonuses.includes(l.friends)) {
@@ -53,7 +47,6 @@ window.renderReferralTab = async function() {
     const rewardStars = nextLevel ? nextLevel.stars : 0;
     const canClaim = (referralCount >= target) && nextLevel !== null;
 
-    // Пагинация
     let currentPage = 1;
     const itemsPerPage = 10;
     let fullReferralsList = [];
@@ -78,8 +71,14 @@ window.renderReferralTab = async function() {
                 </div>
             `;
             document.getElementById('copyInviteEmptyBtn')?.addEventListener('click', () => {
-                navigator.clipboard.writeText(fullLink);
-                window.showCustomModal('Скопировано', 'Ссылка скопирована');
+                const code = currentUser.custom_ref_code || '';
+                if (code) {
+                    const link = `https://t.me/VoxAction_Bot?start=${code}`;
+                    navigator.clipboard.writeText(link);
+                    window.showCustomModal('Скопировано', 'Ссылка скопирована');
+                } else {
+                    window.showCustomModal('Ошибка', 'Сначала установите код');
+                }
             });
             document.getElementById('referralsPagination')?.remove();
             return;
@@ -128,26 +127,15 @@ window.renderReferralTab = async function() {
         if (pagContainer) pagContainer.innerHTML = paginationHtml;
 
         document.querySelectorAll('.pag-prev').forEach(btn => {
-            btn.onclick = () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    loadReferralsPage(currentPage);
-                }
-            };
+            btn.onclick = () => { if (currentPage > 1) { currentPage--; loadReferralsPage(currentPage); } };
         });
         document.querySelectorAll('.pag-next').forEach(btn => {
-            btn.onclick = () => {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    loadReferralsPage(currentPage);
-                }
-            };
+            btn.onclick = () => { if (currentPage < totalPages) { currentPage++; loadReferralsPage(currentPage); } };
         });
     }
 
-    // Формируем HTML
     const customCode = currentUser.custom_ref_code || '';
-    const inviteLink = customCode ? `https://t.me/VoxAction_Bot?start=${customCode}` : `https://t.me/VoxAction_Bot?start=SET_YOUR_CODE`;
+    const inviteLink = customCode ? `https://t.me/VoxAction_Bot?start=${customCode}` : '';
 
     let html = `
         <div class="card" style="overflow: visible !important;">
@@ -171,7 +159,7 @@ window.renderReferralTab = async function() {
         html += `<div class="progress-block"><div class="all-bonuses-claimed">🎉 Все награды собраны! Спасибо, что с нами!</div></div>`;
     } else {
         html += `
-            <div class="progress-block" id="progressBlock">
+            <div class="progress-block">
                 <div class="progress-label">🎯 До следующей награды <strong>${rewardStars} ⭐</strong> осталось пригласить <strong>${remaining}</strong> друга(ей)</div>
                 <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
                 <div class="progress-stats">${referralCount} / ${target}</div>
@@ -182,7 +170,7 @@ window.renderReferralTab = async function() {
 
     html += `
             <div class="invite-section">
-                <div class="invite-link" id="refLinkText">${inviteLink}</div>
+                <div class="invite-link" id="refLinkText">${inviteLink || 'Установите свой код'}</div>
                 <div class="custom-code-section">
                     <input type="text" id="customCodeInput" placeholder="Ваш уникальный код" value="${escapeHtml(customCode)}" maxlength="32">
                     <button id="saveCustomCodeBtn">Сохранить код</button>
@@ -196,7 +184,7 @@ window.renderReferralTab = async function() {
             <div class="referrals-toggle" id="referralsToggle">
                 <span class="btn-icon">👥</span>
                 <span class="label-text">Приглашённые</span>
-                <span class="badge" id="referralsBadge">${referralCount}</span>
+                <span class="badge">${referralCount}</span>
             </div>
             <div class="referrals-list-collapsible" id="referralsListCollapsible">
                 <div id="referralsListContent"></div>
@@ -217,7 +205,7 @@ window.renderReferralTab = async function() {
     document.getElementById('app').innerHTML = html;
 
     // --- Обработчики ---
-    const fullLinkInput = document.getElementById('refLinkText');
+    const fullLinkSpan = document.getElementById('refLinkText');
     const copyBtn = document.getElementById('copyRefLinkBtn');
     const shareBtn = document.getElementById('shareRefLinkBtn');
     const saveCodeBtn = document.getElementById('saveCustomCodeBtn');
@@ -226,12 +214,12 @@ window.renderReferralTab = async function() {
     function updateLink() {
         let code = customInput.value.trim().toLowerCase();
         if (code === '') {
-            fullLinkInput.innerText = 'Сначала установите код';
-            fullLinkInput.style.opacity = '0.6';
+            fullLinkSpan.innerText = 'Сначала установите код';
+            fullLinkSpan.style.opacity = '0.6';
             return;
         }
-        fullLinkInput.innerText = `https://t.me/VoxAction_Bot?start=${code}`;
-        fullLinkInput.style.opacity = '1';
+        fullLinkSpan.innerText = `https://t.me/VoxAction_Bot?start=${code}`;
+        fullLinkSpan.style.opacity = '1';
     }
 
     customInput.addEventListener('input', updateLink);
@@ -256,14 +244,14 @@ window.renderReferralTab = async function() {
         if (data.ok) {
             window.currentUser.custom_ref_code = newCode;
             window.showCustomModal('Успех', 'Реферальный код сохранён!');
-            await window.renderReferralTab(); // перерисовываем для обновления ссылки
+            updateLink();
         } else {
-            window.showCustomModal('Ошибка', data.error);
+            window.showCustomModal('Ошибка', data.error || 'Не удалось сохранить код');
         }
     });
 
     copyBtn.addEventListener('click', () => {
-        const linkText = fullLinkInput.innerText;
+        const linkText = fullLinkSpan.innerText;
         if (linkText && !linkText.includes('Сначала установите код')) {
             navigator.clipboard.writeText(linkText);
             window.showCustomModal('Скопировано', 'Ссылка скопирована');
@@ -271,8 +259,9 @@ window.renderReferralTab = async function() {
             window.showCustomModal('Ошибка', 'Установите код сначала');
         }
     });
+
     shareBtn.addEventListener('click', () => {
-        const linkText = fullLinkInput.innerText;
+        const linkText = fullLinkSpan.innerText;
         if (linkText && !linkText.includes('Сначала установите код')) {
             const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(linkText)}&text=${encodeURIComponent('Присоединяйся ко мне в VoxAction бирже! 🚀')}`;
             if (window.tg && window.tg.openTelegramLink) window.tg.openTelegramLink(shareUrl);
@@ -294,7 +283,6 @@ window.renderReferralTab = async function() {
         });
     }
 
-    // Кнопка получения бонуса – обновляем только прогресс-блок и кружки
     const claimBtn = document.querySelector('.claim-btn');
     if (claimBtn) {
         claimBtn.addEventListener('click', async () => {
@@ -303,8 +291,7 @@ window.renderReferralTab = async function() {
             const result = await window.claimReferralBonus(friends, stars);
             if (result.ok) {
                 window.showToast(`🎉 Получено ${stars} ⭐!`);
-                // Обновляем данные пользователя и перерисовываем только реферальную вкладку (без полной перезагрузки страницы)
-                await window.renderReferralTab();
+                await window.renderReferralTab(); // обновляем всю вкладку
             } else {
                 window.showCustomModal('Ошибка', result.error || 'Не удалось получить');
             }
