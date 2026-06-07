@@ -3,9 +3,79 @@ window.renderReferralTab = async function() {
     const activeCode = currentUser.referral_code;
     const fullLink = `https://t.me/VoxAction_Bot?start=${activeCode}`;
     const referralCount = currentUser.referral_count || 0;
-    const earnedShares = currentUser.total_earned_shares ? (currentUser.total_earned_shares / 100).toFixed(2) : '0.00';
 
-    const nextMilestone = 3;
+    // Список бонусов: сколько друзей -> сколько звёзд
+    const bonusLevels = [
+        { friends: 1, stars: 3 },
+        { friends: 3, stars: 5 },
+        { friends: 5, stars: 10 },
+        { friends: 10, stars: 25 }
+    ];
+
+    // Загружаем полученные бонусы пользователя (если есть)
+    let claimedBonuses = [];
+    try {
+        const { data } = await window.supabase
+            .from('referral_bonuses')
+            .select('friends_required')
+            .eq('user_id', window.userId);
+        claimedBonuses = data.map(b => b.friends_required);
+    } catch(e) { console.warn(e); }
+
+    // Функция начисления бонуса
+    window.claimReferralBonus = async (friendsNeeded, stars) => {
+        const res = await fetch(`${window.BACKEND_URL}/claim-referral-bonus`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: window.userId, friends_needed: friendsNeeded, stars: stars })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            window.showToast(`🎉 Получено ${stars} ⭐ за приглашение ${friendsNeeded} друга(ей)!`);
+            // Обновляем данные пользователя
+            const { user } = await window.getOrCreateUser();
+            window.currentUser = user;
+            await window.renderReferralTab();
+        } else {
+            window.showCustomModal('Ошибка', data.error || 'Не удалось получить бонус');
+        }
+    };
+
+    // Генерируем HTML бонусов
+    let bonusesHtml = '';
+    for (let level of bonusLevels) {
+        const reached = referralCount >= level.friends;
+        const alreadyClaimed = claimedBonuses.includes(level.friends);
+        let status = '';
+        let actionButton = '';
+
+        if (!reached) {
+            status = '🔒 Недоступно';
+            actionButton = `<button class="bonus-claim-btn disabled" disabled>Недоступно</button>`;
+        } else if (alreadyClaimed) {
+            status = '✅ Получено';
+            actionButton = `<span class="bonus-claimed-badge">✅ Получено</span>`;
+        } else {
+            status = '🎁 Доступно';
+            actionButton = `<button class="bonus-claim-btn" data-friends="${level.friends}" data-stars="${level.stars}">Забрать ${level.stars} ⭐</button>`;
+        }
+
+        bonusesHtml += `
+            <div class="bonus-level-card">
+                <div class="bonus-level-icon">🎯</div>
+                <div class="bonus-level-info">
+                    <div class="bonus-level-title">${level.friends} друг(ей)</div>
+                    <div class="bonus-level-reward">🏆 ${level.stars} ⭐</div>
+                    <div class="bonus-level-status">${status}</div>
+                </div>
+                <div class="bonus-level-action">
+                    ${actionButton}
+                </div>
+            </div>
+        `;
+    }
+
+    const nextMilestone = bonusLevels.find(l => referralCount < l.friends)?.friends || 10;
     const progressPercent = Math.min(100, (referralCount / nextMilestone) * 100);
     const remaining = nextMilestone - referralCount;
 
@@ -18,8 +88,8 @@ window.renderReferralTab = async function() {
                     <div class="stat-label">Приглашено друзей</div>
                 </div>
                 <div class="stat-block">
-                    <div class="stat-number">${earnedShares}</div>
-                    <div class="stat-label">Заработано акций</div>
+                    <div class="stat-number">${window.fromCents(currentUser.stars_balance)}</div>
+                    <div class="stat-label">Ваш баланс ⭐</div>
                 </div>
             </div>
 
@@ -46,14 +116,17 @@ window.renderReferralTab = async function() {
                 <span class="badge-count">${referralCount}</span>
             </button>
 
+            <!-- Новый блок: бонусы за достижение количества друзей -->
             <div class="progress-card">
                 <div class="progress-title">
                     <span class="trophy-icon">🏆</span>
-                    Достижения за приглашение друзей
+                    Бонусы за приглашение друзей
                 </div>
-                <div class="progress-info">
-                    <span>Пригласите ещё <strong>${remaining}</strong> друга(ей)</span>
-                    <span>→ 10 акций + достижение "Наставник"</span>
+                <div class="bonus-levels-list">
+                    ${bonusesHtml}
+                </div>
+                <div class="progress-info" style="margin-top: 16px;">
+                    <span>Следующая награда: <strong>${remaining}</strong> друг(ей) → ${bonusLevels.find(l => l.friends === nextMilestone)?.stars} ⭐</span>
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: ${progressPercent}%;"></div>
@@ -82,8 +155,18 @@ window.renderReferralTab = async function() {
         const referralsList = await window.getReferralsList();
         showReferralsModal(referralsList);
     });
+
+    // Обработчики кнопок получения бонусов
+    document.querySelectorAll('.bonus-claim-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const friends = parseInt(btn.dataset.friends);
+            const stars = parseInt(btn.dataset.stars);
+            await window.claimReferralBonus(friends, stars);
+        });
+    });
 };
 
+// showReferralsModal и escapeHtml остаются без изменений
 async function showReferralsModal(referrals) {
     let listHtml = '';
     if (referrals.length === 0) {
