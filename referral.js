@@ -246,8 +246,8 @@ window.renderReferralTab = async function() {
             window.showCustomModal('Успех', 'Реферальный код сохранён!');
             updateLink();
         } else {
-            // Исправленное сообщение об ошибке
-            if (data.error && (data.error.includes('занят') || data.error.includes('already'))) {
+            // Исправленное сообщение: если ошибка содержит "уже занят" – показываем специфичную фразу
+            if (data.error && (data.error.includes('уже занят') || data.error.includes('already'))) {
                 window.showCustomModal('Ошибка', 'Этот код уже занят');
             } else {
                 window.showCustomModal('Ошибка', data.error || 'Не удалось сохранить код');
