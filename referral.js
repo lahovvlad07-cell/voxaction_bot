@@ -32,13 +32,7 @@ window.renderReferralTab = async function() {
                 <div class="link-hint">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</div>
             </div>
 
-            <!-- Кнопка приглашённых -->
-            <button id="showReferralsListBtn" class="referral-list-btn">
-                <span class="btn-icon">👥</span>
-                <span>Приглашённые пользователи (${referralCount})</span>
-            </button>
-
-            <!-- Бонус за друга (теперь над достижениями) -->
+            <!-- Бонус за друга (теперь ПЕРВЫЙ) -->
             <div class="bonus-card">
                 <div class="bonus-icon">🎁</div>
                 <div class="bonus-text">
@@ -46,6 +40,12 @@ window.renderReferralTab = async function() {
                     когда он пополнит баланс от <strong>10 ⭐</strong>.
                 </div>
             </div>
+
+            <!-- Кнопка приглашённых (теперь ВТОРАЯ) -->
+            <button id="showReferralsListBtn" class="referral-list-btn">
+                <span class="btn-icon">👥</span>
+                <span>Приглашённые пользователи (${referralCount})</span>
+            </button>
 
             <!-- Достижения -->
             <div class="progress-card">
