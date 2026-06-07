@@ -64,6 +64,45 @@
 <script>
     // Основной скрипт (запуск)
     (async () => {
+        // ---- Функция для отображения бейджа версии (✅) ----
+        async function showVersionBadge() {
+            try {
+                const res = await fetch('/version.json?t=' + Date.now());
+                if (!res.ok) throw new Error('version.json not found');
+                const data = await res.json();
+                const version = data.version || '?';
+                const updated = data.updated_at || '';
+                const badgeHtml = `
+                    <div style="position: fixed; bottom: 80px; right: 12px; background: rgba(0,0,0,0.65); backdrop-filter: blur(10px); padding: 6px 14px; border-radius: 40px; font-size: 12px; z-index: 1000; display: flex; align-items: center; gap: 8px; font-family: monospace; border: 1px solid rgba(74, 222, 128, 0.5);">
+                        <span style="color: #4ade80;">✅</span>
+                        <span style="color: white; font-weight: 500;">${version}</span>
+                        <span style="color: #9ca3af; font-size: 10px;">${updated}</span>
+                    </div>
+                `;
+                const oldBadge = document.getElementById('versionBadge');
+                if (oldBadge) oldBadge.remove();
+                const badgeDiv = document.createElement('div');
+                badgeDiv.id = 'versionBadge';
+                badgeDiv.innerHTML = badgeHtml;
+                document.body.appendChild(badgeDiv);
+            } catch (e) {
+                console.warn('Не удалось загрузить версию', e);
+                // Показываем красный крестик, если файла нет
+                const errorBadge = `
+                    <div style="position: fixed; bottom: 80px; right: 12px; background: rgba(0,0,0,0.65); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 40px; font-size: 11px; z-index: 1000; display: flex; align-items: center; gap: 6px;">
+                        <span style="color: #f87171;">❌</span>
+                        <span style="color: #9ca3af;">нет версии</span>
+                    </div>
+                `;
+                const oldBadge = document.getElementById('versionBadge');
+                if (oldBadge) oldBadge.remove();
+                const badgeDiv = document.createElement('div');
+                badgeDiv.id = 'versionBadge';
+                badgeDiv.innerHTML = errorBadge;
+                document.body.appendChild(badgeDiv);
+            }
+        }
+
         // Drag tabs
         const tabsWrapper = document.querySelector('.tabs-wrapper');
         let isDown = false, startX, scrollLeft;
@@ -149,6 +188,9 @@
         setupRealtimeNotifications();
         await window.updateBellBadge();
         initTopupModal();
+        
+        // Показать бейдж версии
+        showVersionBadge();
         
         document.getElementById('headerNotificationBell')?.addEventListener('click', () => window.showNotificationsModal());
         document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
