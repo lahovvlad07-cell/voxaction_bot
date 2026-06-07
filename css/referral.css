@@ -1,4 +1,4 @@
-/* referral.css – финальная версия (пустой список – только текст и кнопка) */
+/* referral.css – финальная версия с грустным смайликом */
 
 .referral-header {
     text-align: center;
@@ -20,7 +20,7 @@
     color: #9ca3af;
 }
 
-/* Круглые метрики – увеличены до 140px */
+/* Круглые метрики */
 .stats-circles {
     display: flex;
     gap: 28px;
@@ -285,7 +285,7 @@
     color: #fbbf24;
 }
 
-/* Пустой список – только текст и кнопка (без смайлика) */
+/* Пустой список – грустный смайлик сверху, текст и кнопка */
 .empty-referrals-message {
     display: flex;
     flex-direction: column;
@@ -293,6 +293,11 @@
     justify-content: center;
     padding: 30px 20px;
     gap: 16px;
+}
+.empty-referrals-message::before {
+    content: "😢";
+    font-size: 56px;
+    line-height: 1;
 }
 .empty-text {
     font-size: 15px;
@@ -421,6 +426,9 @@
     }
     .referrals-toggle .label-text {
         font-size: 15px;
+    }
+    .empty-referrals-message::before {
+        font-size: 48px;
     }
     .empty-text {
         font-size: 14px;
