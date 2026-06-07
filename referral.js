@@ -55,7 +55,6 @@ window.renderReferralTab = async function() {
         if (fullReferralsList.length === 0) {
             container.innerHTML = `
                 <div class="empty-referrals-message">
-                    <div class="empty-text">Пока никого не пригласили</div>
                     <button id="copyInviteEmptyBtn">📋 Скопировать ссылку</button>
                 </div>
             `;
@@ -140,7 +139,7 @@ window.renderReferralTab = async function() {
                 </div>
                 <div class="stat-circle">
                     <div class="value">${totalEarnedStars}</div>
-                    <div class="label">заработано ⭐</div>
+                    <div class="label">заработано</div>
                 </div>
             </div>
     `;
