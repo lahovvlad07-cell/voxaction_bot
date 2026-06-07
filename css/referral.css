@@ -1,15 +1,9 @@
-/* referral.css – стили для реферальной вкладки (совместимые) */
+/* referral.css – финальная версия (кнопка + блок достижений) */
 
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
     font-size: 22px;
-    background: linear-gradient(135deg, #fff, #a78bfa);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation: gradientShift 3s ease infinite;
 }
 
 .referral-stats {
@@ -28,11 +22,9 @@
     font-size: 36px;
     font-weight: 800;
     background: linear-gradient(135deg, #60a5fa, #a78bfa);
-    background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    animation: gradientShift 3s ease infinite;
     line-height: 1.2;
 }
 .stat-label {
@@ -81,6 +73,33 @@
     font-size: 11px;
     color: #9ca3af;
     margin-top: 8px;
+}
+
+/* Кнопка "Приглашённые пользователи" – теперь видимая */
+.referral-list-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    border-radius: 60px;
+    padding: 10px 20px;
+    margin: 16px 0;
+    width: 100%;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.referral-list-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+}
+.badge-count {
+    background: #2b6e9e;
+    border-radius: 30px;
+    padding: 2px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
 }
 
 .bonus-card {
@@ -145,7 +164,7 @@
     color: #9ca3af;
 }
 
-/* Модалка со списком приглашённых */
+/* Модалка со списком */
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
