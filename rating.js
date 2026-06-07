@@ -1,3 +1,4 @@
+cat > /var/www/html/rating.js << 'RATINGJS'
 // rating.js – улучшенный рейтинг с аватарами, пагинацией и просмотром профиля
 
 let currentRatingPage = 1;
@@ -16,7 +17,7 @@ async function loadRatingPage(page) {
     let html = '';
     for (let i = 0; i < pageUsers.length; i++) {
         const user = pageUsers[i];
-        const idx = fullRatingList.indexOf(user); // реальная позиция в общем списке
+        const idx = fullRatingList.indexOf(user);
         const place = idx + 1;
         let medalHtml = '';
         if (place === 1) medalHtml = '<span class="medal gold">🥇</span>';
@@ -40,14 +41,13 @@ async function loadRatingPage(page) {
     }
     container.innerHTML = html;
 
-    // Пагинация
     const paginationDiv = document.getElementById('ratingPagination');
     if (totalRatingPages > 1) {
         paginationDiv.innerHTML = `
             <div class="pagination-controls">
                 <button class="pag-prev" ${page === 1 ? 'disabled' : ''}>← Назад</button>
                 <span class="pag-info">${page} / ${totalRatingPages}</span>
-                <button class="pag-next" ${page === totalRatingPages ? 'disabled' : ''}>Вперёд →</button>
+                <button class="pag-next" ${page === totalPages ? 'disabled' : ''}>Вперёд →</button>
             </div>
         `;
         document.querySelector('.pag-prev')?.addEventListener('click', () => {
@@ -66,7 +66,6 @@ async function loadRatingPage(page) {
         paginationDiv.innerHTML = '';
     }
 
-    // Обработчики кликов по элементам рейтинга
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -87,7 +86,7 @@ window.renderRatingTab = async function() {
             .select('id, username, shares, avatar_url, avatar_bg, avatar_border')
             .eq('hide_rating', false)
             .order('shares', { ascending: false })
-            .limit(100); // берём до 100, но потом пагинация
+            .limit(100);
         if (error) throw error;
 
         fullRatingList = users || [];
@@ -127,7 +126,6 @@ window.renderRatingTab = async function() {
     }
 };
 
-// Вспомогательная функция renderAvatarHtml (если её нет в rating.js)
 window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '48px') {
     const emoji = avatarUrl || '👤';
     const adjustments = {
@@ -164,7 +162,6 @@ function escapeHtml(str) {
     return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
 }
 
-// Функция для показа профиля другого пользователя (только чтение) – если её нет в rating.js, добавьте
 window.showUserProfile = async function(userId) {
     try {
         const { data: userData, error: userError } = await window.supabase
@@ -224,3 +221,4 @@ window.showUserProfile = async function(userId) {
         window.renderRatingTab();
     }
 };
+RATINGJS
