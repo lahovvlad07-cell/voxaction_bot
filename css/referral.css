@@ -1,4 +1,4 @@
-/* referral.css – полный современный дизайн для реферальной системы */
+/* referral.css – финальная версия с ровными кружками и одинаковыми иконками */
 
 /* ===== Шапка ===== */
 .referral-header {
@@ -21,7 +21,7 @@
     color: #9ca3af;
 }
 
-/* ===== Круглые метрики ===== */
+/* ===== Круглые метрики – ровные и одинаковые ===== */
 .stats-circles {
     display: flex;
     gap: 20px;
@@ -40,6 +40,7 @@
     justify-content: center;
     border: 1px solid rgba(56, 189, 248, 0.3);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
 }
 .stat-circle .value {
     font-size: 32px;
@@ -48,12 +49,14 @@
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    line-height: 1;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 .stat-circle .label {
     font-size: 11px;
     color: #9ca3af;
     margin-top: 8px;
+    white-space: nowrap;
 }
 
 /* ===== Прогресс-блок ===== */
@@ -171,6 +174,10 @@
 .referrals-toggle:hover {
     background: rgba(56, 189, 248, 0.1);
 }
+.referrals-toggle .btn-icon {
+    font-size: 28px;          /* увеличенный эмодзи человечка */
+    margin-right: 6px;
+}
 .referrals-toggle .badge {
     background: #2b6e9e;
     border-radius: 40px;
@@ -213,7 +220,7 @@
     gap: 12px;
 }
 .referral-avatar-wrapper {
-    font-size: 38px;        /* уменьшили, чтобы иконка человека не была огромной */
+    font-size: 38px;
     width: 52px;
     text-align: center;
     background: rgba(255, 255, 255, 0.05);
@@ -298,7 +305,7 @@
     gap: 14px;
 }
 .bonus-stock-icon {
-    font-size: 32px;       /* одинаковый с иконкой человека */
+    font-size: 32px;
     width: 52px;
     text-align: center;
 }
@@ -328,7 +335,7 @@
         height: 85px;
     }
     .stat-circle .value {
-        font-size: 24px;
+        font-size: 22px;
     }
     .progress-label {
         font-size: 12px;
@@ -355,5 +362,8 @@
     .pagination-controls button {
         padding: 4px 12px;
         font-size: 12px;
+    }
+    .referrals-toggle .btn-icon {
+        font-size: 24px;
     }
 }
