@@ -257,3 +257,15 @@
     justify-content: center;
     border-radius: 50%;
 }
+
+/* ===== Мобильные устройства: исправляем положение аватара ===== */
+@media (max-width: 480px) {
+    .avatar-emoji {
+        transform: translateY(0) !important;
+        font-size: 40px !important;
+    }
+    .avatar-circle {
+        width: 70px !important;
+        height: 70px !important;
+    }
+}
