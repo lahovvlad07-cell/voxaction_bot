@@ -1,5 +1,4 @@
-cat > /var/www/html/rating.js << 'RATINGJS'
-// rating.js – улучшенный рейтинг с аватарами, пагинацией и просмотром профиля
+// rating.js – улучшенный рейтинг с аватарами, пагинацией и просмотром профиля + тестовая кнопка
 
 let currentRatingPage = 1;
 const ratingItemsPerPage = 10;
@@ -47,7 +46,7 @@ async function loadRatingPage(page) {
             <div class="pagination-controls">
                 <button class="pag-prev" ${page === 1 ? 'disabled' : ''}>← Назад</button>
                 <span class="pag-info">${page} / ${totalRatingPages}</span>
-                <button class="pag-next" ${page === totalPages ? 'disabled' : ''}>Вперёд →</button>
+                <button class="pag-next" ${page === totalRatingPages ? 'disabled' : ''}>Вперёд →</button>
             </div>
         `;
         document.querySelector('.pag-prev')?.addEventListener('click', () => {
@@ -221,4 +220,23 @@ window.showUserProfile = async function(userId) {
         window.renderRatingTab();
     }
 };
-RATINGJS
+
+// ===== ВРЕМЕННАЯ ТЕСТОВАЯ КНОПКА (удалить после проверки) =====
+setTimeout(() => {
+    const testBtn = document.createElement('button');
+    testBtn.innerText = '🧪 Тест (новый rating.js)';
+    testBtn.style.position = 'fixed';
+    testBtn.style.bottom = '80px';
+    testBtn.style.right = '10px';
+    testBtn.style.zIndex = '9999';
+    testBtn.style.background = '#ff4444';
+    testBtn.style.color = 'white';
+    testBtn.style.padding = '8px 12px';
+    testBtn.style.borderRadius = '40px';
+    testBtn.style.fontSize = '12px';
+    testBtn.style.border = 'none';
+    testBtn.style.cursor = 'pointer';
+    testBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+    testBtn.onclick = () => alert('✅ Новый rating.js работает!');
+    document.body.appendChild(testBtn);
+}, 2000);
