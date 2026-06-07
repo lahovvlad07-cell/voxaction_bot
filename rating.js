@@ -23,7 +23,6 @@ window.renderRatingTab = async function() {
                 else if (place === 3) medalHtml = '<span class="medal bronze">🥉</span>';
                 else medalHtml = `<span class="rank-number">${place}</span>`;
                 
-                // Генерируем аватар с фоном и обводкой
                 const avatarHtml = window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '48px');
                 const sharesFormatted = (user.shares / 100).toFixed(2);
                 
@@ -41,7 +40,6 @@ window.renderRatingTab = async function() {
             html += `</div>`;
         }
         
-        // Показываем место текущего пользователя
         const currentUserId = window.userId;
         const currentUserData = users?.find(u => u.id === currentUserId);
         if (currentUserData) {
@@ -62,13 +60,11 @@ window.renderRatingTab = async function() {
         html += `</div>`;
         document.getElementById('app').innerHTML = html;
         
-        // Добавляем обработчики кликов по элементам рейтинга
         document.querySelectorAll('.rating-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const userId = parseInt(item.dataset.userId);
                 if (userId === window.userId) {
-                    // Переключаемся на вкладку профиля (свой профиль)
                     document.querySelector('.tab[data-tab="profile"]').click();
                 } else {
                     window.showUserProfile(userId);
@@ -81,10 +77,8 @@ window.renderRatingTab = async function() {
     }
 };
 
-// Вспомогательная функция для генерации HTML аватара (размер по умолчанию 48px)
 window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '48px') {
     const emoji = avatarUrl || '👤';
-    // Стиль эмодзи (коррекция позиции)
     const adjustments = {
         '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3,
         '🎨':-3,'📷':-3,'⚡':-3,'🔮':-3,'🚀':-3,'🎮':-3
@@ -97,7 +91,6 @@ window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '48
     const fontSize = fontSizeMap[emoji] || (parseInt(size) * 0.8) + 'px';
     const emojiStyle = `transform: translateY(${adjust}px); font-size: ${fontSize}; line-height: 1; display: inline-block;`;
     
-    // Фон
     let bgStyle = '';
     if (avatarBg && avatarBg.startsWith('#')) {
         bgStyle = `background: ${avatarBg};`;
@@ -115,10 +108,8 @@ window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '48
     return `<div class="avatar-circle" style="width: ${size}; height: ${size}; ${bgStyle} ${borderStyle} display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;"><span class="avatar-emoji" style="${emojiStyle}">${emoji}</span></div>`;
 };
 
-// Функция для показа профиля другого пользователя (только чтение)
 window.showUserProfile = async function(userId) {
     try {
-        // Получаем данные пользователя
         const { data: userData, error: userError } = await window.supabase
             .from('users')
             .select('*')
@@ -126,18 +117,12 @@ window.showUserProfile = async function(userId) {
             .single();
         if (userError) throw userError;
         
-        // Получаем достижения пользователя
         const earnedAchievements = await window.getEarnedAchievementsForUser(userId);
         const selectedIds = userData.selected_achievements || [];
-        
-        // Статистика пользователя
         const stats = await window.getUserStatsForUser(userId);
         const rank = await window.getUserRankForUser(userId);
-        
-        // Аватар в большом размере (88px)
         const avatarHtml = window.renderAvatarHtml(userData.avatar_url, userData.avatar_bg, userData.avatar_border, '88px');
         
-        // Иконки достижений (3 слота)
         let iconsHtml = '';
         for (let i = 0; i < 3; i++) {
             const achId = selectedIds[i];
@@ -184,4 +169,12 @@ window.showUserProfile = async function(userId) {
     }
 };
 
-// Вспомогательные функции для получения данных по конкретному пользователю (добавим в api.js)
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
