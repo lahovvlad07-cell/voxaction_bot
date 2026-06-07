@@ -1,19 +1,15 @@
-// profile.js – полная версия со всеми функциями кастомизации и достижений
-// getAvatarStyle возвращает только font-size (без transform)
+// profile.js – 20 аватарок, полная кастомизация и достижения
 
 const avatarEmojis = [
-    '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
+    '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'
 ];
 const avatarAdjustments = {
-    '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3,
-    '🎨':-3,'📷':-3,'⚡':-3,'🔮':-3,'🚀':-3,'🎮':-3
+    '🐱':-8,'🐶':-8,'🐼':-7,'🦊':-5,'⚽':-3,'💎':-3,'🌸':-3,'🔥':-3,'🎉':-3,'🌟':-3,'🍕':-3,'🏆':-3
 };
 const avatarFontSizes = {
-    '⚡':'56px','🔮':'56px','🎮':'56px','🚀':'56px','⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px',
-    '🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px'
+    '⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎉':'56px','⚽':'56px'
 };
 
-// ВАЖНО: функция возвращает только размер шрифта, без transform (управление позицией через CSS)
 function getAvatarStyle(emoji) {
     const fontSize = avatarFontSizes[emoji] || '48px';
     return `font-size: ${fontSize};`;
@@ -502,7 +498,7 @@ window.renderProfileTab = async function(
         nextHtml += `</div>`;
     }
 
-    // Формируем аватар (без inline transform)
+    // Аватар
     const avatarUrl = currentUser.avatar_url || '👤';
     const avatarBg = currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#') 
         ? currentUser.avatar_bg 
