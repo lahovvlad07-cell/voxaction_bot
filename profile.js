@@ -1,4 +1,5 @@
 // profile.js – полная версия со всеми функциями кастомизации и достижений
+// getAvatarStyle возвращает только font-size (без transform)
 
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
@@ -12,7 +13,7 @@ const avatarFontSizes = {
     '🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px'
 };
 
-// Функция возвращает только размер шрифта (без transform, чтобы CSS управлял позицией)
+// ВАЖНО: функция возвращает только размер шрифта, без transform (управление позицией через CSS)
 function getAvatarStyle(emoji) {
     const fontSize = avatarFontSizes[emoji] || '48px';
     return `font-size: ${fontSize};`;
@@ -466,6 +467,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
+// ========== Основная функция рендеринга профиля ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
@@ -500,7 +502,7 @@ window.renderProfileTab = async function(
         nextHtml += `</div>`;
     }
 
-    // Аватар
+    // Формируем аватар (без inline transform)
     const avatarUrl = currentUser.avatar_url || '👤';
     const avatarBg = currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#') 
         ? currentUser.avatar_bg 
