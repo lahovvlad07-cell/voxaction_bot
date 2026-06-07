@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с увеличенным смайликом и одним кубком */
+/* referral.css – исправленная версия для ровной вёрстки */
 
 .referral-title {
     text-align: center;
@@ -57,7 +57,7 @@
 }
 .link-buttons button {
     flex: 1;
-    margin-top: 0;
+    margin: 0;
     padding: 10px;
     font-size: 14px;
 }
@@ -75,7 +75,7 @@
     margin-top: 8px;
 }
 
-/* Кнопка "Приглашённые пользователи" */
+/* Кнопка "Приглашённые пользователи" – ровная, со счётчиком */
 .referral-list-btn {
     display: flex !important;
     align-items: center;
@@ -96,9 +96,8 @@
     background: rgba(56, 189, 248, 0.2);
     border-color: #38bdf8;
 }
-/* Увеличенный смайлик */
 .btn-icon {
-    font-size: 24px;
+    font-size: 22px;
     line-height: 1;
     margin-right: 4px;
 }
@@ -123,6 +122,7 @@
 }
 .bonus-icon {
     font-size: 36px;
+    line-height: 1;
 }
 .bonus-text {
     font-size: 13px;
@@ -133,14 +133,12 @@
     color: white;
 }
 
-/* Блок достижений – только один кубок (через ::before) */
+/* Блок достижений – ровные отступы и выравнивание */
 .progress-card {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.35);
     border-radius: 24px;
     padding: 18px;
     margin-top: 16px;
-    border: 1px solid rgba(255, 215, 0, 0.2);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .progress-title {
     font-weight: 700;
@@ -150,7 +148,10 @@
     align-items: center;
     gap: 8px;
 }
-/* Убираем лишний кубок – в HTML уже есть 🏆, дублировать не нужно, оставляем как есть */
+.progress-title::before {
+    content: "🏆";
+    font-size: 20px;
+}
 .progress-info {
     display: flex;
     justify-content: space-between;
@@ -181,7 +182,7 @@
     font-weight: 500;
 }
 
-/* Модалка списка */
+/* Модалка со списком – без изменений */
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
