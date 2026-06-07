@@ -55,7 +55,7 @@ window.renderReferralTab = async function() {
         if (fullReferralsList.length === 0) {
             container.innerHTML = `
                 <div class="empty-referrals-message">
-                    😢 Пока никого не пригласили<br>
+                    <div class="empty-text">Пока никого не пригласили</div>
                     <button id="copyInviteEmptyBtn">📋 Скопировать ссылку</button>
                 </div>
             `;
