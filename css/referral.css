@@ -1,9 +1,8 @@
-/* referral.css – финальная версия с центрированной кнопкой и большим трофеем */
-/* + переливающийся заголовок + мобильная адаптация */
+/* referral.css – современный дизайн реферальной системы */
 
 .referral-title {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     font-size: 24px;
     font-weight: 800;
     background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6, #60a5fa);
@@ -14,6 +13,7 @@
     animation: gradientShift 3s ease infinite;
 }
 
+/* Статистика – две карточки */
 .referral-stats {
     display: flex;
     gap: 16px;
@@ -21,43 +21,51 @@
 }
 .stat-block {
     flex: 1;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 24px;
-    padding: 20px 16px;
+    background: rgba(18, 24, 38, 0.75);
+    backdrop-filter: blur(4px);
+    border-radius: 28px;
+    padding: 20px 12px;
     text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    transition: transform 0.2s;
+}
+.stat-block:hover {
+    transform: translateY(-2px);
+    border-color: #2b6e9e;
 }
 .stat-number {
     font-size: 36px;
     font-weight: 800;
     background: linear-gradient(135deg, #60a5fa, #a78bfa);
-    -webkit-background-clip: text;
     background-clip: text;
+    -webkit-background-clip: text;
     color: transparent;
     line-height: 1.2;
 }
 .stat-label {
     font-size: 13px;
     color: #9ca3af;
-    margin-top: 6px;
+    margin-top: 8px;
 }
 
+/* Блок со ссылкой */
 .link-section {
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 24px;
-    padding: 16px;
-    margin-bottom: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 28px;
+    padding: 18px;
+    margin-bottom: 24px;
 }
 .link-url {
     background: #0f1320;
     padding: 12px;
-    border-radius: 40px;
+    border-radius: 60px;
     font-family: monospace;
     font-size: 13px;
     text-align: center;
     word-break: break-all;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     color: #60a5fa;
-    border: 1px solid rgba(56, 189, 248, 0.2);
+    border: 1px solid #2b6e9e;
 }
 .link-buttons {
     display: flex;
@@ -66,78 +74,45 @@
 .link-buttons button {
     flex: 1;
     margin: 0;
-    padding: 10px;
+    padding: 12px;
     font-size: 14px;
+    font-weight: 600;
+    border-radius: 60px;
+    transition: 0.2s;
 }
 .copy-btn {
-    background: #2b6e9e;
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+}
+.copy-btn:active {
+    transform: scale(0.96);
 }
 .share-btn {
-    background: rgba(56, 189, 248, 0.2);
+    background: rgba(56, 189, 248, 0.15);
     border: 1px solid #38bdf8;
+}
+.share-btn:active {
+    transform: scale(0.96);
 }
 .link-hint {
     text-align: center;
     font-size: 11px;
-    color: #9ca3af;
-    margin-top: 8px;
+    color: #6b7280;
+    margin-top: 10px;
 }
 
-/* Кнопка с центрированием */
-.referral-list-btn {
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(56, 189, 248, 0.5);
-    border-radius: 60px;
-    padding: 12px 20px;
-    margin: 16px 0;
-    width: 100%;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: #eef2ff;
-}
-.referral-list-btn:hover {
-    background: rgba(56, 189, 248, 0.2);
-    border-color: #38bdf8;
-}
-.btn-icon {
-    font-size: 28px;
-    line-height: 1;
-    margin-right: 8px;
-}
-.btn-text {
-    flex-grow: 1;
-    text-align: center;
-}
-.badge-count {
-    background: #2b6e9e;
-    border-radius: 30px;
-    padding: 2px 12px;
-    font-size: 14px;
-    font-weight: bold;
-    color: white;
-    min-width: 32px;
-    text-align: center;
-}
-
-/* Бонус-карточка */
+/* Бонусная карточка */
 .bonus-card {
     display: flex;
     align-items: center;
     gap: 16px;
-    background: rgba(43, 110, 158, 0.15);
-    border-radius: 20px;
-    padding: 14px;
-    margin-bottom: 20px;
+    background: linear-gradient(135deg, rgba(43, 110, 158, 0.2), rgba(26, 76, 110, 0.2));
+    border-radius: 24px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
     border-left: 4px solid #2b6e9e;
 }
 .bonus-icon {
-    font-size: 28px;
-    line-height: 1;
+    font-size: 32px;
 }
 .bonus-text {
     font-size: 13px;
@@ -148,24 +123,60 @@
     color: white;
 }
 
-/* Блок достижений с увеличенным трофеем */
+/* Кнопка просмотра приглашённых */
+.referral-list-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 60px;
+    padding: 14px 20px;
+    margin: 20px 0;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #eef2ff;
+}
+.referral-list-btn:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: #38bdf8;
+}
+.btn-icon {
+    font-size: 28px;
+}
+.btn-text {
+    flex-grow: 1;
+    text-align: center;
+}
+.badge-count {
+    background: #2b6e9e;
+    border-radius: 40px;
+    padding: 4px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+}
+
+/* Прогресс-карточка */
 .progress-card {
     background: rgba(0, 0, 0, 0.35);
-    border-radius: 24px;
-    padding: 18px;
+    border-radius: 28px;
+    padding: 20px;
     margin-top: 16px;
 }
 .progress-title {
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     font-size: 16px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 .trophy-icon {
     font-size: 28px;
-    line-height: 1;
 }
 .progress-info {
     display: flex;
@@ -176,33 +187,31 @@
     margin-bottom: 12px;
     color: #cbd5e1;
     background: rgba(0, 0, 0, 0.3);
-    padding: 8px 12px;
-    border-radius: 20px;
-}
-.progress-info span:first-child {
-    white-space: nowrap;
+    padding: 8px 14px;
+    border-radius: 40px;
 }
 .progress-bar {
     background: rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
+    border-radius: 20px;
     height: 8px;
     overflow: hidden;
+    margin: 12px 0;
 }
 .progress-fill {
     background: linear-gradient(90deg, #2b6e9e, #60a5fa);
     height: 100%;
     width: 0%;
-    border-radius: 10px;
+    border-radius: 20px;
+    transition: width 0.3s;
 }
 .progress-stats {
     text-align: right;
     font-size: 12px;
-    margin-top: 8px;
-    color: #e2e8f0;
     font-weight: 500;
+    color: #a5b4fc;
 }
 
-/* Модалка */
+/* Модалка со списком */
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
@@ -221,16 +230,17 @@
     gap: 12px;
 }
 .referral-avatar {
-    font-size: 32px;
+    font-size: 36px;
+    width: 48px;
+    text-align: center;
 }
 .referral-username {
     font-size: 14px;
-    margin-bottom: 2px;
+    font-weight: 600;
 }
 .referral-id {
     font-size: 10px;
     color: #6b7280;
-    margin-top: 2px;
 }
 .referral-date {
     font-size: 10px;
@@ -238,23 +248,45 @@
 }
 .referral-status .status-success {
     color: #4ade80;
-    font-size: 12px;
     background: rgba(74, 222, 128, 0.15);
     padding: 4px 8px;
-    border-radius: 20px;
+    border-radius: 40px;
+    font-size: 11px;
 }
 .referral-status .status-pending {
     color: #fbbf24;
-    font-size: 12px;
     background: rgba(251, 191, 36, 0.15);
     padding: 4px 8px;
-    border-radius: 20px;
+    border-radius: 40px;
+    font-size: 11px;
 }
 
-/* ===== Мобильные устройства: уменьшаем заголовок ===== */
-@media (max-width: 480px) {
+/* Мобильная адаптация */
+@media (max-width: 560px) {
     .referral-title {
-        font-size: 18px !important;
+        font-size: 20px !important;
         margin-bottom: 16px !important;
+    }
+    .stat-number {
+        font-size: 28px;
+    }
+    .stat-block {
+        padding: 14px 8px;
+    }
+    .link-url {
+        font-size: 11px;
+    }
+    .btn-text {
+        font-size: 14px;
+    }
+    .badge-count {
+        font-size: 12px;
+        padding: 2px 8px;
+    }
+    .progress-title {
+        font-size: 14px;
+    }
+    .bonus-text {
+        font-size: 12px;
     }
 }
