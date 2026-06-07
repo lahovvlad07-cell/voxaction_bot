@@ -32,7 +32,11 @@ window.renderReferralTab = async function() {
                 <div class="link-hint">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</div>
             </div>
 
-            <button id="showReferralsListBtn" class="secondary referral-list-btn">👥 Приглашённые пользователи <span class="badge-count">${referralCount}</span></button>
+            <button id="showReferralsListBtn" class="referral-list-btn">
+                <span class="btn-icon">👥</span>
+                <span>Приглашённые пользователи</span>
+                <span class="badge-count">${referralCount}</span>
+            </button>
 
             <div class="bonus-card">
                 <div class="bonus-icon">🎁</div>
