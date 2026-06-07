@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с центрированной кнопкой "Приглашённые" и грустным смайликом */
+/* referral.css – финальная версия с увеличенным шрифтом и смайликами */
 
 .referral-header {
     text-align: center;
@@ -72,7 +72,7 @@
     text-align: center;
 }
 .progress-label {
-    font-size: 15px;
+    font-size: 16px;
     margin-bottom: 12px;
 }
 .progress-bar {
@@ -156,6 +156,7 @@
     padding: 12px;
     border-radius: 60px;
     font-weight: 600;
+    font-size: 15px;
     transition: transform 0.1s;
 }
 .invite-buttons button:active {
@@ -169,53 +170,43 @@
     border: 1px solid #38bdf8;
 }
 
-/* Кнопка «Приглашённые» с центрированным текстом и счётчиком справа */
+/* Кнопка «Приглашённые» – иконка слева, текст по центру, счётчик справа */
 .referrals-toggle {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 60px;
-    padding: 12px 20px;
+    padding: 12px 16px;
     width: 100%;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     cursor: pointer;
     margin: 20px 0 10px;
     transition: all 0.2s ease;
-    position: relative;
 }
 .referrals-toggle:hover {
     background: rgba(56, 189, 248, 0.08);
     border-color: rgba(56, 189, 248, 0.6);
 }
-/* Левая и правая заглушки для центрирования */
-.referrals-toggle .left-spacer {
-    flex: 1;
-}
-.referrals-toggle .center-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.referrals-toggle .right-spacer {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-}
 .referrals-toggle .btn-icon {
-    font-size: 24px;
+    font-size: 28px;
     line-height: 1;
+    flex: 0 0 auto;
 }
 .referrals-toggle .label-text {
     font-size: 16px;
     font-weight: 500;
+    text-align: center;
+    flex: 1;
 }
 .referrals-toggle .badge {
     background: #2b6e9e;
     border-radius: 40px;
-    padding: 2px 12px;
-    font-size: 13px;
+    padding: 4px 12px;
+    font-size: 14px;
     font-weight: 600;
     color: white;
+    flex: 0 0 auto;
 }
 
 .referrals-list-collapsible {
@@ -292,7 +283,7 @@
     color: #fbbf24;
 }
 
-/* Пустой список – грустный смайлик, текст, кнопка */
+/* Пустой список – увеличенный смайлик */
 .empty-referrals-message {
     display: flex;
     flex-direction: column;
@@ -303,11 +294,11 @@
 }
 .empty-referrals-message::before {
     content: "😢";
-    font-size: 56px;
+    font-size: 64px;
     line-height: 1;
 }
 .empty-text {
-    font-size: 15px;
+    font-size: 16px;
     color: #9ca3af;
     text-align: center;
 }
@@ -317,7 +308,7 @@
     padding: 10px 24px;
     border-radius: 60px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
     color: #eef2ff;
     transition: 0.2s;
@@ -372,7 +363,7 @@
     text-align: center;
 }
 .bonus-stock-text {
-    font-size: 13px;
+    font-size: 14px;
     color: #cbd5e1;
 }
 .bonus-stock-text strong {
@@ -380,7 +371,7 @@
 }
 
 .legend {
-    font-size: 11px;
+    font-size: 12px;
     text-align: center;
     color: #6b7280;
     margin-top: 24px;
@@ -401,7 +392,7 @@
         font-size: 11px;
     }
     .progress-label {
-        font-size: 13px;
+        font-size: 14px;
     }
     .claim-btn {
         font-size: 16px;
@@ -428,19 +419,23 @@
         font-size: 12px;
     }
     .referrals-toggle .btn-icon {
-        font-size: 28px;
+        font-size: 26px;
     }
     .referrals-toggle .label-text {
         font-size: 15px;
     }
+    .referrals-toggle .badge {
+        font-size: 13px;
+        padding: 2px 10px;
+    }
     .empty-referrals-message::before {
-        font-size: 48px;
+        font-size: 56px;
     }
     .empty-text {
-        font-size: 14px;
+        font-size: 15px;
     }
     .empty-referrals-message button {
         padding: 8px 20px;
-        font-size: 13px;
+        font-size: 14px;
     }
 }
