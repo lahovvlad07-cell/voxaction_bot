@@ -1,0 +1,206 @@
+/* referral.css – стили реферальной вкладки */
+
+.referral-title {
+    text-align: center;
+    margin-bottom: 24px;
+    font-size: 22px;
+    background: linear-gradient(135deg, #fff, #a78bfa);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradientShift 3s ease infinite;
+}
+.referral-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+.stat-card-horizontal {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 24px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.stat-icon {
+    font-size: 36px;
+}
+.stat-info {
+    flex: 1;
+}
+.stat-number {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradientShift 3s ease infinite;
+    line-height: 1.2;
+}
+.stat-label {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.link-section {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 24px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+.link-url {
+    background: #0f1320;
+    padding: 12px;
+    border-radius: 40px;
+    font-family: monospace;
+    font-size: 13px;
+    text-align: center;
+    word-break: break-all;
+    margin-bottom: 12px;
+    color: #60a5fa;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.link-buttons {
+    display: flex;
+    gap: 12px;
+}
+.link-buttons button {
+    flex: 1;
+    margin-top: 0;
+    padding: 10px;
+    font-size: 14px;
+}
+.copy-btn {
+    background: #2b6e9e;
+}
+.share-btn {
+    background: rgba(56, 189, 248, 0.2);
+    border: 1px solid #38bdf8;
+}
+.link-hint {
+    text-align: center;
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 8px;
+}
+
+.referral-list-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    margin-bottom: 20px;
+}
+.badge-count {
+    background: #2b6e9e;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.bonus-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(43, 110, 158, 0.15);
+    border-radius: 20px;
+    padding: 14px;
+    margin-bottom: 20px;
+    border-left: 4px solid #2b6e9e;
+}
+.bonus-icon {
+    font-size: 36px;
+}
+.bonus-text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #cbd5e1;
+}
+.bonus-text strong {
+    color: white;
+}
+
+.progress-card {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 20px;
+    padding: 16px;
+}
+.progress-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 10px;
+    color: #cbd5e1;
+}
+.progress-bar-container {
+    margin-top: 8px;
+}
+.progress-stats {
+    text-align: right;
+    font-size: 11px;
+    margin-top: 6px;
+    color: #9ca3af;
+}
+
+/* Модалка со списком приглашённых */
+.referrals-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.referral-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 12px;
+}
+.referral-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.referral-avatar {
+    font-size: 32px;
+}
+.referral-username {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+.referral-id {
+    font-size: 10px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+.referral-date {
+    font-size: 10px;
+    color: #9ca3af;
+}
+.referral-status .status-success {
+    color: #4ade80;
+    font-size: 12px;
+    background: rgba(74, 222, 128, 0.15);
+    padding: 4px 8px;
+    border-radius: 20px;
+}
+.referral-status .status-pending {
+    color: #fbbf24;
+    font-size: 12px;
+    background: rgba(251, 191, 36, 0.15);
+    padding: 4px 8px;
+    border-radius: 20px;
+}
