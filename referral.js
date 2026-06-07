@@ -1,4 +1,3 @@
-// referral.js – стабильная версия
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     const activeCode = currentUser.referral_code;
@@ -33,7 +32,7 @@ window.renderReferralTab = async function() {
                 <div class="link-hint">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</div>
             </div>
 
-            <button id="showReferralsListBtn" class="secondary" style="margin: 16px 0;">👥 Приглашённые пользователи (${referralCount})</button>
+            <button id="showReferralsListBtn" class="secondary referral-list-btn">👥 Приглашённые пользователи <span class="badge-count">${referralCount}</span></button>
 
             <div class="bonus-card">
                 <div class="bonus-icon">🎁</div>
