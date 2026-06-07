@@ -1,4 +1,4 @@
-/* profile.css – финальная центровка аватарок */
+/* profile.css – финальная центровка аватарок на всех устройствах */
 
 #avatarClickWrapper {
     display: flex;
@@ -25,20 +25,27 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     margin-bottom: 12px;
     transition: 0.2s;
+    overflow: visible;
 }
 
-/* Жёсткая центровка для любых эмодзи */
-.avatar-circle .avatar-emoji,
-#avatarClickWrapper .avatar-circle .avatar-emoji,
-.avatar-circle span.avatar-emoji {
-    transform: none !important;
-    translate: none !important;
-    position: static !important;
+/* Универсальная центровка эмодзи */
+.avatar-circle .avatar-emoji {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     vertical-align: middle !important;
     line-height: 1 !important;
+    transform: none !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Для ПК дополнительная коррекция (на случай смещения) */
+@media (min-width: 561px) {
+    .avatar-circle .avatar-emoji {
+        margin-top: -2px !important;  /* небольшая коррекция, если нужно */
+    }
 }
 
 .small-text {
