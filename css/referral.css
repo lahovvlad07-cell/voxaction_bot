@@ -1,4 +1,4 @@
-/* referral.css – финальная улучшенная версия */
+/* referral.css – финальная версия с выравниванием */
 
 .referral-header {
     text-align: center;
@@ -168,6 +168,7 @@
     border: 1px solid #38bdf8;
 }
 
+/* Кнопка-аккордеон с идеальным вертикальным выравниванием */
 .referrals-toggle {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -188,7 +189,16 @@
 .referrals-toggle .btn-icon {
     font-size: 26px;
     margin-right: 8px;
+    display: inline-block;
     vertical-align: middle;
+    line-height: 1;
+}
+.referrals-toggle span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    font-weight: 500;
 }
 .referrals-toggle .badge {
     background: #2b6e9e;
@@ -349,6 +359,7 @@
     border-radius: 24px;
 }
 
+/* Мобильная адаптация */
 @media (max-width: 560px) {
     .stat-circle {
         width: 100px;
@@ -388,6 +399,9 @@
         font-size: 12px;
     }
     .referrals-toggle .btn-icon {
-        font-size: 24px;
+        font-size: 22px;
+    }
+    .referrals-toggle span:first-child {
+        font-size: 14px;
     }
 }
