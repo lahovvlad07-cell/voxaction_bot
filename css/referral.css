@@ -1,9 +1,17 @@
 /* referral.css – финальная версия с центрированной кнопкой и большим трофеем */
+/* + переливающийся заголовок */
 
 .referral-title {
     text-align: center;
     margin-bottom: 24px;
-    font-size: 22px;
+    font-size: 24px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6, #60a5fa);
+    background-size: 200% 200%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: gradientShift 3s ease infinite;
 }
 
 .referral-stats {
