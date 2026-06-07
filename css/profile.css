@@ -1,4 +1,4 @@
-/* profile.css – аватар увеличен, эмодзи строго по центру */
+/* profile.css – аватар увеличен, эмодзи строго по центру (переопределяем translateY) */
 
 /* ===== Аватар ===== */
 #avatarClickWrapper {
@@ -29,12 +29,17 @@
 .avatar-circle:hover {
     transform: scale(1.02);
 }
-.avatar-emoji {
-    display: inline-block;
-    line-height: 1;
+
+/* Переопределяем inline-стиль transform (который добавляет profile.js) */
+.avatar-circle .avatar-emoji,
+#avatarClickWrapper .avatar-circle .avatar-emoji {
+    transform: translateY(0) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     vertical-align: middle;
-    transform: translateY(0) !important;  /* <-- отключаем любое смещение */
 }
+
 .small-text {
     font-size: 12px;
     color: #9ca3af;
@@ -267,9 +272,8 @@
         height: 100px !important;
         font-size: 56px !important;
     }
-    .avatar-emoji {
+    .avatar-circle .avatar-emoji {
         font-size: 56px !important;
-        transform: translateY(0) !important;
     }
     .achi-icon {
         width: 48px;
@@ -290,7 +294,7 @@
         height: 85px !important;
         font-size: 48px !important;
     }
-    .avatar-emoji {
+    .avatar-circle .avatar-emoji {
         font-size: 48px !important;
     }
 }
