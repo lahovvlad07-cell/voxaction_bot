@@ -1,6 +1,6 @@
 /* profile.css – аватар, достижения, статистика, кастомизация */
 
-/* ===== Аватар ===== */
+/* ===== Аватар – увеличенный ===== */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -10,20 +10,20 @@
     margin: 0 auto;
 }
 .avatar-circle {
-    width: 88px;
-    height: 88px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
+    font-size: 64px;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     background-color: rgba(0, 0, 0, 0.25);
     backdrop-filter: blur(2px);
     border: 3px solid rgba(255, 255, 255, 0.9);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     transition: 0.2s;
 }
 .avatar-circle:hover {
@@ -258,35 +258,41 @@
     border-radius: 50%;
 }
 
-/* ===== Мобильные устройства: принудительное выравнивание аватаров ===== */
+/* ===== Мобильная адаптация ===== */
 @media (max-width: 560px) {
-    /* Переопределяем inline-стили для эмодзи (сбрасываем transform) */
+    .avatar-circle {
+        width: 90px !important;
+        height: 90px !important;
+        font-size: 52px !important;
+    }
     .avatar-emoji {
         transform: translateY(0) !important;
-        font-size: 42px !important;
+        font-size: 52px !important;
         line-height: 1 !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        vertical-align: middle !important;
     }
-    /* Уменьшаем круг аватара, чтобы он был пропорционален */
-    .avatar-circle {
-        width: 70px !important;
-        height: 70px !important;
-        overflow: visible !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+    .achi-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 28px;
     }
-    /* Для очень маленьких экранов (ширина <400px) */
+    .stat-value {
+        font-size: 24px;
+    }
+    .stat-card {
+        padding: 12px;
+    }
+    /* для совсем маленьких экранов */
     @media (max-width: 400px) {
         .avatar-circle {
-            width: 64px !important;
-            height: 64px !important;
+            width: 80px !important;
+            height: 80px !important;
+            font-size: 46px !important;
         }
         .avatar-emoji {
-            font-size: 38px !important;
+            font-size: 46px !important;
         }
     }
 }
