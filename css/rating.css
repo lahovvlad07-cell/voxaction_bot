@@ -1,0 +1,102 @@
+/* rating.css – стили для улучшенного рейтинга */
+
+.rating-title {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 22px;
+}
+
+.rating-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.rating-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 20px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.rating-item:hover {
+    background: rgba(56, 189, 248, 0.15);
+    transform: translateX(4px);
+}
+
+.rating-rank {
+    width: 48px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+.medal {
+    font-size: 28px;
+}
+.rank-number {
+    font-size: 16px;
+    color: #9ca3af;
+}
+
+.rating-avatar {
+    font-size: 36px;
+    width: 48px;
+    text-align: center;
+}
+
+.rating-info {
+    flex: 1;
+}
+.rating-username {
+    font-weight: 600;
+    font-size: 16px;
+}
+.rating-shares {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+.my-rank-card {
+    background: linear-gradient(135deg, rgba(43, 110, 158, 0.3), rgba(26, 76, 110, 0.3));
+    border-radius: 20px;
+    padding: 16px;
+    margin-top: 20px;
+    text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.5);
+}
+.my-rank-title {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    color: #60a5fa;
+}
+.my-rank-details {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    font-size: 18px;
+    font-weight: bold;
+}
+.my-rank-position {
+    background: #2b6e9e;
+    padding: 4px 12px;
+    border-radius: 40px;
+}
+.my-rank-shares {
+    color: #eef2ff;
+}
+
+.no-data {
+    text-align: center;
+    padding: 40px;
+    color: #9ca3af;
+}
