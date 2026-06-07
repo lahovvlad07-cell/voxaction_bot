@@ -1,4 +1,4 @@
-/* referral.css – современный дизайн реферальной системы */
+/* referral.css – современный дизайн реферальной системы с бонусными карточками */
 
 .referral-title {
     text-align: center;
@@ -100,7 +100,7 @@
     margin-top: 10px;
 }
 
-/* Бонусная карточка */
+/* Бонусная карточка (старая) */
 .bonus-card {
     display: flex;
     align-items: center;
@@ -160,7 +160,7 @@
     color: white;
 }
 
-/* Прогресс-карточка */
+/* Карточка прогресса (бонусы за приглашения) */
 .progress-card {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 28px;
@@ -178,6 +178,81 @@
 .trophy-icon {
     font-size: 28px;
 }
+
+/* Список бонусов (карточки уровней) */
+.bonus-levels-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0;
+}
+.bonus-level-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 12px 16px;
+    transition: 0.2s;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.bonus-level-card:hover {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: #2b6e9e;
+}
+.bonus-level-icon {
+    font-size: 28px;
+    margin-right: 12px;
+}
+.bonus-level-info {
+    flex: 2;
+}
+.bonus-level-title {
+    font-weight: 700;
+    font-size: 16px;
+}
+.bonus-level-reward {
+    font-size: 13px;
+    color: #fbbf24;
+    margin-top: 4px;
+}
+.bonus-level-status {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+.bonus-level-action {
+    min-width: 110px;
+    text-align: right;
+}
+.bonus-claim-btn {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border: none;
+    padding: 8px 14px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.bonus-claim-btn:hover {
+    transform: scale(1.02);
+    background: #2b6e9e;
+}
+.bonus-claim-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.bonus-claimed-badge {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+    padding: 6px 12px;
+    border-radius: 40px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .progress-info {
     display: flex;
     justify-content: space-between;
@@ -288,5 +363,16 @@
     }
     .bonus-text {
         font-size: 12px;
+    }
+    .bonus-level-card {
+        flex-wrap: wrap;
+    }
+    .bonus-level-action {
+        margin-top: 8px;
+        text-align: left;
+        width: 100%;
+    }
+    .bonus-claim-btn {
+        width: 100%;
     }
 }
