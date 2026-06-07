@@ -1,4 +1,5 @@
-// profile.js – финальная рабочая версия (сетки аватарок, палитра цветов, превью)
+// profile.js – финальная рабочая версия с центрированными аватарами и всеми функциями
+
 const avatarEmojis = [
     '👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'
 ];
@@ -10,10 +11,11 @@ const avatarFontSizes = {
     '⚡':'56px','🔮':'56px','🎮':'56px','🚀':'56px','⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px',
     '🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px'
 };
+
+// Исправленная функция – возвращает только размер шрифта, без transform (чтобы CSS управлял центровкой)
 function getAvatarStyle(emoji) {
-    const adjust = avatarAdjustments[emoji] || 0;
     const fontSize = avatarFontSizes[emoji] || '48px';
-    return `transform: translateY(${adjust}px); font-size: ${fontSize};`;
+    return `font-size: ${fontSize};`;
 }
 
 const bgColors = [
@@ -232,17 +234,10 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
         currentColorValue = currentBg;
     } else {
         const mapping = {
-            'gradient1': '#2b6e9e',
-            'gradient2': '#9b59b6',
-            'gradient3': '#e67e22',
-            'gradient4': '#27ae60',
-            'gradient5': '#f1c40f',
-            'gradient6': '#e74c3c',
-            'gradient7': '#1abc9c',
-            'gradient8': '#3498db',
-            'gradient9': '#2c3e50',
-            'gradient10': '#ff9a9e',
-            'gradient11': '#a18cd1'
+            'gradient1': '#2b6e9e', 'gradient2': '#9b59b6', 'gradient3': '#e67e22',
+            'gradient4': '#27ae60', 'gradient5': '#f1c40f', 'gradient6': '#e74c3c',
+            'gradient7': '#1abc9c', 'gradient8': '#3498db', 'gradient9': '#2c3e50',
+            'gradient10': '#ff9a9e', 'gradient11': '#a18cd1'
         };
         currentColorValue = mapping[currentBg] || '#2b6e9e';
     }
@@ -323,17 +318,10 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
             saveBgValue = selectedBgValue;
         } else {
             const mapping = {
-                '#2b6e9e': 'gradient1',
-                '#9b59b6': 'gradient2',
-                '#e67e22': 'gradient3',
-                '#27ae60': 'gradient4',
-                '#f1c40f': 'gradient5',
-                '#e74c3c': 'gradient6',
-                '#1abc9c': 'gradient7',
-                '#3498db': 'gradient8',
-                '#2c3e50': 'gradient9',
-                '#ff9a9e': 'gradient10',
-                '#a18cd1': 'gradient11'
+                '#2b6e9e': 'gradient1', '#9b59b6': 'gradient2', '#e67e22': 'gradient3',
+                '#27ae60': 'gradient4', '#f1c40f': 'gradient5', '#e74c3c': 'gradient6',
+                '#1abc9c': 'gradient7', '#3498db': 'gradient8', '#2c3e50': 'gradient9',
+                '#ff9a9e': 'gradient10', '#a18cd1': 'gradient11'
             };
             saveBgValue = mapping[selectedBgValue] || 'gradient1';
         }
@@ -357,17 +345,10 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     } else {
         const found = bgColors.find(c => {
             const mapping = {
-                '#2b6e9e': 'gradient1',
-                '#9b59b6': 'gradient2',
-                '#e67e22': 'gradient3',
-                '#27ae60': 'gradient4',
-                '#f1c40f': 'gradient5',
-                '#e74c3c': 'gradient6',
-                '#1abc9c': 'gradient7',
-                '#3498db': 'gradient8',
-                '#2c3e50': 'gradient9',
-                '#ff9a9e': 'gradient10',
-                '#a18cd1': 'gradient11'
+                '#2b6e9e': 'gradient1', '#9b59b6': 'gradient2', '#e67e22': 'gradient3',
+                '#27ae60': 'gradient4', '#f1c40f': 'gradient5', '#e74c3c': 'gradient6',
+                '#1abc9c': 'gradient7', '#3498db': 'gradient8', '#2c3e50': 'gradient9',
+                '#ff9a9e': 'gradient10', '#a18cd1': 'gradient11'
             };
             return mapping[c.value] === currentUser.avatar_bg;
         });
@@ -519,35 +500,20 @@ window.renderProfileTab = async function(
         nextHtml += `</div>`;
     }
 
-    let avatarClass = 'avatar-circle';
-    let avatarStyle = '';
-    if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
-        avatarStyle = `background: ${currentUser.avatar_bg};`;
-    } else {
-        const mapping = {
-            'gradient1': '#2b6e9e',
-            'gradient2': '#9b59b6',
-            'gradient3': '#e67e22',
-            'gradient4': '#27ae60',
-            'gradient5': '#f1c40f',
-            'gradient6': '#e74c3c',
-            'gradient7': '#1abc9c',
-            'gradient8': '#3498db',
-            'gradient9': '#2c3e50',
-            'gradient10': '#ff9a9e',
-            'gradient11': '#a18cd1'
-        };
-        const bgColor = mapping[currentUser.avatar_bg] || '#2b6e9e';
-        avatarStyle = `background: ${bgColor};`;
-        avatarClass = 'avatar-circle';
-    }
-    const emojiStyle = getAvatarStyle(currentUser.avatar_url);
-    const borderStyle = getBorderStyle(currentUser.avatar_border || '#ffffff');
+    // Генерация аватара – больше не используем avatarClass, только CSS управляет размером
+    const avatarUrl = currentUser.avatar_url || '👤';
+    const avatarBg = currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#') 
+        ? currentUser.avatar_bg 
+        : ( { gradient1:'#2b6e9e', gradient2:'#9b59b6', gradient3:'#e67e22', gradient4:'#27ae60', gradient5:'#f1c40f', gradient6:'#e74c3c', gradient7:'#1abc9c', gradient8:'#3498db', gradient9:'#2c3e50', gradient10:'#ff9a9e', gradient11:'#a18cd1' }[currentUser.avatar_bg] || '#2b6e9e' );
+    const avatarBorder = currentUser.avatar_border || '#ffffff';
+    const emojiStyle = getAvatarStyle(avatarUrl);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
 
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div id="avatarClickWrapper">
-            <div class="${avatarClass}" style="${avatarStyle}; ${borderStyle}"><span class="avatar-emoji" style="${emojiStyle}">${currentUser.avatar_url}</span></div>
+            <div class="avatar-circle" style="background: ${avatarBg}; border: 3px solid ${avatarBorder};">
+                <span class="avatar-emoji" style="${emojiStyle}">${avatarUrl}</span>
+            </div>
             <div class="small-text">Нажмите на аватар для кастомизации</div>
         </div>
         <p style="font-size:20px; font-weight:bold; margin-top:8px;">${currentUser.username}</p>
