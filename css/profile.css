@@ -1,6 +1,5 @@
-/* profile.css – аватар увеличен, эмодзи строго по центру (переопределяем translateY) */
+/* profile.css – финальная центровка аватарок */
 
-/* ===== Аватар ===== */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -9,6 +8,7 @@
     cursor: pointer;
     margin: 0 auto;
 }
+
 .avatar-circle {
     width: 140px !important;
     height: 140px !important;
@@ -26,18 +26,19 @@
     margin-bottom: 12px;
     transition: 0.2s;
 }
-.avatar-circle:hover {
-    transform: scale(1.02);
-}
 
-/* Переопределяем inline-стиль transform (который добавляет profile.js) */
+/* Жёсткая центровка для любых эмодзи */
 .avatar-circle .avatar-emoji,
-#avatarClickWrapper .avatar-circle .avatar-emoji {
-    transform: translateY(0) !important;
+#avatarClickWrapper .avatar-circle .avatar-emoji,
+.avatar-circle span.avatar-emoji {
+    transform: none !important;
+    translate: none !important;
+    position: static !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    vertical-align: middle;
+    vertical-align: middle !important;
+    line-height: 1 !important;
 }
 
 .small-text {
@@ -45,7 +46,7 @@
     color: #9ca3af;
 }
 
-/* ===== Сетки выбора (кастомизация) ===== */
+/* ===== Сетки выбора (кастомизация) – без изменений ===== */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
