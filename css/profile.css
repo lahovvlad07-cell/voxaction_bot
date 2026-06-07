@@ -1,6 +1,5 @@
-/* profile.css – аватар увеличен, эмодзи приподняты на ПК */
+/* profile.css – полная версия с кастомизацией, достижениями и центровкой аватаров */
 
-/* ===== Аватар ===== */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -9,6 +8,7 @@
     cursor: pointer;
     margin: 0 auto;
 }
+
 .avatar-circle {
     width: 140px !important;
     height: 140px !important;
@@ -28,6 +28,7 @@
     overflow: visible;
     line-height: 1;
 }
+
 .avatar-circle .avatar-emoji {
     display: inline-flex !important;
     align-items: center !important;
@@ -37,18 +38,20 @@
     transform: none !important;
     position: static !important;
 }
-/* Поднимаем эмодзи на ПК (камера выше) */
+
+/* Коррекция для ПК – поднимите значение если нужно выше */
 @media (min-width: 561px) {
     .avatar-circle .avatar-emoji {
-        transform: translateY(-8px) !important;
+        transform: translateY(-6px) !important;
     }
 }
+
 .small-text {
     font-size: 12px;
     color: #9ca3af;
 }
 
-/* ===== Сетки выбора (кастомизация) – без изменений ===== */
+/* ===== Сетки выбора (кастомизация) ===== */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -77,6 +80,7 @@
     line-height: 1;
     transform: none !important;
 }
+
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
