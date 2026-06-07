@@ -1,4 +1,4 @@
-/* profile.css – окончательная версия с центровкой на всех устройствах */
+/* profile.css – финальная центровка аватарок с отдельной настройкой для ПК */
 
 #avatarClickWrapper {
     display: flex;
@@ -26,6 +26,7 @@
     margin-bottom: 12px;
     transition: 0.2s;
     overflow: visible;
+    line-height: 1;
 }
 
 .avatar-circle .avatar-emoji {
@@ -38,10 +39,10 @@
     position: static !important;
 }
 
-/* Коррекция для ПК – опускаем эмодзи на 4px */
+/* Коррекция для ПК – опускаем эмодзи вниз с помощью translateY */
 @media (min-width: 561px) {
     .avatar-circle .avatar-emoji {
-        margin-top: 4px !important;
+        transform: translateY(4px) !important;
     }
 }
 
@@ -281,7 +282,7 @@
     }
     .avatar-circle .avatar-emoji {
         font-size: 56px !important;
-        margin-top: 0 !important; /* на телефоне смещение не нужно */
+        transform: translateY(0) !important; /* на телефоне смещение не нужно */
     }
     .achi-icon {
         width: 48px;
