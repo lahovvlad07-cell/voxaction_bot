@@ -1,4 +1,4 @@
-// referral.js – рабочая версия (без псевдоэлементов, всё через HTML)
+// referral.js – стабильная версия
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     const activeCode = currentUser.referral_code;
@@ -14,19 +14,13 @@ window.renderReferralTab = async function() {
         <div class="card">
             <h2 class="referral-title">🔗 Реферальная программа</h2>
             <div class="referral-stats">
-                <div class="stat-card-horizontal">
-                    <div class="stat-icon">👥</div>
-                    <div class="stat-info">
-                        <div class="stat-number">${referralCount}</div>
-                        <div class="stat-label">Приглашено друзей</div>
-                    </div>
+                <div class="stat-block">
+                    <div class="stat-number">${referralCount}</div>
+                    <div class="stat-label">Приглашено друзей</div>
                 </div>
-                <div class="stat-card-horizontal">
-                    <div class="stat-icon">💰</div>
-                    <div class="stat-info">
-                        <div class="stat-number">${earnedShares}</div>
-                        <div class="stat-label">Заработано акций</div>
-                    </div>
+                <div class="stat-block">
+                    <div class="stat-number">${earnedShares}</div>
+                    <div class="stat-label">Заработано акций</div>
                 </div>
             </div>
 
@@ -39,10 +33,7 @@ window.renderReferralTab = async function() {
                 <div class="link-hint">Нажмите «Поделиться», чтобы отправить ссылку другу в Telegram</div>
             </div>
 
-            <button id="showReferralsListBtn" class="secondary referral-list-btn">
-                <span>👥 Приглашённые пользователи</span>
-                <span class="badge-count">${referralCount}</span>
-            </button>
+            <button id="showReferralsListBtn" class="secondary" style="margin: 16px 0;">👥 Приглашённые пользователи (${referralCount})</button>
 
             <div class="bonus-card">
                 <div class="bonus-icon">🎁</div>
