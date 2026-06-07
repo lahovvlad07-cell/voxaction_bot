@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с увеличенными кружками и исправленным пустым списком */
+/* referral.css – финальная версия (пустой список – только текст и кнопка) */
 
 .referral-header {
     text-align: center;
@@ -285,7 +285,7 @@
     color: #fbbf24;
 }
 
-/* Пустой список – только смайлик (через псевдоэлемент) и кнопка */
+/* Пустой список – только текст и кнопка (без смайлика) */
 .empty-referrals-message {
     display: flex;
     flex-direction: column;
@@ -294,10 +294,10 @@
     padding: 30px 20px;
     gap: 16px;
 }
-.empty-referrals-message::before {
-    content: "😢";
-    font-size: 64px;
-    line-height: 1;
+.empty-text {
+    font-size: 15px;
+    color: #9ca3af;
+    text-align: center;
 }
 .empty-referrals-message button {
     background: rgba(56, 189, 248, 0.15);
@@ -422,8 +422,8 @@
     .referrals-toggle .label-text {
         font-size: 15px;
     }
-    .empty-referrals-message::before {
-        font-size: 52px;
+    .empty-text {
+        font-size: 14px;
     }
     .empty-referrals-message button {
         padding: 8px 20px;
