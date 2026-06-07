@@ -10,8 +10,8 @@ window.renderReferralTab = async function() {
     const remaining = nextMilestone - referralCount;
 
     let html = `
-        <div class="card">
-            <h2 class="referral-title" style="text-align: center; margin-bottom: 24px; font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6, #60a5fa); background-size: 200% 200%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: gradientShift 3s ease infinite;">🔗 Реферальная система</h2>
+        <div class="card" style="overflow: visible !important;">
+            <h2 class="referral-title">🔗 Реферальная система</h2>
             <div class="referral-stats">
                 <div class="stat-block">
                     <div class="stat-number">${referralCount}</div>
