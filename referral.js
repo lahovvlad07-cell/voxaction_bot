@@ -71,7 +71,7 @@ window.renderReferralTab = async function() {
                 </div>
             `;
             document.getElementById('copyInviteEmptyBtn')?.addEventListener('click', () => {
-                const code = currentUser.custom_ref_code || '';
+                const code = currentUser.custom_ref_code || currentUser.referral_code;
                 if (code) {
                     const link = `https://t.me/VoxAction_Bot?start=${code}`;
                     navigator.clipboard.writeText(link);
@@ -134,8 +134,9 @@ window.renderReferralTab = async function() {
         });
     }
 
-    const customCode = currentUser.custom_ref_code || '';
-    const inviteLink = customCode ? `https://t.me/VoxAction_Bot?start=${customCode}` : '';
+    const customCode = currentUser.custom_ref_code;
+    const defaultCode = currentUser.referral_code;
+    const inviteLink = customCode ? `https://t.me/VoxAction_Bot?start=${customCode}` : (defaultCode ? `https://t.me/VoxAction_Bot?start=${defaultCode}` : '');
 
     let html = `
         <div class="card" style="overflow: visible !important;">
@@ -172,7 +173,7 @@ window.renderReferralTab = async function() {
             <div class="invite-section">
                 <div class="invite-link" id="refLinkText">${inviteLink || 'Установите свой код'}</div>
                 <div class="custom-code-section">
-                    <input type="text" id="customCodeInput" placeholder="Ваш уникальный код" value="${escapeHtml(customCode)}" maxlength="32">
+                    <input type="text" id="customCodeInput" placeholder="Ваш уникальный код" value="${escapeHtml(customCode || '')}" maxlength="32">
                     <button id="saveCustomCodeBtn">Сохранить код</button>
                 </div>
                 <div class="invite-buttons">
@@ -204,7 +205,7 @@ window.renderReferralTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // --- Обработчики ---
+    // Обработчики
     const fullLinkSpan = document.getElementById('refLinkText');
     const copyBtn = document.getElementById('copyRefLinkBtn');
     const shareBtn = document.getElementById('shareRefLinkBtn');
