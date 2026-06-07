@@ -1,5 +1,4 @@
 /* profile.css – полная версия с индивидуальной центровкой аватарок на ПК */
-
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -8,7 +7,6 @@
     cursor: pointer;
     margin: 0 auto;
 }
-
 .avatar-circle {
     width: 140px !important;
     height: 140px !important;
@@ -28,18 +26,18 @@
     overflow: visible;
     line-height: 1;
 }
-
 .avatar-circle .avatar-emoji {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     vertical-align: middle !important;
     line-height: 1 !important;
+    /* Сброс любых inline-стилей transform */
     transform: none !important;
     position: static !important;
 }
 
-/* Индивидуальная коррекция для каждой аватарки на ПК */
+/* Индивидуальная коррекция для каждой аватарки – только на ПК */
 @media (min-width: 561px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
     .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
@@ -301,6 +299,7 @@
     }
     .avatar-circle .avatar-emoji {
         font-size: 56px !important;
+        /* На телефонах никакого смещения */
         transform: translateY(0) !important;
     }
     .achi-icon {
