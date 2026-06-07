@@ -11,7 +11,6 @@ window.renderReferralTab = async function() {
         { friends: 10, stars: 25 }
     ];
 
-    // загружаем полученные бонусы
     let claimedFriends = [];
     try {
         const { data } = await window.supabase
@@ -21,7 +20,6 @@ window.renderReferralTab = async function() {
         claimedFriends = data.map(b => b.friends_required);
     } catch(e) {}
 
-    // следующий уровень
     let nextLevel = null;
     for (let l of bonusLevels) {
         if (!claimedFriends.includes(l.friends)) {
@@ -36,7 +34,6 @@ window.renderReferralTab = async function() {
     const rewardStars = nextLevel ? nextLevel.stars : 0;
     const canClaim = (referralCount >= target) && nextLevel !== null;
 
-    // HTML
     let html = `
         <div class="card" style="overflow: visible !important;">
             <div class="referral-header">
@@ -76,18 +73,20 @@ window.renderReferralTab = async function() {
                     <button class="share-btn" id="shareRefLinkBtn">📤 Поделиться</button>
                 </div>
             </div>
-            <div class="bonus-stock-card">
-                <div class="bonus-stock-icon">🎁</div>
-                <div class="bonus-stock-text">
-                    <strong>Бонус за пополнение друга:</strong> вы получите <strong>5 акций</strong>, а ваш друг — <strong>5 ⭐</strong>, когда он пополнит баланс от <strong>10 ⭐</strong>.
-                </div>
-            </div>
+            <!-- Кнопка-аккордеон для списка приглашённых -->
             <div class="referrals-toggle" id="referralsToggle">
                 <span>👥 Приглашённые</span>
                 <span class="badge">${referralCount}</span>
             </div>
             <div class="referrals-list-collapsible" id="referralsListCollapsible">
                 <div id="referralsListContent"></div>
+            </div>
+            <!-- Бонус за пополнение друга (после списка) -->
+            <div class="bonus-stock-card">
+                <div class="bonus-stock-icon">🎁</div>
+                <div class="bonus-stock-text">
+                    <strong>Бонус за пополнение друга:</strong> вы получите <strong>5 акций</strong>, а ваш друг — <strong>5 ⭐</strong>, когда он пополнит баланс от <strong>10 ⭐</strong>.
+                </div>
             </div>
             <div class="legend">
                 ⭐ Звёзды начисляются автоматически за каждого приведённого друга (по достижении порога). 
@@ -97,7 +96,6 @@ window.renderReferralTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // обработчики
     document.getElementById('copyRefLinkBtn')?.addEventListener('click', () => {
         navigator.clipboard.writeText(fullLink);
         window.showCustomModal('Скопировано', 'Ссылка скопирована');
@@ -108,7 +106,6 @@ window.renderReferralTab = async function() {
         else window.open(shareUrl, '_blank');
     });
 
-    // аккордеон списка рефералов
     const toggleBtn = document.getElementById('referralsToggle');
     const collapsible = document.getElementById('referralsListCollapsible');
     if (toggleBtn) {
@@ -121,11 +118,17 @@ window.renderReferralTab = async function() {
                 else {
                     content = list.map(r => `
                         <div class="referral-item">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span style="font-size:28px;">${r.avatarUrl}</span>
-                                <div><strong>${escapeHtml(r.username)}</strong><br><span style="font-size:10px;color:#6b7280;">ID: ${r.userId}</span></div>
+                            <div class="referral-user-info">
+                                <div class="referral-avatar-wrapper">${r.avatarUrl}</div>
+                                <div class="referral-details">
+                                    <div class="referral-name">${escapeHtml(r.username)}</div>
+                                    <div class="referral-id">ID: ${r.userId}</div>
+                                    <div class="referral-date">${new Date(r.registeredAt).toLocaleDateString()}</div>
+                                </div>
                             </div>
-                            <div>${r.topupCompleted ? `<span class="status-success">✅ пополнил</span>` : `<span class="status-pending">⏳ ждём</span>`}</div>
+                            <div class="referral-status-badge">
+                                ${r.topupCompleted ? '<span class="status-success">✅ Пополнил</span>' : '<span class="status-pending">⏳ Ожидает пополнения</span>'}
+                            </div>
                         </div>
                     `).join('');
                 }
