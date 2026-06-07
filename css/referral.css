@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с идеальным выравниванием */
+/* referral.css – финальная версия с исправленным выравниванием смайлика и увеличением иконки */
 
 .referral-header {
     text-align: center;
@@ -168,7 +168,6 @@
     border: 1px solid #38bdf8;
 }
 
-/* ===== ИСПРАВЛЕННАЯ КНОПКА С ИДЕАЛЬНЫМ ВЫРАВНИВАНИЕМ ===== */
 .referrals-toggle {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -284,17 +283,32 @@
     background: rgba(251, 191, 36, 0.15);
     color: #fbbf24;
 }
+
+/* Исправленное сообщение "Пока никого не пригласили" – смайлик через CSS */
 .empty-referrals-message {
     text-align: center;
     padding: 20px;
     color: #9ca3af;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.empty-referrals-message::before {
+    content: "😢";
+    font-size: 56px;
+    display: block;
+    line-height: 1;
+}
+.empty-text {
+    font-size: 16px;
 }
 .empty-referrals-message button {
     background: rgba(56, 189, 248, 0.15);
     border: 1px solid #38bdf8;
     padding: 8px 20px;
     border-radius: 60px;
-    margin-top: 10px;
+    margin-top: 0;
     cursor: pointer;
 }
 
@@ -399,11 +413,18 @@
         padding: 4px 12px;
         font-size: 12px;
     }
+    /* Увеличиваем иконку человечка на мобильных */
     .referrals-toggle .btn-icon {
-        font-size: 22px;
-        margin-right: 6px;
+        font-size: 28px;
+        margin-right: 8px;
     }
     .referrals-toggle .label-text {
+        font-size: 15px;
+    }
+    .empty-referrals-message::before {
+        font-size: 48px;
+    }
+    .empty-text {
         font-size: 14px;
     }
 }
