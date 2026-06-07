@@ -12,7 +12,7 @@ const avatarFontSizes = {
     '🎉':'56px','⚽':'56px','📷':'56px','🎨':'56px'
 };
 
-// Исправленная функция – возвращает только размер шрифта, без transform (чтобы CSS управлял центровкой)
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ – возвращает только размер шрифта, без transform
 function getAvatarStyle(emoji) {
     const fontSize = avatarFontSizes[emoji] || '48px';
     return `font-size: ${fontSize};`;
@@ -500,7 +500,7 @@ window.renderProfileTab = async function(
         nextHtml += `</div>`;
     }
 
-    // Генерация аватара – больше не используем avatarClass, только CSS управляет размером
+    // Генерация аватара
     const avatarUrl = currentUser.avatar_url || '👤';
     const avatarBg = currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#') 
         ? currentUser.avatar_bg 
