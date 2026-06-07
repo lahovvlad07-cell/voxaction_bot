@@ -327,7 +327,6 @@ window.createInvoice = async function(amount) {
 };
 
 // ========== НОВЫЕ ФУНКЦИИ ДЛЯ ПРОСМОТРА ПРОФИЛЕЙ ДРУГИХ ПОЛЬЗОВАТЕЛЕЙ ==========
-
 window.getEarnedAchievementsForUser = async function(userId) {
     const { data, error } = await window.supabase
         .from('user_achievements')
@@ -367,4 +366,14 @@ window.getUserRankForUser = async function(userId) {
     const idx = data.findIndex(u => u.id === userId);
     if (idx === -1) return null;
     return idx + 1;
+};
+
+// ========== ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ БОНУСОВ РЕФЕРАЛЬНОЙ СИСТЕМЫ ==========
+window.claimReferralBonus = async (friendsNeeded, stars) => {
+    const response = await fetch(`${window.BACKEND_URL}/claim-referral-bonus`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: window.userId, friends_needed: friendsNeeded, stars: stars })
+    });
+    return response.json();
 };
