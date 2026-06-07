@@ -4,7 +4,6 @@ window.renderReferralTab = async function() {
     const fullLink = `https://t.me/VoxAction_Bot?start=${activeCode}`;
     const referralCount = currentUser.referral_count || 0;
 
-    // Бонусные уровни (друзей → звёзд)
     const bonusLevels = [
         { friends: 1, stars: 3 },
         { friends: 3, stars: 5 },
@@ -12,7 +11,6 @@ window.renderReferralTab = async function() {
         { friends: 10, stars: 25 }
     ];
 
-    // Загружаем уже полученные бонусы и считаем общее количество заработанных звёзд
     let claimedBonuses = [];
     let totalEarnedStars = 0;
     try {
@@ -24,7 +22,6 @@ window.renderReferralTab = async function() {
         totalEarnedStars = data.reduce((sum, b) => sum + b.stars_received, 0);
     } catch(e) { console.warn(e); }
 
-    // Определяем текущий следующий неполученный уровень
     let nextLevel = null;
     for (let l of bonusLevels) {
         if (!claimedBonuses.includes(l.friends)) {
@@ -39,7 +36,6 @@ window.renderReferralTab = async function() {
     const rewardStars = nextLevel ? nextLevel.stars : 0;
     const canClaim = (referralCount >= target) && nextLevel !== null;
 
-    // --- Пагинация для списка приглашённых ---
     let currentPage = 1;
     const itemsPerPage = 10;
     let fullReferralsList = [];
@@ -57,7 +53,16 @@ window.renderReferralTab = async function() {
         if (!container) return;
 
         if (fullReferralsList.length === 0) {
-            container.innerHTML = '<div style="padding:20px;text-align:center;">Нет приглашённых</div>';
+            container.innerHTML = `
+                <div class="empty-referrals-message">
+                    😢 Пока никого не пригласили<br>
+                    <button id="copyInviteEmptyBtn">📋 Скопировать ссылку</button>
+                </div>
+            `;
+            document.getElementById('copyInviteEmptyBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(fullLink);
+                window.showCustomModal('Скопировано', 'Ссылка скопирована');
+            });
             document.getElementById('referralsPagination')?.remove();
             return;
         }
@@ -122,7 +127,6 @@ window.renderReferralTab = async function() {
         });
     }
 
-    // --- Формирование HTML ---
     let html = `
         <div class="card" style="overflow: visible !important;">
             <div class="referral-header">
@@ -146,7 +150,7 @@ window.renderReferralTab = async function() {
     } else {
         html += `
             <div class="progress-block">
-                <div class="progress-label">🎁 До следующей награды <strong>${rewardStars} ⭐</strong> осталось пригласить <strong>${remaining}</strong> друга(ей)</div>
+                <div class="progress-label">🎯 До следующей награды <strong>${rewardStars} ⭐</strong> осталось пригласить <strong>${remaining}</strong> друга(ей)</div>
                 <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
                 <div class="progress-stats">${referralCount} / ${target}</div>
                 ${canClaim ? `<button class="claim-btn" data-friends="${target}" data-stars="${rewardStars}">🎁 Получить ${rewardStars} ⭐</button>` : ''}
@@ -184,7 +188,6 @@ window.renderReferralTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // Обработчики кнопок
     document.getElementById('copyRefLinkBtn')?.addEventListener('click', () => {
         navigator.clipboard.writeText(fullLink);
         window.showCustomModal('Скопировано', 'Ссылка скопирована');
@@ -195,7 +198,6 @@ window.renderReferralTab = async function() {
         else window.open(shareUrl, '_blank');
     });
 
-    // Аккордеон списка рефералов
     const toggleBtn = document.getElementById('referralsToggle');
     const collapsible = document.getElementById('referralsListCollapsible');
     if (toggleBtn) {
@@ -208,7 +210,6 @@ window.renderReferralTab = async function() {
         });
     }
 
-    // Кнопка получения бонуса
     const claimBtn = document.querySelector('.claim-btn');
     if (claimBtn) {
         claimBtn.addEventListener('click', async () => {
