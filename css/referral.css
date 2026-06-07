@@ -1,4 +1,4 @@
-/* referral.css – унифицированные шрифты и размеры эмодзи */
+/* referral.css – унифицированные размеры иконок, убран лишний кубок */
 
 .referral-title {
     text-align: center;
@@ -75,13 +75,13 @@
     margin-top: 8px;
 }
 
-/* Кнопка "Приглашённые пользователи" – единый стиль */
+/* Кнопка приглашённых */
 .referral-list-btn {
     display: flex !important;
     align-items: center;
     justify-content: space-between;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.6);
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(56, 189, 248, 0.6) !important;
     border-radius: 60px;
     padding: 12px 20px;
     margin: 16px 0;
@@ -93,11 +93,11 @@
     color: #eef2ff;
 }
 .referral-list-btn:hover {
-    background: rgba(56, 189, 248, 0.25);
-    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.25) !important;
+    border-color: #38bdf8 !important;
 }
 .btn-icon {
-    font-size: 24px;
+    font-size: 28px;
     line-height: 1;
 }
 .badge-count {
@@ -111,7 +111,7 @@
     text-align: center;
 }
 
-/* Бонус-карточка – иконка 30px (как трофей) */
+/* Бонус-карточка */
 .bonus-card {
     display: flex;
     align-items: center;
@@ -123,7 +123,7 @@
     border-left: 4px solid #2b6e9e;
 }
 .bonus-icon {
-    font-size: 30px;
+    font-size: 28px;
     line-height: 1;
 }
 .bonus-text {
@@ -135,7 +135,7 @@
     color: white;
 }
 
-/* Блок достижений – трофей 30px, текст ровно */
+/* Блок достижений – без лишнего эмодзи в тексте */
 .progress-card {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 24px;
@@ -152,14 +152,15 @@
 }
 .progress-title::before {
     content: "🏆";
-    font-size: 30px;
+    font-size: 28px;
 }
+/* Убедимся, что в HTML нет дополнительного эмодзи, только текст */
 .progress-info {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 8px;
-    font-size: 13px;
+    font-size: 12px;
     margin-bottom: 12px;
     color: #cbd5e1;
     background: rgba(0, 0, 0, 0.3);
@@ -180,13 +181,13 @@
 }
 .progress-stats {
     text-align: right;
-    font-size: 13px;
+    font-size: 12px;
     margin-top: 8px;
     color: #e2e8f0;
     font-weight: 500;
 }
 
-/* Модалка без изменений */
+/* Модалка */
 .referrals-list {
     max-height: 400px;
     overflow-y: auto;
