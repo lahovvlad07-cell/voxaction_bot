@@ -1,4 +1,5 @@
 // api.js – полная версия с обновлённой реферальной системой (аватар и ID в списке)
+// и добавленными функциями для просмотра профилей других пользователей
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -135,7 +136,6 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
-// Обновлённая функция getReferralsList – теперь возвращает аватар и ID
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
@@ -324,4 +324,47 @@ window.adminAddStars = async function(targetId, stars) {
 window.createInvoice = async function(amount) {
     const res = await fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) });
     return res.json();
+};
+
+// ========== НОВЫЕ ФУНКЦИИ ДЛЯ ПРОСМОТРА ПРОФИЛЕЙ ДРУГИХ ПОЛЬЗОВАТЕЛЕЙ ==========
+
+window.getEarnedAchievementsForUser = async function(userId) {
+    const { data, error } = await window.supabase
+        .from('user_achievements')
+        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
+        .eq('user_id', userId);
+    if (error) return [];
+    return data.map(ua => ({
+        id: ua.achievements.id,
+        name: ua.achievements.name,
+        description: ua.achievements.description,
+        icon: ua.achievements.icon,
+        earned_at: ua.earned_at,
+        condition_type: ua.achievements.condition_type,
+        condition_value: ua.achievements.condition_value
+    }));
+};
+
+window.getUserStatsForUser = async function(userId) {
+    const { data, error } = await window.supabase
+        .from('trades')
+        .select('amount, total_stars')
+        .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+    if (error) return { totalTrades: 0, totalVolume: 0 };
+    return {
+        totalTrades: data.length,
+        totalVolume: data.reduce((s,t) => s + (t.total_stars / 100), 0)
+    };
+};
+
+window.getUserRankForUser = async function(userId) {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('id, shares')
+        .eq('hide_rating', false)
+        .order('shares', { ascending: false });
+    if (error) return null;
+    const idx = data.findIndex(u => u.id === userId);
+    if (idx === -1) return null;
+    return idx + 1;
 };
