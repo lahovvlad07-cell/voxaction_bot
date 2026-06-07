@@ -1,4 +1,4 @@
-/* referral.css – финальная версия с выравниванием */
+/* referral.css – финальная версия с идеальным выравниванием иконки */
 
 .referral-header {
     text-align: center;
@@ -168,7 +168,7 @@
     border: 1px solid #38bdf8;
 }
 
-/* Кнопка-аккордеон с идеальным вертикальным выравниванием */
+/* Кнопка-аккордеон с идеальным выравниванием */
 .referrals-toggle {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -188,17 +188,18 @@
 }
 .referrals-toggle .btn-icon {
     font-size: 26px;
-    margin-right: 8px;
-    display: inline-block;
-    vertical-align: middle;
-    line-height: 1;
-}
-.referrals-toggle span:first-child {
+    width: 32px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    vertical-align: middle;
+}
+.referrals-toggle .label-text {
     font-size: 16px;
     font-weight: 500;
+    margin-left: 4px;
+    display: inline-block;
+    vertical-align: middle;
 }
 .referrals-toggle .badge {
     background: #2b6e9e;
@@ -207,6 +208,7 @@
     font-size: 13px;
     font-weight: 600;
     color: white;
+    margin-left: auto;
 }
 
 .referrals-list-collapsible {
@@ -400,8 +402,9 @@
     }
     .referrals-toggle .btn-icon {
         font-size: 22px;
+        width: 28px;
     }
-    .referrals-toggle span:first-child {
+    .referrals-toggle .label-text {
         font-size: 14px;
     }
 }
