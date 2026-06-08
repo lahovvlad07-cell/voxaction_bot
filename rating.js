@@ -1,4 +1,4 @@
-// rating.js – финальная версия (прокрутка модалки, достижения в строку)
+// rating.js – финальная версия с прокруткой и отображением рейтинга
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -55,7 +55,6 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
-// Модальное окно профиля с прокруткой и горизонтальными достижениями
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
@@ -93,7 +92,7 @@ async function showUserProfileModal(userId) {
 
     const modalHtml = `
         <div class="modal" id="profileModal" style="display:flex;">
-            <div class="modal-content" style="max-width: 360px; width: 90%; max-height: 80vh; overflow-y: auto; padding-bottom: 20px;">
+            <div class="modal-content" style="max-width: 360px; width: 90%; max-height: 85vh; overflow-y: auto; padding-bottom: 20px;">
                 <span class="close-modal" id="closeProfileModal">&times;</span>
                 <div style="text-align: center; padding: 20px 0 10px;">
                     <div style="display: flex; justify-content: center;">${avatarHtml}</div>
