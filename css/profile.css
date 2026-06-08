@@ -1,4 +1,4 @@
-/* profile.css – финальная версия (аватарка ПК 130px, увеличенные эмодзи в кружках) */
+/* profile.css – исправленная версия (аватарка ПК 130px, шрифт 90px) */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -14,7 +14,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 70px !important;
+    font-size: 90px !important;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     background-color: rgba(0, 0, 0, 0.25);
@@ -30,14 +30,14 @@
     .avatar-circle {
         width: 120px !important;
         height: 120px !important;
-        font-size: 62px !important;
+        font-size: 70px !important;
     }
 }
 @media (max-width: 400px) {
     .avatar-circle {
         width: 100px !important;
         height: 100px !important;
-        font-size: 52px !important;
+        font-size: 60px !important;
     }
 }
 .avatar-circle .avatar-emoji {
@@ -49,36 +49,37 @@
     transform: none !important;
     position: static !important;
 }
+/* Коррекция смещения для эмодзи внутри аватарки (ПК) – уменьшена, чтобы эмодзи был крупнее */
 @media (min-width: 561px) {
-    .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
-    .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="😎"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="👍"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🐱"] { transform: translateY(-7px) !important; }
-    .avatar-emoji[style*="🐶"] { transform: translateY(-5px) !important; }
-    .avatar-emoji[style*="🦊"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🐼"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="🍕"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🍔"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🍩"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="☕"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="💎"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="💰"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🎲"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="🏆"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🎁"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🌟"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🔥"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="❤️"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="🚀"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🍀"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="👑"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🎯"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="👤"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="😀"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="😎"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="👍"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🐱"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🐶"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🦊"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🐼"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🍕"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🍔"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🍩"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="☕"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="💎"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="💰"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🎲"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🏆"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🎁"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🌟"] { transform: translateY(-1px) !important; }
+    .avatar-emoji[style*="🔥"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="❤️"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🚀"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🍀"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="👑"] { transform: translateY(-1px) !important; }
+    .avatar-emoji[style*="🎯"] { transform: translateY(-2px) !important; }
 }
 @media (min-width: 561px) {
     #stepModal .avatar-circle .avatar-emoji,
     #borderModal .avatar-circle .avatar-emoji {
-        transform: translateY(-6px) !important;
+        transform: translateY(-4px) !important;
     }
 }
 .small-text {
@@ -148,7 +149,7 @@
     font-size: 24px;
     text-shadow: 0 0 2px black;
 }
-/* ===== КРУЖКИ ДОСТИЖЕНИЙ (ПК 70px, телефон 60px, увеличенный шрифт) ===== */
+/* ===== КРУЖКИ ДОСТИЖЕНИЙ (ПК 70px, телефон 60px) ===== */
 .achievement-icons {
     display: flex;
     justify-content: center;
