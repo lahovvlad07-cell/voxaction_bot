@@ -1,4 +1,4 @@
-// api.js – стабильная версия с поддержкой кастомных кодов и бонусов
+// api.js – стабильная версия с поддержкой кастомных кодов, бонусов и рендеринга аватарок
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -379,7 +379,6 @@ window.claimReferralBonus = async (friendsNeeded, stars) => {
 
 // ========== УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ МИНИ-АВАТАРА ==========
 window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
-    // Нормализуем фон: если это gradient1...gradient11, преобразуем в цвет
     let bgColor = avatarBg;
     if (avatarBg && !avatarBg.startsWith('#')) {
         const mapping = {
@@ -395,7 +394,6 @@ window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52
     const borderColor = avatarBorder || '#ffffff';
     const emoji = avatarUrl || '👤';
     
-    // Адаптивный размер шрифта
     let fontSize = '32px';
     if (size === '52px') fontSize = '32px';
     else if (size === '40px') fontSize = '24px';
