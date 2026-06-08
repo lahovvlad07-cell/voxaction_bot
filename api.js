@@ -1,4 +1,4 @@
-// api.js – финальная исправленная версия (работает у новых пользователей)
+// api.js – финальная версия (с поддержкой смены никнейма)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -79,7 +79,7 @@ async function updateUserStats() {
     }
 }
 
-// ========== ПОЛЬЗОВАТЕЛЬ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ==========
+// ========== ПОЛЬЗОВАТЕЛЬ ==========
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -106,7 +106,6 @@ window.getOrCreateUser = async function() {
             referredById = userCheck.data.referred_by;
         }
         
-        // Вставка со всеми полями
         const { data: newUser, error: insertError } = await window.supabase.from('users').insert([{
             id: window.userId,
             username: window.username,
@@ -132,7 +131,8 @@ window.getOrCreateUser = async function() {
             total_earned: 0,
             total_volume: 0,
             trades_count: 0,
-            days_active: 0
+            days_active: 0,
+            last_username_change: new Date().toISOString()
         }]).select().single();
         
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
@@ -164,11 +164,11 @@ window.getOrCreateUser = async function() {
         return { user: newUser, isNew: true };
     }
     
-    // Если пользователь существует – обновляем недостающие поля
+    // Обновляем недостающие поля для старых пользователей
     let updated = false;
-    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active'];
+    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change'];
     for (let f of newFields) {
-        if (data[f] === undefined) { data[f] = 0; updated = true; }
+        if (data[f] === undefined) { data[f] = f === 'last_username_change' ? new Date().toISOString() : 0; updated = true; }
     }
     if (updated) {
         await window.supabase.from('users').update({
@@ -177,7 +177,8 @@ window.getOrCreateUser = async function() {
             total_earned: data.total_earned,
             total_volume: data.total_volume,
             trades_count: data.trades_count,
-            days_active: data.days_active
+            days_active: data.days_active,
+            last_username_change: data.last_username_change
         }).eq('id', window.userId);
     }
     return { user: data, isNew: false };
@@ -202,6 +203,62 @@ window.getUserStats = async function(forceRefresh = false) {
     };
     window._cachedStats = stats;
     return stats;
+};
+
+// ========== СМЕНА НИКНЕЙМА (раз в 30 дней, с фильтрацией) ==========
+window.updateUsername = async function(newUsername) {
+    if (!newUsername || newUsername.trim().length < 3) {
+        throw new Error('Никнейм должен содержать минимум 3 символа');
+    }
+    if (newUsername.length > 20) {
+        throw new Error('Никнейм не может быть длиннее 20 символов');
+    }
+    const allowedRegex = /^[a-zA-Zа-яА-ЯёЁ0-9_-]+$/;
+    if (!allowedRegex.test(newUsername)) {
+        throw new Error('Никнейм может содержать только буквы, цифры, _ и -');
+    }
+    
+    const forbiddenWords = [
+        'дурак', 'идиот', 'дебил', 'урод', 'сволочь', 'сука', 'хуй', 'пизда',
+        'бля', 'ебать', 'залупа', 'мудак', 'гнида', 'тварь', 'шлюха', 'проститутка',
+        'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'dick', 'pussy', 'nigger',
+        'лох', 'чмо', 'редиска', 'олень', 'баран', 'козел', 'свинья', 'петух'
+    ];
+    const lowerNew = newUsername.toLowerCase();
+    for (let word of forbiddenWords) {
+        if (lowerNew.includes(word)) {
+            throw new Error('Никнейм содержит запрещённые слова');
+        }
+    }
+    
+    const { data: user } = await window.supabase
+        .from('users')
+        .select('last_username_change, username')
+        .eq('id', window.userId)
+        .single();
+    if (!user) throw new Error('Пользователь не найден');
+    
+    if (user.last_username_change) {
+        const lastChange = new Date(user.last_username_change);
+        const daysSince = (Date.now() - lastChange.getTime()) / (1000 * 3600 * 24);
+        if (daysSince < 30 && user.username !== newUsername) {
+            const remaining = Math.ceil(30 - daysSince);
+            throw new Error(`Никнейм можно менять не чаще 1 раза в 30 дней. Осталось дней: ${remaining}`);
+        }
+    }
+    
+    if (user.username === newUsername) {
+        return { success: true, message: 'Никнейм не изменён' };
+    }
+    
+    const { error } = await window.supabase
+        .from('users')
+        .update({ username: newUsername, last_username_change: new Date().toISOString() })
+        .eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    
+    if (window.currentUser) window.currentUser.username = newUsername;
+    return { success: true, message: 'Никнейм успешно изменён! Следующая смена доступна через 30 дней.' };
 };
 
 // ========== ОРДЕРА И СДЕЛКИ ==========
