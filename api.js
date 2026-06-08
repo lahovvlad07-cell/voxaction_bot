@@ -1,8 +1,8 @@
-// api.js – финальная версия с красивой модалкой достижений
+// api.js – финальная исправленная версия (работает у новых пользователей)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ (КРАСИВАЯ МОДАЛКА) ==========
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ (МОДАЛЬНОЕ ОКНО) ==========
 async function awardAchievement(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -18,31 +18,12 @@ async function awardAchievement(achievementId) {
             earned_at: new Date().toISOString()
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
-        
-        // Создаём красивую модалку
-        const modalHtml = `
-            <div class="modal" id="achievementModal" style="display:flex; z-index:2000;">
-                <div class="modal-content" style="max-width: 320px; text-align: center; background: linear-gradient(145deg, #1e2a3a, #0f1722); border: 2px solid #fbbf24; box-shadow: 0 0 30px rgba(251,191,36,0.4); animation: bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);">
-                    <span class="close-modal" id="closeAchievementModal" style="color: #fbbf24;">&times;</span>
-                    <div style="font-size: 64px; margin: 10px 0 5px;">${ach.icon}</div>
-                    <h3 style="color: #fbbf24; margin: 0 0 5px;">Новое достижение!</h3>
-                    <h2 style="font-size: 22px; margin: 10px 0; background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent;">${ach.name}</h2>
-                    <p style="margin: 10px 20px 20px; font-size: 14px; color: #cbd5e1;">${ach.description}</p>
-                    <button id="achievementOkBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1e1e2f; font-weight: bold; margin-bottom: 10px;">Отлично!</button>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        const modal = document.getElementById('achievementModal');
-        const closeModal = () => modal.remove();
-        document.getElementById('closeAchievementModal').onclick = closeModal;
-        document.getElementById('achievementOkBtn').onclick = closeModal;
-        // Закрытие по клику вне модалки (на оверлее)
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-        
-        if (window.renderProfileTab) window.renderProfileTab(); // обновить профиль
+        if (window.showCustomModal) {
+            window.showCustomModal(`🏆 Новое достижение!`, `${ach.icon} ${ach.name}\n\n${ach.description}`);
+        } else {
+            alert(`🏆 Достижение: ${ach.icon} ${ach.name}`);
+        }
+        if (window.renderProfileTab) window.renderProfileTab();
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
 }
 
@@ -98,26 +79,34 @@ async function updateUserStats() {
     }
 }
 
-// ========== ПОЛЬЗОВАТЕЛЬ ==========
+// ========== ПОЛЬЗОВАТЕЛЬ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ==========
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
+    
     if (!data) {
-        const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'];
+        // Создаём нового пользователя
+        const avatarOptions = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
         const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
         const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
         const randomBg = bgOptions[Math.floor(Math.random() * bgOptions.length)];
         const borderOptions = ['#ffffff','#ff0000','#00ff00','#0000ff','#ffff00','#ff69b4','#00ffff','#9b30ff'];
         const randomBorder = borderOptions[Math.floor(Math.random() * borderOptions.length)];
+        
         let referralCode = 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
         let existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
         while (existingCode.data) {
             referralCode = 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
             existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
         }
+        
         let referredById = null;
         const userCheck = await window.supabase.from('users').select('referred_by').eq('id', window.userId).maybeSingle();
-        if (userCheck.data?.referred_by) referredById = userCheck.data.referred_by;
+        if (userCheck.data && userCheck.data.referred_by) {
+            referredById = userCheck.data.referred_by;
+        }
+        
+        // Вставка со всеми полями
         const { data: newUser, error: insertError } = await window.supabase.from('users').insert([{
             id: window.userId,
             username: window.username,
@@ -145,25 +134,42 @@ window.getOrCreateUser = async function() {
             trades_count: 0,
             days_active: 0
         }]).select().single();
+        
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
+        
         if (referredById) {
-            await window.supabase.from('users').update({ stars_balance: 500 }).eq('id', window.userId);
-            await window.supabase.from('referrals').insert({
-                referrer_id: referredById,
-                referred_id: window.userId,
-                registered_at: new Date().toISOString(),
-                topup_completed: false,
-                bonus_earned: false
-            });
-            await window.supabase.rpc('increment_referral_count', { p_user_id: referredById });
+            try {
+                await window.supabase.from('users').update({ stars_balance: 500 }).eq('id', window.userId);
+                await window.supabase.from('referrals').insert({
+                    referrer_id: referredById,
+                    referred_id: window.userId,
+                    registered_at: new Date().toISOString(),
+                    topup_completed: false,
+                    bonus_earned: false
+                });
+                await window.supabase.from('users').update({ referral_count: window.supabase.raw('referral_count + 1') }).eq('id', referredById);
+                await window.supabase.from('notifications').insert({
+                    user_id: referredById,
+                    message: `🎉 Новый реферал! ${window.username} зарегистрировался по вашей ссылке.`,
+                    type: 'notify_referral',
+                    is_read: false
+                });
+            } catch(e) { console.error('Ошибка при обработке реферала', e); }
         }
-        await awardAchievement(1); // Первый шаг
+        
+        try {
+            await awardAchievement(1);
+        } catch(e) { console.error('Ошибка выдачи достижения', e); }
+        
         return { user: newUser, isNew: true };
     }
+    
+    // Если пользователь существует – обновляем недостающие поля
     let updated = false;
-    ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active'].forEach(f => {
+    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active'];
+    for (let f of newFields) {
         if (data[f] === undefined) { data[f] = 0; updated = true; }
-    });
+    }
     if (updated) {
         await window.supabase.from('users').update({
             total_topup: data.total_topup,
