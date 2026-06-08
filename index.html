@@ -100,6 +100,50 @@
             setTimeout(() => toast.remove(), 5000);
         };
         
+        // ========== ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ ТАБОВ (DRAG TO SCROLL) ==========
+        const tabsWrapper = document.querySelector('.tabs-wrapper');
+        if (tabsWrapper) {
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+
+            tabsWrapper.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                isDown = true;
+                startX = e.clientX;
+                scrollLeft = tabsWrapper.scrollLeft;
+                tabsWrapper.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            window.addEventListener('mouseup', () => {
+                if (!isDown) return;
+                isDown = false;
+                tabsWrapper.style.cursor = 'grab';
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.clientX;
+                const walk = (x - startX) * 1.5;
+                tabsWrapper.scrollLeft = scrollLeft - walk;
+            });
+            tabsWrapper.addEventListener('dragstart', (e) => e.preventDefault());
+
+            let touchStartX = 0, touchScrollLeft = 0;
+            tabsWrapper.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchScrollLeft = tabsWrapper.scrollLeft;
+            });
+            tabsWrapper.addEventListener('touchmove', (e) => {
+                if (!touchStartX) return;
+                const deltaX = e.touches[0].clientX - touchStartX;
+                tabsWrapper.scrollLeft = touchScrollLeft - deltaX;
+            });
+            tabsWrapper.addEventListener('touchend', () => {
+                touchStartX = 0;
+            });
+        }
+        
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
         window.tg = tg;
@@ -151,6 +195,7 @@
                 </div>
             `;
             document.getElementById('app').innerHTML = html;
+            
             document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
             document.getElementById('saveSettings').onclick = async () => {
                 const newHide = document.getElementById('hideRatingCheckbox').checked;
@@ -159,23 +204,38 @@
                 localStorage.setItem('custom_color', newColor);
                 document.documentElement.style.setProperty('--accent', newColor);
                 if (window.setUseSliders) window.setUseSliders(newUseSliders);
-                await window.supabase.from('users').update({ hide_rating: newHide, notify_trades: document.getElementById('notifyTradesCheckbox').checked, notify_topup: document.getElementById('notifyTopupCheckbox').checked, notify_referral: document.getElementById('notifyReferralCheckbox').checked }).eq('id', window.userId);
+                await window.supabase.from('users').update({ 
+                    hide_rating: newHide, 
+                    notify_trades: document.getElementById('notifyTradesCheckbox').checked, 
+                    notify_topup: document.getElementById('notifyTopupCheckbox').checked, 
+                    notify_referral: document.getElementById('notifyReferralCheckbox').checked 
+                }).eq('id', window.userId);
                 window.currentUser.hide_rating = newHide;
                 window.showCustomModal('Успех', 'Настройки сохранены');
-                if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) await window.renderStocksTab(window.currentUser);
+                if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
+                    await window.renderStocksTab(window.currentUser);
+                }
             };
+            
             document.getElementById('changeUsernameBtn')?.addEventListener('click', async () => {
                 const newUsername = document.getElementById('newUsernameInput').value.trim();
-                if (!newUsername) { window.showCustomModal('Ошибка', 'Введите новый никнейм'); return; }
+                if (!newUsername) {
+                    window.showCustomModal('Ошибка', 'Введите новый никнейм');
+                    return;
+                }
                 try {
                     const result = await window.updateUsername(newUsername);
                     window.showCustomModal('Успех', result.message);
                     if (result.success && window.currentUser.username !== newUsername) {
                         window.currentUser.username = newUsername;
                         await renderSettingsTab();
-                        if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) await window.renderStocksTab(window.currentUser);
+                        if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
+                            await window.renderStocksTab(window.currentUser);
+                        }
                     }
-                } catch(err) { window.showCustomModal('Ошибка', err.message); }
+                } catch(err) {
+                    window.showCustomModal('Ошибка', err.message);
+                }
             });
         }
         
