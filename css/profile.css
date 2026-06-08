@@ -1,4 +1,5 @@
-/* profile.css – 20 аватарок, центровка на ПК с индивидуальными смещениями */
+/* profile.css – 20 аватарок, центровка на ПК с индивидуальными смещениями, уменьшение на ПК */
+
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -324,5 +325,17 @@
     }
     .avatar-circle .avatar-emoji {
         font-size: 48px !important;
+    }
+}
+
+/* ===== Уменьшение аватарки на больших экранах (ПК) ===== */
+@media (min-width: 1024px) {
+    .avatar-circle {
+        width: 110px !important;
+        height: 110px !important;
+        font-size: 56px !important;
+    }
+    .avatar-circle .avatar-emoji {
+        font-size: 56px !important;
     }
 }
