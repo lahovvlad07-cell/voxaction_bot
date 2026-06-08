@@ -1,4 +1,4 @@
-// api.js – финальная версия (смена никнейма без ограничения 30 дней)
+// api.js – финальная версия с максимальной фильтрацией никнеймов
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -203,7 +203,7 @@ window.getUserStats = async function(forceRefresh = false) {
     return stats;
 };
 
-// ========== СМЕНА НИКНЕЙМА (без ограничения по времени) ==========
+// ========== СМЕНА НИКНЕЙМА (МАКСИМАЛЬНАЯ ФИЛЬТРАЦИЯ) ==========
 window.updateUsername = async function(newUsername) {
     if (!newUsername || newUsername.trim().length < 3) {
         throw new Error('Никнейм должен содержать минимум 3 символа');
@@ -211,41 +211,117 @@ window.updateUsername = async function(newUsername) {
     if (newUsername.length > 20) {
         throw new Error('Никнейм не может быть длиннее 20 символов');
     }
-    const allowedRegex = /^[a-zA-Zа-яА-ЯёЁ0-9_-]+$/;
-    if (!allowedRegex.test(newUsername)) {
-        throw new Error('Никнейм может содержать только буквы, цифры, _ и -');
+    // Только латиница, цифры, _ и -
+    if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) {
+        throw new Error('Никнейм может содержать только латинские буквы, цифры, _ и -');
     }
-    
+
+    // Нормализация: нижний регистр и замена цифр на буквы (для обхода замен)
+    let normalized = newUsername.toLowerCase();
+    normalized = normalized.replace(/0/g, 'o');
+    normalized = normalized.replace(/1/g, 'i');
+    normalized = normalized.replace(/2/g, 'z');
+    normalized = normalized.replace(/3/g, 'e');
+    normalized = normalized.replace(/4/g, 'a');
+    normalized = normalized.replace(/5/g, 's');
+    normalized = normalized.replace(/6/g, 'g');
+    normalized = normalized.replace(/7/g, 't');
+    normalized = normalized.replace(/8/g, 'b');
+    normalized = normalized.replace(/9/g, 'g');
+    normalized = normalized.replace(/\$/g, 's');
+    normalized = normalized.replace(/@/g, 'a');
+    normalized = normalized.replace(/\+/g, 't');
+
+    // Расширенный список запрещённых слов (максимальный)
     const forbiddenWords = [
-        'дурак', 'идиот', 'дебил', 'урод', 'сволочь', 'сука', 'хуй', 'пизда',
-        'бля', 'ебать', 'залупа', 'мудак', 'гнида', 'тварь', 'шлюха', 'проститутка',
-        'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'dick', 'pussy', 'nigger',
-        'лох', 'чмо', 'редиска', 'олень', 'баран', 'козел', 'свинья', 'петух'
+        // Русский мат (транслит) и производные
+        'blya', 'blyat', 'ebat', 'ebal', 'ebuch', 'eblan', 'pizda', 'pizdec', 'pizduk',
+        'huy', 'huylo', 'hueta', 'huinya', 'pidor', 'pidaras', 'pidr', 'pedik', 'pedal',
+        'gondon', 'gandon', 'mudak', 'mudilo', 'mudack', 'mudozvon', 'svoloch', 'suka',
+        'sukin', 'sukablya', 'tvar', 'tvarina', 'gnida', 'gnilida', 'shluha', 'shluh',
+        'prostitutka', 'kurva', 'kuryok', 'kurok', 'lopuh', 'loh', 'lox', 'loch', 'chmo',
+        'chmok', 'chmonya', 'olen', 'baran', 'kozel', 'svinya', 'petuh', 'durak', 'duren',
+        'dolboeb', 'dolbaeb', 'dolboyob', 'dolboyeb', 'rak', 'rakovina', 'zhopa', 'zhopnik',
+        'zadnica', 'shmarovoz', 'shmaruhoz', 'pischa', 'pizd', 'piz', 'pizd', 'piz', 'pizda',
+        'pizdets', 'huyak', 'huyata', 'khuy', 'khui', 'khnya', 'hnya', 'yob', 'yoba', 'yoban',
+        'yobat', 'yobt', 'yop', 'yopt', 'yopta', 'perehot', 'perehod', 'nahuy', 'nahui', 'pohuy',
+        'pohui', 'huyovo', 'huyota', 'huil', 'huilo', 'huilam', 'huilom', 'gavno', 'govno',
+        'gavnyuk', 'govnuk', 'srat', 'srano', 'sral', 'srak', 'srach', 'zrit', 'zral', 'zralnya',
+        'peder', 'pederast', 'pederasty', 'pederasty', 'peder', 'pedofil', 'pedo', 'pedophile',
+        'incest', 'insest', 'inkest', 'nympho', 'nymphoman', 'zoophile', 'zoophil', 'bestial', 'bestiality',
+        'perv', 'pervert', 'izvrash', 'izvraschen', 'sodom', 'sodomit', 'sodomite', 'bugger',
+
+        // Английские грубые
+        'fuck', 'fucking', 'fucker', 'fuk', 'fuq', 'fkc', 'phuck', 'fcuk', 'shet', 'sht', 'shat',
+        'shit', 'shitting', 'shitty', 'shite', 'bullshit', 'horseshit', 'bitch', 'bitching', 'bitches',
+        'bich', 'bch', 'btch', 'cunt', 'cunting', 'cunts', 'kunt', 'dick', 'dickhead', 'dickweed',
+        'dickhole', 'dickface', 'dicknose', 'diq', 'dyck', 'pussy', 'pusy', 'puss', 'pussie', 'puzi',
+        'nigger', 'nigga', 'niggar', 'niga', 'niger', 'neger', 'nig', 'nigg', 'faggot', 'fag', 'fagg',
+        'fagot', 'fagit', 'faget', 'faggo', 'fagga', 'retard', 'retarded', 'retart', 'retad', 'retrd',
+        'moron', 'moronic', 'stupid', 'stoopid', 'dumbass', 'dumass', 'dumb', 'dum', 'whore', 'whoring',
+        'hoar', 'hore', 'ho', 'slut', 'slutty', 'slutt', 'bastard', 'bastrd', 'bastid', 'wanker', 'wank',
+        'wanker', 'wanksta', 'twat', 'twatted', 'twatface', 'cock', 'cocksucker', 'cocksuk', 'coksucker',
+        'motherfucker', 'mothafucka', 'muthafucka', 'motherfuck', 'mofo', 'douchebag', 'douche', 'douch',
+        'shithead', 'shitbag', 'shitface', 'fuckface', 'asshole', 'asswipe', 'asshat', 'assface', 'assole',
+        'ass', 'arse', 'arsehole', 'arsewipe', 'bollocks', 'balls', 'ballbag', 'dickweed', 'dicknose',
+        'prick', 'prk', 'prickhead', 'turd', 'turdman', 'turdburglar', 'crap', 'crappy', 'crapface',
+        'piss', 'pissed', 'pisser', 'pissface', 'screw', 'screwed', 'screwup', 'loser', 'noob', 'noobish',
+
+        // Оскорбления по национальности и религии
+        'churka', 'churkan', 'churkaeb', 'hach', 'hachik', 'khach', 'khachik', 'niger', 'nigeria',
+        'negro', 'nigerian', 'arab', 'arap', 'arapka', 'zhid', 'zhidov', 'zhidovsk', 'jew', 'jewish', 'kike',
+        'gypsy', 'cygan', 'cyganka', 'tsygan', 'tsyganok', 'tsyg', 'mongol', 'mongoloid', 'viet', 'vietcong',
+        'kambodzha', 'kambodzhec', 'kambodzhe', 'kambodz', 'amerikos', 'pindos', 'pendos', 'libeh', 'liberal',
+        'liberast', 'homik', 'homo', 'homosek', 'homosexual', 'gay', 'gey', 'lesba', 'lesbian', 'trany',
+        'transvestite', 'tranny', 'gender', 'genderqueer', 'feminist', 'femik', 'femi', 'siyons', 'siyona',
+        'siyonsk', 'sion', 'sionist', 'nazi', 'hitler', 'fascist', 'fashist', 'fash', 'stalin', 'lenin',
+        'kommunist', 'communist', 'soviet', 'sovok', 'sovkov', 'sovetsk', 'rusnya', 'russkie', 'katsap',
+        'kacap', 'ukrop', 'ukri', 'ukrov', 'hohol', 'hohly', 'hohl', 'banderlog', 'bandera', 'pnk', 'pnx',
+        'ebal', 'ebra', 'ebre', 'ebrei', 'evrei', 'evrey', 'zhyd', 'jood', 'joop', 'joden', 'natsik', 'natsi',
+        'nazik', 'gestapo', 'gepapo', 'schutz', 'ss', 'waffen',
+
+        // Оскорбления по внешности/способностям
+        'fat', 'fatass', 'faty', 'fatto', 'tolst', 'tolsy', 'tolsty', 'thick', 'thickass', 'pig', 'piggy',
+        'swine', 'cow', 'cowy', 'cowlike', 'obese', 'obez', 'obezn', 'ugly', 'ugli', 'uglyface', 'uglo',
+        'zombie', 'zombi', 'mutant', 'mutant', 'freak', 'freaks', 'abomination', 'ugliness', 'uglification',
+        'weak', 'weakling', 'spineless', 'faint', 'faintheart', 'loser', 'fail', 'failure',
+
+        // Оскорбления сексуального характера
+        'pedo', 'pedophile', 'pedofil', 'pedik', 'peder', 'pederast', 'bugger', 'bugger', 'sodom', 'sodomit',
+        'sodomite', 'zoophile', 'zoophil', 'bestial', 'bestiality', 'perv', 'pervert', 'izvrash', 'izvraschen',
+        'nympho', 'nymphoman', 'nymphomaniac', 'erotic', 'erotoman', 'erotomaniac', 'incest', 'insest', 'inkest'
     ];
-    const lowerNew = newUsername.toLowerCase();
+
+    // Проверка на наличие любого из запрещённых слов (как подстроки)
     for (let word of forbiddenWords) {
-        if (lowerNew.includes(word)) {
+        if (normalized.includes(word)) {
             throw new Error('Никнейм содержит запрещённые слова');
         }
     }
-    
+
+    // Дополнительная проверка на кириллические маты (на случай, если кто-то протащит русские буквы, хотя они уже запрещены)
+    const russianBad = /(хуй|хyi|хyй|пидор|пидр|пидар|гандон|шлюха|ебат|ебал|пизд|сука|бля|бляд|даун|дебил|лох|мудак|долбоеб|чмо|олень|козел|свинья|петух|рaк|урод|сволочь|тварь|гнида)/i;
+    if (russianBad.test(newUsername)) {
+        throw new Error('Никнейм содержит запрещённые символы');
+    }
+
+    // Обновление в БД
     const { data: user } = await window.supabase
         .from('users')
         .select('username')
         .eq('id', window.userId)
         .single();
     if (!user) throw new Error('Пользователь не найден');
-    
     if (user.username === newUsername) {
         return { success: true, message: 'Никнейм не изменён' };
     }
-    
+
     const { error } = await window.supabase
         .from('users')
         .update({ username: newUsername, last_username_change: new Date().toISOString() })
         .eq('id', window.userId);
     if (error) throw new Error(error.message);
-    
+
     if (window.currentUser) window.currentUser.username = newUsername;
     return { success: true, message: 'Никнейм успешно изменён!' };
 };
