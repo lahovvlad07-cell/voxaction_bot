@@ -51,6 +51,8 @@
         <button id="confirmTopupBtn">Пополнить</button>
     </div>
 </div>
+
+<!-- JavaScript в правильном порядке: сначала api.js, потом всё остальное -->
 <script src="api.js"></script>
 <script src="notifications.js"></script>
 <script src="topup.js"></script>
@@ -61,8 +63,9 @@
 <script src="wallet.js"></script>
 <script src="referral.js"></script>
 <script src="admin.js"></script>
+
 <script>
-    // Основной скрипт (запуск)
+    // Основной скрипт запуска приложения
     (async () => {
         // Drag tabs
         const tabsWrapper = document.querySelector('.tabs-wrapper');
@@ -79,7 +82,7 @@
         if (!window.userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
-        // Утилиты
+        // Утилиты (дублируем на всякий случай, но они уже есть в api.js)
         window.toCents = (v) => Math.round(parseFloat(v) * 100);
         window.fromCents = (c) => (c / 100).toFixed(2);
         
