@@ -1,151 +1,114 @@
-/* stocks.css – стили для биржи */
+/* stocks.css – адаптивный, компактный, для телефонов */
 
-.balance-row {
+.stats-mini {
     display: flex;
     justify-content: space-around;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 16px;
-}
-.balance-item {
-    text-align: center;
     background: rgba(0,0,0,0.3);
-    border-radius: 30px;
-    padding: 8px 16px;
-    min-width: 100px;
+    border-radius: 40px;
+    padding: 8px 0;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: bold;
 }
-.balance-label {
-    font-size: 12px;
-    color: #9ca3af;
-    display: block;
+.stats-mini span {
+    font-size: 18px;
+    margin-right: 4px;
 }
-.balance-value {
-    font-size: 24px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-}
-.price {
-    background: linear-gradient(135deg, #60a5fa, #a78bfa);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-}
-
-.info-panel {
+.info-row {
     display: flex;
-    gap: 12px;
-    margin: 16px 0;
-}
-.info-card {
-    background: rgba(0, 0, 0, 0.3);
+    justify-content: space-between;
+    background: rgba(0,0,0,0.2);
     border-radius: 20px;
-    padding: 12px;
-    text-align: center;
-    flex: 1;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    font-size: 12px;
 }
-
-.timeframe-buttons {
+.timeframe {
     display: flex;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
-.timeframe-btn {
-    background: rgba(255, 255, 255, 0.05);
+.tf {
+    background: rgba(255,255,255,0.05);
     border: none;
-    padding: 6px 14px;
+    padding: 6px 0;
     border-radius: 30px;
     font-size: 13px;
     cursor: pointer;
-    transition: 0.2s;
+    flex: 1;
 }
-.timeframe-btn.active {
+.tf.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
 }
-
-.chart-container {
-    width: 100%;
-    height: 200px;
-    margin: 16px 0;
+.chart {
     background: #0f1320;
     border-radius: 16px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    margin: 12px 0;
+    min-height: 160px;
 }
 .chart-placeholder {
     text-align: center;
-    color: #9ca3af;
-    font-size: 14px;
+    padding: 60px 20px;
+    color: #6b7280;
 }
-
 .ticker {
-    background: rgba(0, 0, 0, 0.35);
-    border-radius: 40px;
-    padding: 8px 16px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 30px;
+    padding: 6px 12px;
     overflow: hidden;
     white-space: nowrap;
-    margin: 12px 0;
-    font-size: 13px;
+    font-size: 12px;
 }
 .ticker-content {
     display: inline-block;
     animation: scroll 20s linear infinite;
 }
-.trade-item {
-    margin-right: 24px;
-}
 @keyframes scroll {
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
 }
-
-.sell-form {
+.sell-row {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
-.sell-form input {
-    width: 100%;
-    padding: 12px;
+.sell-row input {
+    padding: 10px;
     background: #111827;
-    border: 1px solid rgba(56, 189, 248, 0.3);
+    border: 1px solid rgba(56,189,248,0.3);
     border-radius: 40px;
     color: white;
 }
-.sell-form button {
-    margin-top: 8px;
+.sell-row button {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border: none;
+    padding: 10px;
+    border-radius: 40px;
+    font-weight: bold;
 }
-
-.filter-bar {
+.filters {
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 8px;
     flex-wrap: wrap;
+    margin-bottom: 16px;
 }
-.filter-btn, .sort-btn {
-    background: rgba(255, 255, 255, 0.05);
+.filter, .sort {
+    background: rgba(255,255,255,0.05);
     border: none;
     padding: 6px 14px;
     border-radius: 30px;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
 }
-.filter-btn.active, .sort-btn.active {
+.filter.active, .sort.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
 }
-
 #ordersList {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-height: 400px;
-    overflow-y: auto;
+    gap: 10px;
 }
 .empty-orders {
     text-align: center;
@@ -153,29 +116,23 @@
     color: #9ca3af;
 }
 .order-card {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0,0,0,0.3);
     border-radius: 20px;
     padding: 12px;
     transition: 0.2s;
 }
-.order-card:hover {
-    background: rgba(43, 110, 158, 0.2);
-}
-.order-card-header {
+.order-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-}
-.seller-info {
-    display: flex;
-    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
     gap: 8px;
 }
-.seller-info .mini-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 22px;
+.seller {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 .seller-name {
     font-weight: 600;
@@ -183,16 +140,24 @@
 }
 .seller-rating .stars {
     color: #fbbf24;
-    font-size: 12px;
-    margin-left: 4px;
+    font-size: 11px;
 }
-.order-details {
+.buy-btn, .cancel-btn {
+    background: rgba(56,189,248,0.15);
+    border: none;
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 12px;
+}
+.buy-btn { color: #38bdf8; }
+.cancel-btn { color: #f97316; }
+.order-body {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
 }
 .order-price {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 800;
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
@@ -200,38 +165,29 @@
     color: transparent;
 }
 .order-amount {
-    font-size: 14px;
+    font-size: 13px;
     color: #a5b4fc;
-}
-.buy-btn, .cancel-btn {
-    background: rgba(56, 189, 248, 0.15);
-    border: none;
-    padding: 6px 16px;
-    border-radius: 40px;
-    font-size: 12px;
-    cursor: pointer;
-}
-.buy-btn {
-    color: #38bdf8;
-}
-.cancel-btn {
-    color: #f97316;
 }
 
 @media (max-width: 560px) {
-    .balance-row {
-        gap: 8px;
+    .stats-mini {
+        font-size: 14px;
+        padding: 6px 0;
     }
-    .balance-value {
-        font-size: 20px;
+    .stats-mini span {
+        font-size: 16px;
     }
-    .order-card-header {
-        flex-wrap: wrap;
-        gap: 8px;
+    .info-row {
+        font-size: 10px;
     }
-    .order-details {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
+    .tf {
+        font-size: 12px;
+        padding: 4px 0;
+    }
+    .order-price {
+        font-size: 16px;
+    }
+    .order-amount {
+        font-size: 11px;
     }
 }
