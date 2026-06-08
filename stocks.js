@@ -1,4 +1,4 @@
-// stocks.js – улучшенная версия (рыночная продажа, стакан с объёмом, слайдеры, история ордеров)
+// stocks.js – финальная версия с рыночной продажей, улучшенным стаканом, слайдерами и историей
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -91,7 +91,56 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Рыночная продажа (продажа по лучшей цене покупки) ==========
+// ========== Рыночная покупка ==========
+async function marketBuy(starsAmountStars) {
+    if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
+    let remainingStarsCents = window.toCents(starsAmountStars);
+    let totalBoughtSharesCents = 0;
+    let totalSpentCents = 0;
+
+    while (remainingStarsCents > 0) {
+        const { data: sellOrders, error } = await window.supabase
+            .from('orders')
+            .select('*')
+            .eq('status', 'active')
+            .order('price_per_share', { ascending: true })
+            .limit(1);
+        if (error) throw new Error('Ошибка загрузки ордеров');
+        if (!sellOrders.length) break;
+
+        const order = sellOrders[0];
+        const priceCents = order.price_per_share;
+        const availableSharesCents = order.amount;
+        
+        let maxUnits = Math.floor(remainingStarsCents / priceCents);
+        if (maxUnits <= 0) break;
+        let buySharesCents = maxUnits * 100;
+        if (buySharesCents > availableSharesCents) buySharesCents = availableSharesCents;
+        
+        const { error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
+            p_order_id: order.id,
+            p_buyer_id: window.userId,
+            p_buy_amount_cents: buySharesCents
+        });
+        if (tradeError) throw new Error(`Ошибка покупки: ${tradeError.message}`);
+        
+        const costCents = (buySharesCents / 100) * priceCents;
+        remainingStarsCents -= costCents;
+        totalBoughtSharesCents += buySharesCents;
+        totalSpentCents += costCents;
+        
+        window.currentUser.shares += buySharesCents;
+        window.currentUser.stars_balance -= costCents;
+        
+        await new Promise(r => setTimeout(r, 50));
+    }
+    
+    if (totalBoughtSharesCents === 0) throw new Error('Не удалось купить ни одной акции');
+    window.showToast(`✅ Куплено ${window.fromCents(totalBoughtSharesCents)} шт. за ${window.fromCents(totalSpentCents)} ⭐`);
+    await window.refreshActiveTab();
+}
+
+// ========== Рыночная продажа ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const sharesCents = window.toCents(sharesAmountStars);
@@ -120,21 +169,8 @@ async function marketSell(sharesAmountStars) {
         let sellSharesCents = Math.min(remainingSharesCents, availableSharesCents);
         const costCents = (sellSharesCents / 100) * priceCents;
         
-        // Исполняем сделку (через execute_trade_partial, но нужно адаптировать под buy_orders? У нас есть execute_trade_partial только для sell-ордеров.
-        // Для рыночной продажи логика симметрична: продавец отдаёт акции, покупатель платит звёзды.
-        // Проще вызвать отдельную RPC для матчинга buy-ордеров, но можно использовать execute_trade_partial, передав ему buy_order id? Нет, он работает с orders.
-        // Поэтому для продажи лучше использовать существующую RPC create_sell_order_matched, которая сама сопоставится с buy-ордерами.
-        // Но мы хотим продать именно по рынку, а не выставлять лимитку. Создадим временный ордер на продажу с ценой 0? Не подходит.
-        // Альтернатива: написать отдельную RPC execute_buy_trade, но для быстроты поступим так:
-        // Вызовем create_sell_order_matched с ценой 0? Нет, она не примет.
-        // Напишем функцию marketSell через цикл: находим лучший buy-ордер, продаём ему, обновляем балансы вручную.
-        // Это безопасно, если обернуть в транзакцию. Но Supabase RPC – проще.
-        // Я добавлю в api.js новую RPC `execute_market_sell` или воспользуемся тем, что create_sell_order_matched умеет матчинг.
-        // Если мы выставим ордер на продажу по цене 1 (самая низкая), он сматчится с самым дорогим buy-ордером.
-        // Но это не совсем рыночная продажа (цена может быть невыгодной). Лучше сделать прямую сделку.
-        // Для простоты я пока реализую через временный ордер и его немедленное исполнение.
-        // Но в рамках этого ответа давайте используем существующую RPC `create_sell_order_matched` с ценой 1⭐ (минимальная).
-        // Тогда она сопоставится с лучшим buy-ордером. Не идеально, но работает.
+        // Исполняем сделку (создаём временный sell-ордер с минимальной ценой для матчинга)
+        // Используем create_sell_order_matched с ценой 1⭐ – она сматчится с самым дорогим buy-ордером
         const { error: sellError } = await window.supabase.rpc('create_sell_order_matched', {
             p_user_id: window.userId,
             p_amount_cents: sellSharesCents,
@@ -157,24 +193,21 @@ async function marketSell(sharesAmountStars) {
     await window.refreshActiveTab();
 }
 
-// ========== Стакан заявок (улучшенный: накопленный объём и подсветка) ==========
+// ========== Стакан заявок (улучшенный: только лучшие 5) ==========
 async function renderOrderBook() {
-    // Ордера на продажу
     const { data: sellsRaw } = await window.supabase
         .from('orders')
         .select('amount, price_per_share, seller_id')
         .eq('status', 'active')
         .order('price_per_share', { ascending: true })
-        .limit(20);
-    // Ордера на покупку
+        .limit(5);
     const { data: buysRaw } = await window.supabase
         .from('buy_orders')
         .select('amount, price_per_share, buyer_id')
         .eq('status', 'active')
         .order('price_per_share', { ascending: false })
-        .limit(20);
+        .limit(5);
 
-    // Собираем имена
     const userIds = [
         ...(sellsRaw?.map(s => s.seller_id) || []),
         ...(buysRaw?.map(b => b.buyer_id) || [])
@@ -188,17 +221,14 @@ async function renderOrderBook() {
         users?.forEach(u => userMap.set(u.id, u.username));
     }
 
-    // Добавляем накопленный объём для продаж
-    let sellCumulative = 0;
-    const sells = (sellsRaw || []).map(s => {
-        sellCumulative += s.amount;
-        return { ...s, cumulative: sellCumulative, username: userMap.get(s.seller_id) || `user_${s.seller_id}` };
-    });
-    let buyCumulative = 0;
-    const buys = (buysRaw || []).map(b => {
-        buyCumulative += b.amount;
-        return { ...b, cumulative: buyCumulative, username: userMap.get(b.buyer_id) || `user_${b.buyer_id}` };
-    });
+    const sells = (sellsRaw || []).map(s => ({
+        ...s,
+        username: userMap.get(s.seller_id) || `user_${s.seller_id}`
+    }));
+    const buys = (buysRaw || []).map(b => ({
+        ...b,
+        username: userMap.get(b.buyer_id) || `user_${b.buyer_id}`
+    }));
 
     const bestSellPrice = sells.length ? sells[0].price_per_share : null;
     const bestBuyPrice = buys.length ? buys[0].price_per_share : null;
@@ -208,7 +238,6 @@ async function renderOrderBook() {
             <span>${window.fromCents(s.amount)} шт.</span>
             <span style="color:#fbbf24;">${window.fromCents(s.price_per_share)} ⭐</span>
             <span class="small-text">${escapeHtml(s.username)}</span>
-            <span class="small-text">${window.fromCents(s.cumulative)} шт.</span>
         </div>
     `).join('');
     const buyHtml = buys.map(b => `
@@ -216,7 +245,6 @@ async function renderOrderBook() {
             <span>${window.fromCents(b.amount)} шт.</span>
             <span style="color:#4ade80;">${window.fromCents(b.price_per_share)} ⭐</span>
             <span class="small-text">${escapeHtml(b.username)}</span>
-            <span class="small-text">${window.fromCents(b.cumulative)} шт.</span>
         </div>
     `).join('');
 
@@ -235,10 +263,7 @@ async function loadOrderHistory() {
         .in('status', ['completed', 'cancelled'])
         .order('created_at', { ascending: false })
         .limit(10);
-    if (error) {
-        console.error(error);
-        return [];
-    }
+    if (error) return [];
     return data || [];
 }
 
@@ -278,7 +303,7 @@ async function cancelAllOrders() {
     await window.refreshActiveTab();
 }
 
-// ========== Слайдеры (генерация HTML для форм) ==========
+// ========== Слайдеры (генерация HTML) ==========
 function renderSellForm() {
     return `
         <div class="sell-form">
@@ -311,7 +336,7 @@ function renderBuyLimitForm() {
     `;
 }
 
-// ========== Мои последние сделки (уже есть) ==========
+// ========== Мои последние сделки ==========
 async function loadMyRecentTrades() {
     const { data } = await window.supabase
         .from('trades')
@@ -353,7 +378,7 @@ async function loadOrdersWithSellers() {
     return orders;
 }
 
-// ========== Отрисовка списка ордеров (продажа) ==========
+// ========== Отрисовка списка ордеров ==========
 function renderOrdersList(orders, isMyFilter = false) {
     const container = document.getElementById('ordersList');
     if (!container) return;
@@ -443,15 +468,23 @@ function showBuyModal(order) {
     };
 }
 
-// ========== Подписка на реалтайм для цены ==========
-function subscribeToPriceRealtime() {
-    const channel = window.supabase
-        .channel('price-updates')
+// ========== Подписка на реалтайм ==========
+function subscribeToRealtime() {
+    if (realtimeChannel) return;
+    realtimeChannel = window.supabase
+        .channel('stocks-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+            if (document.querySelector('.tab[data-tab="stocks"].active')) window.refreshActiveTab();
+        })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => {
             if (document.querySelector('.tab[data-tab="stocks"].active')) {
-                // Обновляем текущую цену и возможно график
+                updateTicker();
+                loadMyRecentTrades();
                 window.refreshActiveTab();
             }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${window.userId}` }, () => {
+            if (document.querySelector('.tab[data-tab="stocks"].active')) window.refreshActiveTab();
         })
         .subscribe();
 }
@@ -463,8 +496,7 @@ window.renderStocksTab = async function(currentUser) {
         const myOrders = allOrders.filter(o => o.seller_id === window.userId);
         const priceHistory = await window.fetchPriceHistoryForTimeframe(currentTimeframe);
         const { totalShares, currentPrice, marketCap } = await window.getTotalMarketCap();
-        const avg24h = await window.get24hAvgPrice(); // новая функция в api.js
-        
+        const avg24h = await window.get24hAvgPrice();
         const orderHistory = await loadOrderHistory();
         
         const html = `
@@ -572,7 +604,7 @@ window.renderStocksTab = async function(currentUser) {
         const ordersToRender = (currentOrdersFilter === 'all') ? allOrders : myOrders;
         renderOrdersList(ordersToRender, currentOrdersFilter === 'my');
         
-        // Обработчики событий
+        // Обработчики
         document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentTimeframe = btn.dataset.tf;
             await window.renderStocksTab(currentUser);
@@ -595,24 +627,16 @@ window.renderStocksTab = async function(currentUser) {
         const sellPriceSlider = document.getElementById('sellPriceSlider');
         const sellPriceVal = document.getElementById('sellPriceVal');
         if (sellAmountSlider) {
-            sellAmountSlider.addEventListener('input', () => {
-                sellAmountVal.innerText = sellAmountSlider.value;
-            });
-            sellPriceSlider.addEventListener('input', () => {
-                sellPriceVal.innerText = sellPriceSlider.value;
-            });
+            sellAmountSlider.addEventListener('input', () => { sellAmountVal.innerText = sellAmountSlider.value; });
+            sellPriceSlider.addEventListener('input', () => { sellPriceVal.innerText = sellPriceSlider.value; });
         }
         const buyAmountSlider = document.getElementById('buyAmountSlider');
         const buyAmountVal = document.getElementById('buyAmountVal');
         const buyPriceSlider = document.getElementById('buyPriceSlider');
         const buyPriceVal = document.getElementById('buyPriceVal');
         if (buyAmountSlider) {
-            buyAmountSlider.addEventListener('input', () => {
-                buyAmountVal.innerText = buyAmountSlider.value;
-            });
-            buyPriceSlider.addEventListener('input', () => {
-                buyPriceVal.innerText = buyPriceSlider.value;
-            });
+            buyAmountSlider.addEventListener('input', () => { buyAmountVal.innerText = buyAmountSlider.value; });
+            buyPriceSlider.addEventListener('input', () => { buyPriceVal.innerText = buyPriceSlider.value; });
         }
         
         // Кнопки
@@ -672,26 +696,7 @@ window.renderStocksTab = async function(currentUser) {
             }
         });
         
-        // Подписки на реальное время
-        if (!realtimeChannel) {
-            realtimeChannel = window.supabase
-                .channel('stocks-realtime')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-                    if (document.querySelector('.tab[data-tab="stocks"].active')) window.refreshActiveTab();
-                })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => {
-                    if (document.querySelector('.tab[data-tab="stocks"].active')) {
-                        updateTicker();
-                        loadMyRecentTrades();
-                        window.refreshActiveTab();
-                    }
-                })
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${window.userId}` }, () => {
-                    if (document.querySelector('.tab[data-tab="stocks"].active')) window.refreshActiveTab();
-                })
-                .subscribe();
-        }
-        subscribeToPriceRealtime();
+        subscribeToRealtime();
     } catch (err) {
         console.error(err);
         document.getElementById('app').innerHTML = `<div class="card error">${err.message}</div>`;
