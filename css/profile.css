@@ -1,4 +1,4 @@
-/* profile.css – исправленная версия (аватарка ПК 130px, шрифт 90px) */
+/* profile.css – исправленная версия (аватарка ПК 130px, шрифт 90px, увеличенные эмодзи) */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -46,9 +46,31 @@
     justify-content: center !important;
     vertical-align: middle !important;
     line-height: 1 !important;
-    transform: none !important;
     position: static !important;
 }
+
+/* ===== УВЕЛИЧЕНИЕ ЭМОДЗИ В АВАТАРКАХ ДЛЯ ПК ===== */
+@media (min-width: 561px) {
+    .avatar-circle .avatar-emoji {
+        font-size: 100px !important;
+    }
+    .rating-avatar .mini-avatar span,
+    .mini-avatar span {
+        font-size: 38px !important;
+    }
+    .seller-info .mini-avatar span {
+        font-size: 28px !important;
+    }
+    #profileModal .avatar-circle .avatar-emoji,
+    .modal .avatar-circle .avatar-emoji {
+        font-size: 64px !important;
+    }
+    #stepModal .avatar-circle .avatar-emoji,
+    #borderModal .avatar-circle .avatar-emoji {
+        font-size: 68px !important;
+    }
+}
+
 /* Коррекция смещения для эмодзи внутри аватарки (ПК) – уменьшена, чтобы эмодзи был крупнее */
 @media (min-width: 561px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-3px) !important; }
