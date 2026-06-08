@@ -1,10 +1,10 @@
-// profile.js – финальная версия (24 аватарки, адаптивный размер, все функции)
+// profile.js – финальная версия (24 аватарки, ⭐ заменён на 🎁)
 const avatarEmojis = [
     '👤', '😀', '😎', '👍',
     '🐱', '🐶', '🦊', '🐼',
     '🍕', '🍔', '🍩', '☕',
     '💎', '💰', '🎲', '🏆',
-    '⭐', '🌟', '🔥', '❤️',
+    '🎁', '🌟', '🔥', '❤️',
     '🚀', '🍀', '👑', '🎯'
 ];
 const bgColors = [
@@ -35,7 +35,7 @@ const borderColors = [
 ];
 
 function getAvatarStyle(emoji) {
-    const specialSizes = { '⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎲':'56px' };
+    const specialSizes = { '🌟':'56px','🔥':'56px','💎':'56px','🎲':'56px','🎁':'56px' };
     const fontSize = specialSizes[emoji] || '48px';
     return `font-size: ${fontSize};`;
 }
