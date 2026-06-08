@@ -69,7 +69,7 @@
             return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
         }
         
-        // Исправленная модалка
+        // Исправленная модалка (удаляет предыдущую, если есть)
         window.showCustomModal = function(title, message) {
             const existingModal = document.getElementById('customMessageModal');
             if (existingModal) existingModal.remove();
@@ -140,6 +140,7 @@
             const notifyTopup = window.currentUser.notify_topup ?? true;
             const notifyReferral = window.currentUser.notify_referral ?? true;
             const username = window.currentUser.username || '';
+            const useSliders = window.getUseSliders ? window.getUseSliders() : true;
             
             const html = `
                 <div class="card">
@@ -155,6 +156,7 @@
                     </div>
                     <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.1);">
                     <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br>
+                    <label><input type="checkbox" id="useSlidersCheckbox" ${useSliders ? 'checked' : ''}> Использовать слайдеры в формах продажи/покупки</label><br><br>
                     <div><strong>Уведомления от бота:</strong></div>
                     <label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br>
                     <label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br>
@@ -170,8 +172,10 @@
             document.getElementById('saveSettings').onclick = async () => {
                 const newHide = document.getElementById('hideRatingCheckbox').checked;
                 const newColor = document.getElementById('colorPicker').value;
+                const newUseSliders = document.getElementById('useSlidersCheckbox').checked;
                 localStorage.setItem('custom_color', newColor);
                 document.documentElement.style.setProperty('--accent', newColor);
+                if (window.setUseSliders) window.setUseSliders(newUseSliders);
                 await window.supabase.from('users').update({ 
                     hide_rating: newHide, 
                     notify_trades: document.getElementById('notifyTradesCheckbox').checked, 
@@ -180,6 +184,10 @@
                 }).eq('id', window.userId);
                 window.currentUser.hide_rating = newHide;
                 window.showCustomModal('Успех', 'Настройки сохранены');
+                // Если текущая вкладка – акции, обновить форму
+                if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
+                    await window.renderStocksTab(window.currentUser);
+                }
             };
             
             document.getElementById('changeUsernameBtn')?.addEventListener('click', async () => {
@@ -194,6 +202,9 @@
                     if (result.success && window.currentUser.username !== newUsername) {
                         window.currentUser.username = newUsername;
                         await renderSettingsTab();
+                        if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
+                            await window.renderStocksTab(window.currentUser);
+                        }
                     }
                 } catch(err) {
                     window.showCustomModal('Ошибка', err.message);
@@ -216,18 +227,14 @@
             if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
             if (typeof initTopupModal === 'function') initTopupModal();
             
-            // Реальное обновление рейтинга
-            const ratingChannel = window.supabase
-                .channel('rating-updates')
+            // Реальное обновление рейтинга и других вкладок
+            window.supabase
+                .channel('global-updates')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-                    if (document.querySelector('.tab[data-tab="rating"].active')) {
-                        window.refreshActiveTab();
-                    }
+                    if (document.querySelector('.tab.active').dataset.tab === 'rating') window.refreshActiveTab();
                 })
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => {
-                    if (document.querySelector('.tab[data-tab="rating"].active')) {
-                        window.refreshActiveTab();
-                    }
+                    if (document.querySelector('.tab.active').dataset.tab === 'rating') window.refreshActiveTab();
                 })
                 .subscribe();
         } catch(err) {
