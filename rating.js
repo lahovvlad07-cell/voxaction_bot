@@ -1,4 +1,4 @@
-// rating.js – финальная версия с прокруткой и отображением рейтинга
+// rating.js – финальная версия: модалка прокручивается, рейтинг виден всегда
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -55,6 +55,7 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
+// Модалка профиля – рейтинг вверху, принудительная прокрутка
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
@@ -92,7 +93,7 @@ async function showUserProfileModal(userId) {
 
     const modalHtml = `
         <div class="modal" id="profileModal" style="display:flex;">
-            <div class="modal-content" style="max-width: 360px; width: 90%; max-height: 85vh; overflow-y: auto; padding-bottom: 20px;">
+            <div class="modal-content" style="max-width: 360px; width: 90%; max-height: 85vh; overflow-y: scroll; padding-bottom: 20px;">
                 <span class="close-modal" id="closeProfileModal">&times;</span>
                 <div style="text-align: center; padding: 20px 0 10px;">
                     <div style="display: flex; justify-content: center;">${avatarHtml}</div>
@@ -103,16 +104,17 @@ async function showUserProfileModal(userId) {
                 <div class="achievement-icons" style="display: flex; justify-content: center; gap: 16px; margin: 12px 0; flex-wrap: wrap;">
                     ${achievementsHtml}
                 </div>
+                <!-- Рейтинг вынесен вверх -->
+                <div style="text-align: center; margin: 8px 0 12px;">
+                    <div class="rank-card" style="background: rgba(0,0,0,0.3); border-radius: 40px; padding: 6px 12px; display: inline-block;">
+                        ⚡ Рейтинг: ${rankText}
+                    </div>
+                </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin: 16px 0;">
                     <div class="stat-card" style="min-width: 90px;"><div class="stat-value">${window.fromCents(user.shares)}</div><div class="stat-label">Акций</div></div>
                     <div class="stat-card" style="min-width: 90px;"><div class="stat-value">${window.fromCents(user.stars_balance)}</div><div class="stat-label">Stars</div></div>
                     <div class="stat-card" style="min-width: 90px;"><div class="stat-value">${stats.tradesCount}</div><div class="stat-label">Сделок</div></div>
                     <div class="stat-card" style="min-width: 90px;"><div class="stat-value">${user.referral_count || 0}</div><div class="stat-label">Рефералов</div></div>
-                </div>
-                <div style="text-align: center; margin: 12px 0 8px;">
-                    <div class="rank-card" style="background: rgba(0,0,0,0.3); border-radius: 40px; padding: 8px 16px; display: inline-block;">
-                        ⚡ Рейтинг: ${rankText}
-                    </div>
                 </div>
                 <div class="modal-buttons" style="margin-top: 20px;"><button id="closeProfileBtn">Закрыть</button></div>
             </div>
