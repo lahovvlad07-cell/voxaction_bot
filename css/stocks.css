@@ -1,4 +1,5 @@
 /* stocks.css – единый адаптивный стиль (ПК + мобилы) */
+/* Добавлены правки: центрирование заголовка стакана, центрирование пустых сообщений, уменьшены отступы */
 
 .balance-row {
     display: flex;
@@ -255,6 +256,25 @@ button {
     margin-top: 8px;
     cursor: pointer;
 }
+
+/* ===== ДОПОЛНИТЕЛЬНЫЕ ПРАВКИ ===== */
+/* Центрирование заголовка "Стакан заявок" и других подзаголовков в карточках */
+.card h3 {
+    text-align: center;
+}
+/* Центрирование пустых сообщений в стакане, истории, сделках */
+#sellOrdersList .small-text,
+#buyOrdersList .small-text,
+#orderHistoryList .small-text,
+#myRecentTrades .small-text,
+.empty-orders {
+    text-align: center !important;
+}
+/* Убираем лишние отступы у списков */
+#sellOrdersList, #buyOrdersList, #orderHistoryList, #myRecentTrades {
+    margin-top: 8px;
+}
+
 /* Адаптация для мобильных */
 @media (max-width: 560px) {
     .balance-row {
