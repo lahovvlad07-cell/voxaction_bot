@@ -1,11 +1,11 @@
 // api.js – полная финальная версия
-// Содержит все функции: пользователи, ордера, сделки, достижения, рефералы, админка, утилиты
+// Все функции для работы с пользователями, ордерами, сделками, достижениями, рефералами и админкой
 
 // ---------- Утилиты ----------
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
-// ---------- Достижения и рефералы (вспомогательные) ----------
+// ---------- Вспомогательные функции ----------
 async function ensureWelcomeAchievement(userId) {
     try {
         const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
@@ -187,7 +187,7 @@ window.getReferralRewardsProgress = async function(referralCount) {
     };
 };
 
-// ---------- Ордера ----------
+// ---------- Ордера и сделки ----------
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
@@ -229,14 +229,14 @@ window.createOrder = async function(amountStars, priceStars) {
     return true;
 };
 
-// Создание ордера на покупку с матчингом и проверкой баланса
+// Создание ордера на покупку с матчингом (ГЛАВНАЯ ФУНКЦИЯ ДЛЯ ЛИМИТНОЙ ЗАЯВКИ)
 window.createBuyOrder = async function(amountStars, priceStars) {
     const amountCents = window.toCents(amountStars);
     const priceCents = window.toCents(priceStars);
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
     
-    // Обновляем данные пользователя, чтобы баланс был свежим
+    // Обновляем баланс пользователя
     const { user: freshUser } = await window.getOrCreateUser();
     window.currentUser = freshUser;
     
@@ -272,7 +272,7 @@ window.executePartialTrade = async function(orderId, buyAmountCents) {
     return true;
 };
 
-// ---------- Сделки и история цен ----------
+// ---------- История цен и сделок ----------
 window.getRecentTrades = async function(limit = 10) {
     const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
     if (error) throw new Error(error.message);
@@ -322,6 +322,7 @@ window.getUserStats = async function() {
     return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
 };
 
+// Для просмотра профилей других пользователей
 window.getUserStatsForUser = async function(userId) {
     const { data, error } = await window.supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
     if (error) return { totalTrades: 0, totalVolume: 0 };
@@ -384,7 +385,7 @@ window.getSellerRating = async function(sellerId) {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
-// ---------- Кастомизация ----------
+// ---------- Кастомизация аватара ----------
 window.updateUserBorder = async function(color) {
     const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
     if (error) throw new Error(error.message);
