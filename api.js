@@ -1,4 +1,4 @@
-// api.js – финальная версия (все функции, включая настройки слайдеров и RPC для рыночной продажи)
+// api.js – финальная версия (с защитой от самосделок при создании ордеров)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -378,6 +378,7 @@ window.cancelOrder = async function(orderId) {
     return true;
 };
 
+// ========== НОВЫЕ ВЕРСИИ createOrder и createBuyOrder (без самосделок) ==========
 window.createOrder = async function(amountStars, priceStars) {
     if (amountStars < 1) throw new Error('Количество должно быть ≥ 1 акции');
     if (priceStars < 1) throw new Error('Цена должна быть ≥ 1 Star');
@@ -385,27 +386,69 @@ window.createOrder = async function(amountStars, priceStars) {
     const priceCents = window.toCents(priceStars);
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
-    
-    const { data, error } = await window.supabase.rpc('create_sell_order_matched', {
-        p_user_id: window.userId,
-        p_amount_cents: amountCents,
-        p_price_cents: priceCents
-    });
-    if (error) throw new Error(error.message);
-    if (!data.success) throw new Error(data.error);
-    
-    const executed = window.fromCents(data.executed_amount || 0);
-    const remaining = window.fromCents(data.remaining_amount || 0);
-    if (executed > 0) {
-        window.showToast(`✅ Частично продано ${executed} шт. по лучшей цене`);
+
+    const { user: freshUser } = await window.getOrCreateUser();
+    if (freshUser.shares < amountCents) {
+        throw new Error(`❌ Недостаточно акций: нужно ${amountStars}, у вас ${window.fromCents(freshUser.shares)}`);
     }
-    if (remaining > 0) {
-        window.showToast(`✅ Запрос на продажу ${remaining} шт. по ${priceStars} ⭐ создан`);
-    } else if (executed === 0) {
-        window.showToast(`✅ Запрос на продажу ${amountStars} шт. по ${priceStars} ⭐ создан`);
+
+    let remainingAmountCents = amountCents;
+    let totalExecutedCents = 0;
+    let totalReceivedStarsCents = 0;
+
+    // Матчинг с чужими ордерами на покупку
+    while (remainingAmountCents > 0) {
+        const { data: buyOrders, error } = await window.supabase
+            .from('buy_orders')
+            .select('*')
+            .eq('status', 'active')
+            .neq('buyer_id', window.userId)
+            .gte('price_per_share', priceCents)
+            .order('price_per_share', { ascending: false })
+            .limit(1);
+        if (error) throw new Error('Ошибка загрузки ордеров на покупку');
+        if (!buyOrders || buyOrders.length === 0) break;
+
+        const buyOrder = buyOrders[0];
+        const maxMatchCents = Math.min(remainingAmountCents, buyOrder.amount);
+        if (maxMatchCents <= 0) break;
+
+        // Вызов RPC execute_trade_partial_for_buy_order (нужно создать в Supabase)
+        const { data, error: tradeError } = await window.supabase.rpc('execute_trade_partial_for_buy_order', {
+            p_buy_order_id: buyOrder.id,
+            p_seller_id: window.userId,
+            p_sell_amount_cents: maxMatchCents
+        });
+        if (tradeError) throw new Error(tradeError.message);
+        if (!data.success) throw new Error(data.error);
+
+        remainingAmountCents -= maxMatchCents;
+        totalExecutedCents += maxMatchCents;
+        totalReceivedStarsCents += (maxMatchCents / 100) * buyOrder.price_per_share;
     }
+
+    if (remainingAmountCents > 0) {
+        const { error } = await window.supabase
+            .from('orders')
+            .insert({
+                seller_id: window.userId,
+                amount: remainingAmountCents,
+                price_per_share: priceCents,
+                status: 'active',
+                created_at: new Date().toISOString()
+            });
+        if (error) throw new Error(error.message);
+    }
+
     await updateUserStats();
     await checkAllAchievements();
+
+    if (totalExecutedCents > 0) {
+        window.showToast(`✅ Продано ${window.fromCents(totalExecutedCents)} шт., получено ${window.fromCents(totalReceivedStarsCents)} ⭐`);
+    }
+    if (remainingAmountCents > 0) {
+        window.showToast(`✅ Остаток ${window.fromCents(remainingAmountCents)} шт. выставлен как ордер по ${priceStars} ⭐`);
+    }
     return true;
 };
 
@@ -416,37 +459,72 @@ window.createBuyOrder = async function(amountStars, priceStars) {
     const priceCents = window.toCents(priceStars);
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
-    
+
     const { user: freshUser } = await window.getOrCreateUser();
-    window.currentUser = freshUser;
-    const requiredStars = amountStars * priceStars;
-    if (window.currentUser.stars_balance < requiredStars) {
-        throw new Error(`❌ Недостаточно звёзд: нужно ${requiredStars.toFixed(2)} ⭐, у вас ${window.currentUser.stars_balance.toFixed(2)} ⭐`);
+    const requiredStarsCents = (amountCents / 100) * priceCents;
+    if (freshUser.stars_balance < requiredStarsCents) {
+        throw new Error(`❌ Недостаточно звёзд: нужно ${window.fromCents(requiredStarsCents)} ⭐, у вас ${window.fromCents(freshUser.stars_balance)} ⭐`);
     }
-    
-    const { data, error } = await window.supabase.rpc('create_buy_order_matched', {
-        p_user_id: window.userId,
-        p_amount_cents: amountCents,
-        p_price_cents: priceCents
-    });
-    if (error) throw new Error(error.message);
-    if (!data.success) throw new Error(data.error);
-    
-    const executed = window.fromCents(data.executed_amount || 0);
-    const remaining = window.fromCents(data.remaining_amount || 0);
-    if (executed > 0) {
-        window.showToast(`✅ Частично куплено ${executed} шт. по лучшей цене`);
+
+    let remainingAmountCents = amountCents;
+    let totalExecutedCents = 0;
+    let totalSpentStarsCents = 0;
+
+    while (remainingAmountCents > 0) {
+        const { data: sellOrders, error } = await window.supabase
+            .from('orders')
+            .select('*')
+            .eq('status', 'active')
+            .neq('seller_id', window.userId)
+            .lte('price_per_share', priceCents)
+            .order('price_per_share', { ascending: true })
+            .limit(1);
+        if (error) throw new Error('Ошибка загрузки ордеров на продажу');
+        if (!sellOrders || sellOrders.length === 0) break;
+
+        const sellOrder = sellOrders[0];
+        const maxMatchCents = Math.min(remainingAmountCents, sellOrder.amount);
+        if (maxMatchCents <= 0) break;
+
+        const { data, error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
+            p_order_id: sellOrder.id,
+            p_buyer_id: window.userId,
+            p_buy_amount_cents: maxMatchCents
+        });
+        if (tradeError) throw new Error(tradeError.message);
+        if (!data.success) throw new Error(data.error);
+
+        remainingAmountCents -= maxMatchCents;
+        totalExecutedCents += maxMatchCents;
+        totalSpentStarsCents += (maxMatchCents / 100) * sellOrder.price_per_share;
     }
-    if (remaining > 0) {
-        window.showToast(`✅ Запрос на покупку ${remaining} шт. по ${priceStars} ⭐ создан`);
-    } else if (executed === 0) {
-        window.showToast(`✅ Запрос на покупку ${amountStars} шт. по ${priceStars} ⭐ создан`);
+
+    if (remainingAmountCents > 0) {
+        const { error } = await window.supabase
+            .from('buy_orders')
+            .insert({
+                buyer_id: window.userId,
+                amount: remainingAmountCents,
+                price_per_share: priceCents,
+                status: 'active',
+                created_at: new Date().toISOString()
+            });
+        if (error) throw new Error(error.message);
     }
+
     await updateUserStats();
     await checkAllAchievements();
+
+    if (totalExecutedCents > 0) {
+        window.showToast(`✅ Куплено ${window.fromCents(totalExecutedCents)} шт., потрачено ${window.fromCents(totalSpentStarsCents)} ⭐`);
+    }
+    if (remainingAmountCents > 0) {
+        window.showToast(`✅ Остаток ${window.fromCents(remainingAmountCents)} шт. выставлен как заявка на покупку по ${priceStars} ⭐`);
+    }
     return true;
 };
 
+// ========== ОСТАЛЬНЫЕ ФУНКЦИИ (БЕЗ ИЗМЕНЕНИЙ) ==========
 window.executePartialTrade = async function(orderId, buyAmountCents) {
     const { data, error } = await window.supabase.rpc('execute_trade_partial', {
         p_order_id: orderId,
