@@ -1,4 +1,5 @@
 /* core.css – базовые стили, карточки, кнопки, модалки, уведомления */
+/* Добавлены правила для курсора на .tabs-wrapper */
 
 * {
     margin: 0;
@@ -202,4 +203,12 @@ input:focus {
     10% { opacity:1; transform:translateX(-50%) translateY(0); }
     90% { opacity:1; transform:translateX(-50%) translateY(0); }
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
+}
+
+/* ===== ДОПОЛНИТЕЛЬНО: курсор для табов (drag to scroll) ===== */
+.tabs-wrapper {
+    cursor: grab !important;
+}
+.tabs-wrapper:active {
+    cursor: grabbing !important;
 }
