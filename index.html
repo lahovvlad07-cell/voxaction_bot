@@ -52,7 +52,6 @@
     </div>
 </div>
 
-<!-- Скрипты: сначала API, потом остальные -->
 <script src="api.js"></script>
 <script src="notifications.js"></script>
 <script src="topup.js"></script>
@@ -66,7 +65,6 @@
 
 <script>
     (async () => {
-        // Функции для модалок и тостов (определены здесь на случай, если api.js ещё не загрузился)
         window.showCustomModal = function(title, message) {
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
@@ -92,7 +90,6 @@
             setTimeout(() => toast.remove(), 5000);
         };
         
-        // Проверка, что api.js загрузился и есть createBuyOrder
         if (typeof window.createBuyOrder !== 'function') {
             document.getElementById('app').innerHTML = '<div class="card error" style="color:red;">Ошибка: функции createBuyOrder нет. Проверьте файл api.js</div>';
             console.error('createBuyOrder отсутствует!');
@@ -119,14 +116,12 @@
         }
         if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
-        // Supabase настройки
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
-        // Настройки
         async function renderSettingsTab() {
             const hideRating = window.currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -135,7 +130,7 @@
             const notifyReferral = window.currentUser.notify_referral ?? true;
             const html = `<div class="card"><h2>⚙️ Настройки</h2><label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br><div><strong>Уведомления от бота:</strong></div><label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br><label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br><label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br><div><strong>Цвет акцента:</strong></div><input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;"><button id="saveSettings">Сохранить</button></div>`;
             document.getElementById('app').innerHTML = html;
-            document.getElementById('colorPicker').addEventListener('input, (e) => document.documentElement.style.setProperty('--accent', e.target.value));
+            document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
             document.getElementById('saveSettings').onclick = async () => {
                 const newHide = document.getElementById('hideRatingCheckbox').checked;
                 const newColor = document.getElementById('colorPicker').value;
@@ -147,7 +142,6 @@
             };
         }
         
-        // ОСНОВНОЙ ЗАПУСК С ОБРАБОТКОЙ ОШИБОК
         try {
             const { user, isNew } = await window.getOrCreateUser();
             window.currentUser = user;
