@@ -1,4 +1,4 @@
-/* rating.css – финальная версия с бейджами и горизонтальной легендой */
+/* rating.css – финальная версия с горизонтальными бейджами */
 
 .rating-title {
     text-align: center;
@@ -12,7 +12,6 @@
     width: 100%;
 }
 
-/* Легенда – горизонтальная строка */
 .rating-legend {
     display: flex;
     flex-direction: row;
@@ -27,7 +26,6 @@
     background: rgba(0, 0, 0, 0.3);
     padding: 2px 10px;
     border-radius: 30px;
-    letter-spacing: 0.3px;
 }
 
 #ratingListContainer {
@@ -79,15 +77,9 @@
 .medal {
     font-size: 30px;
 }
-.medal.gold {
-    text-shadow: 0 0 4px #fbbf24;
-}
-.medal.silver {
-    text-shadow: 0 0 4px #cbd5e1;
-}
-.medal.bronze {
-    text-shadow: 0 0 4px #f97316;
-}
+.medal.gold { text-shadow: 0 0 4px #fbbf24; }
+.medal.silver { text-shadow: 0 0 4px #cbd5e1; }
+.medal.bronze { text-shadow: 0 0 4px #f97316; }
 .rank-number {
     background: rgba(0, 0, 0, 0.4);
     padding: 2px 8px;
@@ -138,30 +130,30 @@
     display: inline-block;
 }
 
-/* Бейджи для сделок и рефералов */
+/* Принудительное горизонтальное расположение иконок */
 .rating-stats {
-    display: flex;
-    flex-direction: row;
-    gap: 12px;
-    margin-top: 6px;
-    flex-wrap: wrap;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+    margin-top: 6px !important;
+    flex-wrap: wrap !important;
 }
 .rating-stat {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(96, 165, 250, 0.15);
-    padding: 3px 10px;
-    border-radius: 30px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #a5b4fc;
-    cursor: help;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: rgba(96, 165, 250, 0.15) !important;
+    padding: 3px 10px !important;
+    border-radius: 30px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #a5b4fc !important;
+    cursor: help !important;
 }
 .rating-stat span {
-    font-weight: 700;
-    color: #eef2ff;
-    margin-left: 2px;
+    font-weight: 700 !important;
+    color: #eef2ff !important;
+    margin-left: 2px !important;
 }
 
 .rating-item.current-user-row {
@@ -211,14 +203,8 @@
 }
 
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .skeleton-item {
@@ -247,15 +233,10 @@
     animation: shimmer 1.5s infinite;
 }
 @keyframes shimmer {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
-/* Карточка "Ваше место" – бейджи как у статистики */
 .my-rank-card {
     background: linear-gradient(135deg, rgba(43, 110, 158, 0.25), rgba(26, 76, 110, 0.35));
     backdrop-filter: blur(8px);
