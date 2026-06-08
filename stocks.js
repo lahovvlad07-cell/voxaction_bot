@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с табличной историей ордеров
+// stocks.js – финальная версия с отменой ордеров на покупку и кнопкой "Отменить все"
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -140,7 +140,7 @@ async function marketBuy(starsAmountStars) {
     await window.refreshActiveTab();
 }
 
-// ========== Рыночная продажа (исправлена) ==========
+// ========== Рыночная продажа ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
@@ -152,9 +152,7 @@ async function marketSell(sharesAmountStars) {
             p_amount_stars: sharesAmountStars
         });
         if (error) throw new Error(error.message);
-        if (!data.success) {
-            throw new Error(data.error);
-        }
+        if (!data.success) throw new Error(data.error);
         if (data.sold === 0) {
             window.showToast('❌ Не удалось продать ни одной акции (нет подходящих ордеров на покупку)');
             return;
@@ -231,7 +229,7 @@ async function renderOrderBook() {
     if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="small-text" style="text-align:center;">Нет заявок на покупку</p>';
 }
 
-// ========== История завершённых ордеров (5 записей) в виде таблицы ==========
+// ========== История завершённых ордеров (5 записей) ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase
         .from('orders')
@@ -251,19 +249,18 @@ function renderOrderHistory(orders) {
         container.innerHTML = '<p class="small-text" style="text-align:center;">Нет завершённых ордеров</p>';
         return;
     }
-    // Табличное представление
     const tableHtml = `
-        <table class="history-table" style="width:100%; border-collapse:collapse; font-size:13px;">
+        <table class="history-table">
             <thead>
-                <tr><th style="text-align:left; padding:8px 4px;">Кол-во (шт)</th><th style="text-align:center; padding:8px 4px;">Цена (⭐)</th><th style="text-align:center; padding:8px 4px;">Статус</th><th style="text-align:right; padding:8px 4px;">Дата</th></tr>
+                <tr><th>Кол-во (шт)</th><th>Цена (⭐)</th><th>Статус</th><th>Дата</th></tr>
             </thead>
             <tbody>
                 ${orders.map(o => `
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
-                        <td style="padding:8px 4px; text-align:left;">${window.fromCents(o.amount)}</td>
-                        <td style="padding:8px 4px; text-align:center;">${window.fromCents(o.price_per_share)}</td>
-                        <td style="padding:8px 4px; text-align:center;">${o.status === 'completed' ? '✅ Исполнен' : '❌ Отменён'}</td>
-                        <td style="padding:8px 4px; text-align:right;">${new Date(o.created_at).toLocaleString()}</td>
+                    <tr>
+                        <td>${window.fromCents(o.amount)}</td>
+                        <td>${window.fromCents(o.price_per_share)}</td>
+                        <td>${o.status === 'completed' ? '✅ Исполнен' : '❌ Отменён'}</td>
+                        <td>${new Date(o.created_at).toLocaleString()}</td>
                     </tr>
                 `).join('')}
             </tbody>
@@ -284,22 +281,36 @@ async function loadMyBuyOrders() {
     return data || [];
 }
 
-// ========== Отмена всех активных ордеров (продажа) ==========
+// ========== Отмена всех ордеров (продажа и покупка) ==========
 async function cancelAllOrders() {
-    const { data: orders, error } = await window.supabase
+    // Отмена ордеров на продажу
+    const { data: sellOrders, error: sellError } = await window.supabase
         .from('orders')
         .select('id')
         .eq('seller_id', window.userId)
         .eq('status', 'active');
-    if (error) throw new Error(error.message);
-    if (!orders.length) {
+    if (sellError) throw new Error(sellError.message);
+    
+    // Отмена ордеров на покупку
+    const { data: buyOrders, error: buyError } = await window.supabase
+        .from('buy_orders')
+        .select('id')
+        .eq('buyer_id', window.userId)
+        .eq('status', 'active');
+    if (buyError) throw new Error(buyError.message);
+    
+    if (!sellOrders.length && !buyOrders.length) {
         window.showToast('У вас нет активных ордеров');
         return;
     }
-    for (let order of orders) {
+    
+    for (let order of sellOrders) {
         await window.cancelOrder(order.id);
     }
-    window.showToast(`✅ Отменено ${orders.length} ордеров`);
+    for (let order of buyOrders) {
+        await window.cancelBuyOrder(order.id);
+    }
+    window.showToast(`✅ Отменено ${sellOrders.length + buyOrders.length} ордеров`);
     await window.refreshActiveTab();
 }
 
@@ -582,7 +593,9 @@ window.renderStocksTab = async function(currentUser) {
             </div>` : ''}
             ${myBuyOrders.length ? `
             <div class="card">
-                <h3>📌 Мои ордера на покупку</h3>
+                <h3>📌 Мои ордера на покупку
+                    <button id="cancelAllBuyOrdersBtn" style="background: rgba(220,38,38,0.2); margin-left: 10px; font-size:12px; padding:4px 10px;">✖ Отменить все</button>
+                </h3>
                 <div id="myBuyOrdersList"></div>
             </div>` : ''}
             <div class="card">
@@ -630,7 +643,7 @@ window.renderStocksTab = async function(currentUser) {
                     if (confirm('Отменить ордер на продажу?')) {
                         try {
                             await window.cancelOrder(order.id);
-                            window.showToast('Ордер отменён');
+                            window.showToast('Ордер на продажу отменён');
                             await window.refreshActiveTab();
                         } catch (err) {
                             window.showCustomModal('Ошибка', err.message);
@@ -668,6 +681,38 @@ window.renderStocksTab = async function(currentUser) {
             });
         }
         
+        // Кнопка "Отменить все" (продажи + покупки)
+        const cancelAllBtn = document.getElementById('cancelAllOrdersBtn');
+        if (cancelAllBtn) {
+            cancelAllBtn.addEventListener('click', async () => {
+                if (confirm('Отменить ВСЕ ваши активные ордера (и продажа, и покупка)?')) {
+                    try {
+                        await cancelAllOrders();
+                    } catch (err) {
+                        window.showCustomModal('Ошибка', err.message);
+                    }
+                }
+            });
+        }
+        // Кнопка "Отменить все ордера на покупку" (отдельно)
+        const cancelAllBuyBtn = document.getElementById('cancelAllBuyOrdersBtn');
+        if (cancelAllBuyBtn) {
+            cancelAllBuyBtn.addEventListener('click', async () => {
+                if (confirm('Отменить все ваши заявки на покупку?')) {
+                    try {
+                        const myBuyOrders = await loadMyBuyOrders();
+                        for (let order of myBuyOrders) {
+                            await cancelBuyOrder(order.id);
+                        }
+                        window.showToast(`✅ Отменено ${myBuyOrders.length} заявок на покупку`);
+                        await window.refreshActiveTab();
+                    } catch (err) {
+                        window.showCustomModal('Ошибка', err.message);
+                    }
+                }
+            });
+        }
+        
         const ordersToRender = (currentOrdersFilter === 'all') ? allOrders : myOrders;
         renderOrdersList(ordersToRender, currentOrdersFilter === 'my');
         
@@ -688,7 +733,6 @@ window.renderStocksTab = async function(currentUser) {
             window.renderStocksTab(currentUser);
         }));
         
-        // Слайдеры или поля
         const useSliders = window.getUseSliders();
         if (useSliders) {
             const sellAmountSlider = document.getElementById('sellAmountSlider');
@@ -709,7 +753,6 @@ window.renderStocksTab = async function(currentUser) {
             }
         }
         
-        // Кнопки продажи/покупки
         document.getElementById('sellBtn')?.addEventListener('click', async () => {
             let amount, price;
             if (window.getUseSliders()) {
@@ -766,15 +809,6 @@ window.renderStocksTab = async function(currentUser) {
                 await marketSell(shares);
             } catch (err) {
                 if (!err.message.includes('Не удалось продать')) {
-                    window.showCustomModal('Ошибка', err.message);
-                }
-            }
-        });
-        document.getElementById('cancelAllOrdersBtn')?.addEventListener('click', async () => {
-            if (confirm('Отменить все ваши активные ордера на продажу?')) {
-                try {
-                    await cancelAllOrders();
-                } catch (err) {
                     window.showCustomModal('Ошибка', err.message);
                 }
             }
