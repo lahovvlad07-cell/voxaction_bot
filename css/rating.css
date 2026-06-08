@@ -1,4 +1,4 @@
-/* rating.css – финал: никнейм по центру, три бейджа в строку */
+/* rating.css – никнейм слева, бейджи под ним, без центровки */
 
 .rating-title {
     text-align: center;
@@ -105,21 +105,21 @@
 }
 .rating-info {
     flex: 1;
-    text-align: center;
+    text-align: left;
 }
 .rating-username {
     font-weight: 700;
     font-size: 15px;
     color: #f0f4ff;
     margin-bottom: 6px;
-    display: inline-block;
+    display: block;
 }
 
-/* Три бейджа в строку, выровнены по центру */
+/* Бейджи выровнены по левому краю */
 .rating-stats {
     display: flex !important;
     flex-direction: row !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     gap: 10px !important;
     flex-wrap: wrap !important;
 }
