@@ -1,4 +1,4 @@
-/* stocks.css – единый адаптивный стиль (ПК + мобилы) с улучшениями */
+/* stocks.css – единый адаптивный стиль (ПК + мобилы) */
 
 .balance-row {
     display: flex;
@@ -38,6 +38,8 @@
     display: flex;
     gap: 8px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 .timeframe-btn {
     background: rgba(255,255,255,0.05);
@@ -51,6 +53,14 @@
 .timeframe-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
+}
+#refreshChartBtn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 13px;
+    cursor: pointer;
 }
 .chart-container {
     width: 100%;
@@ -106,7 +116,7 @@
 .sell-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 .sell-form input[type="range"] {
     width: 100%;
@@ -115,18 +125,6 @@
 .sell-form label {
     display: flex;
     justify-content: space-between;
-}
-.sell-form input[type="number"],
-.sell-form input[type="text"] {
-    width: 100%;
-    padding: 12px;
-    background: #111827;
-    border: 1px solid rgba(56,189,248,0.3);
-    border-radius: 40px;
-    color: white;
-}
-.sell-form button {
-    margin-top: 0;
 }
 .empty-orders {
     text-align: center;
@@ -237,19 +235,7 @@
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     width: 100%;
 }
-/* Дополнительные улучшения */
-.card h3 {
-    text-align: center;
-}
-.balance-row button {
-    margin: 0 6px;
-    font-size: 14px;
-    padding: 8px 12px;
-}
-.order-history-item {
-    font-size: 12px;
-}
-input {
+input, input[type="number"] {
     width: 100%;
     padding: 12px;
     margin: 8px 0;
@@ -269,7 +255,7 @@ button {
     margin-top: 8px;
     cursor: pointer;
 }
-/* Адаптация для мобильных (но ПК тоже подхватит) */
+/* Адаптация для мобильных */
 @media (max-width: 560px) {
     .balance-row {
         gap: 6px;
