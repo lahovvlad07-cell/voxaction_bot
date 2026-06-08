@@ -1,5 +1,5 @@
-// profile.js – полная версия с уменьшенными иконками в ближайших достижениях
-const avatarEmojis = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'];
+// profile.js – заменён джойстик на игральную кость (🎲)
+const avatarEmojis = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎲','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' },
     { name: 'Фиолетовый', value: '#9b59b6' },
@@ -496,7 +496,6 @@ window.renderProfileTab = async function(
                 case 'stars_held': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ на балансе`; break;
                 case 'days_active': conditionStr = `${ach.current}/${ach.needed} дней`; break;
             }
-            // ИСПРАВЛЕНО: размер иконки уменьшен с 28px до 22px
             nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:22px; line-height:1;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div></div>`;
         }
         nextHtml += `</div>`;
