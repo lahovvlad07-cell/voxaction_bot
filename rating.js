@@ -1,4 +1,4 @@
-// rating.js – финальная версия с бейджами, легендой и просмотром профиля
+// rating.js – финальная версия с иконками в строку и прокруткой модалки
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -7,7 +7,6 @@ let filteredUsers = [];
 let totalPages = 1;
 let currentSearchTerm = '';
 
-// Загрузка статистики сделок
 async function fetchUserStats(userId) {
     try {
         const { data, error } = await window.supabase
@@ -23,7 +22,6 @@ async function fetchUserStats(userId) {
     }
 }
 
-// Загрузка пользователей
 async function loadUsers() {
     const { data, error } = await window.supabase
         .from('users')
@@ -44,7 +42,6 @@ async function loadUsers() {
     return usersWithStats;
 }
 
-// Фильтрация по имени
 function applyFilter() {
     if (!currentSearchTerm.trim()) {
         filteredUsers = [...allUsers];
@@ -58,7 +55,7 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
-// Модальное окно просмотра профиля (с достижениями)
+// Модальное окно профиля (с прокруткой)
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
@@ -96,7 +93,7 @@ async function showUserProfileModal(userId) {
 
     const modalHtml = `
         <div class="modal" id="profileModal" style="display:flex;">
-            <div class="modal-content" style="max-width: 340px;">
+            <div class="modal-content" style="max-width: 340px; max-height: 80vh; overflow-y: auto;">
                 <span class="close-modal" id="closeProfileModal">&times;</span>
                 <div style="text-align: center; padding: 16px 0 8px;">
                     <div style="display: flex; justify-content: center;">${avatarHtml}</div>
@@ -115,7 +112,7 @@ async function showUserProfileModal(userId) {
                     <div class="stat-card"><div class="stat-value">${stats.tradesCount}</div><div class="stat-label">Сделок</div></div>
                     <div class="stat-card"><div class="stat-value">${user.referral_count || 0}</div><div class="stat-label">Рефералов</div></div>
                 </div>
-                <div style="text-align: center; margin-top: 4px;">
+                <div style="text-align: center; margin-top: 4px; margin-bottom: 8px;">
                     <div class="rank-card" style="background: rgba(0,0,0,0.3); border-radius: 40px; padding: 6px 12px; display: inline-block;">
                         🏆 Рейтинг: ${rankText}
                     </div>
@@ -129,7 +126,6 @@ async function showUserProfileModal(userId) {
     document.getElementById('closeProfileBtn').onclick = () => document.getElementById('profileModal').remove();
 }
 
-// Отрисовка страницы рейтинга
 function renderPage() {
     const container = document.getElementById('ratingListContainer');
     if (!container) return;
@@ -176,7 +172,6 @@ function renderPage() {
     }
     container.innerHTML = html;
 
-    // Пагинация
     const paginationDiv = document.getElementById('ratingPagination');
     if (totalPages > 1) {
         paginationDiv.innerHTML = `
@@ -192,7 +187,6 @@ function renderPage() {
         paginationDiv.innerHTML = '';
     }
 
-    // Клик по строке – открыть профиль
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
@@ -203,7 +197,6 @@ function renderPage() {
     });
 }
 
-// Обновление карточки "Ваше место"
 function updateMyRankCard() {
     const currentUserData = filteredUsers.find(u => u.id === window.userId);
     const myRankCard = document.getElementById('myRankCard');
@@ -225,7 +218,6 @@ function updateMyRankCard() {
     }
 }
 
-// Основная функция рендеринга вкладки
 window.renderRatingTab = async function() {
     try {
         document.getElementById('app').innerHTML = `
