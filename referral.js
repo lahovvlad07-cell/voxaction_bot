@@ -1,13 +1,15 @@
-// referral.js – обновлённая версия с бонусами до 100 друзей
+// referral.js – финальная версия (бонусы до 10 друзей, только пополнившие)
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
-    let referralCount = currentUser.referral_count || 0;
+    
+    // Получаем список рефералов и считаем только тех, кто пополнил (topup_completed = true)
+    const allReferrals = await window.getReferralsList();
+    const confirmedCount = allReferrals.filter(r => r.topupCompleted === true).length;
     let totalEarnedStars = 0;
 
     async function loadFreshData() {
         const { user } = await window.getOrCreateUser();
         window.currentUser = user;
-        referralCount = user.referral_count || 0;
         try {
             const { data } = await window.supabase
                 .from('referral_bonuses')
@@ -18,15 +20,12 @@ window.renderReferralTab = async function() {
     }
     await loadFreshData();
 
-    // Новая шкала бонусов
+    // Бонусные уровни (только до 10 друзей)
     const bonusLevels = [
         { friends: 1, stars: 3 },
         { friends: 3, stars: 5 },
         { friends: 5, stars: 10 },
-        { friends: 10, stars: 25 },
-        { friends: 25, stars: 50 },
-        { friends: 50, stars: 100 },
-        { friends: 100, stars: 200 }
+        { friends: 10, stars: 25 }
     ];
 
     let claimedBonuses = [];
@@ -47,21 +46,17 @@ window.renderReferralTab = async function() {
     }
     const allCompleted = !nextLevel;
     const target = nextLevel ? nextLevel.friends : bonusLevels[bonusLevels.length-1].friends;
-    const progressPercent = Math.min(100, (referralCount / target) * 100);
-    const remaining = Math.max(0, target - referralCount);
+    const progressPercent = Math.min(100, (confirmedCount / target) * 100);
+    const remaining = Math.max(0, target - confirmedCount);
     const rewardStars = nextLevel ? nextLevel.stars : 0;
-    const canClaim = (referralCount >= target) && nextLevel !== null;
+    const canClaim = (confirmedCount >= target) && nextLevel !== null;
 
     let currentPage = 1;
     const itemsPerPage = 10;
-    let fullReferralsList = [];
-    let totalPages = 0;
+    let fullReferralsList = allReferrals;
+    let totalPages = Math.ceil(fullReferralsList.length / itemsPerPage);
 
     async function loadReferralsPage(page) {
-        if (fullReferralsList.length === 0) {
-            fullReferralsList = await window.getReferralsList();
-            totalPages = Math.ceil(fullReferralsList.length / itemsPerPage);
-        }
         const start = (page - 1) * itemsPerPage;
         const end = start + itemsPerPage;
         const pageItems = fullReferralsList.slice(start, end);
@@ -146,12 +141,12 @@ window.renderReferralTab = async function() {
         <div class="card" style="overflow: visible !important;">
             <div class="referral-header">
                 <h2>🔗 Реферальная программа</h2>
-                <p>Приглашайте друзей и получайте звёзды</p>
+                <p>Приглашайте друзей, засчитываются только после пополнения от 10 ⭐</p>
             </div>
             <div class="stats-circles">
                 <div class="stat-circle">
-                    <div class="value">${referralCount}</div>
-                    <div class="label">друзей</div>
+                    <div class="value">${confirmedCount}</div>
+                    <div class="label">активных друзей</div>
                 </div>
                 <div class="stat-circle">
                     <div class="value">${totalEarnedStars}</div>
@@ -161,15 +156,15 @@ window.renderReferralTab = async function() {
     `;
 
     if (allCompleted) {
-        html += `<div class="progress-block"><div class="all-bonuses-claimed">🏆 Все доступные бонусы получены! Приглашайте друзей дальше – возможно, появятся новые уровни.</div></div>`;
+        html += `<div class="progress-block"><div class="all-bonuses-claimed">🏆 Все бонусы получены!</div></div>`;
     } else {
         html += `
             <div class="progress-block">
                 <div class="progress-label">
-                    🎁 Следующая награда: <strong>${rewardStars} ⭐</strong> за приглашение ещё <strong>${remaining}</strong> ${declension(remaining, 'друга', 'друзей', 'друзей')}
+                    🎁 Следующая награда: <strong>${rewardStars} ⭐</strong> за приглашение ещё <strong>${remaining}</strong> ${declension(remaining, 'активного друга', 'активных друзей', 'активных друзей')}
                 </div>
                 <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
-                <div class="progress-stats">${referralCount} / ${target}</div>
+                <div class="progress-stats">${confirmedCount} / ${target}</div>
                 ${canClaim ? `<button class="claim-btn" data-friends="${target}" data-stars="${rewardStars}">🎁 Получить ${rewardStars} ⭐</button>` : ''}
             </div>
         `;
@@ -190,8 +185,8 @@ window.renderReferralTab = async function() {
             </div>
             <div class="referrals-toggle" id="referralsToggle">
                 <span class="btn-icon">👥</span>
-                <span class="label-text">Приглашённые</span>
-                <span class="badge">${referralCount}</span>
+                <span class="label-text">Приглашённые (все)</span>
+                <span class="badge">${fullReferralsList.length}</span>
             </div>
             <div class="referrals-list-collapsible" id="referralsListCollapsible">
                 <div id="referralsListContent"></div>
@@ -204,8 +199,9 @@ window.renderReferralTab = async function() {
                 </div>
             </div>
             <div class="legend">
-                ⭐ Звёзды начисляются автоматически за каждого приведённого друга (по достижении порога). 
-                Бонусные акции за пополнение друга — после его первого пополнения от 10 ⭐.
+                ✅ Засчитываются только друзья, пополнившие баланс от 10 ⭐.<br>
+                ⭐ Звёзды за приглашения начисляются автоматически после достижения порога.<br>
+                📈 Бонусные акции за пополнение друга — после его первого пополнения.
             </div>
         </div>
     `;
@@ -220,6 +216,7 @@ window.renderReferralTab = async function() {
         return many;
     }
 
+    // Обработчики событий (копирование, сохранение кода, переключение списка)
     const fullLinkSpan = document.getElementById('refLinkText');
     const copyBtn = document.getElementById('copyRefLinkBtn');
     const shareBtn = document.getElementById('shareRefLinkBtn');
