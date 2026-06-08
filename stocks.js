@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с улучшениями (рыночная продажа без ошибки, стакан 3 ордера, история 5)
+// stocks.js – финальная версия с табличной историей ордеров
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -140,7 +140,7 @@ async function marketBuy(starsAmountStars) {
     await window.refreshActiveTab();
 }
 
-// ========== Рыночная продажа (исправлена: нет ошибки, если нет ордеров) ==========
+// ========== Рыночная продажа (исправлена) ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
@@ -153,7 +153,6 @@ async function marketSell(sharesAmountStars) {
         });
         if (error) throw new Error(error.message);
         if (!data.success) {
-            // Если RPC вернул success: false, но не из-за отсутствия ордеров
             throw new Error(data.error);
         }
         if (data.sold === 0) {
@@ -163,7 +162,6 @@ async function marketSell(sharesAmountStars) {
         window.showToast(`✅ Продано ${window.fromCents(data.sold)} шт. за ${window.fromCents(data.earned)} ⭐`);
         await window.refreshActiveTab();
     } catch (err) {
-        // Если ошибка говорит об отсутствии встречных ордеров, показываем мягкое сообщение
         if (err.message.includes('нет ордеров') || err.message.includes('no orders') || err.message.includes('не найдено')) {
             window.showToast('❌ Не удалось продать ни одной акции (нет подходящих ордеров на покупку)');
         } else {
@@ -179,13 +177,13 @@ async function renderOrderBook() {
         .select('amount, price_per_share, seller_id')
         .eq('status', 'active')
         .order('price_per_share', { ascending: true })
-        .limit(3);  // 🔥 теперь 3
+        .limit(3);
     const { data: buysRaw } = await window.supabase
         .from('buy_orders')
         .select('amount, price_per_share, buyer_id')
         .eq('status', 'active')
         .order('price_per_share', { ascending: false })
-        .limit(3);  // 🔥 теперь 3
+        .limit(3);
 
     const userIds = [
         ...(sellsRaw?.map(s => s.seller_id) || []),
@@ -233,7 +231,7 @@ async function renderOrderBook() {
     if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="small-text" style="text-align:center;">Нет заявок на покупку</p>';
 }
 
-// ========== История завершённых ордеров (5 последних) ==========
+// ========== История завершённых ордеров (5 записей) в виде таблицы ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase
         .from('orders')
@@ -241,7 +239,7 @@ async function loadOrderHistory() {
         .eq('seller_id', window.userId)
         .in('status', ['completed', 'cancelled'])
         .order('created_at', { ascending: false })
-        .limit(5);  // 🔥 теперь 5
+        .limit(5);
     if (error) return [];
     return data || [];
 }
@@ -253,17 +251,40 @@ function renderOrderHistory(orders) {
         container.innerHTML = '<p class="small-text" style="text-align:center;">Нет завершённых ордеров</p>';
         return;
     }
-    container.innerHTML = orders.map(o => `
-        <div class="order-history-item" style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-            <span>${window.fromCents(o.amount)} шт.</span>
-            <span>по ${window.fromCents(o.price_per_share)} ⭐</span>
-            <span class="small-text">${o.status === 'completed' ? '✅ Исполнен' : '❌ Отменён'}</span>
-            <span class="small-text">${new Date(o.created_at).toLocaleString()}</span>
-        </div>
-    `).join('');
+    // Табличное представление
+    const tableHtml = `
+        <table class="history-table" style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+                <tr><th style="text-align:left; padding:8px 4px;">Кол-во (шт)</th><th style="text-align:center; padding:8px 4px;">Цена (⭐)</th><th style="text-align:center; padding:8px 4px;">Статус</th><th style="text-align:right; padding:8px 4px;">Дата</th></tr>
+            </thead>
+            <tbody>
+                ${orders.map(o => `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <td style="padding:8px 4px; text-align:left;">${window.fromCents(o.amount)}</td>
+                        <td style="padding:8px 4px; text-align:center;">${window.fromCents(o.price_per_share)}</td>
+                        <td style="padding:8px 4px; text-align:center;">${o.status === 'completed' ? '✅ Исполнен' : '❌ Отменён'}</td>
+                        <td style="padding:8px 4px; text-align:right;">${new Date(o.created_at).toLocaleString()}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    container.innerHTML = tableHtml;
 }
 
-// ========== Отмена всех активных ордеров ==========
+// ========== Мои активные ордера на покупку ==========
+async function loadMyBuyOrders() {
+    const { data, error } = await window.supabase
+        .from('buy_orders')
+        .select('*')
+        .eq('buyer_id', window.userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+    if (error) return [];
+    return data || [];
+}
+
+// ========== Отмена всех активных ордеров (продажа) ==========
 async function cancelAllOrders() {
     const { data: orders, error } = await window.supabase
         .from('orders')
@@ -282,7 +303,7 @@ async function cancelAllOrders() {
     await window.refreshActiveTab();
 }
 
-// ========== Отмена конкретного ордера на покупку ==========
+// ========== Отмена ордера на покупку ==========
 async function cancelBuyOrder(buyOrderId) {
     const { data, error } = await window.supabase.rpc('cancel_buy_order', {
         p_buy_order_id: buyOrderId,
@@ -348,7 +369,7 @@ function renderBuyLimitForm() {
     }
 }
 
-// ========== Мои последние сделки (5 последних) ==========
+// ========== Мои последние сделки (5 записей) ==========
 async function loadMyRecentTrades() {
     const { data } = await window.supabase
         .from('trades')
@@ -506,6 +527,7 @@ window.renderStocksTab = async function(currentUser) {
     try {
         const allOrders = await loadOrdersWithSellers();
         const myOrders = allOrders.filter(o => o.seller_id === window.userId);
+        const myBuyOrders = await loadMyBuyOrders();
         const priceHistory = await window.fetchPriceHistoryForTimeframe(currentTimeframe);
         const { totalShares, currentPrice, marketCap } = await window.getTotalMarketCap();
         const avg24h = await window.get24hAvgPrice();
@@ -558,6 +580,11 @@ window.renderStocksTab = async function(currentUser) {
                 </h3>
                 <div id="myOrdersList"></div>
             </div>` : ''}
+            ${myBuyOrders.length ? `
+            <div class="card">
+                <h3>📌 Мои ордера на покупку</h3>
+                <div id="myBuyOrdersList"></div>
+            </div>` : ''}
             <div class="card">
                 <div class="filter-bar">
                     <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все (чужие)</button>
@@ -585,7 +612,7 @@ window.renderStocksTab = async function(currentUser) {
         await loadMyRecentTrades();
         renderOrderHistory(orderHistory);
         
-        // Мои ордера
+        // Мои ордера на продажу
         if (myOrders.length) {
             const myDiv = document.getElementById('myOrdersList');
             myDiv.innerHTML = myOrders.map(order => `
@@ -600,10 +627,38 @@ window.renderStocksTab = async function(currentUser) {
             document.querySelectorAll('#myOrdersList .cancel-btn-small').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const order = JSON.parse(btn.closest('.order-card').dataset.order);
-                    if (confirm('Отменить ордер?')) {
+                    if (confirm('Отменить ордер на продажу?')) {
                         try {
                             await window.cancelOrder(order.id);
                             window.showToast('Ордер отменён');
+                            await window.refreshActiveTab();
+                        } catch (err) {
+                            window.showCustomModal('Ошибка', err.message);
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Мои ордера на покупку
+        if (myBuyOrders.length) {
+            const buyDiv = document.getElementById('myBuyOrdersList');
+            buyDiv.innerHTML = myBuyOrders.map(order => `
+                <div class="order-card my-order-card" data-buy-order-id="${order.id}">
+                    <div class="order-card-header">
+                        <div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div>
+                        <button class="cancel-buy-btn" data-id="${order.id}">Отменить</button>
+                    </div>
+                    <div class="order-card-body"><span class="order-amount">📦 Купить ${window.fromCents(order.amount)} шт.</span></div>
+                </div>
+            `).join('');
+            document.querySelectorAll('#myBuyOrdersList .cancel-buy-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const orderId = parseInt(btn.dataset.id);
+                    if (confirm('Отменить заявку на покупку?')) {
+                        try {
+                            await cancelBuyOrder(orderId);
+                            window.showToast('Заявка на покупку отменена');
                             await window.refreshActiveTab();
                         } catch (err) {
                             window.showCustomModal('Ошибка', err.message);
@@ -710,14 +765,13 @@ window.renderStocksTab = async function(currentUser) {
             try {
                 await marketSell(shares);
             } catch (err) {
-                // Ошибка уже обработана внутри marketSell, но на всякий случай
                 if (!err.message.includes('Не удалось продать')) {
                     window.showCustomModal('Ошибка', err.message);
                 }
             }
         });
         document.getElementById('cancelAllOrdersBtn')?.addEventListener('click', async () => {
-            if (confirm('Отменить все ваши активные ордера?')) {
+            if (confirm('Отменить все ваши активные ордера на продажу?')) {
                 try {
                     await cancelAllOrders();
                 } catch (err) {
