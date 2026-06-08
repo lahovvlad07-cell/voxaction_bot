@@ -1,4 +1,4 @@
-// rating.js – исправленная версия (без процентов, стильная карточка "Ваше место")
+// rating.js – финальная версия с подсказками и компактной карточкой "Ваше место"
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -7,7 +7,6 @@ let filteredUsers = [];
 let totalPages = 1;
 let currentSearchTerm = '';
 
-// Загрузка статистики по сделкам для одного пользователя
 async function fetchUserStats(userId) {
     try {
         const { data, error } = await window.supabase
@@ -24,7 +23,6 @@ async function fetchUserStats(userId) {
     }
 }
 
-// Загрузка пользователей
 async function loadUsers() {
     const { data, error } = await window.supabase
         .from('users')
@@ -87,9 +85,9 @@ function renderPage() {
 
         const statsHtml = `
             <div class="rating-stats">
-                <span class="rating-stat">🔄 ${user.tradesCount}</span>
-                <span class="rating-stat">📊 ${volumeFormatted}</span>
-                <span class="rating-stat">👥 ${user.referral_count || 0}</span>
+                <span class="rating-stat" title="Количество сделок">🔄 ${user.tradesCount}</span>
+                <span class="rating-stat" title="Объём торгов в Stars">📊 ${volumeFormatted}</span>
+                <span class="rating-stat" title="Количество рефералов">👥 ${user.referral_count || 0}</span>
             </div>
         `;
 
@@ -110,7 +108,6 @@ function renderPage() {
     }
     container.innerHTML = html;
 
-    // Пагинация
     const paginationDiv = document.getElementById('ratingPagination');
     if (totalPages > 1) {
         paginationDiv.innerHTML = `
@@ -128,7 +125,6 @@ function renderPage() {
         paginationDiv.innerHTML = '';
     }
 
-    // Клик для просмотра профиля
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
@@ -148,34 +144,28 @@ function renderPage() {
 
 function updateMyRankCard() {
     const currentUserData = filteredUsers.find(u => u.id === window.userId);
-    const myRankCard = document.querySelector('.my-rank-card');
+    const myRankCard = document.getElementById('myRankCard');
     if (!myRankCard) return;
 
     if (currentUserData) {
         const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
-        const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
         const volumeFormatted = currentUserData.volumeStars.toFixed(2);
         myRankCard.innerHTML = `
             <div class="my-rank-title">🎯 Ваше место</div>
             <div class="my-rank-details">
                 <div class="my-rank-item">#${rank}</div>
-                <div class="my-rank-item">📊 ${sharesFormatted} акций</div>
                 <div class="my-rank-item">📈 ${volumeFormatted} ⭐</div>
-            </div>
-            <div class="my-rank-stats">
-                <span>🔄 ${currentUserData.tradesCount} сделок</span>
-                <span>👥 ${currentUserData.referral_count || 0} рефералов</span>
+                <div class="my-rank-item">🔄 ${currentUserData.tradesCount}</div>
+                <div class="my-rank-item">👥 ${currentUserData.referral_count || 0}</div>
             </div>
         `;
     } else {
-        // Если пользователь скрыт или не найден
         myRankCard.innerHTML = `<div class="my-rank-title">❓ Пользователь не найден</div>`;
     }
 }
 
 window.renderRatingTab = async function() {
     try {
-        // Показываем скелетон
         document.getElementById('app').innerHTML = `
             <div class="card">
                 <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
@@ -191,6 +181,7 @@ window.renderRatingTab = async function() {
                     `).join('')}
                 </div>
                 <div id="ratingPagination"></div>
+                <div id="myRankCard" class="my-rank-card"></div>
             </div>
         `;
 
@@ -198,19 +189,6 @@ window.renderRatingTab = async function() {
         applyFilter();
         totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
         currentPage = 1;
-
-        let html = `
-            <div class="card">
-                <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
-                <div class="search-container">
-                    <input type="text" id="ratingSearchInput" placeholder="Поиск по имени или ID..." class="search-input">
-                </div>
-                <div id="ratingListContainer"></div>
-                <div id="ratingPagination"></div>
-                <div class="my-rank-card" id="myRankCard"></div>
-            </div>
-        `;
-        document.getElementById('app').innerHTML = html;
 
         const searchInput = document.getElementById('ratingSearchInput');
         if (searchInput) {
