@@ -1,4 +1,4 @@
-// referral.js – новая шкала бонусов (до 100 друзей)
+// referral.js – обновлённая версия с бонусами до 100 друзей
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     let referralCount = currentUser.referral_count || 0;
