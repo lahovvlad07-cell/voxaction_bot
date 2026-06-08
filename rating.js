@@ -1,4 +1,4 @@
-// rating.js – финальная версия с легендой и выделением акций
+// rating.js – финальная версия с бейджами, легендой и просмотром профиля
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -7,6 +7,7 @@ let filteredUsers = [];
 let totalPages = 1;
 let currentSearchTerm = '';
 
+// Загрузка статистики сделок
 async function fetchUserStats(userId) {
     try {
         const { data, error } = await window.supabase
@@ -22,6 +23,7 @@ async function fetchUserStats(userId) {
     }
 }
 
+// Загрузка пользователей
 async function loadUsers() {
     const { data, error } = await window.supabase
         .from('users')
@@ -42,6 +44,7 @@ async function loadUsers() {
     return usersWithStats;
 }
 
+// Фильтрация по имени
 function applyFilter() {
     if (!currentSearchTerm.trim()) {
         filteredUsers = [...allUsers];
@@ -55,7 +58,7 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
-// Модальное окно просмотра профиля (без изменений, но оставляем)
+// Модальное окно просмотра профиля (с достижениями)
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
@@ -126,6 +129,7 @@ async function showUserProfileModal(userId) {
     document.getElementById('closeProfileBtn').onclick = () => document.getElementById('profileModal').remove();
 }
 
+// Отрисовка страницы рейтинга
 function renderPage() {
     const container = document.getElementById('ratingListContainer');
     if (!container) return;
@@ -150,11 +154,10 @@ function renderPage() {
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
 
         const sharesFormatted = (user.shares / 100).toFixed(2);
-        // Улучшенное выделение акций – отдельный стиль .rating-shares-value
         const statsHtml = `
             <div class="rating-stats">
-                <span class="rating-stat" title="Сделки">🔄 ${user.tradesCount}</span>
-                <span class="rating-stat" title="Рефералы">👥 ${user.referral_count || 0}</span>
+                <div class="rating-stat">🔄 <span>${user.tradesCount}</span></div>
+                <div class="rating-stat">👥 <span>${user.referral_count || 0}</span></div>
             </div>
         `;
         const currentUserClass = (user.id === window.userId) ? 'current-user-row' : '';
@@ -189,6 +192,7 @@ function renderPage() {
         paginationDiv.innerHTML = '';
     }
 
+    // Клик по строке – открыть профиль
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
@@ -199,6 +203,7 @@ function renderPage() {
     });
 }
 
+// Обновление карточки "Ваше место"
 function updateMyRankCard() {
     const currentUserData = filteredUsers.find(u => u.id === window.userId);
     const myRankCard = document.getElementById('myRankCard');
@@ -209,10 +214,10 @@ function updateMyRankCard() {
         myRankCard.innerHTML = `
             <div class="my-rank-title">🎯 Ваше место</div>
             <div class="my-rank-details">
-                <span class="my-rank-item">#${rank}</span>
-                <span class="my-rank-item">📊 ${sharesFormatted}</span>
-                <span class="my-rank-item">🔄 ${currentUserData.tradesCount}</span>
-                <span class="my-rank-item">👥 ${currentUserData.referral_count || 0}</span>
+                <div class="my-rank-item">#<strong>${rank}</strong></div>
+                <div class="my-rank-item">📊 <strong>${sharesFormatted}</strong></div>
+                <div class="my-rank-item">🔄 <strong>${currentUserData.tradesCount}</strong></div>
+                <div class="my-rank-item">👥 <strong>${currentUserData.referral_count || 0}</strong></div>
             </div>
         `;
     } else {
@@ -220,6 +225,7 @@ function updateMyRankCard() {
     }
 }
 
+// Основная функция рендеринга вкладки
 window.renderRatingTab = async function() {
     try {
         document.getElementById('app').innerHTML = `
