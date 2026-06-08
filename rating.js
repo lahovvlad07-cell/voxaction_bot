@@ -1,35 +1,81 @@
-// rating.js – красивый рейтинг с аватарками, медалями, пагинацией и просмотром профиля
+// rating.js – улучшенная версия с поиском, анимацией, аватарками и дополнительной статистикой
 
 let currentPage = 1;
 const itemsPerPage = 10;
-let allUsers = [];
+let allUsers = [];         // полный список пользователей с доп. данными
+let filteredUsers = [];    // результат фильтрации
 let totalPages = 1;
+let currentSearchTerm = '';
 
-// Загрузка списка пользователей
+// ========== Вспомогательные функции ==========
+// Загрузка статистики по сделкам для одного пользователя (временный медленный вариант)
+// В будущем замените на поля total_trades и total_volume_cents из таблицы users
+async function fetchUserStats(userId) {
+    try {
+        const { data, error } = await window.supabase
+            .from('trades')
+            .select('amount, total_stars')
+            .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+        if (error || !data) return { tradesCount: 0, volumeStars: 0 };
+        const tradesCount = data.length;
+        const volumeStars = data.reduce((sum, t) => sum + (t.total_stars / 100), 0);
+        return { tradesCount, volumeStars };
+    } catch (e) {
+        console.warn(e);
+        return { tradesCount: 0, volumeStars: 0 };
+    }
+}
+
+// Загрузка всех пользователей (с сортировкой по акциям)
 async function loadUsers() {
     const { data, error } = await window.supabase
         .from('users')
-        .select('id, username, shares, avatar_url, avatar_bg, avatar_border, hide_rating')
+        .select('id, username, shares, avatar_url, avatar_bg, avatar_border, hide_rating, referral_count')
         .eq('hide_rating', false)
         .order('shares', { ascending: false });
     if (error) throw error;
-    return data;
+
+    // Для каждого пользователя подгружаем сделки и объём (можно заменить на прямое чтение из users)
+    const usersWithStats = [];
+    for (const user of data) {
+        const stats = await fetchUserStats(user.id);
+        usersWithStats.push({
+            ...user,
+            tradesCount: stats.tradesCount,
+            volumeStars: stats.volumeStars
+        });
+    }
+    return usersWithStats;
 }
 
-// Отрисовка текущей страницы
+// Фильтрация по имени или ID
+function applyFilter() {
+    if (!currentSearchTerm.trim()) {
+        filteredUsers = [...allUsers];
+    } else {
+        const term = currentSearchTerm.toLowerCase();
+        filteredUsers = allUsers.filter(u =>
+            (u.username && u.username.toLowerCase().includes(term)) ||
+            u.id.toString().includes(term)
+        );
+    }
+    totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+}
+
+// Отрисовка текущей страницы (с анимацией)
 function renderPage() {
     const container = document.getElementById('ratingListContainer');
     if (!container) return;
 
     const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    const pageUsers = allUsers.slice(start, end);
+    const pageUsers = filteredUsers.slice(start, start + itemsPerPage);
 
     let html = '';
     for (let i = 0; i < pageUsers.length; i++) {
         const user = pageUsers[i];
-        const idx = allUsers.indexOf(user);
-        const place = idx + 1;
+        const globalIndex = filteredUsers.findIndex(u => u.id === user.id);
+        const place = globalIndex + 1;
 
         // Медали для топ-3
         let rankDisplay = '';
@@ -44,18 +90,34 @@ function renderPage() {
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
 
         const sharesFormatted = (user.shares / 100).toFixed(2);
+        const volumeFormatted = user.volumeStars.toFixed(2);
+
+        // Дополнительные метки (сделки, объём, рефералы)
+        const statsHtml = `
+            <div class="rating-stats">
+                <span class="rating-stat" title="Сделок">🔄 ${user.tradesCount}</span>
+                <span class="rating-stat" title="Объём (⭐)">📊 ${volumeFormatted}</span>
+                <span class="rating-stat" title="Рефералов">👥 ${user.referral_count || 0}</span>
+            </div>
+        `;
+
+        // Подсветка строки текущего пользователя
+        const currentUserClass = (user.id === window.userId) ? 'current-user-row' : '';
+        const animationDelay = i * 0.03; // плавное появление
 
         html += `
-            <div class="rating-item" data-user-id="${user.id}">
+            <div class="rating-item ${currentUserClass}" data-user-id="${user.id}" style="animation: fadeInUp 0.3s ease forwards; animation-delay: ${animationDelay}s;">
                 <div class="rating-rank">${rankDisplay}</div>
                 <div class="rating-avatar">${avatarHtml}</div>
                 <div class="rating-info">
                     <div class="rating-username">${escapeHtml(user.username)}</div>
                     <div class="rating-shares">📊 ${sharesFormatted} акций</div>
+                    ${statsHtml}
                 </div>
             </div>
         `;
     }
+
     container.innerHTML = html;
 
     // Пагинация
@@ -68,31 +130,23 @@ function renderPage() {
                 <button class="pag-next" ${currentPage === totalPages ? 'disabled' : ''}>Вперёд →</button>
             </div>
         `;
-        document.querySelector('.pag-prev')?.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                renderPage();
-            }
-        });
-        document.querySelector('.pag-next')?.addEventListener('click', () => {
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderPage();
-            }
-        });
+        const prevBtn = document.querySelector('.pag-prev');
+        const nextBtn = document.querySelector('.pag-next');
+        if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderPage(); } };
+        if (nextBtn) nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; renderPage(); } };
     } else {
         paginationDiv.innerHTML = '';
     }
 
-    // Кликабельность строк
+    // Клик по строке – открыть профиль (свой или чужой)
     document.querySelectorAll('.rating-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            // Чтобы не срабатывало при клике на кнопки пагинации внутри
+            if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
             const userId = parseInt(item.dataset.userId);
             if (userId === window.userId) {
-                // Переход на свой профиль
                 document.querySelector('.tab[data-tab="profile"]').click();
             } else {
-                // Показ чужого профиля (если функция существует)
                 if (typeof window.showUserProfile === 'function') {
                     window.showUserProfile(userId);
                 } else {
@@ -103,24 +157,69 @@ function renderPage() {
     });
 }
 
-// Основная функция рендеринга вкладки
+// Обновление карточки «Ваше место» после фильтрации
+function updateMyRankCard() {
+    const currentUserData = filteredUsers.find(u => u.id === window.userId);
+    const myRankCard = document.querySelector('.my-rank-card');
+    if (!myRankCard) return;
+    if (currentUserData) {
+        const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
+        const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
+        myRankCard.innerHTML = `
+            <div class="my-rank-title">🎯 Ваше место</div>
+            <div class="my-rank-details">
+                <span class="my-rank-position">#${rank}</span>
+                <span class="my-rank-shares">📊 ${sharesFormatted} акций</span>
+                <span class="my-rank-volume">📈 ${currentUserData.volumeStars.toFixed(2)} ⭐</span>
+            </div>
+        `;
+    } else {
+        myRankCard.innerHTML = `<div class="my-rank-title">🔒 Вы скрыты из рейтинга или ещё нет данных</div>`;
+    }
+}
+
+// Основная функция рендеринга вкладки (вызывается при клике)
 window.renderRatingTab = async function() {
     try {
+        // Показываем скелетон (временная загрузка)
+        document.getElementById('app').innerHTML = `
+            <div class="card">
+                <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
+                <div class="search-container">
+                    <input type="text" id="ratingSearchInput" placeholder="Поиск по имени или ID..." class="search-input">
+                </div>
+                <div id="ratingListContainer">
+                    ${Array(5).fill().map(() => `
+                        <div class="skeleton-item">
+                            <div class="skeleton-avatar"></div>
+                            <div class="skeleton-line"></div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div id="ratingPagination"></div>
+            </div>
+        `;
+
+        // Загружаем реальные данные
         allUsers = await loadUsers();
-        totalPages = Math.ceil(allUsers.length / itemsPerPage);
+        applyFilter();
+        totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
         currentPage = 1;
 
+        // Полноценная вёрстка с карточкой "Ваше место"
         let html = `
             <div class="card">
                 <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
+                <div class="search-container">
+                    <input type="text" id="ratingSearchInput" placeholder="Поиск по имени или ID..." class="search-input">
+                </div>
                 <div id="ratingListContainer"></div>
                 <div id="ratingPagination"></div>
         `;
 
-        // Карточка «Ваше место»
-        const currentUserData = allUsers.find(u => u.id === window.userId);
+        const currentUserData = filteredUsers.find(u => u.id === window.userId);
         if (currentUserData) {
-            const rank = allUsers.findIndex(u => u.id === window.userId) + 1;
+            const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
             const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
             html += `
                 <div class="my-rank-card">
@@ -128,15 +227,29 @@ window.renderRatingTab = async function() {
                     <div class="my-rank-details">
                         <span class="my-rank-position">#${rank}</span>
                         <span class="my-rank-shares">📊 ${sharesFormatted} акций</span>
+                        <span class="my-rank-volume">📈 ${currentUserData.volumeStars.toFixed(2)} ⭐</span>
                     </div>
                 </div>
             `;
         } else if (window.userId) {
             html += `<div class="my-rank-card"><div class="my-rank-title">🔒 Вы не отображаетесь в рейтинге</div></div>`;
         }
-
         html += `</div>`;
+
         document.getElementById('app').innerHTML = html;
+
+        // Привязываем поиск
+        const searchInput = document.getElementById('ratingSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                currentSearchTerm = e.target.value;
+                applyFilter();
+                currentPage = 1;
+                renderPage();
+                updateMyRankCard();
+            });
+        }
+
         renderPage();
     } catch (err) {
         console.error(err);
@@ -144,7 +257,7 @@ window.renderRatingTab = async function() {
     }
 };
 
-// Вспомогательная функция для экранирования HTML
+// Экранирование HTML
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
