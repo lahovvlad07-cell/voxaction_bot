@@ -1,4 +1,4 @@
-// api.js – финальная версия (все функции, включая настройки слайдеров и рыночную продажу)
+// api.js – финальная версия (все функции, включая настройки слайдеров и RPC для рыночной продажи)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -270,7 +270,7 @@ window.updateUsername = async function(newUsername) {
 
     const russianBad = /(хуй|хyi|хyй|пидор|пидр|пидар|гандон|шлюха|ебат|ебал|пизд|сука|бля|бляд|даун|дебил|лох|мудак|долбоеб|чмо|олень|козел|свинья|петух|рaк|урод|сволочь|тварь|гнида)/i;
     if (russianBad.test(newUsername)) {
-        throw new Error('Никнейм содержит запрещённые символы');
+        throw new Error('Никнейм содержит запрещенные символы');
     }
 
     const { data: user } = await window.supabase
