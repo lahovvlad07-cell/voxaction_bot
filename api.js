@@ -1,4 +1,9 @@
-// api.js – стабильная версия с поддержкой кастомных кодов, бонусов и рендеринга аватарок
+// api.js – финальная версия с матчингом ордеров
+// Содержит все базовые функции: пользователи, ордера, сделки, достижения, рефералы и т.д.
+
+// ---------- Вспомогательные функции ----------
+window.toCents = (v) => Math.round(parseFloat(v) * 100);
+window.fromCents = (c) => (c / 100).toFixed(2);
 
 async function ensureWelcomeAchievement(userId) {
     try {
@@ -20,7 +25,7 @@ window.getOrCreateUser = async function() {
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
     
     if (!data) {
-        const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
+        const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'];
         const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
         const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
         const randomBg = bgOptions[Math.floor(Math.random() * bgOptions.length)];
@@ -198,19 +203,65 @@ window.cancelOrder = async function(orderId) {
     return true;
 };
 
-window.createOrder = async function(amount, price) {
-    const amountCents = window.toCents(amount), priceCents = window.toCents(price);
+// НОВАЯ ФУНКЦИЯ: создание ордера на продажу с матчингом
+window.createOrder = async function(amountStars, priceStars) {
+    const amountCents = window.toCents(amountStars);
+    const priceCents = window.toCents(priceStars);
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
-    const { data, error } = await window.supabase.rpc('create_sell_order', { p_user_id: window.userId, p_amount: amountCents, p_price: priceCents });
+    
+    const { data, error } = await window.supabase.rpc('create_sell_order_matched', {
+        p_user_id: window.userId,
+        p_amount_cents: amountCents,
+        p_price_cents: priceCents
+    });
     if (error) throw new Error(error.message);
     if (!data.success) throw new Error(data.error);
-    window.currentUser.shares -= amountCents;
+    
+    const executed = window.fromCents(data.executed_amount || 0);
+    const remaining = window.fromCents(data.remaining_amount || 0);
+    if (executed > 0) {
+        window.showToast(`✅ Продано ${executed} шт. по лучшей цене`);
+    }
+    if (remaining > 0) {
+        window.showToast(`📌 Остаток ${remaining} шт. выставлен в стакан`);
+    }
     return true;
 };
 
+// НОВАЯ ФУНКЦИЯ: создание ордера на покупку с матчингом
+window.createBuyOrder = async function(amountStars, priceStars) {
+    const amountCents = window.toCents(amountStars);
+    const priceCents = window.toCents(priceStars);
+    if (amountCents < 100) throw new Error('Минимум 1 акция');
+    if (priceCents < 100) throw new Error('Минимум 1 Star');
+    
+    const { data, error } = await window.supabase.rpc('create_buy_order_matched', {
+        p_user_id: window.userId,
+        p_amount_cents: amountCents,
+        p_price_cents: priceCents
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    
+    const executed = window.fromCents(data.executed_amount || 0);
+    const remaining = window.fromCents(data.remaining_amount || 0);
+    if (executed > 0) {
+        window.showToast(`✅ Куплено ${executed} шт. по лучшей цене`);
+    }
+    if (remaining > 0) {
+        window.showToast(`📌 Остаток ${remaining} шт. выставлен в стакан`);
+    }
+    return true;
+};
+
+// Частичное исполнение сделки (для ручной покупки из стакана)
 window.executePartialTrade = async function(orderId, buyAmountCents) {
-    const { data, error } = await window.supabase.rpc('execute_trade_partial', { p_order_id: orderId, p_buyer_id: window.userId, p_buy_amount: buyAmountCents });
+    const { data, error } = await window.supabase.rpc('execute_trade_partial', {
+        p_order_id: orderId,
+        p_buyer_id: window.userId,
+        p_buy_amount_cents: buyAmountCents
+    });
     if (error) throw new Error(error.message);
     if (!data.success) throw new Error(data.error);
     return true;
@@ -325,7 +376,7 @@ window.createInvoice = async function(amount) {
     return res.json();
 };
 
-// ========== ФУНКЦИИ ДЛЯ ПРОСМОТРА ПРОФИЛЕЙ ДРУГИХ ПОЛЬЗОВАТЕЛЕЙ ==========
+// ========== Просмотр профилей других пользователей ==========
 window.getEarnedAchievementsForUser = async function(userId) {
     const { data, error } = await window.supabase
         .from('user_achievements')
@@ -367,7 +418,7 @@ window.getUserRankForUser = async function(userId) {
     return idx + 1;
 };
 
-// ========== ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ БОНУСОВ РЕФЕРАЛЬНОЙ СИСТЕМЫ ==========
+// ========== Реферальные бонусы ==========
 window.claimReferralBonus = async (friendsNeeded, stars) => {
     const response = await fetch(`${window.BACKEND_URL}/claim-referral-bonus`, {
         method: 'POST',
@@ -377,7 +428,7 @@ window.claimReferralBonus = async (friendsNeeded, stars) => {
     return response.json();
 };
 
-// ========== УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ МИНИ-АВАТАРА ==========
+// ========== Рендер мини-аватара ==========
 window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
     let bgColor = avatarBg;
     if (avatarBg && !avatarBg.startsWith('#')) {
