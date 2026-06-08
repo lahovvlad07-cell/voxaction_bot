@@ -1,4 +1,4 @@
-/* stocks.css – единый адаптивный стиль (ПК + мобилы) */
+/* stocks.css – единый адаптивный стиль с аккордеонами */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -131,14 +131,20 @@
     color: #9ca3af;
 }
 .order-card {
-    background: rgba(0,0,0,0.4);
-    border-radius: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
     padding: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    transition: transform 0.1s, box-shadow 0.2s;
+    border-left: 3px solid #2b6e9e;
+}
+.order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
 }
 .order-card-best {
-    background: rgba(34, 197, 94, 0.15);
-    border: 1px solid rgba(34, 197, 94, 0.4);
+    background: rgba(34,197,94,0.2);
+    border-left: 3px solid #4ade80;
 }
 .order-card-header {
     display: flex;
@@ -150,20 +156,23 @@
 .seller-info {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 .seller-name {
     font-weight: 600;
     font-size: 14px;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 8px;
+    border-radius: 30px;
 }
 .seller-rating .stars-rating {
     color: #fbbf24;
     font-size: 12px;
 }
 .order-price-big {
-    font-size: 20px;
-    font-weight: bold;
+    font-size: 22px;
+    font-weight: 800;
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
     -webkit-background-clip: text;
@@ -183,13 +192,15 @@
 .buy-btn, .cancel-btn, .cancel-btn-small, .cancel-buy-btn {
     background: rgba(56,189,248,0.2);
     border: none;
-    padding: 4px 12px;
+    padding: 6px 16px;
     border-radius: 30px;
     font-size: 12px;
     cursor: pointer;
 }
 .buy-btn {
-    color: #38bdf8;
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    color: white;
+    font-weight: bold;
 }
 .cancel-btn, .cancel-btn-small, .cancel-buy-btn {
     color: #f97316;
@@ -271,8 +282,7 @@ button {
     border-collapse: collapse;
     font-size: 13px;
 }
-.history-table th,
-.history-table td {
+.history-table th, .history-table td {
     padding: 8px 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -284,14 +294,61 @@ button {
 .history-table td {
     color: #eef2ff;
 }
-.history-table td:first-child,
-.history-table th:first-child {
-    padding-left: 0;
+.history-table td:first-child, .history-table th:first-child { padding-left: 0; }
+.history-table td:last-child, .history-table th:last-child { padding-right: 0; }
+
+/* ===== АККОРДЕОН ===== */
+.accordion-section {
+    overflow: hidden;
+    transition: all 0.2s;
 }
-.history-table td:last-child,
-.history-table th:last-child {
-    padding-right: 0;
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 6px 0;
+    user-select: none;
 }
+.accordion-title {
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.order-count {
+    background: rgba(43,110,158,0.4);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 13px;
+    font-weight: normal;
+}
+.accordion-icon {
+    font-size: 20px;
+    transition: transform 0.2s;
+}
+.accordion-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+.accordion-content.collapsed {
+    max-height: 0;
+    padding: 0;
+}
+.accordion-content.expanded {
+    max-height: 1000px;
+    padding-top: 12px;
+}
+.cancel-all-btn {
+    background: rgba(220,38,38,0.2);
+    border: 1px solid #f97316;
+    margin-top: 12px;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* ===== АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ===== */
 @media (max-width: 560px) {
     .balance-row { gap: 6px; }
     .balance-item { font-size: 12px; padding: 4px 8px; }
@@ -305,58 +362,6 @@ button {
     .max-btn { width: 100%; }
     .history-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 11px; }
     .history-table th, .history-table td { padding: 6px 2px; }
-}
-
-/* Стили для игр (добавлены в stocks.css, чтобы не создавать отдельный файл) */
-.games-menu {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
-    margin: 20px 0;
-}
-.game-card {
-    background: rgba(0,0,0,0.3);
-    border-radius: 24px;
-    padding: 16px;
-    width: 200px;
-    text-align: center;
-    transition: transform 0.2s;
-}
-.game-card:hover {
-    transform: translateY(-4px);
-    background: rgba(43,110,158,0.2);
-}
-.game-icon {
-    font-size: 48px;
-    margin-bottom: 8px;
-}
-.game-name {
-    font-weight: bold;
-    font-size: 18px;
-    margin-bottom: 8px;
-}
-.game-desc {
-    font-size: 12px;
-    color: #9ca3af;
-    margin-bottom: 12px;
-}
-.game-play-btn {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    border: none;
-    padding: 8px 16px;
-    border-radius: 40px;
-    color: white;
-    cursor: pointer;
-    width: auto;
-    font-size: 14px;
-}
-.game-play-btn:active {
-    transform: scale(0.96);
-}
-.games-info {
-    text-align: center;
-    margin-top: 20px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    .accordion-title { font-size: 16px; }
+    .order-count { font-size: 11px; }
 }
