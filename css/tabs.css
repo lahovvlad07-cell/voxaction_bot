@@ -1,5 +1,4 @@
 /* tabs.css – стили нижней панели вкладок с поддержкой drag to scroll */
-
 .tabs-wrapper {
     position: fixed;
     bottom: 0;
@@ -14,7 +13,8 @@
     white-space: nowrap;
     scroll-behavior: smooth;
     cursor: grab;
-    user-select: none; /* предотвращает выделение текста при перетаскивании */
+    user-select: none;
+    -webkit-overflow-scrolling: touch;
 }
 .tabs-wrapper:active {
     cursor: grabbing;
@@ -40,22 +40,13 @@
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     box-shadow: 0 0 12px rgba(43, 110, 158, 0.6);
 }
-.tab-icon {
-    font-size: 22px;
-    margin-bottom: 4px;
-}
-.tab-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-}
+.tab-icon { font-size: 22px; margin-bottom: 4px; }
+.tab-label { font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
 
-/* Адаптация для мобильных устройств (touch) */
+/* На мобильных устройствах курсор не меняем */
 @media (hover: none) {
     .tabs-wrapper {
         cursor: default;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
     }
     .tabs-wrapper:active {
         cursor: default;
