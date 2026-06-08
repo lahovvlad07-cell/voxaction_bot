@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с рыночной продажей, улучшенным стаканом, слайдерами и историей
+// stocks.js – финальная версия с поддержкой слайдеров, рыночной продажей, стаканом, историей
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -140,60 +140,25 @@ async function marketBuy(starsAmountStars) {
     await window.refreshActiveTab();
 }
 
-// ========== Рыночная продажа ==========
+// ========== Рыночная продажа (через RPC market_sell) ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const sharesCents = window.toCents(sharesAmountStars);
     const userShares = window.currentUser.shares;
     if (userShares < sharesCents) throw new Error('Недостаточно акций для продажи');
     
-    let remainingSharesCents = sharesCents;
-    let totalSoldSharesCents = 0;
-    let totalEarnedCents = 0;
-
-    while (remainingSharesCents > 0) {
-        // Берём самый дорогой buy-ордер (лучшая цена покупки)
-        const { data: buyOrders, error } = await window.supabase
-            .from('buy_orders')
-            .select('*')
-            .eq('status', 'active')
-            .order('price_per_share', { ascending: false })
-            .limit(1);
-        if (error) throw new Error('Ошибка загрузки ордеров на покупку');
-        if (!buyOrders.length) break;
-
-        const order = buyOrders[0];
-        const priceCents = order.price_per_share;
-        const availableSharesCents = order.amount;
-        
-        let sellSharesCents = Math.min(remainingSharesCents, availableSharesCents);
-        const costCents = (sellSharesCents / 100) * priceCents;
-        
-        // Исполняем сделку (создаём временный sell-ордер с минимальной ценой для матчинга)
-        // Используем create_sell_order_matched с ценой 1⭐ – она сматчится с самым дорогим buy-ордером
-        const { error: sellError } = await window.supabase.rpc('create_sell_order_matched', {
-            p_user_id: window.userId,
-            p_amount_cents: sellSharesCents,
-            p_price_cents: 100 // 1⭐ в центах
-        });
-        if (sellError) throw new Error(`Ошибка продажи: ${sellError.message}`);
-        
-        totalSoldSharesCents += sellSharesCents;
-        totalEarnedCents += costCents;
-        remainingSharesCents -= sellSharesCents;
-        
-        // Обновляем локальные данные
-        window.currentUser.shares -= sellSharesCents;
-        window.currentUser.stars_balance += costCents;
-        await new Promise(r => setTimeout(r, 50));
-    }
+    const { data, error } = await window.supabase.rpc('market_sell', {
+        p_user_id: window.userId,
+        p_amount_cents: sharesCents
+    });
+    if (error) throw new Error(`Ошибка продажи: ${error.message}`);
+    if (!data.success) throw new Error(data.error);
     
-    if (totalSoldSharesCents === 0) throw new Error('Не удалось продать ни одной акции (нет ордеров на покупку)');
-    window.showToast(`✅ Продано ${window.fromCents(totalSoldSharesCents)} шт. за ${window.fromCents(totalEarnedCents)} ⭐`);
+    window.showToast(`✅ Продано ${window.fromCents(data.sold)} шт. за ${window.fromCents(data.earned)} ⭐`);
     await window.refreshActiveTab();
 }
 
-// ========== Стакан заявок (улучшенный: только лучшие 5) ==========
+// ========== Стакан заявок (лучшие 5) ==========
 async function renderOrderBook() {
     const { data: sellsRaw } = await window.supabase
         .from('orders')
@@ -303,37 +268,60 @@ async function cancelAllOrders() {
     await window.refreshActiveTab();
 }
 
-// ========== Слайдеры (генерация HTML) ==========
+// ========== Формы продажи/покупки (с учётом настроек слайдеров) ==========
 function renderSellForm() {
-    return `
-        <div class="sell-form">
-            <div>
-                <label>Количество (акций): <span id="sellAmountVal">1</span></label>
-                <input type="range" id="sellAmountSlider" min="0.01" max="${window.fromCents(window.currentUser.shares)}" step="0.01" value="1">
+    const useSliders = window.getUseSliders ? window.getUseSliders() : true;
+    const maxShares = window.fromCents(window.currentUser.shares);
+    if (useSliders) {
+        return `
+            <div class="sell-form">
+                <div>
+                    <label>Количество (акций): <span id="sellAmountVal">1</span></label>
+                    <input type="range" id="sellAmountSlider" min="0.01" max="${maxShares}" step="0.01" value="1">
+                </div>
+                <div>
+                    <label>Цена (⭐ за акцию): <span id="sellPriceVal">1</span></label>
+                    <input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1">
+                </div>
+                <button id="sellBtn">➕ Выставить на продажу</button>
             </div>
-            <div>
-                <label>Цена (⭐ за акцию): <span id="sellPriceVal">1</span></label>
-                <input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1">
+        `;
+    } else {
+        return `
+            <div class="sell-form">
+                <input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)">
+                <input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)">
+                <button id="sellBtn">➕ Выставить на продажу</button>
             </div>
-            <button id="sellBtn">➕ Выставить на продажу</button>
-        </div>
-    `;
+        `;
+    }
 }
 
 function renderBuyLimitForm() {
-    return `
-        <div class="sell-form">
-            <div>
-                <label>Количество (акций): <span id="buyAmountVal">1</span></label>
-                <input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="1">
+    const useSliders = window.getUseSliders ? window.getUseSliders() : true;
+    if (useSliders) {
+        return `
+            <div class="sell-form">
+                <div>
+                    <label>Количество (акций): <span id="buyAmountVal">1</span></label>
+                    <input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="1">
+                </div>
+                <div>
+                    <label>Цена (⭐ за акцию): <span id="buyPriceVal">1</span></label>
+                    <input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1">
+                </div>
+                <button id="buyLimitBtn">💰 Выставить заявку на покупку</button>
             </div>
-            <div>
-                <label>Цена (⭐ за акцию): <span id="buyPriceVal">1</span></label>
-                <input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1">
+        `;
+    } else {
+        return `
+            <div class="sell-form">
+                <input type="number" id="buyAmountLimit" step="0.01" min="1" placeholder="Количество (от 1)">
+                <input type="number" id="buyPriceLimit" step="0.01" min="1" placeholder="Цена (от 1 Star)">
+                <button id="buyLimitBtn">💰 Выставить заявку на покупку</button>
             </div>
-            <button id="buyLimitBtn">💰 Выставить заявку на покупку</button>
-        </div>
-    `;
+        `;
+    }
 }
 
 // ========== Мои последние сделки ==========
@@ -621,53 +609,91 @@ window.renderStocksTab = async function(currentUser) {
             window.renderStocksTab(currentUser);
         }));
         
-        // Слайдеры
-        const sellAmountSlider = document.getElementById('sellAmountSlider');
-        const sellAmountVal = document.getElementById('sellAmountVal');
-        const sellPriceSlider = document.getElementById('sellPriceSlider');
-        const sellPriceVal = document.getElementById('sellPriceVal');
-        if (sellAmountSlider) {
-            sellAmountSlider.addEventListener('input', () => { sellAmountVal.innerText = sellAmountSlider.value; });
-            sellPriceSlider.addEventListener('input', () => { sellPriceVal.innerText = sellPriceSlider.value; });
-        }
-        const buyAmountSlider = document.getElementById('buyAmountSlider');
-        const buyAmountVal = document.getElementById('buyAmountVal');
-        const buyPriceSlider = document.getElementById('buyPriceSlider');
-        const buyPriceVal = document.getElementById('buyPriceVal');
-        if (buyAmountSlider) {
-            buyAmountSlider.addEventListener('input', () => { buyAmountVal.innerText = buyAmountSlider.value; });
-            buyPriceSlider.addEventListener('input', () => { buyPriceVal.innerText = buyPriceSlider.value; });
+        // Обработчики для форм продажи/покупки (в зависимости от режима)
+        const useSliders = window.getUseSliders ? window.getUseSliders() : true;
+        
+        // Продажа
+        if (useSliders) {
+            const sellAmountSlider = document.getElementById('sellAmountSlider');
+            const sellAmountVal = document.getElementById('sellAmountVal');
+            const sellPriceSlider = document.getElementById('sellPriceSlider');
+            const sellPriceVal = document.getElementById('sellPriceVal');
+            if (sellAmountSlider) {
+                sellAmountSlider.addEventListener('input', () => { sellAmountVal.innerText = sellAmountSlider.value; });
+                sellPriceSlider.addEventListener('input', () => { sellPriceVal.innerText = sellPriceSlider.value; });
+            }
+            document.getElementById('sellBtn')?.addEventListener('click', async () => {
+                let amount = parseFloat(sellAmountSlider.value);
+                let price = parseFloat(sellPriceSlider.value);
+                if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
+                    window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1');
+                    return;
+                }
+                try {
+                    await window.createOrder(amount, price);
+                    await window.refreshActiveTab();
+                } catch (err) {
+                    window.showCustomModal('Ошибка', err.message);
+                }
+            });
+        } else {
+            document.getElementById('sellBtn')?.addEventListener('click', async () => {
+                let amount = parseFloat(document.getElementById('sellAmount').value);
+                let price = parseFloat(document.getElementById('sellPrice').value);
+                if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
+                    window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1');
+                    return;
+                }
+                try {
+                    await window.createOrder(amount, price);
+                    await window.refreshActiveTab();
+                } catch (err) {
+                    window.showCustomModal('Ошибка', err.message);
+                }
+            });
         }
         
-        // Кнопки
-        document.getElementById('sellBtn')?.addEventListener('click', async () => {
-            let amount = parseFloat(sellAmountSlider.value);
-            let price = parseFloat(sellPriceSlider.value);
-            if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
-                window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1');
-                return;
+        // Лимитная покупка
+        if (useSliders) {
+            const buyAmountSlider = document.getElementById('buyAmountSlider');
+            const buyAmountVal = document.getElementById('buyAmountVal');
+            const buyPriceSlider = document.getElementById('buyPriceSlider');
+            const buyPriceVal = document.getElementById('buyPriceVal');
+            if (buyAmountSlider) {
+                buyAmountSlider.addEventListener('input', () => { buyAmountVal.innerText = buyAmountSlider.value; });
+                buyPriceSlider.addEventListener('input', () => { buyPriceVal.innerText = buyPriceSlider.value; });
             }
-            try {
-                await window.createOrder(amount, price);
-                await window.refreshActiveTab();
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
-        });
-        document.getElementById('buyLimitBtn')?.addEventListener('click', async () => {
-            let amount = parseFloat(buyAmountSlider.value);
-            let price = parseFloat(buyPriceSlider.value);
-            if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
-                window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1');
-                return;
-            }
-            try {
-                await window.createBuyOrder(amount, price);
-                await window.refreshActiveTab();
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
-        });
+            document.getElementById('buyLimitBtn')?.addEventListener('click', async () => {
+                let amount = parseFloat(buyAmountSlider.value);
+                let price = parseFloat(buyPriceSlider.value);
+                if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
+                    window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1');
+                    return;
+                }
+                try {
+                    await window.createBuyOrder(amount, price);
+                    await window.refreshActiveTab();
+                } catch (err) {
+                    window.showCustomModal('Ошибка', err.message);
+                }
+            });
+        } else {
+            document.getElementById('buyLimitBtn')?.addEventListener('click', async () => {
+                let amount = parseFloat(document.getElementById('buyAmountLimit').value);
+                let price = parseFloat(document.getElementById('buyPriceLimit').value);
+                if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
+                    window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1');
+                    return;
+                }
+                try {
+                    await window.createBuyOrder(amount, price);
+                    await window.refreshActiveTab();
+                } catch (err) {
+                    window.showCustomModal('Ошибка', err.message);
+                }
+            });
+        }
+        
         document.getElementById('marketBuyBtn')?.addEventListener('click', async () => {
             const stars = parseFloat(prompt('Сколько ⭐ потратить?', '100'));
             if (isNaN(stars) || stars <= 0) return;
