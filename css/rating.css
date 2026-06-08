@@ -1,4 +1,4 @@
-/* rating.css – никнейм слева, бейджи под ним, без центровки */
+/* rating.css – финальная версия с прокруткой модалки и адаптацией */
 
 .rating-title {
     text-align: center;
@@ -115,7 +115,6 @@
     display: block;
 }
 
-/* Бейджи выровнены по левому краю */
 .rating-stats {
     display: flex !important;
     flex-direction: row !important;
@@ -260,6 +259,71 @@
     font-weight: 700;
 }
 
+/* ===== МОДАЛЬНОЕ ОКНО ПРОФИЛЯ (ПРОКРУТКА) ===== */
+#profileModal .modal-content {
+    max-height: 85vh;
+    overflow-y: auto;
+    padding-bottom: 20px;
+}
+#profileModal .modal-content::-webkit-scrollbar {
+    width: 4px;
+}
+#profileModal .modal-content::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+}
+#profileModal .modal-content::-webkit-scrollbar-thumb {
+    background: #2b6e9e;
+    border-radius: 4px;
+}
+
+/* Достижения в модалке */
+.achievement-icons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+}
+.achi-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    border: 1px solid transparent;
+}
+.achi-icon.earned {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border-color: #60a5fa;
+    box-shadow: 0 0 10px rgba(43, 110, 158, 0.3);
+}
+
+/* Карточки статистики в модалке */
+.stat-card {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 8px;
+    text-align: center;
+    flex: 1;
+}
+.stat-value {
+    font-size: 18px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.stat-label {
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+/* Адаптация под мобильные */
 @media (max-width: 560px) {
     .rating-legend {
         gap: 12px;
@@ -278,5 +342,10 @@
     }
     .rating-username {
         font-size: 14px;
+    }
+    .achi-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 24px;
     }
 }
