@@ -1,4 +1,4 @@
-/* stocks.css – единый адаптивный стиль (ПК + мобилы) */
+/* stocks.css – единый адаптивный стиль (ПК + мобилы) с улучшениями */
 
 .balance-row {
     display: flex;
@@ -106,9 +106,18 @@
 .sell-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
-.sell-form input {
+.sell-form input[type="range"] {
+    width: 100%;
+    margin: 8px 0;
+}
+.sell-form label {
+    display: flex;
+    justify-content: space-between;
+}
+.sell-form input[type="number"],
+.sell-form input[type="text"] {
     width: 100%;
     padding: 12px;
     background: #111827;
@@ -227,6 +236,18 @@
 .buy-confirm-btn {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     width: 100%;
+}
+/* Дополнительные улучшения */
+.card h3 {
+    text-align: center;
+}
+.balance-row button {
+    margin: 0 6px;
+    font-size: 14px;
+    padding: 8px 12px;
+}
+.order-history-item {
+    font-size: 12px;
 }
 input {
     width: 100%;
