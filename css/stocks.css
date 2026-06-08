@@ -1,4 +1,4 @@
-/* stocks.css – единый адаптивный стиль с аккордеонами */
+/* stocks.css – улучшенный, с пагинацией и центровкой */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -32,6 +32,7 @@
     padding: 10px;
     text-align: center;
     flex: 1;
+    backdrop-filter: blur(4px);
 }
 .timeframe-buttons {
     display: flex;
@@ -48,10 +49,12 @@
     font-size: 13px;
     cursor: pointer;
     flex: 1;
+    transition: 0.2s;
 }
 .timeframe-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
+    box-shadow: 0 2px 8px rgba(43,110,158,0.4);
 }
 #refreshChartBtn {
     background: rgba(255,255,255,0.1);
@@ -107,10 +110,12 @@
     border-radius: 40px;
     font-size: 13px;
     cursor: pointer;
+    transition: 0.2s;
 }
 .filter-btn.active, .sort-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
+    box-shadow: 0 2px 6px rgba(43,110,158,0.3);
 }
 .sell-form {
     display: flex;
@@ -130,27 +135,29 @@
     padding: 20px;
     color: #9ca3af;
 }
+/* Карточки ордеров (общие) */
 .order-card {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 20px;
-    padding: 12px;
+    padding: 14px;
     margin-bottom: 12px;
-    transition: transform 0.1s, box-shadow 0.2s;
-    border-left: 3px solid #2b6e9e;
+    transition: transform 0.15s, box-shadow 0.2s;
+    border-left: 4px solid #2b6e9e;
+    backdrop-filter: blur(4px);
 }
 .order-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.3);
 }
 .order-card-best {
-    background: rgba(34,197,94,0.2);
-    border-left: 3px solid #4ade80;
+    background: rgba(34,197,94,0.15);
+    border-left: 4px solid #4ade80;
 }
 .order-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
 }
 .seller-info {
@@ -163,20 +170,17 @@
     font-weight: 600;
     font-size: 14px;
     background: rgba(255,255,255,0.1);
-    padding: 2px 8px;
-    border-radius: 30px;
-}
-.seller-rating .stars-rating {
-    color: #fbbf24;
-    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 40px;
 }
 .order-price-big {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
+    letter-spacing: -0.5px;
 }
 .order-card-body {
     display: flex;
@@ -186,29 +190,41 @@
     gap: 8px;
 }
 .order-amount {
-    font-size: 14px;
+    font-size: 15px;
     color: #a5b4fc;
+    font-weight: 500;
 }
 .buy-btn, .cancel-btn, .cancel-btn-small, .cancel-buy-btn {
     background: rgba(56,189,248,0.2);
     border: none;
-    padding: 6px 16px;
-    border-radius: 30px;
-    font-size: 12px;
+    padding: 6px 18px;
+    border-radius: 40px;
+    font-size: 13px;
     cursor: pointer;
+    transition: 0.2s;
 }
 .buy-btn {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
-    font-weight: bold;
+    font-weight: 600;
+}
+.buy-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(43,110,158,0.5);
 }
 .cancel-btn, .cancel-btn-small, .cancel-buy-btn {
     color: #f97316;
+    border: 1px solid #f97316;
+}
+.cancel-btn:hover, .cancel-btn-small:hover, .cancel-buy-btn:hover {
+    background: rgba(249,115,22,0.2);
+    transform: scale(1.02);
 }
 .my-order-card {
-    background: rgba(0,0,0,0.5);
-    border-left: 3px solid #2b6e9e;
+    background: rgba(0,0,0,0.6);
+    border-left: 4px solid #2b6e9e;
 }
+/* Модалка покупки */
 #buyModal .modal-content {
     max-width: 320px;
 }
@@ -263,40 +279,45 @@ button {
     width: 100%;
     margin-top: 8px;
     cursor: pointer;
+    transition: 0.2s;
+}
+button:active {
+    transform: scale(0.98);
 }
 .card h3 {
     text-align: center;
+    margin-bottom: 12px;
 }
 #sellOrdersList .small-text,
 #buyOrdersList .small-text,
-#orderHistoryList .small-text,
-#myRecentTrades .small-text,
-.empty-orders {
+#orderHistoryList .small-text {
     text-align: center !important;
 }
-#sellOrdersList, #buyOrdersList, #orderHistoryList, #myRecentTrades {
+#sellOrdersList, #buyOrdersList, #orderHistoryList {
     margin-top: 8px;
 }
+/* ===== ТАБЛИЦА ИСТОРИИ ОРДЕРОВ (ЦЕНТРИРОВАНА) ===== */
 .history-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    text-align: center;
 }
 .history-table th, .history-table td {
-    padding: 8px 4px;
+    padding: 10px 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .history-table th {
-    text-align: left;
-    font-weight: 600;
+    font-weight: 700;
     color: #a5b4fc;
+    text-align: center;
 }
 .history-table td {
     color: #eef2ff;
 }
-.history-table td:first-child, .history-table th:first-child { padding-left: 0; }
-.history-table td:last-child, .history-table th:last-child { padding-right: 0; }
-
+.history-table td:first-child, .history-table th:first-child {
+    text-align: left;
+}
 /* ===== АККОРДЕОН ===== */
 .accordion-section {
     overflow: hidden;
@@ -307,7 +328,7 @@ button {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    padding: 6px 0;
+    padding: 8px 0;
     user-select: none;
 }
 .accordion-title {
@@ -315,40 +336,73 @@ button {
     font-weight: bold;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 .order-count {
-    background: rgba(43,110,158,0.4);
-    border-radius: 20px;
-    padding: 2px 8px;
+    background: rgba(43,110,158,0.5);
+    border-radius: 30px;
+    padding: 2px 10px;
     font-size: 13px;
     font-weight: normal;
 }
 .accordion-icon {
-    font-size: 20px;
+    font-size: 22px;
     transition: transform 0.2s;
 }
 .accordion-content {
     overflow: hidden;
-    transition: max-height 0.3s ease-out;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .accordion-content.collapsed {
     max-height: 0;
     padding: 0;
 }
 .accordion-content.expanded {
-    max-height: 1000px;
+    max-height: 1200px;
     padding-top: 12px;
 }
 .cancel-all-btn {
     background: rgba(220,38,38,0.2);
     border: 1px solid #f97316;
     margin-top: 12px;
-    padding: 6px 12px;
-    font-size: 13px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
 }
-
-/* ===== АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ===== */
+/* ===== ПАГИНАЦИЯ ДЛЯ ОРДЕРОВ ===== */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    padding: 8px 0;
+}
+.pagination-btn {
+    background: rgba(43,110,158,0.3);
+    border: 1px solid #2b6e9e;
+    padding: 8px 20px;
+    border-radius: 40px;
+    font-size: 14px;
+    cursor: pointer;
+    width: auto;
+    transition: 0.2s;
+}
+.pagination-btn:hover:not(:disabled) {
+    background: #2b6e9e;
+    transform: scale(1.02);
+}
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.pagination-info {
+    font-size: 14px;
+    background: rgba(0,0,0,0.4);
+    padding: 6px 14px;
+    border-radius: 40px;
+}
+/* ===== АДАПТАЦИЯ ===== */
 @media (max-width: 560px) {
     .balance-row { gap: 6px; }
     .balance-item { font-size: 12px; padding: 4px 8px; }
@@ -361,7 +415,9 @@ button {
     .buy-amount-row { flex-direction: column; }
     .max-btn { width: 100%; }
     .history-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 11px; }
-    .history-table th, .history-table td { padding: 6px 2px; }
+    .history-table th, .history-table td { padding: 6px 4px; }
     .accordion-title { font-size: 16px; }
     .order-count { font-size: 11px; }
+    .pagination-btn { padding: 6px 14px; font-size: 12px; }
+    .pagination-info { font-size: 12px; }
 }
