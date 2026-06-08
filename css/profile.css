@@ -1,4 +1,4 @@
-/* profile.css – полная версия с адаптивным размером аватарки и улучшенной сеткой */
+/* profile.css – полная версия с адаптивным размером аватарки и увеличенными иконками достижений */
 
 #avatarClickWrapper {
     display: flex;
@@ -9,6 +9,7 @@
     margin: 0 auto;
 }
 
+/* Базовый размер аватарки (для всех устройств – 140px, на телефонах переопределим) */
 .avatar-circle {
     width: 140px !important;
     height: 140px !important;
@@ -29,6 +30,7 @@
     line-height: 1;
 }
 
+/* Для мобильных устройств уменьшаем до 120px */
 @media (max-width: 560px) {
     .avatar-circle {
         width: 120px !important;
@@ -37,6 +39,7 @@
     }
 }
 
+/* Для очень маленьких экранов (≤400px) можно ещё чуть уменьшить */
 @media (max-width: 400px) {
     .avatar-circle {
         width: 100px !important;
@@ -73,7 +76,7 @@
     .avatar-emoji[style*="💰"] { transform: translateY(-4px) !important; }
     .avatar-emoji[style*="🎲"] { transform: translateY(-6px) !important; }
     .avatar-emoji[style*="🏆"] { transform: translateY(-4px) !important; }
-    .avatar-emoji[style*="🎁"] { transform: translateY(-4px) !important; }   /* ← добавлено */
+    .avatar-emoji[style*="🎁"] { transform: translateY(-4px) !important; }
     .avatar-emoji[style*="🌟"] { transform: translateY(-2px) !important; }
     .avatar-emoji[style*="🔥"] { transform: translateY(-6px) !important; }
     .avatar-emoji[style*="❤️"] { transform: translateY(-3px) !important; }
@@ -83,6 +86,7 @@
     .avatar-emoji[style*="🎯"] { transform: translateY(-4px) !important; }
 }
 
+/* Общее смещение для превью в модалках (шаги 1-3) */
 @media (min-width: 561px) {
     #stepModal .avatar-circle .avatar-emoji,
     #borderModal .avatar-circle .avatar-emoji {
@@ -95,6 +99,7 @@
     color: #9ca3af;
 }
 
+/* ===== Сетка выбора аватарок (кастомизация) – 24 аватарки в 4 столбца ===== */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(65px, 1fr));
@@ -160,22 +165,23 @@
     text-shadow: 0 0 2px black;
 }
 
+/* ===== Достижения – увеличенные кружки ===== */
 .achievement-icons {
     display: flex;
     justify-content: center;
-    gap: 16px;
+    gap: 20px;
     margin: 16px 0;
     flex-wrap: wrap;
 }
 .achi-icon {
-    width: 56px;
-    height: 56px;
+    width: 70px !important;
+    height: 70px !important;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 32px;
+    font-size: 40px !important;
     cursor: pointer;
     transition: 0.2s;
     border: 1px solid transparent;
@@ -189,6 +195,20 @@
     transform: scale(1.1);
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.9);
 }
+
+/* Для мобильных устройств чуть уменьшаем кружки, чтобы не перегружать */
+@media (max-width: 560px) {
+    .achi-icon {
+        width: 60px !important;
+        height: 60px !important;
+        font-size: 34px !important;
+    }
+    .achievement-icons {
+        gap: 16px;
+    }
+}
+
+/* ===== Статистика и карточки ===== */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -221,6 +241,8 @@
     font-size: 12px;
     margin-top: 4px;
 }
+
+/* ===== Сетка достижений в модалке выбора ===== */
 .achievements-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -261,6 +283,8 @@
     color: #9ca3af;
     margin-top: 4px;
 }
+
+/* ===== Прогресс-бары ===== */
 .progress-bar {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
@@ -293,6 +317,7 @@
     margin-top: 12px;
 }
 
+/* ===== Градиенты для фона аватарки ===== */
 .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
 .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
@@ -305,6 +330,7 @@
 .bg-gradient10 { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
 .bg-gradient11 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
 
+/* ===== Кастомизация – превью круга (модалки) ===== */
 #stepModal .modal-preview,
 #borderModal .modal-preview {
     display: flex !important;
@@ -322,6 +348,7 @@
     border-radius: 50%;
 }
 
+/* ===== АНИМАЦИЯ ДЛЯ МОДАЛКИ ДОСТИЖЕНИЙ ===== */
 @keyframes bounceIn {
     0% {
         opacity: 0;
