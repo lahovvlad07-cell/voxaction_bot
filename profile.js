@@ -1,4 +1,4 @@
-// profile.js – без прогресс-баров в модалке выбора достижений, только список достижений
+// profile.js – полная версия с уменьшенными иконками в ближайших достижениях
 const avatarEmojis = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' },
@@ -33,7 +33,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${fontSize};`;
 }
 
-// ========== Получение следующих достижений (для прогресс-баров В ПРОФИЛЕ, не в модалке) ==========
+// ========== Получение следующих достижений (для прогресс-баров) ==========
 async function getNextAchievementsProgress(currentUser, getUserStats, getAllAchievements, getEarnedAchievements) {
     const allAchievements = await getAllAchievements();
     const earned = await getEarnedAchievements();
@@ -478,6 +478,7 @@ window.renderProfileTab = async function(
     }
     const rank = await getUserRank();
     const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px; font-weight:bold;">#${rank}</span></div>` : '';
+    
     const nextAchs = await getNextAchievementsProgress(currentUser, getUserStats, getAllAchievements, getEarnedAchievements);
     let nextHtml = '';
     if (nextAchs.length > 0) {
@@ -495,12 +496,14 @@ window.renderProfileTab = async function(
                 case 'stars_held': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ на балансе`; break;
                 case 'days_active': conditionStr = `${ach.current}/${ach.needed} дней`; break;
             }
-            nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between;"><span style="font-size:28px;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div></div>`;
+            // ИСПРАВЛЕНО: размер иконки уменьшен с 28px до 22px
+            nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:22px; line-height:1;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div></div>`;
         }
         nextHtml += `</div>`;
     } else {
         nextHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
     }
+    
     const avatarUrl = currentUser.avatar_url || '👤';
     const avatarBg = currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#') 
         ? currentUser.avatar_bg 
@@ -508,6 +511,7 @@ window.renderProfileTab = async function(
     const avatarBorder = currentUser.avatar_border || '#ffffff';
     const emojiStyle = getAvatarStyle(avatarUrl);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
+    
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div id="avatarClickWrapper">
             <div class="avatar-circle" style="background: ${avatarBg}; border: 3px solid ${avatarBorder};">
@@ -533,7 +537,9 @@ window.renderProfileTab = async function(
         ${rankHtml}
         ${nextHtml}
     </div>`;
+    
     document.getElementById('app').innerHTML = html;
+    
     const updateUserCallback = async (updates) => {
         await supabase.from('users').update(updates).eq('id', userId);
         Object.assign(currentUser, updates);
