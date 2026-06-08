@@ -1,4 +1,4 @@
-/* rating.css – финальная версия с горизонтальными бейджами */
+/* rating.css – финальная версия: бейджи в строку, модалка без прокрутки */
 
 .rating-title {
     text-align: center;
@@ -110,40 +110,23 @@
     font-weight: 700;
     font-size: 15px;
     color: #f0f4ff;
-    margin-bottom: 2px;
-}
-.rating-shares {
-    margin: 4px 0 2px;
-}
-.rating-shares-icon {
-    font-size: 12px;
-    margin-right: 4px;
-    opacity: 0.8;
-}
-.rating-shares-value {
-    font-weight: 800;
-    font-size: 13px;
-    color: #eef2ff;
-    background: rgba(96, 165, 250, 0.2);
-    padding: 2px 8px;
-    border-radius: 20px;
-    display: inline-block;
+    margin-bottom: 4px;
 }
 
-/* Принудительное горизонтальное расположение иконок */
+/* Бейджи в одну строку */
 .rating-stats {
     display: flex !important;
     flex-direction: row !important;
-    gap: 12px !important;
-    margin-top: 6px !important;
+    gap: 10px !important;
     flex-wrap: wrap !important;
+    align-items: center;
 }
 .rating-stat {
     display: inline-flex !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 4px !important;
     background: rgba(96, 165, 250, 0.15) !important;
-    padding: 3px 10px !important;
+    padding: 2px 10px !important;
     border-radius: 30px !important;
     font-size: 12px !important;
     font-weight: 500 !important;
@@ -153,7 +136,6 @@
 .rating-stat span {
     font-weight: 700 !important;
     color: #eef2ff !important;
-    margin-left: 2px !important;
 }
 
 .rating-item.current-user-row {
@@ -288,11 +270,8 @@
         font-size: 11px;
         padding: 2px 8px;
     }
-    .rating-shares-value {
-        font-size: 11px;
-    }
     .rating-stat {
         font-size: 10px;
-        padding: 1px 6px;
+        padding: 1px 8px;
     }
 }
