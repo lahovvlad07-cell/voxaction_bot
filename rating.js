@@ -1,6 +1,6 @@
-// rating.js – финальная версия с компактной модалкой и строкой бейджей
+// rating.js – финал: никнейм по центру над бейджами, модалка без лишней прокрутки
 
-let currentPage =  ﻿1;
+let currentPage = 1;
 const itemsPerPage = 10;
 let allUsers = [];
 let filteredUsers = [];
@@ -55,7 +55,7 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
-// Модалка профиля – без скролла, просторная
+// Модальное окно профиля – просторное, без лишнего скролла
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
@@ -93,35 +93,36 @@ async function showUserProfileModal(userId) {
 
     const modalHtml = `
         <div class="modal" id="profileModal" style="display:flex;">
-            <div class="modal-content" style="max-width: 340px; overflow: visible; padding-bottom: 16px;">
+            <div class="modal-content" style="max-width: 360px; width: 90%;">
                 <span class="close-modal" id="closeProfileModal">&times;</span>
-                <div style="text-align: center; padding: 16px 0 8px;">
+                <div style="text-align: center; padding: 20px 0 10px;">
                     <div style="display: flex; justify-content: center;">${avatarHtml}</div>
-                    <h3 style="margin: 12px 0 4px;">${escapeHtml(user.username)}</h3>
+                    <h3 style="margin: 14px 0 4px;">${escapeHtml(user.username)}</h3>
                     <div class="small-text">ID: ${user.id}</div>
                     <div class="small-text">📅 ${new Date(user.registered_at).toLocaleDateString()}</div>
                 </div>
-                <div class="achievement-icons" style="justify-content: center; gap: 12px; margin: 8px 0;">
+                <div class="achievement-icons" style="justify-content: center; gap: 16px; margin: 12px 0;">
                     ${achievementsHtml}
                 </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 8px 0;">
-                    <div class="stat-card"><div class="stat-value">${window.fromCents(user.shares)}</div><div class="stat-label">Акций</div></div>
-                    <div class="stat-card"><div class="stat-value">${window.fromCents(user.stars_balance)}</div><div class="stat-label">Stars</div></div>
-                    <div class="stat-card"><div class="stat-value">${stats.tradesCount}</div><div class="stat-label">Сделок</div></div>
-                    <div class="stat-card"><div class="stat-value">${user.referral_count || 0}</div><div class="stat-label">Рефералов</div></div>
+                <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin: 16px 0;">
+                    <div class="stat-card" style="min-width: 90px;"><div class="stat-value">${window.fromCents(user.shares)}</div><div class="stat-label">Акций</div></div>
+                    <div class="stat-card" style="min-width: 90px;"><div class="stat-value">${window.fromCents(user.stars_balance)}</div><div class="stat-label">Stars</div></div>
+                    <div class="stat-card" style="min-width: 90px;"><div class="stat-value">${stats.tradesCount}</div><div class="stat-label">Сделок</div></div>
+                    <div class="stat-card" style="min-width: 90px;"><div class="stat-value">${user.referral_count || 0}</div><div class="stat-label">Рефералов</div></div>
                 </div>
-                <div style="text-align: center; margin-top: 8px;">
-                    <div class="rank-card" style="background: rgba(0,0,0,0.3); border-radius: 40px; padding: 6px 12px; display: inline-block;">
-                        🏆 Рейтинг: ${rankText}
+                <div style="text-align: center; margin: 12px 0 8px;">
+                    <div class="rank-card" style="background: rgba(0,0,0,0.3); border-radius: 40px; padding: 8px 16px; display: inline-block;">
+                        ⚡ Рейтинг: ${rankText}
                     </div>
                 </div>
-                <div class="modal-buttons" style="margin-top: 16px;"><button id="closeProfileBtn">Закрыть</button></div>
+                <div class="modal-buttons" style="margin-top: 20px;"><button id="closeProfileBtn">Закрыть</button></div>
             </div>
         </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    document.getElementById('closeProfileModal').onclick = () => document.getElementById('profileModal').remove();
-    document.getElementById('closeProfileBtn').onclick = () => document.getElementById('profileModal').remove();
+    const modal = document.getElementById('profileModal');
+    document.getElementById('closeProfileModal').onclick = () => modal.remove();
+    document.getElementById('closeProfileBtn').onclick = () => modal.remove();
 }
 
 function renderPage() {
@@ -148,7 +149,6 @@ function renderPage() {
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
 
         const sharesFormatted = (user.shares / 100).toFixed(2);
-        // Все бейджи в одной строке (акции, сделки, рефералы)
         const statsHtml = `
             <div class="rating-stats">
                 <div class="rating-stat">📊 <span>${sharesFormatted}</span></div>
