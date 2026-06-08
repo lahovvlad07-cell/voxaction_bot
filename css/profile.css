@@ -1,4 +1,4 @@
-/* profile.css – полная версия с адаптивным размером аватарки и увеличенными иконками достижений */
+/* profile.css – финальная версия (унифицированные кружки 70px, улучшенная модалка) */
 
 #avatarClickWrapper {
     display: flex;
@@ -9,7 +9,6 @@
     margin: 0 auto;
 }
 
-/* Базовый размер аватарки (для всех устройств – 140px, на телефонах переопределим) */
 .avatar-circle {
     width: 140px !important;
     height: 140px !important;
@@ -30,7 +29,6 @@
     line-height: 1;
 }
 
-/* Для мобильных устройств уменьшаем до 120px */
 @media (max-width: 560px) {
     .avatar-circle {
         width: 120px !important;
@@ -38,8 +36,6 @@
         font-size: 62px !important;
     }
 }
-
-/* Для очень маленьких экранов (≤400px) можно ещё чуть уменьшить */
 @media (max-width: 400px) {
     .avatar-circle {
         width: 100px !important;
@@ -58,7 +54,6 @@
     position: static !important;
 }
 
-/* Индивидуальная коррекция для эмодзи на ПК */
 @media (min-width: 561px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
     .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
@@ -86,7 +81,6 @@
     .avatar-emoji[style*="🎯"] { transform: translateY(-4px) !important; }
 }
 
-/* Общее смещение для превью в модалках (шаги 1-3) */
 @media (min-width: 561px) {
     #stepModal .avatar-circle .avatar-emoji,
     #borderModal .avatar-circle .avatar-emoji {
@@ -99,7 +93,6 @@
     color: #9ca3af;
 }
 
-/* ===== Сетка выбора аватарок (кастомизация) – 24 аватарки в 4 столбца ===== */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(65px, 1fr));
@@ -165,7 +158,7 @@
     text-shadow: 0 0 2px black;
 }
 
-/* ===== Достижения – увеличенные кружки ===== */
+/* ===== КРУЖКИ ДОСТИЖЕНИЙ (70px на ПК, 60px на телефонах) ===== */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -195,8 +188,6 @@
     transform: scale(1.1);
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.9);
 }
-
-/* Для мобильных устройств чуть уменьшаем кружки, чтобы не перегружать */
 @media (max-width: 560px) {
     .achi-icon {
         width: 60px !important;
@@ -208,7 +199,52 @@
     }
 }
 
-/* ===== Статистика и карточки ===== */
+/* ===== МОДАЛКА ВЫБОРА ДОСТИЖЕНИЙ (улучшенная ширина и выделение) ===== */
+.modal-content {
+    max-width: 350px;
+    width: 90%;
+}
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 16px 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+.achievement-card {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 18px;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid transparent;
+}
+.achievement-card.selected {
+    border-color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+.achievement-card.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+}
+.achievement-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+.achievement-desc,
+.achievement-condition,
+.achievement-date {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+/* ===== СТАТИСТИКА И ПРОГРЕСС-БАРЫ ===== */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -241,50 +277,6 @@
     font-size: 12px;
     margin-top: 4px;
 }
-
-/* ===== Сетка достижений в модалке выбора ===== */
-.achievements-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin: 16px 0;
-    max-height: 400px;
-    overflow-y: auto;
-}
-.achievement-card {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 18px;
-    padding: 10px 8px;
-    text-align: center;
-    cursor: pointer;
-    transition: 0.2s;
-    border: 1px solid transparent;
-}
-.achievement-card.selected {
-    border-color: #fbbf24;
-    background: rgba(251, 191, 36, 0.15);
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
-}
-.achievement-card.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    filter: grayscale(0.3);
-}
-.achievement-icon {
-    font-size: 28px;
-    margin-bottom: 4px;
-}
-.achievement-name {
-    font-weight: 600;
-    font-size: 13px;
-}
-.achievement-desc, .achievement-condition, .achievement-date {
-    font-size: 10px;
-    color: #9ca3af;
-    margin-top: 4px;
-}
-
-/* ===== Прогресс-бары ===== */
 .progress-bar {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
@@ -317,7 +309,7 @@
     margin-top: 12px;
 }
 
-/* ===== Градиенты для фона аватарки ===== */
+/* ===== ГРАДИЕНТЫ ДЛЯ ФОНА ===== */
 .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
 .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
@@ -330,7 +322,7 @@
 .bg-gradient10 { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
 .bg-gradient11 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
 
-/* ===== Кастомизация – превью круга (модалки) ===== */
+/* ===== МОДАЛКИ КАСТОМИЗАЦИИ ===== */
 #stepModal .modal-preview,
 #borderModal .modal-preview {
     display: flex !important;
@@ -350,18 +342,8 @@
 
 /* ===== АНИМАЦИЯ ДЛЯ МОДАЛКИ ДОСТИЖЕНИЙ ===== */
 @keyframes bounceIn {
-    0% {
-        opacity: 0;
-        transform: scale(0.3);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.05);
-    }
-    70% {
-        transform: scale(0.9);
-    }
-    100% {
-        transform: scale(1);
-    }
+    0% { opacity: 0; transform: scale(0.3); }
+    50% { opacity: 1; transform: scale(1.05); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
 }
