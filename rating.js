@@ -1,6 +1,6 @@
-// rating.js – финальная версия с иконками в строку и прокруткой модалки
+// rating.js – финальная версия с компактной модалкой и строкой бейджей
 
-let currentPage = 1;
+let currentPage =  ﻿1;
 const itemsPerPage = 10;
 let allUsers = [];
 let filteredUsers = [];
@@ -55,7 +55,7 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
-// Модальное окно профиля (с прокруткой)
+// Модалка профиля – без скролла, просторная
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
@@ -93,7 +93,7 @@ async function showUserProfileModal(userId) {
 
     const modalHtml = `
         <div class="modal" id="profileModal" style="display:flex;">
-            <div class="modal-content" style="max-width: 340px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-content" style="max-width: 340px; overflow: visible; padding-bottom: 16px;">
                 <span class="close-modal" id="closeProfileModal">&times;</span>
                 <div style="text-align: center; padding: 16px 0 8px;">
                     <div style="display: flex; justify-content: center;">${avatarHtml}</div>
@@ -104,20 +104,18 @@ async function showUserProfileModal(userId) {
                 <div class="achievement-icons" style="justify-content: center; gap: 12px; margin: 8px 0;">
                     ${achievementsHtml}
                 </div>
-                <div class="stats-container" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 8px 0;">
+                <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 8px 0;">
                     <div class="stat-card"><div class="stat-value">${window.fromCents(user.shares)}</div><div class="stat-label">Акций</div></div>
                     <div class="stat-card"><div class="stat-value">${window.fromCents(user.stars_balance)}</div><div class="stat-label">Stars</div></div>
-                </div>
-                <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
                     <div class="stat-card"><div class="stat-value">${stats.tradesCount}</div><div class="stat-label">Сделок</div></div>
                     <div class="stat-card"><div class="stat-value">${user.referral_count || 0}</div><div class="stat-label">Рефералов</div></div>
                 </div>
-                <div style="text-align: center; margin-top: 4px; margin-bottom: 8px;">
+                <div style="text-align: center; margin-top: 8px;">
                     <div class="rank-card" style="background: rgba(0,0,0,0.3); border-radius: 40px; padding: 6px 12px; display: inline-block;">
                         🏆 Рейтинг: ${rankText}
                     </div>
                 </div>
-                <div class="modal-buttons"><button id="closeProfileBtn">Закрыть</button></div>
+                <div class="modal-buttons" style="margin-top: 16px;"><button id="closeProfileBtn">Закрыть</button></div>
             </div>
         </div>
     `;
@@ -150,8 +148,10 @@ function renderPage() {
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
 
         const sharesFormatted = (user.shares / 100).toFixed(2);
+        // Все бейджи в одной строке (акции, сделки, рефералы)
         const statsHtml = `
             <div class="rating-stats">
+                <div class="rating-stat">📊 <span>${sharesFormatted}</span></div>
                 <div class="rating-stat">🔄 <span>${user.tradesCount}</span></div>
                 <div class="rating-stat">👥 <span>${user.referral_count || 0}</span></div>
             </div>
@@ -164,7 +164,6 @@ function renderPage() {
                 <div class="rating-avatar">${avatarHtml}</div>
                 <div class="rating-info">
                     <div class="rating-username">${escapeHtml(user.username)}</div>
-                    <div class="rating-shares"><span class="rating-shares-icon">📊</span> <span class="rating-shares-value">${sharesFormatted} акций</span></div>
                     ${statsHtml}
                 </div>
             </div>
