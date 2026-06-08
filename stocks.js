@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с корректным списанием акций/звёзд
+// stocks.js – финальная версия с улучшениями (рыночная продажа без ошибки, стакан 3 ордера, история 5)
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -140,37 +140,52 @@ async function marketBuy(starsAmountStars) {
     await window.refreshActiveTab();
 }
 
-// ========== Рыночная продажа (использует RPC market_sell) ==========
+// ========== Рыночная продажа (исправлена: нет ошибки, если нет ордеров) ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
     if (userShares < window.toCents(sharesAmountStars)) throw new Error('Недостаточно акций для продажи');
     
-    const { data, error } = await window.supabase.rpc('market_sell', {
-        p_user_id: window.userId,
-        p_amount_stars: sharesAmountStars
-    });
-    if (error) throw new Error(error.message);
-    if (!data.success) throw new Error(data.error);
-    
-    window.showToast(`✅ Продано ${window.fromCents(data.sold)} шт. за ${window.fromCents(data.earned)} ⭐`);
-    await window.refreshActiveTab();
+    try {
+        const { data, error } = await window.supabase.rpc('market_sell', {
+            p_user_id: window.userId,
+            p_amount_stars: sharesAmountStars
+        });
+        if (error) throw new Error(error.message);
+        if (!data.success) {
+            // Если RPC вернул success: false, но не из-за отсутствия ордеров
+            throw new Error(data.error);
+        }
+        if (data.sold === 0) {
+            window.showToast('❌ Не удалось продать ни одной акции (нет подходящих ордеров на покупку)');
+            return;
+        }
+        window.showToast(`✅ Продано ${window.fromCents(data.sold)} шт. за ${window.fromCents(data.earned)} ⭐`);
+        await window.refreshActiveTab();
+    } catch (err) {
+        // Если ошибка говорит об отсутствии встречных ордеров, показываем мягкое сообщение
+        if (err.message.includes('нет ордеров') || err.message.includes('no orders') || err.message.includes('не найдено')) {
+            window.showToast('❌ Не удалось продать ни одной акции (нет подходящих ордеров на покупку)');
+        } else {
+            window.showCustomModal('Ошибка', err.message);
+        }
+    }
 }
 
-// ========== Стакан заявок (лучшие 5) ==========
+// ========== Стакан заявок (лучшие 3) ==========
 async function renderOrderBook() {
     const { data: sellsRaw } = await window.supabase
         .from('orders')
         .select('amount, price_per_share, seller_id')
         .eq('status', 'active')
         .order('price_per_share', { ascending: true })
-        .limit(5);
+        .limit(3);  // 🔥 теперь 3
     const { data: buysRaw } = await window.supabase
         .from('buy_orders')
         .select('amount, price_per_share, buyer_id')
         .eq('status', 'active')
         .order('price_per_share', { ascending: false })
-        .limit(5);
+        .limit(3);  // 🔥 теперь 3
 
     const userIds = [
         ...(sellsRaw?.map(s => s.seller_id) || []),
@@ -214,11 +229,11 @@ async function renderOrderBook() {
 
     const sellDiv = document.getElementById('sellOrdersList');
     const buyDiv = document.getElementById('buyOrdersList');
-    if (sellDiv) sellDiv.innerHTML = sellHtml || '<p class="small-text">Нет заявок на продажу</p>';
-    if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="small-text">Нет заявок на покупку</p>';
+    if (sellDiv) sellDiv.innerHTML = sellHtml || '<p class="small-text" style="text-align:center;">Нет заявок на продажу</p>';
+    if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="small-text" style="text-align:center;">Нет заявок на покупку</p>';
 }
 
-// ========== История завершённых ордеров ==========
+// ========== История завершённых ордеров (5 последних) ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase
         .from('orders')
@@ -226,7 +241,7 @@ async function loadOrderHistory() {
         .eq('seller_id', window.userId)
         .in('status', ['completed', 'cancelled'])
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(5);  // 🔥 теперь 5
     if (error) return [];
     return data || [];
 }
@@ -235,7 +250,7 @@ function renderOrderHistory(orders) {
     const container = document.getElementById('orderHistoryList');
     if (!container) return;
     if (!orders.length) {
-        container.innerHTML = '<p class="small-text">Нет завершённых ордеров</p>';
+        container.innerHTML = '<p class="small-text" style="text-align:center;">Нет завершённых ордеров</p>';
         return;
     }
     container.innerHTML = orders.map(o => `
@@ -265,6 +280,17 @@ async function cancelAllOrders() {
     }
     window.showToast(`✅ Отменено ${orders.length} ордеров`);
     await window.refreshActiveTab();
+}
+
+// ========== Отмена конкретного ордера на покупку ==========
+async function cancelBuyOrder(buyOrderId) {
+    const { data, error } = await window.supabase.rpc('cancel_buy_order', {
+        p_buy_order_id: buyOrderId,
+        p_user_id: window.userId
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    return true;
 }
 
 // ========== Формы (слайдеры или поля) ==========
@@ -322,7 +348,7 @@ function renderBuyLimitForm() {
     }
 }
 
-// ========== Мои последние сделки ==========
+// ========== Мои последние сделки (5 последних) ==========
 async function loadMyRecentTrades() {
     const { data } = await window.supabase
         .from('trades')
@@ -333,7 +359,7 @@ async function loadMyRecentTrades() {
     const container = document.getElementById('myRecentTrades');
     if (!container) return;
     if (!data?.length) {
-        container.innerHTML = '<p class="small-text">Нет сделок</p>';
+        container.innerHTML = '<p class="small-text" style="text-align:center;">Нет сделок</p>';
         return;
     }
     container.innerHTML = data.map(t => {
@@ -371,7 +397,7 @@ function renderOrdersList(orders, isMyFilter = false) {
     let filtered = orders;
     if (!isMyFilter) filtered = orders.filter(o => o.seller_id !== window.userId);
     if (!filtered.length) {
-        container.innerHTML = '<p class="empty-orders">Нет ордеров для отображения</p>';
+        container.innerHTML = '<p class="empty-orders" style="text-align:center;">Нет ордеров для отображения</p>';
         return;
     }
     filtered.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
@@ -511,10 +537,10 @@ window.renderStocksTab = async function(currentUser) {
                 <div id="ticker" class="ticker"></div>
             </div>
             <div class="card">
-                <h3>📖 Стакан заявок</h3>
+                <h3 style="text-align: center;">📖 Стакан заявок</h3>
                 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex:1;"><h4>💰 Продажа (лучшие цены)</h4><div id="sellOrdersList"></div></div>
-                    <div style="flex:1;"><h4>🏦 Покупка (лучшие цены)</h4><div id="buyOrdersList"></div></div>
+                    <div style="flex:1;"><h4 style="text-align:center;">💰 Продажа (лучшие цены)</h4><div id="sellOrdersList"></div></div>
+                    <div style="flex:1;"><h4 style="text-align:center;">🏦 Покупка (лучшие цены)</h4><div id="buyOrdersList"></div></div>
                 </div>
             </div>
             <div class="card">
@@ -684,7 +710,10 @@ window.renderStocksTab = async function(currentUser) {
             try {
                 await marketSell(shares);
             } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
+                // Ошибка уже обработана внутри marketSell, но на всякий случай
+                if (!err.message.includes('Не удалось продать')) {
+                    window.showCustomModal('Ошибка', err.message);
+                }
             }
         });
         document.getElementById('cancelAllOrdersBtn')?.addEventListener('click', async () => {
