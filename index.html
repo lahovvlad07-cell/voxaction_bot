@@ -107,6 +107,7 @@
             let startX;
             let scrollLeft;
 
+            // Мышь
             tabsWrapper.addEventListener('mousedown', (e) => {
                 if (e.button !== 0) return;
                 isDown = true;
@@ -124,11 +125,12 @@
                 if (!isDown) return;
                 e.preventDefault();
                 const x = e.clientX;
-                const walk = (x - startX) * 1.5;
+                const walk = (x - startX) * 1.2;
                 tabsWrapper.scrollLeft = scrollLeft - walk;
             });
             tabsWrapper.addEventListener('dragstart', (e) => e.preventDefault());
 
+            // Тач
             let touchStartX = 0, touchScrollLeft = 0;
             tabsWrapper.addEventListener('touchstart', (e) => {
                 touchStartX = e.touches[0].clientX;
