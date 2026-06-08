@@ -1,4 +1,4 @@
-// rating.js – финальная версия с подсказками и компактной карточкой "Ваше место"
+// rating.js – финальная версия с просмотром профиля по клику
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -7,6 +7,7 @@ let filteredUsers = [];
 let totalPages = 1;
 let currentSearchTerm = '';
 
+// Загрузка статистики
 async function fetchUserStats(userId) {
     try {
         const { data, error } = await window.supabase
@@ -18,7 +19,6 @@ async function fetchUserStats(userId) {
         const volumeStars = data.reduce((sum, t) => sum + (t.total_stars / 100), 0);
         return { tradesCount, volumeStars };
     } catch (e) {
-        console.warn(e);
         return { tradesCount: 0, volumeStars: 0 };
     }
 }
@@ -49,12 +49,83 @@ function applyFilter() {
     } else {
         const term = currentSearchTerm.toLowerCase();
         filteredUsers = allUsers.filter(u =>
-            (u.username && u.username.toLowerCase().includes(term)) ||
-            u.id.toString().includes(term)
+            u.username && u.username.toLowerCase().includes(term)
         );
     }
     totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+}
+
+// Модальное окно просмотра профиля другого пользователя
+async function showUserProfileModal(userId) {
+    // Загружаем данные пользователя
+    const { data: user, error } = await window.supabase
+        .from('users')
+        .select('id, username, shares, stars_balance, avatar_url, avatar_bg, avatar_border, referral_count, registered_at')
+        .eq('id', userId)
+        .single();
+    if (error || !user) {
+        window.showCustomModal('Ошибка', 'Не удалось загрузить профиль');
+        return;
+    }
+
+    const stats = await fetchUserStats(userId);
+    const rank = filteredUsers.findIndex(u => u.id === userId) + 1;
+    const rankText = rank > 0 ? `#${rank}` : '—';
+
+    const avatarHtml = window.renderAvatarHtml
+        ? window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '80px')
+        : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
+
+    const modalHtml = `
+        <div class="modal" id="profileModal" style="display:flex;">
+            <div class="modal-content" style="max-width: 320px;">
+                <span class="close-modal" id="closeProfileModal">&times;</span>
+                <div style="text-align: center; padding: 16px 0 8px;">
+                    ${avatarHtml}
+                    <h3 style="margin: 12px 0 4px;">${escapeHtml(user.username)}</h3>
+                    <div class="small-text">ID: ${user.id}</div>
+                    <div class="small-text">📅 ${new Date(user.registered_at).toLocaleDateString()}</div>
+                </div>
+                <div class="stats-container" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 16px 0;">
+                    <div class="stat-card" style="flex: 1; text-align: center;">
+                        <div class="stat-value" style="font-size: 20px;">${window.fromCents(user.shares)}</div>
+                        <div class="stat-label">Акций</div>
+                    </div>
+                    <div class="stat-card" style="flex: 1; text-align: center;">
+                        <div class="stat-value" style="font-size: 20px;">${window.fromCents(user.stars_balance)}</div>
+                        <div class="stat-label">Stars</div>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: center; gap: 16px; margin-bottom: 16px;">
+                    <div class="stat-card" style="flex: 1; text-align: center;">
+                        <div class="stat-value" style="font-size: 18px;">${stats.tradesCount}</div>
+                        <div class="stat-label">Сделок</div>
+                    </div>
+                    <div class="stat-card" style="flex: 1; text-align: center;">
+                        <div class="stat-value" style="font-size: 18px;">${stats.volumeStars.toFixed(2)}</div>
+                        <div class="stat-label">Объём (⭐)</div>
+                    </div>
+                    <div class="stat-card" style="flex: 1; text-align: center;">
+                        <div class="stat-value" style="font-size: 18px;">${user.referral_count || 0}</div>
+                        <div class="stat-label">Рефералов</div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 8px;">
+                    <div class="rank-card" style="background: rgba(0,0,0,0.3); border-radius: 40px; padding: 8px; display: inline-block;">
+                        🏆 Рейтинг: ${rankText}
+                    </div>
+                </div>
+                <div class="modal-buttons" style="margin-top: 16px;">
+                    <button id="closeProfileBtn">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('profileModal');
+    document.getElementById('closeProfileModal').onclick = () => modal.remove();
+    document.getElementById('closeProfileBtn').onclick = () => modal.remove();
 }
 
 function renderPage() {
@@ -77,7 +148,7 @@ function renderPage() {
         else rankDisplay = `<span class="rank-number">${place}</span>`;
 
         const avatarHtml = window.renderAvatarHtml
-            ? window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '52px')
+            ? window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '48px')
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
 
         const sharesFormatted = (user.shares / 100).toFixed(2);
@@ -85,17 +156,16 @@ function renderPage() {
 
         const statsHtml = `
             <div class="rating-stats">
-                <span class="rating-stat" title="Количество сделок">🔄 ${user.tradesCount}</span>
-                <span class="rating-stat" title="Объём торгов в Stars">📊 ${volumeFormatted}</span>
-                <span class="rating-stat" title="Количество рефералов">👥 ${user.referral_count || 0}</span>
+                <span class="rating-stat" title="Сделки">🔄 ${user.tradesCount}</span>
+                <span class="rating-stat" title="Объём (⭐)">📊 ${volumeFormatted}</span>
+                <span class="rating-stat" title="Рефералы">👥 ${user.referral_count || 0}</span>
             </div>
         `;
 
         const currentUserClass = (user.id === window.userId) ? 'current-user-row' : '';
-        const animationDelay = i * 0.03;
 
         html += `
-            <div class="rating-item ${currentUserClass}" data-user-id="${user.id}" style="animation: fadeInUp 0.3s ease forwards; animation-delay: ${animationDelay}s;">
+            <div class="rating-item ${currentUserClass}" data-user-id="${user.id}" style="animation: fadeInUp 0.2s ease forwards; animation-delay: ${i * 0.02}s;">
                 <div class="rating-rank">${rankDisplay}</div>
                 <div class="rating-avatar">${avatarHtml}</div>
                 <div class="rating-info">
@@ -108,6 +178,7 @@ function renderPage() {
     }
     container.innerHTML = html;
 
+    // Пагинация
     const paginationDiv = document.getElementById('ratingPagination');
     if (totalPages > 1) {
         paginationDiv.innerHTML = `
@@ -125,18 +196,16 @@ function renderPage() {
         paginationDiv.innerHTML = '';
     }
 
+    // Клик для открытия профиля
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
             const userId = parseInt(item.dataset.userId);
             if (userId === window.userId) {
+                // Свой профиль – переключаем вкладку
                 document.querySelector('.tab[data-tab="profile"]').click();
             } else {
-                if (typeof window.showUserProfile === 'function') {
-                    window.showUserProfile(userId);
-                } else {
-                    window.showCustomModal('Информация', 'Просмотр профиля будет доступен позже');
-                }
+                showUserProfileModal(userId);
             }
         });
     });
@@ -153,10 +222,10 @@ function updateMyRankCard() {
         myRankCard.innerHTML = `
             <div class="my-rank-title">🎯 Ваше место</div>
             <div class="my-rank-details">
-                <div class="my-rank-item">#${rank}</div>
-                <div class="my-rank-item">📈 ${volumeFormatted} ⭐</div>
-                <div class="my-rank-item">🔄 ${currentUserData.tradesCount}</div>
-                <div class="my-rank-item">👥 ${currentUserData.referral_count || 0}</div>
+                <span class="my-rank-item">#${rank}</span>
+                <span class="my-rank-item">📈 ${volumeFormatted} ⭐</span>
+                <span class="my-rank-item">🔄 ${currentUserData.tradesCount}</span>
+                <span class="my-rank-item">👥 ${currentUserData.referral_count || 0}</span>
             </div>
         `;
     } else {
@@ -170,7 +239,7 @@ window.renderRatingTab = async function() {
             <div class="card">
                 <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
                 <div class="search-container">
-                    <input type="text" id="ratingSearchInput" placeholder="Поиск по имени или ID..." class="search-input">
+                    <input type="text" id="ratingSearchInput" placeholder="Поиск по имени..." class="search-input">
                 </div>
                 <div id="ratingListContainer">
                     ${Array(5).fill().map(() => `
