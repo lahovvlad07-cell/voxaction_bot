@@ -1,4 +1,4 @@
-// api.js – финальная версия (все функции, корректные модалки, фильтрация ника)
+// api.js – финальная версия (все функции, включая get24hAvgPrice)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -203,7 +203,7 @@ window.getUserStats = async function(forceRefresh = false) {
     return stats;
 };
 
-// ========== СМЕНА НИКНЕЙМА (РАСШИРЕННАЯ ФИЛЬТРАЦИЯ, БЕЗ АВТООБНОВЛЕНИЯ) ==========
+// ========== СМЕНА НИКНЕЙМА (РАСШИРЕННАЯ ФИЛЬТРАЦИЯ) ==========
 window.updateUsername = async function(newUsername) {
     if (!newUsername || newUsername.trim().length < 3) {
         throw new Error('Никнейм должен содержать минимум 3 символа');
@@ -319,6 +319,35 @@ window.refreshActiveTab = async function() {
             if (window.renderAdminTab) await window.renderAdminTab();
             break;
     }
+};
+
+// ========== СРЕДНЕВЗВЕШЕННАЯ ЦЕНА ЗА 24 ЧАСА ==========
+window.get24hAvgPrice = async function() {
+    const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data, error } = await window.supabase
+        .from('trades')
+        .select('amount, price_per_share')
+        .gte('created_at', oneDayAgo);
+    if (error || !data || data.length === 0) return 0;
+    let totalAmount = 0, totalStars = 0;
+    for (let t of data) {
+        totalAmount += t.amount;
+        totalStars += t.amount * t.price_per_share;
+    }
+    return totalAmount ? totalStars / totalAmount / 100 : 0;
+};
+
+// ========== ИСТОРИЯ ЗАВЕРШЁННЫХ ОРДЕРОВ (опционально, но в stocks.js уже есть) ==========
+window.getCompletedOrders = async function(limit = 10) {
+    const { data, error } = await window.supabase
+        .from('orders')
+        .select('*')
+        .eq('seller_id', window.userId)
+        .in('status', ['completed', 'cancelled'])
+        .order('created_at', { ascending: false })
+        .limit(limit);
+    if (error) throw new Error(error.message);
+    return data || [];
 };
 
 // ========== ОРДЕРА И СДЕЛКИ ==========
