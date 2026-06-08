@@ -69,11 +69,9 @@
             return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
         }
         
-        // Исправленная модалка (удаляет предыдущую, если есть)
         window.showCustomModal = function(title, message) {
             const existingModal = document.getElementById('customMessageModal');
             if (existingModal) existingModal.remove();
-            
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
                     <div class="modal-content">
@@ -184,7 +182,6 @@
                 }).eq('id', window.userId);
                 window.currentUser.hide_rating = newHide;
                 window.showCustomModal('Успех', 'Настройки сохранены');
-                // Если текущая вкладка – акции, обновить форму
                 if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
                     await window.renderStocksTab(window.currentUser);
                 }
@@ -227,7 +224,6 @@
             if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
             if (typeof initTopupModal === 'function') initTopupModal();
             
-            // Реальное обновление рейтинга и других вкладок
             window.supabase
                 .channel('global-updates')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
