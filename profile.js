@@ -1,5 +1,12 @@
-// profile.js – заменён джойстик на игральную кость (🎲)
-const avatarEmojis = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎲','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'];
+// profile.js – финальная версия (24 аватарки, адаптивный размер, все функции)
+const avatarEmojis = [
+    '👤', '😀', '😎', '👍',
+    '🐱', '🐶', '🦊', '🐼',
+    '🍕', '🍔', '🍩', '☕',
+    '💎', '💰', '🎲', '🏆',
+    '⭐', '🌟', '🔥', '❤️',
+    '🚀', '🍀', '👑', '🎯'
+];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' },
     { name: 'Фиолетовый', value: '#9b59b6' },
@@ -28,7 +35,7 @@ const borderColors = [
 ];
 
 function getAvatarStyle(emoji) {
-    const specialSizes = { '⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎉':'56px','⚽':'56px' };
+    const specialSizes = { '⭐':'56px','🌟':'56px','🔥':'56px','💎':'56px','🎲':'56px' };
     const fontSize = specialSizes[emoji] || '48px';
     return `font-size: ${fontSize};`;
 }
