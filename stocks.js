@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с рыночной продажей, слайдерами, историей ордеров
+// stocks.js – финальная версия с корректным списанием акций/звёзд
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -140,7 +140,7 @@ async function marketBuy(starsAmountStars) {
     await window.refreshActiveTab();
 }
 
-// ========== Рыночная продажа (исправлена, использует RPC) ==========
+// ========== Рыночная продажа (использует RPC market_sell) ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
@@ -157,7 +157,7 @@ async function marketSell(sharesAmountStars) {
     await window.refreshActiveTab();
 }
 
-// ========== Стакан заявок (только лучшие 5) ==========
+// ========== Стакан заявок (лучшие 5) ==========
 async function renderOrderBook() {
     const { data: sellsRaw } = await window.supabase
         .from('orders')
@@ -267,7 +267,7 @@ async function cancelAllOrders() {
     await window.refreshActiveTab();
 }
 
-// ========== Формы (слайдеры или поля, в зависимости от настроек) ==========
+// ========== Формы (слайдеры или поля) ==========
 function renderSellForm() {
     const useSliders = window.getUseSliders ? window.getUseSliders() : true;
     if (useSliders) {
@@ -628,7 +628,7 @@ window.renderStocksTab = async function(currentUser) {
             }
         }
         
-        // Кнопки продажи/покупки (с учётом режима)
+        // Кнопки продажи/покупки
         document.getElementById('sellBtn')?.addEventListener('click', async () => {
             let amount, price;
             if (window.getUseSliders()) {
