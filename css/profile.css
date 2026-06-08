@@ -1,4 +1,4 @@
-/* profile.css – исправленная версия (уменьшенный круг, крупные эмодзи) */
+/* profile.css – аватарка на ПК 110px, эмодзи 80px */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -8,13 +8,13 @@
     margin: 0 auto;
 }
 .avatar-circle {
-    width: 100px !important;
-    height: 100px !important;
+    width: 110px !important;
+    height: 110px !important;
     border-radius: 50%;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 72px !important;
+    font-size: 80px !important;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     background-color: rgba(0, 0, 0, 0.25);
@@ -60,11 +60,11 @@
     }
     #profileModal .avatar-circle .avatar-emoji,
     .modal .avatar-circle .avatar-emoji {
-        font-size: 48px !important;
+        font-size: 52px !important;
     }
     #stepModal .avatar-circle .avatar-emoji,
     #borderModal .avatar-circle .avatar-emoji {
-        font-size: 52px !important;
+        font-size: 56px !important;
     }
 }
 
