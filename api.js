@@ -1,8 +1,8 @@
-// api.js – полная версия с поддержкой достижений и автообновлением статистики
+// api.js – полная версия с модальными окнами для достижений
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ ==========
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ (МОДАЛЬНОЕ ОКНО) ==========
 async function awardAchievement(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -17,8 +17,13 @@ async function awardAchievement(achievementId) {
             achievement_id: achievementId,
             earned_at: new Date().toISOString()
         });
-        const { data: ach } = await window.supabase.from('achievements').select('name, icon').eq('id', achievementId).single();
-        window.showToast(`🏆 Достижение: ${ach.icon} ${ach.name}`);
+        const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
+        // Показываем модальное окно вместо тоста
+        if (window.showCustomModal) {
+            window.showCustomModal(`🏆 Новое достижение!`, `${ach.icon} ${ach.name}\n\n${ach.description}`);
+        } else {
+            alert(`🏆 Достижение: ${ach.icon} ${ach.name}`);
+        }
         if (window.renderProfileTab) window.renderProfileTab(); // обновить профиль
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
 }
@@ -80,7 +85,6 @@ window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
     if (!data) {
-        // Данные для нового пользователя
         const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'];
         const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
         const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
@@ -139,7 +143,6 @@ window.getOrCreateUser = async function() {
         await awardAchievement(1);
         return { user: newUser, isNew: true };
     }
-    // Если у существующего пользователя не хватает каких-то полей – добавляем
     let updated = false;
     ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active'].forEach(f => {
         if (data[f] === undefined) { data[f] = 0; updated = true; }
