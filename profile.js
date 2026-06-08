@@ -1,4 +1,4 @@
-// profile.js – финальная версия с 24 аватарками, исправленной модалкой выбора достижений (без дублирования иконок)
+// profile.js – финальная версия
 const avatarEmojis = [
     '👤', '😀', '😎', '👍',
     '🐱', '🐶', '🦊', '🐼',
@@ -87,7 +87,7 @@ async function awardStylistAchievement() {
     if (achData) await awardAchievement(achData.id);
 }
 
-// ========== Модалка выбора достижений (без дублирования иконок) ==========
+// ========== Модалка выбора достижений (короткий заголовок, без дублирования иконок) ==========
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
     const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
     const isSlotOccupied = currentSlotAchievementId !== null;
@@ -109,7 +109,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
                 case 'total_earned': conditionText = `💵 Заработано: ${ach.condition_value/100} ⭐`; break;
             }
         }
-        // Убрана строка с achievement-icon, чтобы не дублировать иконку
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
             <div class="achievement-name">${ach.name}</div>
             <div class="achievement-desc">${ach.description}</div>
@@ -121,7 +120,8 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         <div class="modal" id="achiSelectorModal" style="display:flex;">
             <div class="modal-content">
                 <span class="close-modal" id="closeAchiSelector">&times;</span>
-                <h3>Выберите достижение для слота ${slot+1}</h3>
+                <h3>Выберите достижение</h3>
+                <div class="small-text" style="margin-bottom: 10px; text-align: center;">слот ${slot+1}</div>
                 <div class="scrollable-content">
                     <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
                 </div>
