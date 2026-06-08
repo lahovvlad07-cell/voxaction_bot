@@ -1,6 +1,14 @@
-// api.js – финальная версия (исправлены сообщения, проверки)
+// api.js – финальная версия (все функции, включая настройки слайдеров и рыночную продажу)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
+
+// ========== НАСТРОЙКИ ИНТЕРФЕЙСА (СЛАЙДЕРЫ) ==========
+window.setUseSliders = function(use) {
+    localStorage.setItem('use_sliders', use ? 'true' : 'false');
+};
+window.getUseSliders = function() {
+    return localStorage.getItem('use_sliders') !== 'false';
+};
 
 // ========== ВЫДАЧА ДОСТИЖЕНИЙ (МОДАЛЬНОЕ ОКНО) ==========
 async function awardAchievement(achievementId) {
@@ -285,7 +293,7 @@ window.updateUsername = async function(newUsername) {
     return { success: true, message: 'Никнейм успешно изменён!' };
 };
 
-// ========== ОБНОВЛЕНИЕ ТЕКУЩЕЙ ВКЛАДКИ (ДЛЯ РЕАЛЬНОГО ВРЕМЕНИ) ==========
+// ========== ОБНОВЛЕНИЕ ТЕКУЩЕЙ ВКЛАДКИ ==========
 window.refreshActiveTab = async function() {
     const { user } = await window.getOrCreateUser();
     window.currentUser = user;
@@ -370,7 +378,6 @@ window.cancelOrder = async function(orderId) {
     return true;
 };
 
-// ИСПРАВЛЕННЫЕ ФУНКЦИИ С ПОНЯТНЫМИ СООБЩЕНИЯМИ
 window.createOrder = async function(amountStars, priceStars) {
     if (amountStars < 1) throw new Error('Количество должно быть ≥ 1 акции');
     if (priceStars < 1) throw new Error('Цена должна быть ≥ 1 Star');
