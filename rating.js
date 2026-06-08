@@ -1,4 +1,4 @@
-// rating.js – исправленная версия с нормальной статистикой и чистым дизайном
+// rating.js – исправленная версия (без процентов, стильная карточка "Ваше место")
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -72,14 +72,12 @@ function renderPage() {
         const globalIndex = filteredUsers.findIndex(u => u.id === user.id);
         const place = globalIndex + 1;
 
-        // Медали
         let rankDisplay = '';
         if (place === 1) rankDisplay = '<span class="medal gold">🥇</span>';
         else if (place === 2) rankDisplay = '<span class="medal silver">🥈</span>';
         else if (place === 3) rankDisplay = '<span class="medal bronze">🥉</span>';
         else rankDisplay = `<span class="rank-number">${place}</span>`;
 
-        // Аватарка
         const avatarHtml = window.renderAvatarHtml
             ? window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '52px')
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
@@ -87,12 +85,11 @@ function renderPage() {
         const sharesFormatted = (user.shares / 100).toFixed(2);
         const volumeFormatted = user.volumeStars.toFixed(2);
 
-        // Три бейджа
         const statsHtml = `
             <div class="rating-stats">
-                <span class="rating-stat" title="Сделки">🔄 ${user.tradesCount}</span>
-                <span class="rating-stat" title="Объём (⭐)">📊 ${volumeFormatted}</span>
-                <span class="rating-stat" title="Рефералы">👥 ${user.referral_count || 0}</span>
+                <span class="rating-stat">🔄 ${user.tradesCount}</span>
+                <span class="rating-stat">📊 ${volumeFormatted}</span>
+                <span class="rating-stat">👥 ${user.referral_count || 0}</span>
             </div>
         `;
 
@@ -153,29 +150,32 @@ function updateMyRankCard() {
     const currentUserData = filteredUsers.find(u => u.id === window.userId);
     const myRankCard = document.querySelector('.my-rank-card');
     if (!myRankCard) return;
+
     if (currentUserData) {
         const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
         const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
+        const volumeFormatted = currentUserData.volumeStars.toFixed(2);
         myRankCard.innerHTML = `
             <div class="my-rank-title">🎯 Ваше место</div>
             <div class="my-rank-details">
-                <span class="my-rank-position">#${rank}</span>
-                <span class="my-rank-shares">📊 ${sharesFormatted} акций</span>
-                <span class="my-rank-volume">📈 ${currentUserData.volumeStars.toFixed(2)} ⭐</span>
+                <div class="my-rank-item">#${rank}</div>
+                <div class="my-rank-item">📊 ${sharesFormatted} акций</div>
+                <div class="my-rank-item">📈 ${volumeFormatted} ⭐</div>
             </div>
             <div class="my-rank-stats">
-                <span class="rating-stat">🔄 ${currentUserData.tradesCount} сделок</span>
-                <span class="rating-stat">👥 ${currentUserData.referral_count || 0} рефералов</span>
+                <span>🔄 ${currentUserData.tradesCount} сделок</span>
+                <span>👥 ${currentUserData.referral_count || 0} рефералов</span>
             </div>
         `;
     } else {
-        myRankCard.innerHTML = `<div class="my-rank-title">🔒 Вы не отображаетесь в рейтинге</div>`;
+        // Если пользователь скрыт или не найден
+        myRankCard.innerHTML = `<div class="my-rank-title">❓ Пользователь не найден</div>`;
     }
 }
 
 window.renderRatingTab = async function() {
     try {
-        // Скелетон
+        // Показываем скелетон
         document.getElementById('app').innerHTML = `
             <div class="card">
                 <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
@@ -207,29 +207,9 @@ window.renderRatingTab = async function() {
                 </div>
                 <div id="ratingListContainer"></div>
                 <div id="ratingPagination"></div>
+                <div class="my-rank-card" id="myRankCard"></div>
+            </div>
         `;
-        const currentUserData = filteredUsers.find(u => u.id === window.userId);
-        if (currentUserData) {
-            const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
-            const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
-            html += `
-                <div class="my-rank-card">
-                    <div class="my-rank-title">🎯 Ваше место</div>
-                    <div class="my-rank-details">
-                        <span class="my-rank-position">#${rank}</span>
-                        <span class="my-rank-shares">📊 ${sharesFormatted} акций</span>
-                        <span class="my-rank-volume">📈 ${currentUserData.volumeStars.toFixed(2)} ⭐</span>
-                    </div>
-                    <div class="my-rank-stats">
-                        <span class="rating-stat">🔄 ${currentUserData.tradesCount} сделок</span>
-                        <span class="rating-stat">👥 ${currentUserData.referral_count || 0} рефералов</span>
-                    </div>
-                </div>
-            `;
-        } else if (window.userId) {
-            html += `<div class="my-rank-card"><div class="my-rank-title">🔒 Вы не отображаетесь в рейтинге</div></div>`;
-        }
-        html += `</div>`;
         document.getElementById('app').innerHTML = html;
 
         const searchInput = document.getElementById('ratingSearchInput');
@@ -243,6 +223,7 @@ window.renderRatingTab = async function() {
             });
         }
         renderPage();
+        updateMyRankCard();
     } catch (err) {
         console.error(err);
         document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки рейтинга</div>';
