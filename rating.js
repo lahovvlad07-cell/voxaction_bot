@@ -1,4 +1,4 @@
-// rating.js – финал: никнейм по центру над бейджами, модалка без лишней прокрутки
+// rating.js – никнейм слева, модалка как понравилось
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -55,7 +55,7 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
-// Модальное окно профиля – просторное, без лишнего скролла
+// Модалка профиля – просторная, со всеми данными
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
