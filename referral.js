@@ -2,7 +2,6 @@
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     
-    // Получаем список рефералов и считаем только тех, кто пополнил (topup_completed = true)
     const allReferrals = await window.getReferralsList();
     const confirmedCount = allReferrals.filter(r => r.topupCompleted === true).length;
     let totalEarnedStars = 0;
@@ -20,7 +19,6 @@ window.renderReferralTab = async function() {
     }
     await loadFreshData();
 
-    // Бонусные уровни (только до 10 друзей)
     const bonusLevels = [
         { friends: 1, stars: 3 },
         { friends: 3, stars: 5 },
@@ -185,7 +183,7 @@ window.renderReferralTab = async function() {
             </div>
             <div class="referrals-toggle" id="referralsToggle">
                 <span class="btn-icon">👥</span>
-                <span class="label-text">Приглашённые (все)</span>
+                <span class="label-text">Приглашённые</span>
                 <span class="badge">${fullReferralsList.length}</span>
             </div>
             <div class="referrals-list-collapsible" id="referralsListCollapsible">
@@ -216,7 +214,6 @@ window.renderReferralTab = async function() {
         return many;
     }
 
-    // Обработчики событий (копирование, сохранение кода, переключение списка)
     const fullLinkSpan = document.getElementById('refLinkText');
     const copyBtn = document.getElementById('copyRefLinkBtn');
     const shareBtn = document.getElementById('shareRefLinkBtn');
