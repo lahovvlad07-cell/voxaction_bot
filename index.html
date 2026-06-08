@@ -64,6 +64,11 @@
 
 <script>
     (async () => {
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
+        }
+        
         window.showCustomModal = function(title, message) {
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
@@ -126,18 +131,71 @@
             const notifyTrades = window.currentUser.notify_trades ?? true;
             const notifyTopup = window.currentUser.notify_topup ?? true;
             const notifyReferral = window.currentUser.notify_referral ?? true;
-            const html = `<div class="card"><h2>⚙️ Настройки</h2><label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br><div><strong>Уведомления от бота:</strong></div><label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br><label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br><label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br><div><strong>Цвет акцента:</strong></div><input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;"><button id="saveSettings">Сохранить</button></div>`;
+            const username = window.currentUser.username || '';
+            const lastChange = window.currentUser.last_username_change ? new Date(window.currentUser.last_username_change) : null;
+            const daysSinceLastChange = lastChange ? Math.floor((Date.now() - lastChange.getTime()) / (1000 * 3600 * 24)) : 31;
+            const canChangeUsername = daysSinceLastChange >= 30;
+            const remainingDays = canChangeUsername ? 0 : 30 - daysSinceLastChange;
+            
+            const html = `
+                <div class="card">
+                    <h2>⚙️ Настройки</h2>
+                    <div style="margin: 16px 0;">
+                        <div class="small-text" style="margin-bottom: 4px;">Текущий никнейм</div>
+                        <div style="font-size: 18px; font-weight: bold;">${escapeHtml(username)}</div>
+                    </div>
+                    <div>
+                        <div class="small-text" style="margin-bottom: 4px;">Новый никнейм (менять раз в 30 дней)</div>
+                        <input type="text" id="newUsernameInput" placeholder="Новый никнейм" maxlength="20" ${!canChangeUsername ? 'disabled' : ''}>
+                        ${!canChangeUsername ? `<div class="small-text" style="color: #fbbf24; margin-top: 4px;">⏳ Сменить никнейм можно через ${remainingDays} дн.</div>` : ''}
+                        <button id="changeUsernameBtn" style="margin-top: 8px;" ${!canChangeUsername ? 'disabled' : ''}>Изменить никнейм</button>
+                    </div>
+                    <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.1);">
+                    <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br>
+                    <div><strong>Уведомления от бота:</strong></div>
+                    <label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br>
+                    <label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br>
+                    <label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br>
+                    <div><strong>Цвет акцента:</strong></div>
+                    <input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;"><br>
+                    <button id="saveSettings" style="margin-top: 12px;">Сохранить</button>
+                </div>
+            `;
             document.getElementById('app').innerHTML = html;
+            
             document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
             document.getElementById('saveSettings').onclick = async () => {
                 const newHide = document.getElementById('hideRatingCheckbox').checked;
                 const newColor = document.getElementById('colorPicker').value;
                 localStorage.setItem('custom_color', newColor);
                 document.documentElement.style.setProperty('--accent', newColor);
-                await window.supabase.from('users').update({ hide_rating: newHide, notify_trades: document.getElementById('notifyTradesCheckbox').checked, notify_topup: document.getElementById('notifyTopupCheckbox').checked, notify_referral: document.getElementById('notifyReferralCheckbox').checked }).eq('id', window.userId);
+                await window.supabase.from('users').update({ 
+                    hide_rating: newHide, 
+                    notify_trades: document.getElementById('notifyTradesCheckbox').checked, 
+                    notify_topup: document.getElementById('notifyTopupCheckbox').checked, 
+                    notify_referral: document.getElementById('notifyReferralCheckbox').checked 
+                }).eq('id', window.userId);
                 window.currentUser.hide_rating = newHide;
                 window.showCustomModal('Успех', 'Настройки сохранены');
             };
+            
+            document.getElementById('changeUsernameBtn')?.addEventListener('click', async () => {
+                const newUsername = document.getElementById('newUsernameInput').value.trim();
+                if (!newUsername) {
+                    window.showCustomModal('Ошибка', 'Введите новый никнейм');
+                    return;
+                }
+                try {
+                    const result = await window.updateUsername(newUsername);
+                    window.showCustomModal('Успех', result.message);
+                    if (result.success && window.currentUser.username !== newUsername) {
+                        window.currentUser.username = newUsername;
+                        await renderSettingsTab();
+                    }
+                } catch(err) {
+                    window.showCustomModal('Ошибка', err.message);
+                }
+            });
         }
         
         try {
