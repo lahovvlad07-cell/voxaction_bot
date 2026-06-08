@@ -1,110 +1,237 @@
-/* stocks.css – стили для биржи, ордеров, графиков */
+/* stocks.css – стили для биржи */
 
-.order-item {
+.balance-row {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    gap: 12px;
+    justify-content: space-around;
+    margin-bottom: 20px;
     flex-wrap: wrap;
+    gap: 16px;
 }
-.price {
-    font-size: 26px;
+.balance-item {
+    text-align: center;
+    background: rgba(0,0,0,0.3);
+    border-radius: 30px;
+    padding: 8px 16px;
+    min-width: 100px;
+}
+.balance-label {
+    font-size: 12px;
+    color: #9ca3af;
+    display: block;
+}
+.balance-value {
+    font-size: 24px;
     font-weight: 800;
-    background: linear-gradient(135deg, #60a5fa, #a78bfa);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
+    -webkit-background-clip: text;
     color: transparent;
 }
-.chart-container {
-    width: 100%;
-    height: 220px;
-    margin: 16px 0;
-    border-radius: 20px;
-    overflow: hidden;
-    background: #0f1320;
+.price {
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
 }
-canvas {
-    width: 100%;
-    height: 100%;
-}
-.topup-amounts {
+
+.info-panel {
     display: flex;
     gap: 12px;
     margin: 16px 0;
-    flex-wrap: wrap;
-}
-.amount-btn {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 10px 16px;
-    border-radius: 60px;
-    text-align: center;
-    cursor: pointer;
-    transition: 0.2s;
-    font-weight: 600;
-}
-.amount-btn.selected {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    color: white;
-    box-shadow: 0 0 8px #2b6e9e;
-}
-.ticker {
-    background: rgba(0, 0, 0, 0.35);
-    border-radius: 60px;
-    padding: 8px 16px;
-    overflow: hidden;
-    white-space: nowrap;
-    margin: 12px 0;
-    font-size: 14px;
-}
-.ticker-content {
-    display: inline-block;
-    animation: scroll 20s linear infinite;
-}
-@keyframes scroll {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-}
-.info-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin: 12px 0;
 }
 .info-card {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 20px;
     padding: 12px;
     text-align: center;
+    flex: 1;
 }
-.filter-bar {
+
+.timeframe-buttons {
     display: flex;
     gap: 8px;
     margin-bottom: 16px;
-    flex-wrap: wrap;
 }
-.filter-btn, .sort-btn, .timeframe-btn {
+.timeframe-btn {
     background: rgba(255, 255, 255, 0.05);
+    border: none;
     padding: 6px 14px;
-    border-radius: 60px;
+    border-radius: 30px;
     font-size: 13px;
-    font-weight: 500;
     cursor: pointer;
     transition: 0.2s;
 }
-.filter-btn.active, .sort-btn.active, .timeframe-btn.active {
+.timeframe-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
 }
-.leaderboard-item, .history-item {
+
+.chart-container {
+    width: 100%;
+    height: 200px;
+    margin: 16px 0;
+    background: #0f1320;
+    border-radius: 16px;
+    overflow: hidden;
     display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    align-items: center;
+    justify-content: center;
 }
-#ordersList, #usersList, #adminOrdersList {
+.chart-placeholder {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.ticker {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 40px;
+    padding: 8px 16px;
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 12px 0;
+    font-size: 13px;
+}
+.ticker-content {
+    display: inline-block;
+    animation: scroll 20s linear infinite;
+}
+.trade-item {
+    margin-right: 24px;
+}
+@keyframes scroll {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+.sell-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.sell-form input {
+    width: 100%;
+    padding: 12px;
+    background: #111827;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 40px;
+    color: white;
+}
+.sell-form button {
+    margin-top: 8px;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.filter-btn, .sort-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.filter-btn.active, .sort-btn.active {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    color: white;
+}
+
+#ordersList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     max-height: 400px;
     overflow-y: auto;
+}
+.empty-orders {
+    text-align: center;
+    padding: 20px;
+    color: #9ca3af;
+}
+.order-card {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 12px;
+    transition: 0.2s;
+}
+.order-card:hover {
+    background: rgba(43, 110, 158, 0.2);
+}
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.seller-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.seller-info .mini-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+}
+.seller-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+.seller-rating .stars {
+    color: #fbbf24;
+    font-size: 12px;
+    margin-left: 4px;
+}
+.order-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+.order-price {
+    font-size: 20px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.order-amount {
+    font-size: 14px;
+    color: #a5b4fc;
+}
+.buy-btn, .cancel-btn {
+    background: rgba(56, 189, 248, 0.15);
+    border: none;
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.buy-btn {
+    color: #38bdf8;
+}
+.cancel-btn {
+    color: #f97316;
+}
+
+@media (max-width: 560px) {
+    .balance-row {
+        gap: 8px;
+    }
+    .balance-value {
+        font-size: 20px;
+    }
+    .order-card-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .order-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
 }
