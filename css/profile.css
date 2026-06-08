@@ -1,4 +1,4 @@
-/* profile.css – финальная версия с принудительными стилями для ПК */
+/* profile.css – финальная версия с размером аватарки на ПК 130px */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -8,13 +8,13 @@
     margin: 0 auto;
 }
 .avatar-circle {
-    width: 140px !important;
-    height: 140px !important;
+    width: 130px !important;
+    height: 130px !important;
     border-radius: 50%;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 72px !important;
+    font-size: 66px !important;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     background-color: rgba(0, 0, 0, 0.25);
@@ -233,13 +233,8 @@
     color: #9ca3af;
     margin-top: 4px;
 }
-/* ===== ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ ПК (увеличение кружков и золотая подсветка) ===== */
+/* ===== ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ ПК (золотая подсветка) ===== */
 @media (min-width: 561px) {
-    .achievement-icons .achi-icon {
-        width: 70px !important;
-        height: 70px !important;
-        font-size: 40px !important;
-    }
     .achievement-card.selected {
         border: 2px solid #fbbf24 !important;
         background: rgba(251, 191, 36, 0.25) !important;
