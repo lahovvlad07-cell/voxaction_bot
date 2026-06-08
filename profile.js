@@ -1,4 +1,4 @@
-// profile.js – полная версия с модалкой достижений и выдачей "Стилист"
+// profile.js – без прогресс-баров в модалке выбора достижений, только список достижений
 const avatarEmojis = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' },
@@ -33,7 +33,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${fontSize};`;
 }
 
-// ========== Получение следующих достижений (для прогресс-баров) ==========
+// ========== Получение следующих достижений (для прогресс-баров В ПРОФИЛЕ, не в модалке) ==========
 async function getNextAchievementsProgress(currentUser, getUserStats, getAllAchievements, getEarnedAchievements) {
     const allAchievements = await getAllAchievements();
     const earned = await getEarnedAchievements();
@@ -80,41 +80,8 @@ async function awardStylistAchievement() {
     if (achData) await awardAchievement(achData.id);
 }
 
-// ========== Модалка выбора достижений (с прогресс-барами или зелёной галочкой) ==========
+// ========== Модалка выбора достижений (без прогресс-баров) ==========
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
-    const nextAchs = await getNextAchievementsProgress(currentUser, window.getUserStats, window.getAllAchievements, window.getEarnedAchievements);
-    const allCompleted = nextAchs.length === 0;
-    let progressHtml = '';
-    if (allCompleted) {
-        progressHtml = `<div style="text-align:center; margin: 20px 0;">
-            <span style="font-size: 80px;">✅</span>
-            <p style="color: #4ade80;">Все достижения получены!</p>
-        </div>`;
-    } else {
-        progressHtml = `<div style="margin: 20px 0;"><div class="small-text" style="margin-bottom: 8px;">🎯 Ближайшие достижения:</div>`;
-        for (let ach of nextAchs) {
-            let conditionStr = '';
-            switch (ach.condition_type) {
-                case 'trades_count': conditionStr = `${ach.current}/${ach.needed} сделок`; break;
-                case 'shares_held': conditionStr = `${ach.current/100}/${ach.needed/100} акций`; break;
-                case 'referrals_count': conditionStr = `${ach.current}/${ach.needed} приглашений`; break;
-                case 'total_topup': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ пополнено`; break;
-                case 'total_spent': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ потрачено`; break;
-                case 'total_earned': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ заработано`; break;
-                case 'total_volume': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ объём`; break;
-                case 'stars_held': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ на балансе`; break;
-                case 'days_active': conditionStr = `${ach.current}/${ach.needed} дней`; break;
-            }
-            progressHtml += `<div class="next-achievement-item" style="margin-bottom: 12px;">
-                <div style="display:flex; justify-content:space-between;">
-                    <span style="font-size: 24px;">${ach.icon}</span>
-                    <span class="small-text">${conditionStr}</span>
-                </div>
-                <div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div>
-            </div>`;
-        }
-        progressHtml += `</div>`;
-    }
     const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
     const isSlotOccupied = currentSlotAchievementId !== null;
     const gridHtml = earnedAchievements.map(ach => {
@@ -149,7 +116,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
                 <span class="close-modal" id="closeAchiSelector">&times;</span>
                 <h3>Выберите достижение для слота ${slot+1}</h3>
                 <div class="scrollable-content">
-                    ${progressHtml}
                     <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
                 </div>
                 <div class="modal-buttons">
@@ -489,7 +455,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
             showCustomModal
         );
     });
-    // После сохранения выдаём достижение "Стилист"
     await awardStylistAchievement();
     await renderProfileTab();
 }
@@ -500,7 +465,6 @@ window.renderProfileTab = async function(
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
     updateBellBadge, showNotificationsModal
 ) {
-    // Сначала проверим достижения (на случай, если что-то изменилось за время в других вкладках)
     if (window.checkAllAchievements) await window.checkAllAchievements();
     
     const stats = await getUserStats();
