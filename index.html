@@ -125,6 +125,7 @@
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
+        // Функция отрисовки вкладки настроек
         async function renderSettingsTab() {
             const hideRating = window.currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -184,8 +185,8 @@
                     const result = await window.updateUsername(newUsername);
                     window.showCustomModal('Успех', result.message);
                     if (result.success && window.currentUser.username !== newUsername) {
-                        window.currentUser.username = newUsername;
-                        await window.refreshActiveTab(); // обновляем текущую вкладку
+                        // После смены ника обновляем текущего пользователя и перерисовываем страницу настроек
+                        await renderSettingsTab(); // перерисовываем ту же вкладку
                     }
                 } catch(err) {
                     window.showCustomModal('Ошибка', err.message);
