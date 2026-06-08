@@ -1,4 +1,4 @@
-/* rating.css – финальная версия с прокруткой модалки и адаптацией */
+/* rating.css – финальная версия с принудительной прокруткой */
 
 .rating-title {
     text-align: center;
@@ -259,10 +259,10 @@
     font-weight: 700;
 }
 
-/* ===== МОДАЛЬНОЕ ОКНО ПРОФИЛЯ (ПРОКРУТКА) ===== */
+/* ===== МОДАЛЬНОЕ ОКНО ПРОФИЛЯ ===== */
 #profileModal .modal-content {
     max-height: 85vh;
-    overflow-y: auto;
+    overflow-y: scroll;  /* принудительный скроллбар */
     padding-bottom: 20px;
 }
 #profileModal .modal-content::-webkit-scrollbar {
@@ -277,7 +277,6 @@
     border-radius: 4px;
 }
 
-/* Достижения в модалке */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -302,7 +301,6 @@
     box-shadow: 0 0 10px rgba(43, 110, 158, 0.3);
 }
 
-/* Карточки статистики в модалке */
 .stat-card {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 20px;
@@ -323,7 +321,6 @@
     margin-top: 2px;
 }
 
-/* Адаптация под мобильные */
 @media (max-width: 560px) {
     .rating-legend {
         gap: 12px;
