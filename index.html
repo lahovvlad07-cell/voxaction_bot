@@ -6,7 +6,6 @@
     <title>Акции – биржа | VoxAction</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- CSS modules -->
     <link rel="stylesheet" href="css/core.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/header.css">
@@ -52,7 +51,6 @@
     </div>
 </div>
 
-<!-- JavaScript в правильном порядке: сначала api.js, потом всё остальное -->
 <script src="api.js"></script>
 <script src="notifications.js"></script>
 <script src="topup.js"></script>
@@ -65,8 +63,14 @@
 <script src="admin.js"></script>
 
 <script>
-    // Основной скрипт запуска приложения
     (async () => {
+        // Проверка, что функция createBuyOrder определена
+        if (typeof window.createBuyOrder !== 'function') {
+            document.getElementById('app').innerHTML = '<div class="card error" style="color:red;">Ошибка: функция createBuyOrder не найдена. Проверьте файл api.js</div>';
+            console.error('createBuyOrder отсутствует!');
+            return;
+        }
+        
         // Drag tabs
         const tabsWrapper = document.querySelector('.tabs-wrapper');
         let isDown = false, startX, scrollLeft;
@@ -82,7 +86,6 @@
         if (!window.userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
         if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
-        // Утилиты (дублируем на всякий случай, но они уже есть в api.js)
         window.toCents = (v) => Math.round(parseFloat(v) * 100);
         window.fromCents = (c) => (c / 100).toFixed(2);
         
@@ -111,14 +114,12 @@
             setTimeout(() => toast.remove(), 5000);
         };
         
-        // Supabase
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
-        // Настройки
         async function renderSettingsTab() {
             const hideRating = window.currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -149,11 +150,11 @@
             window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
             window.updateBellBadge, window.showNotificationsModal
         ), 500);
-        setupRealtimeNotifications();
-        await window.updateBellBadge();
-        initTopupModal();
+        if (typeof setupRealtimeNotifications === 'function') setupRealtimeNotifications();
+        if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
+        if (typeof initTopupModal === 'function') initTopupModal();
         
-        document.getElementById('headerNotificationBell')?.addEventListener('click', () => window.showNotificationsModal());
+        document.getElementById('headerNotificationBell')?.addEventListener('click', () => { if (window.showNotificationsModal) window.showNotificationsModal(); });
         document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
         
         document.querySelectorAll('.tab').forEach(tab => {
