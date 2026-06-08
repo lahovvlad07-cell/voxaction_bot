@@ -1,4 +1,4 @@
-// rating.js – никнейм слева, модалка как понравилось
+// rating.js – финальная версия (прокрутка модалки, достижения в строку)
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -55,7 +55,7 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
-// Модалка профиля – просторная, со всеми данными
+// Модальное окно профиля с прокруткой и горизонтальными достижениями
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
@@ -93,7 +93,7 @@ async function showUserProfileModal(userId) {
 
     const modalHtml = `
         <div class="modal" id="profileModal" style="display:flex;">
-            <div class="modal-content" style="max-width: 360px; width: 90%;">
+            <div class="modal-content" style="max-width: 360px; width: 90%; max-height: 80vh; overflow-y: auto; padding-bottom: 20px;">
                 <span class="close-modal" id="closeProfileModal">&times;</span>
                 <div style="text-align: center; padding: 20px 0 10px;">
                     <div style="display: flex; justify-content: center;">${avatarHtml}</div>
@@ -101,7 +101,7 @@ async function showUserProfileModal(userId) {
                     <div class="small-text">ID: ${user.id}</div>
                     <div class="small-text">📅 ${new Date(user.registered_at).toLocaleDateString()}</div>
                 </div>
-                <div class="achievement-icons" style="justify-content: center; gap: 16px; margin: 12px 0;">
+                <div class="achievement-icons" style="display: flex; justify-content: center; gap: 16px; margin: 12px 0; flex-wrap: wrap;">
                     ${achievementsHtml}
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin: 16px 0;">
