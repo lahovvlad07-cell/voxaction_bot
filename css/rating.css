@@ -1,4 +1,4 @@
-/* rating.css – финальная версия с модальным окном профиля */
+/* rating.css – финальная версия с центровкой аватарок и поддержкой достижений */
 
 .rating-title {
     text-align: center;
@@ -76,6 +76,9 @@
     width: 48px;
     height: 48px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .mini-avatar {
     display: flex;
@@ -239,6 +242,63 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+}
+
+/* Стили для модального окна профиля */
+#profileModal .modal-content {
+    max-width: 340px;
+}
+#profileModal .avatar-circle {
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+}
+#profileModal .stats-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+#profileModal .stat-card {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 8px;
+    text-align: center;
+    flex: 1;
+    min-width: 70px;
+}
+#profileModal .stat-value {
+    font-size: 18px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+#profileModal .stat-label {
+    font-size: 10px;
+    margin-top: 2px;
+}
+#profileModal .achievement-icons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 12px 0;
+}
+#profileModal .achi-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    border: 1px solid transparent;
+}
+#profileModal .achi-icon.earned {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border-color: #60a5fa;
 }
 
 @media (max-width: 560px) {
