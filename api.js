@@ -1,4 +1,4 @@
-// api.js – финальная версия (все функции, включая get24hAvgPrice)
+// api.js – финальная версия (исправлены сообщения, проверки)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -337,7 +337,7 @@ window.get24hAvgPrice = async function() {
     return totalAmount ? totalStars / totalAmount / 100 : 0;
 };
 
-// ========== ИСТОРИЯ ЗАВЕРШЁННЫХ ОРДЕРОВ (опционально, но в stocks.js уже есть) ==========
+// ========== ИСТОРИЯ ЗАВЕРШЁННЫХ ОРДЕРОВ ==========
 window.getCompletedOrders = async function(limit = 10) {
     const { data, error } = await window.supabase
         .from('orders')
@@ -370,11 +370,15 @@ window.cancelOrder = async function(orderId) {
     return true;
 };
 
+// ИСПРАВЛЕННЫЕ ФУНКЦИИ С ПОНЯТНЫМИ СООБЩЕНИЯМИ
 window.createOrder = async function(amountStars, priceStars) {
+    if (amountStars < 1) throw new Error('Количество должно быть ≥ 1 акции');
+    if (priceStars < 1) throw new Error('Цена должна быть ≥ 1 Star');
     const amountCents = window.toCents(amountStars);
     const priceCents = window.toCents(priceStars);
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
+    
     const { data, error } = await window.supabase.rpc('create_sell_order_matched', {
         p_user_id: window.userId,
         p_amount_cents: amountCents,
@@ -382,26 +386,37 @@ window.createOrder = async function(amountStars, priceStars) {
     });
     if (error) throw new Error(error.message);
     if (!data.success) throw new Error(data.error);
+    
     const executed = window.fromCents(data.executed_amount || 0);
     const remaining = window.fromCents(data.remaining_amount || 0);
-    if (executed > 0) window.showToast(`✅ Продано ${executed} шт.`);
-    if (remaining > 0) window.showToast(`📌 Остаток ${remaining} шт. в стакане`);
+    if (executed > 0) {
+        window.showToast(`✅ Частично продано ${executed} шт. по лучшей цене`);
+    }
+    if (remaining > 0) {
+        window.showToast(`✅ Запрос на продажу ${remaining} шт. по ${priceStars} ⭐ создан`);
+    } else if (executed === 0) {
+        window.showToast(`✅ Запрос на продажу ${amountStars} шт. по ${priceStars} ⭐ создан`);
+    }
     await updateUserStats();
     await checkAllAchievements();
     return true;
 };
 
 window.createBuyOrder = async function(amountStars, priceStars) {
+    if (amountStars < 1) throw new Error('Количество должно быть ≥ 1 акции');
+    if (priceStars < 1) throw new Error('Цена должна быть ≥ 1 Star');
     const amountCents = window.toCents(amountStars);
     const priceCents = window.toCents(priceStars);
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
+    
     const { user: freshUser } = await window.getOrCreateUser();
     window.currentUser = freshUser;
     const requiredStars = amountStars * priceStars;
     if (window.currentUser.stars_balance < requiredStars) {
         throw new Error(`❌ Недостаточно звёзд: нужно ${requiredStars.toFixed(2)} ⭐, у вас ${window.currentUser.stars_balance.toFixed(2)} ⭐`);
     }
+    
     const { data, error } = await window.supabase.rpc('create_buy_order_matched', {
         p_user_id: window.userId,
         p_amount_cents: amountCents,
@@ -409,10 +424,17 @@ window.createBuyOrder = async function(amountStars, priceStars) {
     });
     if (error) throw new Error(error.message);
     if (!data.success) throw new Error(data.error);
+    
     const executed = window.fromCents(data.executed_amount || 0);
     const remaining = window.fromCents(data.remaining_amount || 0);
-    if (executed > 0) window.showToast(`✅ Куплено ${executed} шт.`);
-    if (remaining > 0) window.showToast(`📌 Остаток ${remaining} шт. в стакане`);
+    if (executed > 0) {
+        window.showToast(`✅ Частично куплено ${executed} шт. по лучшей цене`);
+    }
+    if (remaining > 0) {
+        window.showToast(`✅ Запрос на покупку ${remaining} шт. по ${priceStars} ⭐ создан`);
+    } else if (executed === 0) {
+        window.showToast(`✅ Запрос на покупку ${amountStars} шт. по ${priceStars} ⭐ создан`);
+    }
     await updateUserStats();
     await checkAllAchievements();
     return true;
