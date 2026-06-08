@@ -69,7 +69,11 @@
             return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
         }
         
+        // Исправленная модалка
         window.showCustomModal = function(title, message) {
+            const existingModal = document.getElementById('customMessageModal');
+            if (existingModal) existingModal.remove();
+            
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
                     <div class="modal-content">
@@ -82,8 +86,12 @@
             `;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = document.getElementById('customMessageModal');
-            document.getElementById('closeCustomModal').onclick = () => modal.remove();
-            document.getElementById('customModalOkBtn').onclick = () => modal.remove();
+            const closeModal = () => modal.remove();
+            document.getElementById('closeCustomModal').onclick = closeModal;
+            document.getElementById('customModalOkBtn').onclick = closeModal;
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
         };
         
         window.showToast = function(message) {
@@ -125,7 +133,6 @@
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
-        // Функция отрисовки вкладки настроек
         async function renderSettingsTab() {
             const hideRating = window.currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -185,8 +192,8 @@
                     const result = await window.updateUsername(newUsername);
                     window.showCustomModal('Успех', result.message);
                     if (result.success && window.currentUser.username !== newUsername) {
-                        // После смены ника обновляем текущего пользователя и перерисовываем страницу настроек
-                        await renderSettingsTab(); // перерисовываем ту же вкладку
+                        window.currentUser.username = newUsername;
+                        await renderSettingsTab();
                     }
                 } catch(err) {
                     window.showCustomModal('Ошибка', err.message);
@@ -208,6 +215,21 @@
             if (typeof setupRealtimeNotifications === 'function') setupRealtimeNotifications();
             if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
             if (typeof initTopupModal === 'function') initTopupModal();
+            
+            // Реальное обновление рейтинга
+            const ratingChannel = window.supabase
+                .channel('rating-updates')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+                    if (document.querySelector('.tab[data-tab="rating"].active')) {
+                        window.refreshActiveTab();
+                    }
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => {
+                    if (document.querySelector('.tab[data-tab="rating"].active')) {
+                        window.refreshActiveTab();
+                    }
+                })
+                .subscribe();
         } catch(err) {
             document.getElementById('app').innerHTML = `<div class="card error" style="color:red; text-align:center;">Ошибка загрузки: ${err.message}<br><br>Попробуйте перезагрузить страницу или напишите в поддержку.</div>`;
             console.error('Ошибка при инициализации:', err);
