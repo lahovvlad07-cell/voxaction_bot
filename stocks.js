@@ -1,4 +1,4 @@
-// stocks.js – исходная стабильная версия (только визуальные улучшения)
+// stocks.js – карточки ордеров, анимация, стабильная работа
 
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
@@ -142,21 +142,34 @@ window.renderStocksTab = async function(currentUser) {
         }));
         
         const ordersDiv = document.getElementById('ordersList');
-        if (orders.length === 0) ordersDiv.innerHTML = '<p>Нет ордеров</p>';
+        if (orders.length === 0) ordersDiv.innerHTML = '<p class="empty-orders">Нет активных ордеров</p>';
         else {
             orders.forEach(order => {
                 const isOwn = order.seller_id === window.userId;
-                let ratingHtml = order.seller_rating ? `<span class="stars-rating">${'★'.repeat(Math.floor(order.seller_rating))}${order.seller_rating%1>=0.5?'½':''}</span>` : '';
-                const div = document.createElement('div'); div.className = 'order-item';
-                div.innerHTML = `
-                    <div>
-                        <div>${window.fromCents(order.amount)} шт. по ${window.fromCents(order.price_per_share)} ⭐</div>
-                        <div class="small-text">Продавец: ${order.seller_id} ${ratingHtml}</div>
+                let ratingHtml = '';
+                if (order.seller_rating) {
+                    const fullStars = Math.floor(order.seller_rating);
+                    ratingHtml = `<span class="stars-rating">${'★'.repeat(fullStars)}${order.seller_rating % 1 >= 0.5 ? '½' : ''}</span>`;
+                }
+                const card = document.createElement('div');
+                card.className = 'order-card';
+                card.innerHTML = `
+                    <div class="order-card-header">
+                        <div class="seller-avatar">${order.seller_rating ? '⭐' : '👤'}</div>
+                        <div class="seller-info">
+                            <span class="seller-name">${order.seller_id === window.userId ? 'Вы' : `Продавец: ${order.seller_id}`}</span>
+                            ${ratingHtml ? `<span class="seller-rating">${ratingHtml}</span>` : ''}
+                        </div>
+                        <div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div>
                     </div>
-                    <div>${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>` : `<button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`}</div>
+                    <div class="order-card-body">
+                        <span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span>
+                        ${!isOwn ? `<button class="buy-btn" data-order='${JSON.stringify(order)}'>Купить</button>` : `<button class="cancel-btn" data-order-id="${order.id}">Отменить</button>`}
+                    </div>
                 `;
-                ordersDiv.appendChild(div);
+                ordersDiv.appendChild(card);
             });
+            
             document.querySelectorAll('.buy-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const order = JSON.parse(btn.dataset.order);
@@ -191,6 +204,7 @@ window.renderStocksTab = async function(currentUser) {
                 });
             });
         }
+        
         document.getElementById('sellBtn')?.addEventListener('click', async () => {
             let amount = parseFloat(document.getElementById('sellAmount').value);
             let price = parseFloat(document.getElementById('sellPrice').value);
