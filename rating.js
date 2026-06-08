@@ -1,4 +1,4 @@
-// rating.js – финальная версия с просмотром профиля по клику
+// rating.js – исправленный (акции вместо объёма, модалка с достижениями)
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -7,7 +7,6 @@ let filteredUsers = [];
 let totalPages = 1;
 let currentSearchTerm = '';
 
-// Загрузка статистики
 async function fetchUserStats(userId) {
     try {
         const { data, error } = await window.supabase
@@ -56,17 +55,39 @@ function applyFilter() {
     if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 }
 
-// Модальное окно просмотра профиля другого пользователя
+// Модальное окно просмотра профиля с достижениями
 async function showUserProfileModal(userId) {
-    // Загружаем данные пользователя
     const { data: user, error } = await window.supabase
         .from('users')
-        .select('id, username, shares, stars_balance, avatar_url, avatar_bg, avatar_border, referral_count, registered_at')
+        .select('id, username, shares, stars_balance, avatar_url, avatar_bg, avatar_border, referral_count, registered_at, selected_achievements')
         .eq('id', userId)
         .single();
     if (error || !user) {
         window.showCustomModal('Ошибка', 'Не удалось загрузить профиль');
         return;
+    }
+
+    // Получаем достижения пользователя
+    let userAchievements = [];
+    if (window.getEarnedAchievementsForUser) {
+        userAchievements = await window.getEarnedAchievementsForUser(userId);
+    } else {
+        // fallback
+        const { data } = await window.supabase
+            .from('user_achievements')
+            .select('achievement_id, earned_at, achievements(id, name, description, icon)')
+            .eq('user_id', userId);
+        if (data) userAchievements = data.map(ua => ua.achievements);
+    }
+
+    const selectedIds = user.selected_achievements || [];
+    const iconsHtml = [];
+    for (let i = 0; i < 3; i++) {
+        const achId = selectedIds[i];
+        const ach = userAchievements.find(a => a.id === achId);
+        iconsHtml.push(ach 
+            ? `<div class="achi-icon earned" title="${ach.name}: ${ach.description}">${ach.icon}</div>` 
+            : `<div class="achi-icon">?</div>`);
     }
 
     const stats = await fetchUserStats(userId);
@@ -79,15 +100,18 @@ async function showUserProfileModal(userId) {
 
     const modalHtml = `
         <div class="modal" id="profileModal" style="display:flex;">
-            <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-content" style="max-width: 350px;">
                 <span class="close-modal" id="closeProfileModal">&times;</span>
                 <div style="text-align: center; padding: 16px 0 8px;">
-                    ${avatarHtml}
+                    <div style="display: flex; justify-content: center;">${avatarHtml}</div>
                     <h3 style="margin: 12px 0 4px;">${escapeHtml(user.username)}</h3>
                     <div class="small-text">ID: ${user.id}</div>
                     <div class="small-text">📅 ${new Date(user.registered_at).toLocaleDateString()}</div>
                 </div>
-                <div class="stats-container" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 16px 0;">
+                <div class="achievement-icons" style="justify-content: center; gap: 16px; margin: 10px 0;">
+                    ${iconsHtml.join('')}
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 8px 0;">
                     <div class="stat-card" style="flex: 1; text-align: center;">
                         <div class="stat-value" style="font-size: 20px;">${window.fromCents(user.shares)}</div>
                         <div class="stat-label">Акций</div>
@@ -97,7 +121,7 @@ async function showUserProfileModal(userId) {
                         <div class="stat-label">Stars</div>
                     </div>
                 </div>
-                <div style="display: flex; justify-content: center; gap: 16px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 16px;">
                     <div class="stat-card" style="flex: 1; text-align: center;">
                         <div class="stat-value" style="font-size: 18px;">${stats.tradesCount}</div>
                         <div class="stat-label">Сделок</div>
@@ -152,12 +176,12 @@ function renderPage() {
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
 
         const sharesFormatted = (user.shares / 100).toFixed(2);
-        const volumeFormatted = user.volumeStars.toFixed(2);
 
+        // В рейтинге показываем акции, а не объём
         const statsHtml = `
             <div class="rating-stats">
                 <span class="rating-stat" title="Сделки">🔄 ${user.tradesCount}</span>
-                <span class="rating-stat" title="Объём (⭐)">📊 ${volumeFormatted}</span>
+                <span class="rating-stat" title="Акции">📊 ${sharesFormatted}</span>
                 <span class="rating-stat" title="Рефералы">👥 ${user.referral_count || 0}</span>
             </div>
         `;
@@ -170,7 +194,6 @@ function renderPage() {
                 <div class="rating-avatar">${avatarHtml}</div>
                 <div class="rating-info">
                     <div class="rating-username">${escapeHtml(user.username)}</div>
-                    <div class="rating-shares">📊 ${sharesFormatted} акций</div>
                     ${statsHtml}
                 </div>
             </div>
@@ -196,13 +219,11 @@ function renderPage() {
         paginationDiv.innerHTML = '';
     }
 
-    // Клик для открытия профиля
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
             const userId = parseInt(item.dataset.userId);
             if (userId === window.userId) {
-                // Свой профиль – переключаем вкладку
                 document.querySelector('.tab[data-tab="profile"]').click();
             } else {
                 showUserProfileModal(userId);
@@ -218,12 +239,12 @@ function updateMyRankCard() {
 
     if (currentUserData) {
         const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
-        const volumeFormatted = currentUserData.volumeStars.toFixed(2);
+        const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
         myRankCard.innerHTML = `
             <div class="my-rank-title">🎯 Ваше место</div>
             <div class="my-rank-details">
                 <span class="my-rank-item">#${rank}</span>
-                <span class="my-rank-item">📈 ${volumeFormatted} ⭐</span>
+                <span class="my-rank-item">📊 ${sharesFormatted}</span>
                 <span class="my-rank-item">🔄 ${currentUserData.tradesCount}</span>
                 <span class="my-rank-item">👥 ${currentUserData.referral_count || 0}</span>
             </div>
