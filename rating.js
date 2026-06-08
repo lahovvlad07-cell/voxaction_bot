@@ -1,4 +1,4 @@
-// rating.js – финальная улучшенная версия
+// rating.js – финальная версия с аватарками, медалями, статистикой и прогресс-баром
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -6,7 +6,7 @@ let allUsers = [];
 let filteredUsers = [];
 let totalPages = 1;
 let currentSearchTerm = '';
-let maxShares = 0; // для прогресс-бара
+let topShares = 0; // для прогресс-бара
 
 // Загрузка статистики по сделкам для одного пользователя
 async function fetchUserStats(userId) {
@@ -25,7 +25,7 @@ async function fetchUserStats(userId) {
     }
 }
 
-// Загрузка всех пользователей
+// Загрузка пользователей
 async function loadUsers() {
     const { data, error } = await window.supabase
         .from('users')
@@ -43,6 +43,8 @@ async function loadUsers() {
             volumeStars: stats.volumeStars
         });
     }
+    // Запоминаем максимальное количество акций для прогресс-бара
+    if (usersWithStats.length) topShares = usersWithStats[0].shares;
     return usersWithStats;
 }
 
@@ -67,49 +69,39 @@ function renderPage() {
     const start = (currentPage - 1) * itemsPerPage;
     const pageUsers = filteredUsers.slice(start, start + itemsPerPage);
 
-    // Вычисляем максимальное количество акций для прогресс-бара (среди отфильтрованных)
-    maxShares = filteredUsers.length > 0 ? Math.max(...filteredUsers.map(u => u.shares)) : 0;
-
     let html = '';
     for (let i = 0; i < pageUsers.length; i++) {
         const user = pageUsers[i];
         const globalIndex = filteredUsers.findIndex(u => u.id === user.id);
         const place = globalIndex + 1;
 
-        // Медали для топ-3
+        // Медали
         let rankDisplay = '';
         if (place === 1) rankDisplay = '<span class="medal gold">🥇</span>';
         else if (place === 2) rankDisplay = '<span class="medal silver">🥈</span>';
         else if (place === 3) rankDisplay = '<span class="medal bronze">🥉</span>';
         else rankDisplay = `<span class="rank-number">${place}</span>`;
 
-        // Аватарка
+        // Аватарка (с фоном и обводкой)
         const avatarHtml = window.renderAvatarHtml
             ? window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '52px')
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
 
         const sharesFormatted = (user.shares / 100).toFixed(2);
         const volumeFormatted = user.volumeStars.toFixed(2);
-        
-        // Прогресс-бар (процент от лидера)
-        let progressPercent = 0;
-        if (maxShares > 0) {
-            progressPercent = (user.shares / maxShares) * 100;
-        }
-        const progressBarHtml = maxShares > 0 && user.shares > 0 ? `
-            <div class="progress-bar-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progressPercent}%;"></div>
-                </div>
-                <div class="progress-label">${progressPercent.toFixed(0)}% от лидера</div>
-            </div>
-        ` : '';
+
+        // Процент от лидера
+        const percent = topShares > 0 ? (user.shares / topShares) * 100 : 0;
 
         const statsHtml = `
             <div class="rating-stats">
                 <span class="rating-stat">🔄 ${user.tradesCount}</span>
                 <span class="rating-stat">📊 ${volumeFormatted}</span>
                 <span class="rating-stat">👥 ${user.referral_count || 0}</span>
+            </div>
+            <div class="rating-progress">
+                <div class="progress-bar-bg"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                <span class="progress-percent">${percent.toFixed(1)}% от лидера</span>
             </div>
         `;
 
@@ -124,7 +116,6 @@ function renderPage() {
                     <div class="rating-username">${escapeHtml(user.username)}</div>
                     <div class="rating-shares">📊 ${sharesFormatted} акций</div>
                     ${statsHtml}
-                    ${progressBarHtml}
                 </div>
             </div>
         `;
@@ -149,7 +140,7 @@ function renderPage() {
         paginationDiv.innerHTML = '';
     }
 
-    // Клик по строке – открыть профиль
+    // Клик для просмотра профиля
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
@@ -174,6 +165,7 @@ function updateMyRankCard() {
     if (currentUserData) {
         const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
         const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
+        const percent = topShares > 0 ? (currentUserData.shares / topShares) * 100 : 0;
         myRankCard.innerHTML = `
             <div class="my-rank-title">🎯 Ваше место</div>
             <div class="my-rank-details">
@@ -181,26 +173,14 @@ function updateMyRankCard() {
                 <span class="my-rank-shares">📊 ${sharesFormatted} акций</span>
                 <span class="my-rank-volume">📈 ${currentUserData.volumeStars.toFixed(2)} ⭐</span>
             </div>
+            <div class="my-rank-progress">
+                <div class="progress-bar-bg"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                <span class="progress-percent">${percent.toFixed(1)}% от лидера</span>
+            </div>
         `;
     } else {
         myRankCard.innerHTML = `<div class="my-rank-title">🔒 Вы не отображаетесь в рейтинге</div>`;
     }
-}
-
-// Кнопка "Наверх"
-function initScrollToTop() {
-    const btn = document.getElementById('scrollToTopBtn');
-    if (!btn) return;
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 300) {
-            btn.style.display = 'flex';
-        } else {
-            btn.style.display = 'none';
-        }
-    });
-    btn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
 }
 
 window.renderRatingTab = async function() {
@@ -221,7 +201,6 @@ window.renderRatingTab = async function() {
                     `).join('')}
                 </div>
                 <div id="ratingPagination"></div>
-                <button id="scrollToTopBtn" class="scroll-top-btn" style="display: none;">↑ Наверх</button>
             </div>
         `;
 
@@ -243,6 +222,7 @@ window.renderRatingTab = async function() {
         if (currentUserData) {
             const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
             const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
+            const percent = topShares > 0 ? (currentUserData.shares / topShares) * 100 : 0;
             html += `
                 <div class="my-rank-card">
                     <div class="my-rank-title">🎯 Ваше место</div>
@@ -251,12 +231,16 @@ window.renderRatingTab = async function() {
                         <span class="my-rank-shares">📊 ${sharesFormatted} акций</span>
                         <span class="my-rank-volume">📈 ${currentUserData.volumeStars.toFixed(2)} ⭐</span>
                     </div>
+                    <div class="my-rank-progress">
+                        <div class="progress-bar-bg"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                        <span class="progress-percent">${percent.toFixed(1)}% от лидера</span>
+                    </div>
                 </div>
             `;
         } else if (window.userId) {
             html += `<div class="my-rank-card"><div class="my-rank-title">🔒 Вы не отображаетесь в рейтинге</div></div>`;
         }
-        html += `<button id="scrollToTopBtn" class="scroll-top-btn" style="display: none;">↑ Наверх</button></div>`;
+        html += `</div>`;
         document.getElementById('app').innerHTML = html;
 
         const searchInput = document.getElementById('ratingSearchInput');
@@ -270,7 +254,6 @@ window.renderRatingTab = async function() {
             });
         }
         renderPage();
-        initScrollToTop();
     } catch (err) {
         console.error(err);
         document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки рейтинга</div>';
