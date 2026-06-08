@@ -1,4 +1,4 @@
-// api.js – финальная версия (с поддержкой смены никнейма)
+// api.js – финальная версия (смена никнейма без ограничения 30 дней)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -85,7 +85,6 @@ window.getOrCreateUser = async function() {
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
     
     if (!data) {
-        // Создаём нового пользователя
         const avatarOptions = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
         const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
         const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
@@ -164,7 +163,6 @@ window.getOrCreateUser = async function() {
         return { user: newUser, isNew: true };
     }
     
-    // Обновляем недостающие поля для старых пользователей
     let updated = false;
     const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change'];
     for (let f of newFields) {
@@ -205,7 +203,7 @@ window.getUserStats = async function(forceRefresh = false) {
     return stats;
 };
 
-// ========== СМЕНА НИКНЕЙМА (раз в 30 дней, с фильтрацией) ==========
+// ========== СМЕНА НИКНЕЙМА (без ограничения по времени) ==========
 window.updateUsername = async function(newUsername) {
     if (!newUsername || newUsername.trim().length < 3) {
         throw new Error('Никнейм должен содержать минимум 3 символа');
@@ -233,19 +231,10 @@ window.updateUsername = async function(newUsername) {
     
     const { data: user } = await window.supabase
         .from('users')
-        .select('last_username_change, username')
+        .select('username')
         .eq('id', window.userId)
         .single();
     if (!user) throw new Error('Пользователь не найден');
-    
-    if (user.last_username_change) {
-        const lastChange = new Date(user.last_username_change);
-        const daysSince = (Date.now() - lastChange.getTime()) / (1000 * 3600 * 24);
-        if (daysSince < 30 && user.username !== newUsername) {
-            const remaining = Math.ceil(30 - daysSince);
-            throw new Error(`Никнейм можно менять не чаще 1 раза в 30 дней. Осталось дней: ${remaining}`);
-        }
-    }
     
     if (user.username === newUsername) {
         return { success: true, message: 'Никнейм не изменён' };
@@ -258,7 +247,7 @@ window.updateUsername = async function(newUsername) {
     if (error) throw new Error(error.message);
     
     if (window.currentUser) window.currentUser.username = newUsername;
-    return { success: true, message: 'Никнейм успешно изменён! Следующая смена доступна через 30 дней.' };
+    return { success: true, message: 'Никнейм успешно изменён!' };
 };
 
 // ========== ОРДЕРА И СДЕЛКИ ==========
