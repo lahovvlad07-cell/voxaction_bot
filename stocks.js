@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с работающей рыночной покупкой
+// stocks.js – финальная версия с матчингом ордеров и рыночной покупкой
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -91,7 +91,7 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ---------- Рыночная покупка (как в Standoff 2) ----------
+// ---------- Рыночная покупка (сквозная) ----------
 async function marketBuy(starsAmountStars) {
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
@@ -99,29 +99,24 @@ async function marketBuy(starsAmountStars) {
     let totalSpentCents = 0;
 
     while (remainingStarsCents > 0) {
-        // Берём самый дешёвый активный ордер
         const { data: sellOrders, error } = await window.supabase
             .from('orders')
             .select('*')
             .eq('status', 'active')
             .order('price_per_share', { ascending: true })
-            .limit(1);  // берём только один лучший ордер
+            .limit(1);
         if (error) throw new Error('Ошибка загрузки ордеров');
         if (!sellOrders.length) break;
 
         const order = sellOrders[0];
-        const priceCents = order.price_per_share;       // цена за 1 акцию в центах
-        const availableSharesCents = order.amount;      // доступно акций в центах
+        const priceCents = order.price_per_share;
+        const availableSharesCents = order.amount;
         
-        // Максимальное количество акций (в штуках), которое можно купить на остаток звёзд
         let maxUnits = Math.floor(remainingStarsCents / priceCents);
         if (maxUnits <= 0) break;
-        
-        // Переводим в центы (кратно 100)
         let buySharesCents = maxUnits * 100;
         if (buySharesCents > availableSharesCents) buySharesCents = availableSharesCents;
         
-        // Выполняем сделку
         const { error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
             p_order_id: order.id,
             p_buyer_id: window.userId,
@@ -134,11 +129,9 @@ async function marketBuy(starsAmountStars) {
         totalBoughtSharesCents += buySharesCents;
         totalSpentCents += costCents;
         
-        // Локальное обновление
         window.currentUser.shares += buySharesCents;
         window.currentUser.stars_balance -= costCents;
         
-        // Небольшая задержка для избежания гонок
         await new Promise(r => setTimeout(r, 50));
     }
     
@@ -196,23 +189,6 @@ async function renderOrderBook() {
     if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="small-text">Нет заявок на покупку</p>';
 }
 
-// ---------- Лимитная заявка на покупку ----------
-async function createBuyOrder(amountStars, pricePerShareStars) {
-    const amountCents = window.toCents(amountStars);
-    const priceCents = window.toCents(pricePerShareStars);
-    if (amountCents < 100) throw new Error('Минимум 1 акция');
-    if (priceCents < 100) throw new Error('Минимум 1 Star');
-    const { data, error } = await window.supabase.rpc('create_buy_order', {
-        p_user_id: window.userId,
-        p_amount: amountCents,
-        p_price: priceCents
-    });
-    if (error) throw new Error(error.message);
-    if (!data.success) throw new Error(data.error);
-    window.showToast('✅ Заявка на покупку создана');
-    await window.refreshAll();
-}
-
 // ---------- Мои последние сделки ----------
 async function loadMyRecentTrades() {
     const { data } = await window.supabase
@@ -255,7 +231,7 @@ async function loadOrdersWithSellers() {
     return orders;
 }
 
-// ---------- Отрисовка списка ордеров ----------
+// ---------- Отрисовка списка ордеров (продажа) ----------
 function renderOrdersList(orders, isMyFilter = false) {
     const container = document.getElementById('ordersList');
     if (!container) return;
@@ -492,7 +468,6 @@ window.renderStocksTab = async function(currentUser) {
             }
             try {
                 await window.createOrder(amount, price);
-                window.showToast('Ордер на продажу создан');
                 await window.refreshAll();
             } catch (err) {
                 window.showCustomModal('Ошибка', err.message);
@@ -506,7 +481,8 @@ window.renderStocksTab = async function(currentUser) {
                 return;
             }
             try {
-                await createBuyOrder(amount, price);
+                await window.createBuyOrder(amount, price);
+                await window.refreshAll();
             } catch (err) {
                 window.showCustomModal('Ошибка', err.message);
             }
