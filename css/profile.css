@@ -1,5 +1,4 @@
-/* profile.css – 20 аватарок, центровка на ПК с индивидуальными смещениями, уменьшение на ПК */
-
+/* profile.css – полная версия со стилями аватарок, достижений, прогресс-баров и анимаций */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -37,7 +36,7 @@
     position: static !important;
 }
 
-/* Индивидуальная коррекция для каждой аватарки – только на ПК (основной профиль) – 20 штук */
+/* Индивидуальная коррекция для каждой аватарки – только на ПК */
 @media (min-width: 561px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
     .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
@@ -61,20 +60,12 @@
     .avatar-emoji[style*="🏆"] { transform: translateY(-4px) !important; }
 }
 
-/* Общее смещение для превью в модалках (шаги 1-3) – при необходимости */
-@media (min-width: 561px) {
-    #stepModal .avatar-circle .avatar-emoji,
-    #borderModal .avatar-circle .avatar-emoji {
-        transform: translateY(-6px) !important;
-    }
-}
-
 .small-text {
     font-size: 12px;
     color: #9ca3af;
 }
 
-/* ===== Сетки выбора (кастомизация) – 20 аватарок в 4 столбца ===== */
+/* Сетки выбора (кастомизация) – 20 аватарок в 4 столбца */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -134,7 +125,7 @@
     text-shadow: 0 0 2px black;
 }
 
-/* ===== Достижения, статистика ===== */
+/* Достижения, статистика */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -155,11 +146,17 @@
     transition: 0.2s;
     border: 1px solid transparent;
 }
+/* Полученные иконки — с золотым свечением и градиентом */
 .achi-icon.earned {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    border-color: #60a5fa;
-    box-shadow: 0 0 10px rgba(43, 110, 158, 0.5);
+    background: linear-gradient(145deg, #2b6e9e, #1a4c6e);
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
 }
+.achi-icon.earned:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.9);
+}
+
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -192,6 +189,56 @@
     font-size: 12px;
     margin-top: 4px;
 }
+
+/* Ближайшие достижения (прогресс-бары) */
+.next-achievements {
+    margin-top: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    padding: 12px;
+}
+.next-achievement-item {
+    margin-bottom: 12px;
+}
+.progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 6px;
+    overflow: hidden;
+    margin: 6px 0;
+}
+.progress-fill {
+    background: linear-gradient(90deg, #2b6e9e, #60a5fa);
+    height: 100%;
+    width: 0%;
+    border-radius: 10px;
+}
+
+/* Рейтинг в профиле */
+.rank-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 12px;
+    margin-top: 12px;
+}
+
+/* Градиенты для фона аватарки */
+.bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
+.bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+.bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
+.bg-gradient4 { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+.bg-gradient5 { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+.bg-gradient6 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+.bg-gradient7 { background: linear-gradient(135deg, #1abc9c, #16a085); }
+.bg-gradient8 { background: linear-gradient(135deg, #3498db, #2980b9); }
+.bg-gradient9 { background: linear-gradient(135deg, #34495e, #2c3e50); }
+.bg-gradient10 { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
+.bg-gradient11 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+
+/* Модалка выбора достижений */
 .achievements-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -210,8 +257,9 @@
     border: 1px solid transparent;
 }
 .achievement-card.selected {
-    border-color: #2b6e9e;
-    background: rgba(43, 110, 158, 0.2);
+    border-color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
 }
 .achievement-card.disabled {
     opacity: 0.4;
@@ -231,70 +279,26 @@
     color: #9ca3af;
     margin-top: 4px;
 }
-.progress-bar {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    height: 6px;
-    overflow: hidden;
-    margin: 6px 0;
-}
-.progress-fill {
-    background: linear-gradient(90deg, #2b6e9e, #60a5fa);
-    height: 100%;
-    width: 0%;
-    border-radius: 10px;
-}
-.next-achievements {
-    margin-top: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 20px;
-    padding: 12px;
-}
-.next-achievement-item {
-    margin-bottom: 12px;
-}
-.rank-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 20px;
-    padding: 12px;
-    margin-top: 12px;
+
+/* Анимация для модалки достижений */
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
-/* ===== Градиенты для фона аватарки ===== */
-.bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
-.bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-.bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
-.bg-gradient4 { background: linear-gradient(135deg, #27ae60, #2ecc71); }
-.bg-gradient5 { background: linear-gradient(135deg, #f1c40f, #f39c12); }
-.bg-gradient6 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-.bg-gradient7 { background: linear-gradient(135deg, #1abc9c, #16a085); }
-.bg-gradient8 { background: linear-gradient(135deg, #3498db, #2980b9); }
-.bg-gradient9 { background: linear-gradient(135deg, #34495e, #2c3e50); }
-.bg-gradient10 { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
-.bg-gradient11 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
-
-/* ===== Кастомизация – превью круга (модалки) ===== */
-#stepModal .modal-preview,
-#borderModal .modal-preview {
-    display: flex !important;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-#stepModal .avatar-circle,
-#borderModal .avatar-circle {
-    width: 80px;
-    height: 80px;
-    background: #2b6e9e;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-}
-
-/* ===== Мобильная адаптация ===== */
+/* Мобильная адаптация */
 @media (max-width: 560px) {
     .avatar-circle {
         width: 100px !important;
@@ -327,8 +331,6 @@
         font-size: 48px !important;
     }
 }
-
-/* ===== Уменьшение аватарки на больших экранах (ПК) ===== */
 @media (min-width: 1024px) {
     .avatar-circle {
         width: 110px !important;
