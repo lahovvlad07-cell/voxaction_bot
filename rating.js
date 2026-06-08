@@ -243,7 +243,7 @@ function updateMyRankCard() {
                     <div class="small-text">До места #${rank-1}: <strong>${needShares} акций</strong></div>
                     <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(100, progressPercent)}%;"></div></div>
                 </div>
-            ` : '<div class="small-text" style="margin-top: 8px;">🥇 Вы лидер!</div>'}
+            ` : '<div class="small-text" style="margin-top: 8px; text-align: center;">🥇 Вы лидер!</div>'}
         </div>
     `;
 }
