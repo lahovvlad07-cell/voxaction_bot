@@ -1,4 +1,4 @@
-// stocks.js – с модалкой покупки, моими ордерами и подсветкой лучшей цены
+// stocks.js – финальная версия (модалка, мои ордера, карточки, адаптив)
 
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
@@ -74,11 +74,9 @@ function renderTicker(trades) {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// Модальное окно покупки
 function showBuyModal(order) {
     const maxShares = window.fromCents(order.amount);
     const pricePerShare = window.fromCents(order.price_per_share);
-    
     const modalHtml = `
         <div class="modal" id="buyModal" style="display:flex;">
             <div class="modal-content" style="max-width: 320px;">
@@ -99,14 +97,12 @@ function showBuyModal(order) {
     const modal = document.getElementById('buyModal');
     const amountInput = document.getElementById('buyAmount');
     const totalSpan = document.getElementById('totalPrice');
-    
     const updateTotal = () => {
         let amount = parseFloat(amountInput.value) || 0;
         let total = (amount * pricePerShare).toFixed(2);
         totalSpan.innerText = total;
     };
     amountInput.addEventListener('input', updateTotal);
-    
     document.getElementById('buyMaxBtn').onclick = () => {
         amountInput.value = maxShares;
         updateTotal();
@@ -129,13 +125,11 @@ function showBuyModal(order) {
     };
 }
 
-// Получение ордеров с дополнительной информацией
 async function loadOrdersWithSellers() {
     let orders = [];
     if (currentOrdersFilter === 'all') orders = await window.getActiveOrders();
     else orders = await window.getUserOrders();
     if (orders.length === 0) return [];
-    
     const sellerIds = [...new Set(orders.map(o => o.seller_id))];
     const { data: users } = await window.supabase
         .from('users')
@@ -143,7 +137,6 @@ async function loadOrdersWithSellers() {
         .in('id', sellerIds);
     const userMap = new Map();
     users?.forEach(u => userMap.set(u.id, u.username));
-    
     for (let o of orders) {
         o.seller_name = userMap.get(o.seller_id) || `user_${o.seller_id}`;
         o.seller_rating = await window.getSellerRating(o.seller_id);
@@ -151,22 +144,15 @@ async function loadOrdersWithSellers() {
     return orders;
 }
 
-// Рендер списка ордеров
 function renderOrdersList(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
-    
     if (orders.length === 0) {
         container.innerHTML = '<p class="empty-orders">Нет активных ордеров</p>';
         return;
     }
-    
-    // Сортируем
     orders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
-    
-    // Находим лучшую цену (самый низкий price_per_share)
     const bestPrice = Math.min(...orders.map(o => o.price_per_share));
-    
     container.innerHTML = orders.map(order => {
         const isOwn = order.seller_id === window.userId;
         let ratingHtml = '';
@@ -176,7 +162,6 @@ function renderOrdersList(orders) {
         }
         const isBest = (!isOwn && order.price_per_share === bestPrice);
         const bestClass = isBest ? 'order-card-best' : '';
-        
         return `
             <div class="order-card ${bestClass}" data-order='${JSON.stringify(order)}'>
                 <div class="order-card-header">
@@ -193,8 +178,6 @@ function renderOrdersList(orders) {
             </div>
         `;
     }).join('');
-    
-    // Обработчики
     document.querySelectorAll('.buy-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const card = btn.closest('.order-card');
@@ -217,20 +200,15 @@ function renderOrdersList(orders) {
     });
 }
 
-// Основной рендер вкладки
 window.renderStocksTab = async function(currentUser) {
     try {
-        // Загружаем ордера и другую статистику
         let allOrders = await loadOrdersWithSellers();
         const myOrders = allOrders.filter(o => o.seller_id === window.userId);
         const otherOrders = allOrders.filter(o => o.seller_id !== window.userId);
-        
         let displayOrders = [];
         if (currentOrdersFilter === 'all') displayOrders = [...myOrders, ...otherOrders];
         else if (currentOrdersFilter === 'my') displayOrders = myOrders;
         else displayOrders = otherOrders;
-        
-        // Сортируем отображаемые
         displayOrders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
         
         const priceHistory = await window.fetchPriceHistoryForTimeframe(currentTimeframe);
@@ -286,7 +264,6 @@ window.renderStocksTab = async function(currentUser) {
         drawCanvasChart(priceHistory);
         renderTicker(recentTrades);
         
-        // Рендер моих ордеров (если есть)
         if (myOrders.length > 0) {
             const myOrdersDiv = document.getElementById('myOrdersList');
             if (myOrdersDiv) {
@@ -319,10 +296,8 @@ window.renderStocksTab = async function(currentUser) {
             }
         }
         
-        // Рендер основного списка ордеров
         renderOrdersList(displayOrders);
         
-        // Обработчики фильтров и сортировки
         document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentTimeframe = btn.dataset.tf;
             await window.renderStocksTab(currentUser);
@@ -336,7 +311,6 @@ window.renderStocksTab = async function(currentUser) {
             window.renderStocksTab(currentUser);
         }));
         
-        // Кнопка продажи
         document.getElementById('sellBtn')?.addEventListener('click', async () => {
             let amount = parseFloat(document.getElementById('sellAmount').value);
             let price = parseFloat(document.getElementById('sellPrice').value);
