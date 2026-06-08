@@ -1,8 +1,8 @@
-// api.js – полная версия с модальными окнами для достижений
+// api.js – финальная версия с красивой модалкой достижений
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ (МОДАЛЬНОЕ ОКНО) ==========
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ (КРАСИВАЯ МОДАЛКА) ==========
 async function awardAchievement(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -18,12 +18,30 @@ async function awardAchievement(achievementId) {
             earned_at: new Date().toISOString()
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
-        // Показываем модальное окно вместо тоста
-        if (window.showCustomModal) {
-            window.showCustomModal(`🏆 Новое достижение!`, `${ach.icon} ${ach.name}\n\n${ach.description}`);
-        } else {
-            alert(`🏆 Достижение: ${ach.icon} ${ach.name}`);
-        }
+        
+        // Создаём красивую модалку
+        const modalHtml = `
+            <div class="modal" id="achievementModal" style="display:flex; z-index:2000;">
+                <div class="modal-content" style="max-width: 320px; text-align: center; background: linear-gradient(145deg, #1e2a3a, #0f1722); border: 2px solid #fbbf24; box-shadow: 0 0 30px rgba(251,191,36,0.4); animation: bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);">
+                    <span class="close-modal" id="closeAchievementModal" style="color: #fbbf24;">&times;</span>
+                    <div style="font-size: 64px; margin: 10px 0 5px;">${ach.icon}</div>
+                    <h3 style="color: #fbbf24; margin: 0 0 5px;">Новое достижение!</h3>
+                    <h2 style="font-size: 22px; margin: 10px 0; background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent;">${ach.name}</h2>
+                    <p style="margin: 10px 20px 20px; font-size: 14px; color: #cbd5e1;">${ach.description}</p>
+                    <button id="achievementOkBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1e1e2f; font-weight: bold; margin-bottom: 10px;">Отлично!</button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = document.getElementById('achievementModal');
+        const closeModal = () => modal.remove();
+        document.getElementById('closeAchievementModal').onclick = closeModal;
+        document.getElementById('achievementOkBtn').onclick = closeModal;
+        // Закрытие по клику вне модалки (на оверлее)
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+        
         if (window.renderProfileTab) window.renderProfileTab(); // обновить профиль
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
 }
@@ -139,8 +157,7 @@ window.getOrCreateUser = async function() {
             });
             await window.supabase.rpc('increment_referral_count', { p_user_id: referredById });
         }
-        // 🏆 Выдаём достижение "Первый шаг" (ID = 1)
-        await awardAchievement(1);
+        await awardAchievement(1); // Первый шаг
         return { user: newUser, isNew: true };
     }
     let updated = false;
