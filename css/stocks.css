@@ -1,4 +1,4 @@
-/* stocks.css – улучшенный: модалка, карточки, адаптив */
+/* stocks.css – единый адаптивный стиль (ПК + мобилы) */
 
 .balance-row {
     display: flex;
@@ -124,7 +124,6 @@
     padding: 20px;
     color: #9ca3af;
 }
-/* Общие карточки ордеров */
 .order-card {
     background: rgba(0,0,0,0.4);
     border-radius: 24px;
@@ -140,6 +139,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+    flex-wrap: wrap;
 }
 .seller-info {
     display: flex;
@@ -167,6 +167,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 .order-amount {
     font-size: 14px;
@@ -190,10 +192,7 @@
     background: rgba(0,0,0,0.5);
     border-left: 3px solid #2b6e9e;
 }
-.my-order-card .order-card-header {
-    justify-content: space-between;
-}
-/* Модальное окно покупки */
+/* Модалка покупки */
 #buyModal .modal-content {
     max-width: 320px;
 }
@@ -249,7 +248,7 @@ button {
     margin-top: 8px;
     cursor: pointer;
 }
-/* Мобильная адаптация */
+/* Адаптация для мобильных (но ПК тоже подхватит) */
 @media (max-width: 560px) {
     .balance-row {
         gap: 6px;
@@ -266,16 +265,17 @@ button {
         font-size: 12px;
     }
     .order-card-header {
-        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: flex-start;
     }
     .order-price-big {
-        margin-left: auto;
+        align-self: flex-end;
     }
     .order-card-body {
-        flex-wrap: wrap;
-        gap: 8px;
+        flex-direction: column;
+        align-items: stretch;
     }
-    .buy-btn, .cancel-btn {
+    .buy-btn, .cancel-btn, .cancel-btn-small {
         width: 100%;
         text-align: center;
     }
