@@ -1,5 +1,6 @@
 /* stocks.css – единый адаптивный стиль (ПК + мобилы) */
-/* Добавлены правки: центрирование заголовка стакана, центрирование пустых сообщений, уменьшены отступы */
+/* Добавлены правки: центрирование заголовка стакана, центрирование пустых сообщений,
+   табличный вид истории ордеров, 3 ордера в стакане */
 
 .balance-row {
     display: flex;
@@ -182,7 +183,7 @@
     font-size: 14px;
     color: #a5b4fc;
 }
-.buy-btn, .cancel-btn, .cancel-btn-small {
+.buy-btn, .cancel-btn, .cancel-btn-small, .cancel-buy-btn {
     background: rgba(56,189,248,0.2);
     border: none;
     padding: 4px 12px;
@@ -193,7 +194,7 @@
 .buy-btn {
     color: #38bdf8;
 }
-.cancel-btn, .cancel-btn-small {
+.cancel-btn, .cancel-btn-small, .cancel-buy-btn {
     color: #f97316;
 }
 .my-order-card {
@@ -275,6 +276,42 @@ button {
     margin-top: 8px;
 }
 
+/* ===== ТАБЛИЦА ИСТОРИИ ОРДЕРОВ (ровные колонки как в Excel) ===== */
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.history-table th,
+.history-table td {
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.history-table th {
+    text-align: left;
+    font-weight: 600;
+    color: #a5b4fc;
+}
+.history-table td {
+    color: #eef2ff;
+}
+.history-table td:first-child,
+.history-table th:first-child {
+    padding-left: 0;
+}
+.history-table td:last-child,
+.history-table th:last-child {
+    padding-right: 0;
+}
+/* Для мобильных таблица может прокручиваться по горизонтали */
+@media (max-width: 560px) {
+    .history-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
 /* Адаптация для мобильных */
 @media (max-width: 560px) {
     .balance-row {
@@ -302,7 +339,7 @@ button {
         flex-direction: column;
         align-items: stretch;
     }
-    .buy-btn, .cancel-btn, .cancel-btn-small {
+    .buy-btn, .cancel-btn, .cancel-btn-small, .cancel-buy-btn {
         width: 100%;
         text-align: center;
     }
@@ -311,5 +348,11 @@ button {
     }
     .max-btn {
         width: 100%;
+    }
+    .history-table {
+        font-size: 11px;
+    }
+    .history-table th, .history-table td {
+        padding: 6px 2px;
     }
 }
