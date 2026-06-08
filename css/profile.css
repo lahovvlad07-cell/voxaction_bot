@@ -1,5 +1,4 @@
-/* profile.css – финальная версия (унифицированные кружки 70px, улучшенная модалка) */
-
+/* profile.css – финальная версия */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -8,7 +7,6 @@
     cursor: pointer;
     margin: 0 auto;
 }
-
 .avatar-circle {
     width: 140px !important;
     height: 140px !important;
@@ -28,7 +26,6 @@
     overflow: visible;
     line-height: 1;
 }
-
 @media (max-width: 560px) {
     .avatar-circle {
         width: 120px !important;
@@ -43,7 +40,6 @@
         font-size: 52px !important;
     }
 }
-
 .avatar-circle .avatar-emoji {
     display: inline-flex !important;
     align-items: center !important;
@@ -53,7 +49,6 @@
     transform: none !important;
     position: static !important;
 }
-
 @media (min-width: 561px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
     .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
@@ -80,19 +75,16 @@
     .avatar-emoji[style*="👑"] { transform: translateY(-2px) !important; }
     .avatar-emoji[style*="🎯"] { transform: translateY(-4px) !important; }
 }
-
 @media (min-width: 561px) {
     #stepModal .avatar-circle .avatar-emoji,
     #borderModal .avatar-circle .avatar-emoji {
         transform: translateY(-6px) !important;
     }
 }
-
 .small-text {
     font-size: 12px;
     color: #9ca3af;
 }
-
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(65px, 1fr));
@@ -127,7 +119,6 @@
     line-height: 1;
     transform: none !important;
 }
-
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -157,8 +148,6 @@
     font-size: 24px;
     text-shadow: 0 0 2px black;
 }
-
-/* ===== КРУЖКИ ДОСТИЖЕНИЙ (70px на ПК, 60px на телефонах) ===== */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -198,8 +187,6 @@
         gap: 16px;
     }
 }
-
-/* ===== МОДАЛКА ВЫБОРА ДОСТИЖЕНИЙ (улучшенная ширина и выделение) ===== */
 .modal-content {
     max-width: 350px;
     width: 90%;
@@ -243,8 +230,6 @@
     color: #9ca3af;
     margin-top: 4px;
 }
-
-/* ===== СТАТИСТИКА И ПРОГРЕСС-БАРЫ ===== */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -308,8 +293,6 @@
     padding: 12px;
     margin-top: 12px;
 }
-
-/* ===== ГРАДИЕНТЫ ДЛЯ ФОНА ===== */
 .bg-gradient1 { background: linear-gradient(135deg, #2b6e9e, #1a4c6e); }
 .bg-gradient2 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 .bg-gradient3 { background: linear-gradient(135deg, #e67e22, #d35400); }
@@ -321,8 +304,6 @@
 .bg-gradient9 { background: linear-gradient(135deg, #34495e, #2c3e50); }
 .bg-gradient10 { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
 .bg-gradient11 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
-
-/* ===== МОДАЛКИ КАСТОМИЗАЦИИ ===== */
 #stepModal .modal-preview,
 #borderModal .modal-preview {
     display: flex !important;
@@ -339,8 +320,6 @@
     justify-content: center;
     border-radius: 50%;
 }
-
-/* ===== АНИМАЦИЯ ДЛЯ МОДАЛКИ ДОСТИЖЕНИЙ ===== */
 @keyframes bounceIn {
     0% { opacity: 0; transform: scale(0.3); }
     50% { opacity: 1; transform: scale(1.05); }
