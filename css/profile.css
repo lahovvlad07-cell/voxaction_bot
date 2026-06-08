@@ -1,4 +1,4 @@
-/* profile.css – финальная версия */
+/* profile.css – финальная версия с принудительными стилями для ПК */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -189,7 +189,7 @@
         gap: 16px;
     }
 }
-/* ===== МОДАЛКА ВЫБОРА ДОСТИЖЕНИЙ (улучшена для ПК) ===== */
+/* ===== МОДАЛКА ВЫБОРА ДОСТИЖЕНИЙ ===== */
 .modal-content {
     max-width: 350px;
     width: 90%;
@@ -233,35 +233,24 @@
     color: #9ca3af;
     margin-top: 4px;
 }
+/* ===== ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ ПК (увеличение кружков и золотая подсветка) ===== */
 @media (min-width: 561px) {
-    .modal-content {
-        max-width: 500px !important;
-        width: 90%;
-    }
-    .achievements-grid {
-        gap: 15px;
-    }
-    .achievement-card {
-        padding: 12px 10px;
-        border-radius: 20px;
+    .achievement-icons .achi-icon {
+        width: 70px !important;
+        height: 70px !important;
+        font-size: 40px !important;
     }
     .achievement-card.selected {
-        border: 2px solid #fbbf24;
-        background: rgba(251, 191, 36, 0.2);
-        box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+        border: 2px solid #fbbf24 !important;
+        background: rgba(251, 191, 36, 0.25) !important;
+        box-shadow: 0 0 15px rgba(251, 191, 36, 0.8) !important;
         transform: scale(1.02);
     }
-    .achievement-card:hover {
-        transform: scale(1.02);
-        background: rgba(255, 255, 255, 0.1);
+    .achievement-card {
+        padding: 12px 10px !important;
     }
     .achievement-name {
-        font-size: 16px;
-    }
-    .achievement-desc,
-    .achievement-condition,
-    .achievement-date {
-        font-size: 12px;
+        font-size: 16px !important;
     }
 }
 /* ===== ОСТАЛЬНЫЕ СТИЛИ (статистика, прогресс-бары, градиенты) ===== */
