@@ -9,7 +9,6 @@ let hasMore = true;
 let currentSearchTerm = '';
 
 async function fetchAllUsersWithStats() {
-    // Получаем всех пользователей, не скрытых
     const { data: users, error: usersError } = await window.supabase
         .from('users')
         .select('id, username, shares, avatar_url, avatar_bg, avatar_border, hide_rating, referral_count')
@@ -17,16 +16,14 @@ async function fetchAllUsersWithStats() {
         .order('shares', { ascending: false });
     if (usersError) throw usersError;
 
-    // Получаем агрегированную статистику сделок одним запросом
+    if (users.length === 0) return [];
     const userIds = users.map(u => u.id);
-    if (userIds.length === 0) return [];
     const { data: trades, error: tradesError } = await window.supabase
         .from('trades')
         .select('buyer_id, seller_id, total_stars')
         .or(`buyer_id.in.(${userIds.join(',')}),seller_id.in.(${userIds.join(',')})`);
     if (tradesError) throw tradesError;
 
-    // Агрегируем
     const statsMap = new Map();
     users.forEach(u => statsMap.set(u.id, { tradesCount: 0, volumeStars: 0 }));
     for (let t of trades) {
@@ -39,7 +36,6 @@ async function fetchAllUsersWithStats() {
             statsMap.get(t.seller_id).volumeStars += t.total_stars / 100;
         }
     }
-
     return users.map(u => ({
         ...u,
         tradesCount: statsMap.get(u.id).tradesCount,
@@ -53,7 +49,6 @@ function applySortAndFilter() {
         const term = currentSearchTerm.toLowerCase();
         filtered = filtered.filter(u => u.username && u.username.toLowerCase().includes(term));
     }
-    // Сортировка
     if (currentSort === 'shares') {
         filtered.sort((a, b) => b.shares - a.shares);
     } else if (currentSort === 'trades') {
@@ -114,7 +109,6 @@ function renderPage() {
     }
     container.innerHTML = html;
 
-    // Обработчики клика для открытия модалки профиля
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
@@ -142,7 +136,7 @@ async function loadMore() {
     isLoading = false;
 }
 
-// Модалка профиля (улучшенная, скрытый ID)
+// Модалка профиля – полный ID без маскировки
 async function showUserProfileModal(userId) {
     const { data: user, error } = await window.supabase
         .from('users')
@@ -158,9 +152,8 @@ async function showUserProfileModal(userId) {
     const rank = filteredUsers.findIndex(u => u.id === userId) + 1;
     const rankText = rank > 0 ? `#${rank}` : '—';
     const avatarHtml = window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '80px');
-    const hiddenId = `••• ${user.id.toString().slice(-4)}`;
+    const fullId = user.id; // полный ID
 
-    // Загружаем три выбранных достижения (если есть)
     let achievementsHtml = '';
     const selectedIds = user.selected_achievements || [];
     if (selectedIds.length) {
@@ -185,7 +178,7 @@ async function showUserProfileModal(userId) {
                 <div style="text-align: center; padding: 20px 0 10px;">
                     <div style="display: flex; justify-content: center;">${avatarHtml}</div>
                     <h3 style="margin: 14px 0 4px;">${escapeHtml(user.username)}</h3>
-                    <div class="small-text">ID: ${hiddenId}</div>
+                    <div class="small-text">ID: ${fullId}</div>
                     <div class="small-text">📅 ${new Date(user.registered_at).toLocaleDateString()}</div>
                 </div>
                 <div class="achievement-icons" style="display: flex; justify-content: center; gap: 16px; margin: 12px 0; flex-wrap: wrap;">
@@ -210,7 +203,6 @@ async function showUserProfileModal(userId) {
     const modal = document.getElementById('profileModal');
     document.getElementById('closeProfileModal').onclick = () => modal.remove();
     document.getElementById('closeProfileBtn').onclick = () => modal.remove();
-    // Закрытие по клику вне модалки
     modal.addEventListener('click', (e) => {
         if (e.target === modal) modal.remove();
     });
@@ -226,11 +218,10 @@ function updateMyRankCard() {
     }
     const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
     const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
-    // Находим следующего пользователя впереди (с большим количеством акций)
     let nextUser = null;
     let diff = 0;
     if (rank > 1) {
-        const nextIndex = rank - 2; // индекс в массиве filteredUsers (0-based)
+        const nextIndex = rank - 2;
         nextUser = filteredUsers[nextIndex];
         if (nextUser) {
             diff = nextUser.shares - currentUserData.shares;
@@ -257,7 +248,6 @@ function updateMyRankCard() {
     `;
 }
 
-// Бесконечная прокрутка
 function setupInfiniteScroll() {
     const container = document.getElementById('ratingListContainer');
     if (!container) return;
@@ -295,14 +285,12 @@ window.renderRatingTab = async function() {
             </div>
         `;
 
-        // Загружаем пользователей
         allUsers = await fetchAllUsersWithStats();
         applySortAndFilter();
         renderPage();
         updateMyRankCard();
         setupInfiniteScroll();
 
-        // Обработчики сортировки
         document.querySelectorAll('.sort-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 currentSort = btn.dataset.sort;
@@ -314,7 +302,6 @@ window.renderRatingTab = async function() {
             });
         });
 
-        // Поиск
         const searchInput = document.getElementById('ratingSearchInput');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
