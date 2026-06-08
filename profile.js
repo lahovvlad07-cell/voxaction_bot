@@ -1,4 +1,4 @@
-// profile.js – финальная версия (24 аватарки, ⭐ заменён на 🎁)
+// profile.js – финальная версия с 24 аватарками, исправленной модалкой выбора достижений (без дублирования иконок)
 const avatarEmojis = [
     '👤', '😀', '😎', '👍',
     '🐱', '🐶', '🦊', '🐼',
@@ -87,7 +87,7 @@ async function awardStylistAchievement() {
     if (achData) await awardAchievement(achData.id);
 }
 
-// ========== Модалка выбора достижений (без прогресс-баров) ==========
+// ========== Модалка выбора достижений (без дублирования иконок) ==========
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
     const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
     const isSlotOccupied = currentSlotAchievementId !== null;
@@ -109,8 +109,8 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
                 case 'total_earned': conditionText = `💵 Заработано: ${ach.condition_value/100} ⭐`; break;
             }
         }
+        // Убрана строка с achievement-icon, чтобы не дублировать иконку
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
-            <div class="achievement-icon">${ach.icon}</div>
             <div class="achievement-name">${ach.name}</div>
             <div class="achievement-desc">${ach.description}</div>
             ${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}
