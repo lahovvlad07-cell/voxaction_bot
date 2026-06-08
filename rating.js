@@ -1,4 +1,4 @@
-// rating.js – финальная версия с аватарками, медалями, статистикой и прогресс-баром
+// rating.js – исправленная версия с нормальной статистикой и чистым дизайном
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -6,7 +6,6 @@ let allUsers = [];
 let filteredUsers = [];
 let totalPages = 1;
 let currentSearchTerm = '';
-let topShares = 0; // для прогресс-бара
 
 // Загрузка статистики по сделкам для одного пользователя
 async function fetchUserStats(userId) {
@@ -43,8 +42,6 @@ async function loadUsers() {
             volumeStars: stats.volumeStars
         });
     }
-    // Запоминаем максимальное количество акций для прогресс-бара
-    if (usersWithStats.length) topShares = usersWithStats[0].shares;
     return usersWithStats;
 }
 
@@ -82,7 +79,7 @@ function renderPage() {
         else if (place === 3) rankDisplay = '<span class="medal bronze">🥉</span>';
         else rankDisplay = `<span class="rank-number">${place}</span>`;
 
-        // Аватарка (с фоном и обводкой)
+        // Аватарка
         const avatarHtml = window.renderAvatarHtml
             ? window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '52px')
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
@@ -90,18 +87,12 @@ function renderPage() {
         const sharesFormatted = (user.shares / 100).toFixed(2);
         const volumeFormatted = user.volumeStars.toFixed(2);
 
-        // Процент от лидера
-        const percent = topShares > 0 ? (user.shares / topShares) * 100 : 0;
-
+        // Три бейджа
         const statsHtml = `
             <div class="rating-stats">
-                <span class="rating-stat">🔄 ${user.tradesCount}</span>
-                <span class="rating-stat">📊 ${volumeFormatted}</span>
-                <span class="rating-stat">👥 ${user.referral_count || 0}</span>
-            </div>
-            <div class="rating-progress">
-                <div class="progress-bar-bg"><div class="progress-fill" style="width: ${percent}%;"></div></div>
-                <span class="progress-percent">${percent.toFixed(1)}% от лидера</span>
+                <span class="rating-stat" title="Сделки">🔄 ${user.tradesCount}</span>
+                <span class="rating-stat" title="Объём (⭐)">📊 ${volumeFormatted}</span>
+                <span class="rating-stat" title="Рефералы">👥 ${user.referral_count || 0}</span>
             </div>
         `;
 
@@ -165,7 +156,6 @@ function updateMyRankCard() {
     if (currentUserData) {
         const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
         const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
-        const percent = topShares > 0 ? (currentUserData.shares / topShares) * 100 : 0;
         myRankCard.innerHTML = `
             <div class="my-rank-title">🎯 Ваше место</div>
             <div class="my-rank-details">
@@ -173,9 +163,9 @@ function updateMyRankCard() {
                 <span class="my-rank-shares">📊 ${sharesFormatted} акций</span>
                 <span class="my-rank-volume">📈 ${currentUserData.volumeStars.toFixed(2)} ⭐</span>
             </div>
-            <div class="my-rank-progress">
-                <div class="progress-bar-bg"><div class="progress-fill" style="width: ${percent}%;"></div></div>
-                <span class="progress-percent">${percent.toFixed(1)}% от лидера</span>
+            <div class="my-rank-stats">
+                <span class="rating-stat">🔄 ${currentUserData.tradesCount} сделок</span>
+                <span class="rating-stat">👥 ${currentUserData.referral_count || 0} рефералов</span>
             </div>
         `;
     } else {
@@ -185,7 +175,7 @@ function updateMyRankCard() {
 
 window.renderRatingTab = async function() {
     try {
-        // Показываем скелетон
+        // Скелетон
         document.getElementById('app').innerHTML = `
             <div class="card">
                 <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
@@ -222,7 +212,6 @@ window.renderRatingTab = async function() {
         if (currentUserData) {
             const rank = filteredUsers.findIndex(u => u.id === window.userId) + 1;
             const sharesFormatted = (currentUserData.shares / 100).toFixed(2);
-            const percent = topShares > 0 ? (currentUserData.shares / topShares) * 100 : 0;
             html += `
                 <div class="my-rank-card">
                     <div class="my-rank-title">🎯 Ваше место</div>
@@ -231,9 +220,9 @@ window.renderRatingTab = async function() {
                         <span class="my-rank-shares">📊 ${sharesFormatted} акций</span>
                         <span class="my-rank-volume">📈 ${currentUserData.volumeStars.toFixed(2)} ⭐</span>
                     </div>
-                    <div class="my-rank-progress">
-                        <div class="progress-bar-bg"><div class="progress-fill" style="width: ${percent}%;"></div></div>
-                        <span class="progress-percent">${percent.toFixed(1)}% от лидера</span>
+                    <div class="my-rank-stats">
+                        <span class="rating-stat">🔄 ${currentUserData.tradesCount} сделок</span>
+                        <span class="rating-stat">👥 ${currentUserData.referral_count || 0} рефералов</span>
                     </div>
                 </div>
             `;
