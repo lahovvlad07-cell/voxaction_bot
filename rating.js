@@ -1,4 +1,4 @@
-// rating.js – улучшенная версия (аватарки, сортировка, бесконечная прокрутка)
+// rating.js – улучшенная версия (аватарки 40px)
 let allUsers = [];
 let filteredUsers = [];
 let currentSort = 'shares'; // shares, trades, referrals
@@ -85,7 +85,8 @@ function renderPage() {
         else if (place === 3) rankDisplay = '<span class="medal bronze">🥉</span>';
         else rankDisplay = `<span class="rank-number">${place}</span>`;
 
-        const avatarHtml = window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '48px');
+        // Уменьшил размер аватарки с 48px до 40px
+        const avatarHtml = window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '40px');
         const sharesFormatted = (user.shares / 100).toFixed(2);
         const statsHtml = `
             <div class="rating-stats">
@@ -152,7 +153,7 @@ async function showUserProfileModal(userId) {
     const rank = filteredUsers.findIndex(u => u.id === userId) + 1;
     const rankText = rank > 0 ? `#${rank}` : '—';
     const avatarHtml = window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '80px');
-    const fullId = user.id; // полный ID
+    const fullId = user.id;
 
     let achievementsHtml = '';
     const selectedIds = user.selected_achievements || [];
