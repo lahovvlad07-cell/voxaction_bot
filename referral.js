@@ -1,3 +1,4 @@
+// referral.js – новая шкала бонусов (до 100 друзей)
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     let referralCount = currentUser.referral_count || 0;
@@ -17,11 +18,15 @@ window.renderReferralTab = async function() {
     }
     await loadFreshData();
 
+    // Новая шкала бонусов
     const bonusLevels = [
         { friends: 1, stars: 3 },
         { friends: 3, stars: 5 },
         { friends: 5, stars: 10 },
-        { friends: 10, stars: 25 }
+        { friends: 10, stars: 25 },
+        { friends: 25, stars: 50 },
+        { friends: 50, stars: 100 },
+        { friends: 100, stars: 200 }
     ];
 
     let claimedBonuses = [];
@@ -140,8 +145,8 @@ window.renderReferralTab = async function() {
     let html = `
         <div class="card" style="overflow: visible !important;">
             <div class="referral-header">
-                <h2>Приводи друзей и зарабатывай</h2>
-                <p>Приглашай друзей, получай звёзды и бонусы</p>
+                <h2>🔗 Реферальная программа</h2>
+                <p>Приглашайте друзей и получайте звёзды</p>
             </div>
             <div class="stats-circles">
                 <div class="stat-circle">
@@ -150,17 +155,19 @@ window.renderReferralTab = async function() {
                 </div>
                 <div class="stat-circle">
                     <div class="value">${totalEarnedStars}</div>
-                    <div class="label">заработано</div>
+                    <div class="label">заработано ⭐</div>
                 </div>
             </div>
     `;
 
     if (allCompleted) {
-        html += `<div class="progress-block"><div class="all-bonuses-claimed">🎉 Все награды собраны! Спасибо, что с нами!</div></div>`;
+        html += `<div class="progress-block"><div class="all-bonuses-claimed">🏆 Все доступные бонусы получены! Приглашайте друзей дальше – возможно, появятся новые уровни.</div></div>`;
     } else {
         html += `
             <div class="progress-block">
-                <div class="progress-label">🎯 До следующей награды <strong>${rewardStars} ⭐</strong> осталось пригласить <strong>${remaining}</strong> друга(ей)</div>
+                <div class="progress-label">
+                    🎁 Следующая награда: <strong>${rewardStars} ⭐</strong> за приглашение ещё <strong>${remaining}</strong> ${declension(remaining, 'друга', 'друзей', 'друзей')}
+                </div>
                 <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
                 <div class="progress-stats">${referralCount} / ${target}</div>
                 ${canClaim ? `<button class="claim-btn" data-friends="${target}" data-stars="${rewardStars}">🎁 Получить ${rewardStars} ⭐</button>` : ''}
@@ -204,7 +211,15 @@ window.renderReferralTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // --- Обработчики ---
+    function declension(n, one, few, many) {
+        n = Math.abs(n) % 100;
+        if (n >= 5 && n <= 20) return many;
+        n %= 10;
+        if (n === 1) return one;
+        if (n >= 2 && n <= 4) return few;
+        return many;
+    }
+
     const fullLinkSpan = document.getElementById('refLinkText');
     const copyBtn = document.getElementById('copyRefLinkBtn');
     const shareBtn = document.getElementById('shareRefLinkBtn');
@@ -246,7 +261,6 @@ window.renderReferralTab = async function() {
             window.showCustomModal('Успех', 'Реферальный код сохранён!');
             updateLink();
         } else {
-            // Исправленное сообщение: если ошибка содержит "уже занят" – показываем специфичную фразу
             if (data.error && (data.error.includes('уже занят') || data.error.includes('already'))) {
                 window.showCustomModal('Ошибка', 'Этот код уже занят');
             } else {
