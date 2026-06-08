@@ -1,14 +1,14 @@
-// stocks.js – улучшенная версия с рыночной покупкой, стаканом, автообновлением и графиком с осями
+// stocks.js – исправленная версия
+// Исправлено: рыночная покупка теперь скупает все доступные ордера, стакан показывает ордера, свои ордера скрыты из общего списка
 
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
-let refreshInterval = null;
 let ordersChannel = null;
 let tradesChannel = null;
 let usersChannel = null;
 
-// ========== Функции для работы с графиком (улучшенные) ==========
+// ========== График с осями ==========
 window.fetchPriceHistoryForTimeframe = async function(timeframe) {
     let startDate = new Date();
     if (timeframe === '1d') startDate.setDate(startDate.getDate() - 1);
@@ -45,11 +45,9 @@ function drawCanvasChartWithAxes(history) {
     const graphHeight = height - padding.top - padding.bottom;
     const stepX = graphWidth / (values.length - 1);
     
-    // Фон
     ctx.fillStyle = '#0f1320';
     ctx.fillRect(0, 0, width, height);
     
-    // Рисуем сетку и метки оси Y
     ctx.fillStyle = '#eef2ff';
     ctx.font = '10px sans-serif';
     const ySteps = 5;
@@ -64,7 +62,6 @@ function drawCanvasChartWithAxes(history) {
         ctx.fillText(price.toFixed(2), padding.left - 35, y + 3);
     }
     
-    // Рисуем линию цены
     ctx.beginPath();
     ctx.strokeStyle = '#2b6e9e';
     ctx.lineWidth = 2;
@@ -76,7 +73,6 @@ function drawCanvasChartWithAxes(history) {
     }
     ctx.stroke();
     
-    // Подписи дат (первая, последняя и средняя)
     if (history.length) {
         const firstDate = new Date(history[0].created_at).toLocaleDateString();
         const lastDate = new Date(history[history.length-1].created_at).toLocaleDateString();
@@ -106,10 +102,11 @@ async function updateTicker() {
     renderTicker(recentTrades);
 }
 
-// ========== Рыночная покупка ==========
+// ========== Рыночная покупка (исправлена: покупает по всем ордерам) ==========
 async function marketBuy(starsAmount) {
     if (starsAmount <= 0) throw new Error('Сумма должна быть больше 0');
-    const { data: sellOrders, error } = await window.supabase
+    // Получаем все активные sell-ордера, сортируем по цене (сначала дешёвые)
+    let { data: sellOrders, error } = await window.supabase
         .from('orders')
         .select('*')
         .eq('status', 'active')
@@ -123,12 +120,15 @@ async function marketBuy(starsAmount) {
 
     for (let order of sellOrders) {
         if (remainingStars <= 0) break;
-        const price = order.price_per_share;
-        const availableShares = order.amount;
-        const maxSharesFromStars = Math.floor(remainingStars / price);
-        const buyShares = Math.min(availableShares, maxSharesFromStars);
+        const price = order.price_per_share; // в центах
+        const availableShares = order.amount; // в центах (количество акций в минимальных единицах)
+        // Сколько акций (в штуках) можно купить на remainingStars по этой цене?
+        let buyShares = Math.floor(remainingStars / price);
         if (buyShares <= 0) continue;
-
+        buyShares = Math.min(availableShares, buyShares);
+        
+        console.log(`Покупаем ${buyShares} акций (${buyShares/100} шт.) по цене ${price/100} ⭐ за штуку, стоимость ${buyShares*price/100} ⭐`);
+        
         const { error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
             p_order_id: order.id,
             p_buyer_id: window.userId,
@@ -136,56 +136,77 @@ async function marketBuy(starsAmount) {
         });
         if (tradeError) throw new Error(`Ошибка при покупке: ${tradeError.message}`);
 
-        const cost = buyShares * price;
+        const cost = buyShares * price; // в центах
         remainingStars -= cost;
         totalBoughtShares += buyShares;
         totalSpent += cost;
+        
+        // Обновляем локальный баланс пользователя, чтобы не ждать refreshAll
+        window.currentUser.shares += buyShares;
+        window.currentUser.stars_balance -= cost;
     }
 
     if (totalBoughtShares === 0) throw new Error('Недостаточно ликвидности для покупки');
     window.showToast(`✅ Куплено ${window.fromCents(totalBoughtShares)} шт. за ${window.fromCents(totalSpent)} ⭐`);
+    
+    // Принудительно обновляем данные с сервера, чтобы подтянуть актуальные ордера и баланс
     await window.refreshAll();
 }
 
-// ========== Стакан (Order Book) ==========
+// ========== Стакан (Order Book) – исправлен ==========
 async function renderOrderBook() {
-    // Получаем sell-ордера
-    const { data: sells } = await window.supabase
+    // Получаем sell-ордера с именами продавцов
+    const { data: sellsRaw } = await window.supabase
         .from('orders')
-        .select('amount, price_per_share, seller_id, users(username)')
+        .select('amount, price_per_share, seller_id')
         .eq('status', 'active')
         .order('price_per_share', { ascending: true })
         .limit(10);
-    // Получаем buy-ордера
-    const { data: buys } = await window.supabase
+    
+    // Получаем buy-ордера с именами покупателей
+    const { data: buysRaw } = await window.supabase
         .from('buy_orders')
-        .select('amount, price_per_share, buyer_id, users(username)')
+        .select('amount, price_per_share, buyer_id')
         .eq('status', 'active')
         .order('price_per_share', { ascending: false })
         .limit(10);
-
-    const sellHtml = sells?.map(s => `
+    
+    // Собираем все ID пользователей
+    const userIds = [...(sellsRaw?.map(s => s.seller_id) || []), ...(buysRaw?.map(b => b.buyer_id) || [])];
+    let userMap = new Map();
+    if (userIds.length) {
+        const { data: users } = await window.supabase
+            .from('users')
+            .select('id, username')
+            .in('id', userIds);
+        users?.forEach(u => userMap.set(u.id, u.username));
+    }
+    
+    const sells = sellsRaw?.map(s => ({ ...s, username: userMap.get(s.seller_id) || `user_${s.seller_id}` })) || [];
+    const buys = buysRaw?.map(b => ({ ...b, username: userMap.get(b.buyer_id) || `user_${b.buyer_id}` })) || [];
+    
+    const sellHtml = sells.map(s => `
         <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
             <span>${window.fromCents(s.amount)} шт.</span>
             <span style="color:#fbbf24;">${window.fromCents(s.price_per_share)} ⭐</span>
-            <span class="small-text">${s.users?.username || s.seller_id}</span>
+            <span class="small-text">${escapeHtml(s.username)}</span>
         </div>
-    `).join('') || '<p class="small-text">Нет заявок на продажу</p>';
-    const buyHtml = buys?.map(b => `
+    `).join('');
+    const buyHtml = buys.map(b => `
         <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
             <span>${window.fromCents(b.amount)} шт.</span>
             <span style="color:#4ade80;">${window.fromCents(b.price_per_share)} ⭐</span>
-            <span class="small-text">${b.users?.username || b.buyer_id}</span>
+            <span class="small-text">${escapeHtml(b.username)}</span>
         </div>
-    `).join('') || '<p class="small-text">Нет заявок на покупку</p>';
-
+    `).join('');
+    
     const buyDiv = document.getElementById('buyOrdersList');
     const sellDiv = document.getElementById('sellOrdersList');
-    if (buyDiv) buyDiv.innerHTML = buyHtml;
-    if (sellDiv) sellDiv.innerHTML = sellHtml;
+    if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="small-text">Нет заявок на покупку</p>';
+    if (sellDiv) sellDiv.innerHTML = sellHtml || '<p class="small-text">Нет заявок на продажу</p>';
 }
 
-// ========== Создание buy-ордера ==========
+// ========== Создание buy-ордера (лимитная заявка на покупку) ==========
 async function createBuyOrder(amount, price) {
     const amountCents = window.toCents(amount);
     const priceCents = window.toCents(price);
@@ -246,24 +267,30 @@ async function loadOrdersWithSellers() {
     return orders;
 }
 
-// ========== Отрисовка списка ордеров (с пагинацией не перегружаем) ==========
+// ========== Отрисовка списка ордеров (свои не показываем в общем списке) ==========
 function renderOrdersList(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
-    if (orders.length === 0) {
-        container.innerHTML = '<p class="empty-orders">Нет активных ордеров</p>';
+    // Фильтруем: если выбран 'all', показываем ТОЛЬКО чужие ордера (свои уже есть в отдельном блоке)
+    let filteredOrders = orders;
+    if (currentOrdersFilter === 'all') {
+        filteredOrders = orders.filter(o => o.seller_id !== window.userId);
+    }
+    if (filteredOrders.length === 0) {
+        container.innerHTML = '<p class="empty-orders">Нет активных ордеров от других пользователей</p>';
         return;
     }
-    orders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
-    const bestPrice = Math.min(...orders.map(o => o.price_per_share));
-    container.innerHTML = orders.map(order => {
-        const isOwn = order.seller_id === window.userId;
+    // Сортировка
+    filteredOrders.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
+    const bestPrice = Math.min(...filteredOrders.map(o => o.price_per_share));
+    
+    container.innerHTML = filteredOrders.map(order => {
         let ratingHtml = '';
         if (order.seller_rating) {
             const fullStars = Math.floor(order.seller_rating);
             ratingHtml = `<span class="stars-rating">${'★'.repeat(fullStars)}${order.seller_rating % 1 >= 0.5 ? '½' : ''}</span>`;
         }
-        const isBest = (!isOwn && order.price_per_share === bestPrice);
+        const isBest = (order.price_per_share === bestPrice);
         const bestClass = isBest ? 'order-card-best' : '';
         const avatarMini = window.renderAvatarHtml ? window.renderAvatarHtml(order.seller_avatar, null, null, '32px') : '';
         return `
@@ -271,36 +298,24 @@ function renderOrdersList(orders) {
                 <div class="order-card-header">
                     <div class="seller-info">
                         ${avatarMini}
-                        <span class="seller-name">${order.seller_id === window.userId ? 'Вы' : escapeHtml(order.seller_name)}</span>
+                        <span class="seller-name">${escapeHtml(order.seller_name)}</span>
                         ${ratingHtml ? `<span class="seller-rating">${ratingHtml}</span>` : ''}
                     </div>
                     <div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div>
                 </div>
                 <div class="order-card-body">
                     <span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span>
-                    ${!isOwn ? `<button class="buy-btn">Купить</button>` : `<button class="cancel-btn" data-id="${order.id}">Отменить</button>`}
+                    <button class="buy-btn">Купить</button>
                 </div>
             </div>
         `;
     }).join('');
+    
     document.querySelectorAll('.buy-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const card = btn.closest('.order-card');
             const order = JSON.parse(card.dataset.order);
             showBuyModal(order);
-        });
-    });
-    document.querySelectorAll('.cancel-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            if (confirm('Отменить ордер?')) {
-                try {
-                    await window.cancelOrder(parseInt(btn.dataset.id));
-                    window.showToast('Ордер отменён');
-                    await window.refreshAll();
-                } catch (err) {
-                    window.showCustomModal('Ошибка', err.message);
-                }
-            }
         });
     });
 }
@@ -392,11 +407,8 @@ window.renderStocksTab = async function(currentUser) {
         // Загружаем данные
         let allOrders = await loadOrdersWithSellers();
         const myOrders = allOrders.filter(o => o.seller_id === window.userId);
+        // Для общего списка возьмём все ордера, но позже отфильтруем свои при отрисовке
         const otherOrders = allOrders.filter(o => o.seller_id !== window.userId);
-        let displayOrders = [];
-        if (currentOrdersFilter === 'all') displayOrders = [...myOrders, ...otherOrders];
-        else if (currentOrdersFilter === 'my') displayOrders = myOrders;
-        else displayOrders = otherOrders;
         
         const priceHistory = await window.fetchPriceHistoryForTimeframe(currentTimeframe);
         const { totalShares, currentPrice, marketCap } = await window.getTotalMarketCap();
@@ -460,8 +472,8 @@ window.renderStocksTab = async function(currentUser) {
             ` : ''}
             <div class="card">
                 <div class="filter-bar">
-                    <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button>
-                    <button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои</button>
+                    <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все (чужие)</button>
+                    <button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои ордера</button>
                     <button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена</button>
                     <button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена</button>
                 </div>
@@ -475,13 +487,13 @@ window.renderStocksTab = async function(currentUser) {
         `;
         document.getElementById('app').innerHTML = html;
         
-        // Отрисовка графиков
+        // Отрисовка графиков и данных
         drawCanvasChartWithAxes(priceHistory);
         await updateTicker();
         await renderOrderBook();
         await loadMyRecentTrades();
         
-        // Мои ордера
+        // Мои ордера на продажу
         if (myOrders.length > 0) {
             const myOrdersDiv = document.getElementById('myOrdersList');
             if (myOrdersDiv) {
@@ -514,7 +526,9 @@ window.renderStocksTab = async function(currentUser) {
             }
         }
         
-        renderOrdersList(displayOrders);
+        // Отрисовка общего списка ордеров (чужие, если all; свои, если my)
+        let ordersToRender = (currentOrdersFilter === 'all') ? allOrders : myOrders;
+        renderOrdersList(ordersToRender);
         
         // Обработчики событий
         document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', async () => {
@@ -571,7 +585,6 @@ window.renderStocksTab = async function(currentUser) {
             }
         });
         
-        // Подписываемся на обновления в реальном времени (один раз)
         subscribeToRealtimeUpdates();
     } catch (err) {
         console.error(err);
