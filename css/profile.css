@@ -1,4 +1,4 @@
-/* profile.css – полная версия с единым размером аватарки для всех устройств */
+/* profile.css – адаптивный размер аватарки: 140px на ПК, 120px на телефонах */
 
 #avatarClickWrapper {
     display: flex;
@@ -8,6 +8,8 @@
     cursor: pointer;
     margin: 0 auto;
 }
+
+/* Базовый размер аватарки (для всех устройств – 140px, но на телефонах переопределим) */
 .avatar-circle {
     width: 140px !important;
     height: 140px !important;
@@ -27,6 +29,25 @@
     overflow: visible;
     line-height: 1;
 }
+
+/* Для мобильных устройств уменьшаем до 120px */
+@media (max-width: 560px) {
+    .avatar-circle {
+        width: 120px !important;
+        height: 120px !important;
+        font-size: 62px !important;
+    }
+}
+
+/* Для очень маленьких экранов (≤400px) можно ещё чуть уменьшить (опционально) */
+@media (max-width: 400px) {
+    .avatar-circle {
+        width: 100px !important;
+        height: 100px !important;
+        font-size: 52px !important;
+    }
+}
+
 .avatar-circle .avatar-emoji {
     display: inline-flex !important;
     align-items: center !important;
@@ -37,7 +58,7 @@
     position: static !important;
 }
 
-/* Индивидуальная коррекция для каждой аватарки – только на ПК (основной профиль) – 20 штук */
+/* Индивидуальная коррекция для эмодзи на ПК (оставляем как было) */
 @media (min-width: 561px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-7px) !important; }
     .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
@@ -47,7 +68,7 @@
     .avatar-emoji[style*="🦊"] { transform: translateY(-4px) !important; }
     .avatar-emoji[style*="🐼"] { transform: translateY(-6px) !important; }
     .avatar-emoji[style*="⭐"] { transform: translateY(-6px) !important; }
-    .avatar-emoji[style*="🎮"] { transform: translateY(-12px) !important; }
+    .avatar-emoji[style*="🎲"] { transform: translateY(-4px) !important; }
     .avatar-emoji[style*="⚽"] { transform: translateY(-4px) !important; }
     .avatar-emoji[style*="🚀"] { transform: translateY(-4px) !important; }
     .avatar-emoji[style*="💎"] { transform: translateY(-4px) !important; }
@@ -297,40 +318,6 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-}
-
-/* ===== Мобильная адаптация (только для очень маленьких экранов) ===== */
-@media (max-width: 560px) {
-    .avatar-circle {
-        width: 140px !important;
-        height: 140px !important;
-        font-size: 72px !important;
-    }
-    .avatar-circle .avatar-emoji {
-        font-size: 72px !important;
-        transform: translateY(0) !important;
-    }
-    .achi-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 28px;
-    }
-    .stat-value {
-        font-size: 24px;
-    }
-    .stat-card {
-        padding: 12px;
-    }
-}
-@media (max-width: 400px) {
-    .avatar-circle {
-        width: 120px !important;
-        height: 120px !important;
-        font-size: 64px !important;
-    }
-    .avatar-circle .avatar-emoji {
-        font-size: 64px !important;
-    }
 }
 
 /* ===== Убираем уменьшение на ПК – везде одинаковый размер ===== */
