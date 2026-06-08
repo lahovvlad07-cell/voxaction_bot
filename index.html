@@ -6,6 +6,7 @@
     <title>Акции – биржа | VoxAction</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- CSS modules -->
     <link rel="stylesheet" href="css/core.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/header.css">
@@ -51,7 +52,7 @@
     </div>
 </div>
 
-<!-- Порядок подключения: сначала API, потом всё остальное -->
+<!-- Скрипты: сначала API, потом остальные -->
 <script src="api.js"></script>
 <script src="notifications.js"></script>
 <script src="topup.js"></script>
@@ -65,40 +66,14 @@
 
 <script>
     (async () => {
-        // Проверка, что API загрузилось
-        if (typeof window.createBuyOrder !== 'function') {
-            document.getElementById('app').innerHTML = '<div class="card error" style="color:red;">Ошибка: функции createBuyOrder нет. Проверьте файл api.js</div>';
-            console.error('createBuyOrder отсутствует!');
-            return;
-        }
-        if (typeof window.checkAllAchievements !== 'function') {
-            console.warn('checkAllAchievements не определена, возможно старая версия api.js');
-        }
-        
-        // Drag tabs
-        const tabsWrapper = document.querySelector('.tabs-wrapper');
-        let isDown = false, startX, scrollLeft;
-        if (tabsWrapper) {
-            tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
-            window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
-            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
-        }
-        
-        const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
-        window.tg = tg;
-        window.userId = tg.initDataUnsafe?.user?.id;
-        window.username = tg.initDataUnsafe?.user?.username || `user_${window.userId}`;
-        if (!window.userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
-        if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
-        
+        // Функции для модалок и тостов (определены здесь на случай, если api.js ещё не загрузился)
         window.showCustomModal = function(title, message) {
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
                     <div class="modal-content">
                         <span class="close-modal" id="closeCustomModal">&times;</span>
                         <h3>${title}</h3>
-                        <p style="margin:20px 0; text-align:center; white-space:pre-line;">${message}</p>
+                        <p style="margin:20px 0; text-align:center;">${message}</p>
                         <button id="customModalOkBtn">OK</button>
                     </div>
                 </div>
@@ -117,12 +92,41 @@
             setTimeout(() => toast.remove(), 5000);
         };
         
+        // Проверка, что api.js загрузился и есть createBuyOrder
+        if (typeof window.createBuyOrder !== 'function') {
+            document.getElementById('app').innerHTML = '<div class="card error" style="color:red;">Ошибка: функции createBuyOrder нет. Проверьте файл api.js</div>';
+            console.error('createBuyOrder отсутствует!');
+            return;
+        }
+        
+        // Drag tabs
+        const tabsWrapper = document.querySelector('.tabs-wrapper');
+        let isDown = false, startX, scrollLeft;
+        if (tabsWrapper) {
+            tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
+            window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
+            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
+        }
+        
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+        window.tg = tg;
+        window.userId = tg.initDataUnsafe?.user?.id;
+        window.username = tg.initDataUnsafe?.user?.username || `user_${window.userId}`;
+        if (!window.userId) { 
+            document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; 
+            return; 
+        }
+        if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
+        
+        // Supabase настройки
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
+        // Настройки
         async function renderSettingsTab() {
             const hideRating = window.currentUser.hide_rating || false;
             const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
@@ -131,7 +135,7 @@
             const notifyReferral = window.currentUser.notify_referral ?? true;
             const html = `<div class="card"><h2>⚙️ Настройки</h2><label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br><div><strong>Уведомления от бота:</strong></div><label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br><label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br><label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br><div><strong>Цвет акцента:</strong></div><input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;"><button id="saveSettings">Сохранить</button></div>`;
             document.getElementById('app').innerHTML = html;
-            document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
+            document.getElementById('colorPicker').addEventListener('input, (e) => document.documentElement.style.setProperty('--accent', e.target.value));
             document.getElementById('saveSettings').onclick = async () => {
                 const newHide = document.getElementById('hideRatingCheckbox').checked;
                 const newColor = document.getElementById('colorPicker').value;
@@ -143,19 +147,26 @@
             };
         }
         
-        const { user, isNew } = await window.getOrCreateUser();
-        window.currentUser = user;
-        const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
-        document.documentElement.style.setProperty('--accent', savedColor);
-        await window.renderStocksTab(window.currentUser);
-        if (isNew) setTimeout(() => window.renderProfileTab(
-            window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
-            window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
-            window.updateBellBadge, window.showNotificationsModal
-        ), 500);
-        if (typeof setupRealtimeNotifications === 'function') setupRealtimeNotifications();
-        if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
-        if (typeof initTopupModal === 'function') initTopupModal();
+        // ОСНОВНОЙ ЗАПУСК С ОБРАБОТКОЙ ОШИБОК
+        try {
+            const { user, isNew } = await window.getOrCreateUser();
+            window.currentUser = user;
+            const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
+            document.documentElement.style.setProperty('--accent', savedColor);
+            await window.renderStocksTab(window.currentUser);
+            if (isNew) setTimeout(() => window.renderProfileTab(
+                window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
+                window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
+                window.updateBellBadge, window.showNotificationsModal
+            ), 500);
+            if (typeof setupRealtimeNotifications === 'function') setupRealtimeNotifications();
+            if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
+            if (typeof initTopupModal === 'function') initTopupModal();
+        } catch(err) {
+            document.getElementById('app').innerHTML = `<div class="card error" style="color:red; text-align:center;">Ошибка загрузки: ${err.message}<br><br>Попробуйте перезагрузить страницу или напишите в поддержку.</div>`;
+            console.error('Ошибка при инициализации:', err);
+            return;
+        }
         
         document.getElementById('headerNotificationBell')?.addEventListener('click', () => { if (window.showNotificationsModal) window.showNotificationsModal(); });
         document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
