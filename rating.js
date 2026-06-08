@@ -1,4 +1,4 @@
-// rating.js – улучшенная версия с поиском, анимацией, аватарками и дополнительной статистикой
+// rating.js – финальная улучшенная версия
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -6,8 +6,9 @@ let allUsers = [];
 let filteredUsers = [];
 let totalPages = 1;
 let currentSearchTerm = '';
+let maxShares = 0; // для прогресс-бара
 
-// Загрузка статистики по сделкам для одного пользователя (временный вариант)
+// Загрузка статистики по сделкам для одного пользователя
 async function fetchUserStats(userId) {
     try {
         const { data, error } = await window.supabase
@@ -66,24 +67,43 @@ function renderPage() {
     const start = (currentPage - 1) * itemsPerPage;
     const pageUsers = filteredUsers.slice(start, start + itemsPerPage);
 
+    // Вычисляем максимальное количество акций для прогресс-бара (среди отфильтрованных)
+    maxShares = filteredUsers.length > 0 ? Math.max(...filteredUsers.map(u => u.shares)) : 0;
+
     let html = '';
     for (let i = 0; i < pageUsers.length; i++) {
         const user = pageUsers[i];
         const globalIndex = filteredUsers.findIndex(u => u.id === user.id);
         const place = globalIndex + 1;
 
+        // Медали для топ-3
         let rankDisplay = '';
         if (place === 1) rankDisplay = '<span class="medal gold">🥇</span>';
         else if (place === 2) rankDisplay = '<span class="medal silver">🥈</span>';
         else if (place === 3) rankDisplay = '<span class="medal bronze">🥉</span>';
         else rankDisplay = `<span class="rank-number">${place}</span>`;
 
+        // Аватарка
         const avatarHtml = window.renderAvatarHtml
             ? window.renderAvatarHtml(user.avatar_url, user.avatar_bg, user.avatar_border, '52px')
             : `<div class="avatar-placeholder">${user.avatar_url || '👤'}</div>`;
 
         const sharesFormatted = (user.shares / 100).toFixed(2);
         const volumeFormatted = user.volumeStars.toFixed(2);
+        
+        // Прогресс-бар (процент от лидера)
+        let progressPercent = 0;
+        if (maxShares > 0) {
+            progressPercent = (user.shares / maxShares) * 100;
+        }
+        const progressBarHtml = maxShares > 0 && user.shares > 0 ? `
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progressPercent}%;"></div>
+                </div>
+                <div class="progress-label">${progressPercent.toFixed(0)}% от лидера</div>
+            </div>
+        ` : '';
 
         const statsHtml = `
             <div class="rating-stats">
@@ -104,12 +124,14 @@ function renderPage() {
                     <div class="rating-username">${escapeHtml(user.username)}</div>
                     <div class="rating-shares">📊 ${sharesFormatted} акций</div>
                     ${statsHtml}
+                    ${progressBarHtml}
                 </div>
             </div>
         `;
     }
     container.innerHTML = html;
 
+    // Пагинация
     const paginationDiv = document.getElementById('ratingPagination');
     if (totalPages > 1) {
         paginationDiv.innerHTML = `
@@ -127,6 +149,7 @@ function renderPage() {
         paginationDiv.innerHTML = '';
     }
 
+    // Клик по строке – открыть профиль
     document.querySelectorAll('.rating-item').forEach(item => {
         item.addEventListener('click', (e) => {
             if (e.target.closest('.pag-prev') || e.target.closest('.pag-next')) return;
@@ -164,8 +187,25 @@ function updateMyRankCard() {
     }
 }
 
+// Кнопка "Наверх"
+function initScrollToTop() {
+    const btn = document.getElementById('scrollToTopBtn');
+    if (!btn) return;
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            btn.style.display = 'flex';
+        } else {
+            btn.style.display = 'none';
+        }
+    });
+    btn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
 window.renderRatingTab = async function() {
     try {
+        // Показываем скелетон
         document.getElementById('app').innerHTML = `
             <div class="card">
                 <h2 class="rating-title">🏆 Рейтинг держателей акций</h2>
@@ -181,6 +221,7 @@ window.renderRatingTab = async function() {
                     `).join('')}
                 </div>
                 <div id="ratingPagination"></div>
+                <button id="scrollToTopBtn" class="scroll-top-btn" style="display: none;">↑ Наверх</button>
             </div>
         `;
 
@@ -215,7 +256,7 @@ window.renderRatingTab = async function() {
         } else if (window.userId) {
             html += `<div class="my-rank-card"><div class="my-rank-title">🔒 Вы не отображаетесь в рейтинге</div></div>`;
         }
-        html += `</div>`;
+        html += `<button id="scrollToTopBtn" class="scroll-top-btn" style="display: none;">↑ Наверх</button></div>`;
         document.getElementById('app').innerHTML = html;
 
         const searchInput = document.getElementById('ratingSearchInput');
@@ -229,6 +270,7 @@ window.renderRatingTab = async function() {
             });
         }
         renderPage();
+        initScrollToTop();
     } catch (err) {
         console.error(err);
         document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки рейтинга</div>';
