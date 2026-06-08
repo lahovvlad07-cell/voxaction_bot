@@ -1,7 +1,4 @@
 /* stocks.css – единый адаптивный стиль (ПК + мобилы) */
-/* Добавлены правки: центрирование заголовка стакана, центрирование пустых сообщений,
-   табличный вид истории ордеров, 3 ордера в стакане */
-
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -201,7 +198,6 @@
     background: rgba(0,0,0,0.5);
     border-left: 3px solid #2b6e9e;
 }
-/* Модалка покупки */
 #buyModal .modal-content {
     max-width: 320px;
 }
@@ -257,13 +253,9 @@ button {
     margin-top: 8px;
     cursor: pointer;
 }
-
-/* ===== ДОПОЛНИТЕЛЬНЫЕ ПРАВКИ ===== */
-/* Центрирование заголовка "Стакан заявок" и других подзаголовков в карточках */
 .card h3 {
     text-align: center;
 }
-/* Центрирование пустых сообщений в стакане, истории, сделках */
 #sellOrdersList .small-text,
 #buyOrdersList .small-text,
 #orderHistoryList .small-text,
@@ -271,12 +263,9 @@ button {
 .empty-orders {
     text-align: center !important;
 }
-/* Убираем лишние отступы у списков */
 #sellOrdersList, #buyOrdersList, #orderHistoryList, #myRecentTrades {
     margin-top: 8px;
 }
-
-/* ===== ТАБЛИЦА ИСТОРИИ ОРДЕРОВ (ровные колонки как в Excel) ===== */
 .history-table {
     width: 100%;
     border-collapse: collapse;
@@ -303,56 +292,71 @@ button {
 .history-table th:last-child {
     padding-right: 0;
 }
-/* Для мобильных таблица может прокручиваться по горизонтали */
 @media (max-width: 560px) {
-    .history-table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
+    .balance-row { gap: 6px; }
+    .balance-item { font-size: 12px; padding: 4px 8px; }
+    .info-card .price { font-size: 16px !important; }
+    .filter-btn, .sort-btn { padding: 4px 12px; font-size: 12px; }
+    .order-card-header { flex-direction: column; align-items: flex-start; }
+    .order-price-big { align-self: flex-end; }
+    .order-card-body { flex-direction: column; align-items: stretch; }
+    .buy-btn, .cancel-btn, .cancel-btn-small, .cancel-buy-btn { width: 100%; text-align: center; }
+    .buy-amount-row { flex-direction: column; }
+    .max-btn { width: 100%; }
+    .history-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 11px; }
+    .history-table th, .history-table td { padding: 6px 2px; }
 }
 
-/* Адаптация для мобильных */
-@media (max-width: 560px) {
-    .balance-row {
-        gap: 6px;
-    }
-    .balance-item {
-        font-size: 12px;
-        padding: 4px 8px;
-    }
-    .info-card .price {
-        font-size: 16px !important;
-    }
-    .filter-btn, .sort-btn {
-        padding: 4px 12px;
-        font-size: 12px;
-    }
-    .order-card-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .order-price-big {
-        align-self: flex-end;
-    }
-    .order-card-body {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .buy-btn, .cancel-btn, .cancel-btn-small, .cancel-buy-btn {
-        width: 100%;
-        text-align: center;
-    }
-    .buy-amount-row {
-        flex-direction: column;
-    }
-    .max-btn {
-        width: 100%;
-    }
-    .history-table {
-        font-size: 11px;
-    }
-    .history-table th, .history-table td {
-        padding: 6px 2px;
-    }
+/* Стили для игр (добавлены в stocks.css, чтобы не создавать отдельный файл) */
+.games-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    margin: 20px 0;
+}
+.game-card {
+    background: rgba(0,0,0,0.3);
+    border-radius: 24px;
+    padding: 16px;
+    width: 200px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+.game-card:hover {
+    transform: translateY(-4px);
+    background: rgba(43,110,158,0.2);
+}
+.game-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+.game-name {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+.game-desc {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 12px;
+}
+.game-play-btn {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 40px;
+    color: white;
+    cursor: pointer;
+    width: auto;
+    font-size: 14px;
+}
+.game-play-btn:active {
+    transform: scale(0.96);
+}
+.games-info {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.1);
 }
