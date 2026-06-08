@@ -33,6 +33,7 @@
         <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
         <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
         <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
+        <div class="tab" data-tab="games"><div class="tab-icon">🎮</div><div class="tab-label">Игры</div></div>
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
 </div>
@@ -61,6 +62,7 @@
 <script src="wallet.js"></script>
 <script src="referral.js"></script>
 <script src="admin.js"></script>
+<script src="games.js"></script>
 
 <script>
     (async () => {
@@ -87,9 +89,7 @@
             const closeModal = () => modal.remove();
             document.getElementById('closeCustomModal').onclick = closeModal;
             document.getElementById('customModalOkBtn').onclick = closeModal;
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
-            });
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
         };
         
         window.showToast = function(message) {
@@ -99,20 +99,6 @@
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
         };
-        
-        if (typeof window.createBuyOrder !== 'function') {
-            document.getElementById('app').innerHTML = '<div class="card error" style="color:red;">Ошибка: функции createBuyOrder нет. Проверьте файл api.js</div>';
-            console.error('createBuyOrder отсутствует!');
-            return;
-        }
-        
-        const tabsWrapper = document.querySelector('.tabs-wrapper');
-        let isDown = false, startX, scrollLeft;
-        if (tabsWrapper) {
-            tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
-            window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
-            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
-        }
         
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
@@ -165,7 +151,6 @@
                 </div>
             `;
             document.getElementById('app').innerHTML = html;
-            
             document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
             document.getElementById('saveSettings').onclick = async () => {
                 const newHide = document.getElementById('hideRatingCheckbox').checked;
@@ -174,38 +159,23 @@
                 localStorage.setItem('custom_color', newColor);
                 document.documentElement.style.setProperty('--accent', newColor);
                 if (window.setUseSliders) window.setUseSliders(newUseSliders);
-                await window.supabase.from('users').update({ 
-                    hide_rating: newHide, 
-                    notify_trades: document.getElementById('notifyTradesCheckbox').checked, 
-                    notify_topup: document.getElementById('notifyTopupCheckbox').checked, 
-                    notify_referral: document.getElementById('notifyReferralCheckbox').checked 
-                }).eq('id', window.userId);
+                await window.supabase.from('users').update({ hide_rating: newHide, notify_trades: document.getElementById('notifyTradesCheckbox').checked, notify_topup: document.getElementById('notifyTopupCheckbox').checked, notify_referral: document.getElementById('notifyReferralCheckbox').checked }).eq('id', window.userId);
                 window.currentUser.hide_rating = newHide;
                 window.showCustomModal('Успех', 'Настройки сохранены');
-                if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
-                    await window.renderStocksTab(window.currentUser);
-                }
+                if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) await window.renderStocksTab(window.currentUser);
             };
-            
             document.getElementById('changeUsernameBtn')?.addEventListener('click', async () => {
                 const newUsername = document.getElementById('newUsernameInput').value.trim();
-                if (!newUsername) {
-                    window.showCustomModal('Ошибка', 'Введите новый никнейм');
-                    return;
-                }
+                if (!newUsername) { window.showCustomModal('Ошибка', 'Введите новый никнейм'); return; }
                 try {
                     const result = await window.updateUsername(newUsername);
                     window.showCustomModal('Успех', result.message);
                     if (result.success && window.currentUser.username !== newUsername) {
                         window.currentUser.username = newUsername;
                         await renderSettingsTab();
-                        if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
-                            await window.renderStocksTab(window.currentUser);
-                        }
+                        if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) await window.renderStocksTab(window.currentUser);
                     }
-                } catch(err) {
-                    window.showCustomModal('Ошибка', err.message);
-                }
+                } catch(err) { window.showCustomModal('Ошибка', err.message); }
             });
         }
         
@@ -258,6 +228,7 @@
                 else if(tabName === 'wallet') await window.renderWalletTab();
                 else if(tabName === 'referral') await window.renderReferralTab();
                 else if(tabName === 'admin') await window.renderAdminTab();
+                else if(tabName === 'games') await window.renderGamesTab();
             });
         });
     })();
