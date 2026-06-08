@@ -1,4 +1,4 @@
-/* profile.css – аватарка на ПК 110px, эмодзи 80px */
+/* profile.css – аватарка на ПК 130px, эмодзи 96px (крупно) */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -8,13 +8,13 @@
     margin: 0 auto;
 }
 .avatar-circle {
-    width: 110px !important;
-    height: 110px !important;
+    width: 130px !important;
+    height: 130px !important;
     border-radius: 50%;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 80px !important;
+    font-size: 96px !important;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     background-color: rgba(0, 0, 0, 0.25);
@@ -28,16 +28,16 @@
 }
 @media (max-width: 768px) {
     .avatar-circle {
-        width: 90px !important;
-        height: 90px !important;
-        font-size: 56px !important;
+        width: 100px !important;
+        height: 100px !important;
+        font-size: 70px !important;
     }
 }
 @media (max-width: 560px) {
     .avatar-circle {
-        width: 80px !important;
-        height: 80px !important;
-        font-size: 50px !important;
+        width: 85px !important;
+        height: 85px !important;
+        font-size: 56px !important;
     }
 }
 .avatar-circle .avatar-emoji {
@@ -53,52 +53,52 @@
 @media (min-width: 561px) {
     .rating-avatar .mini-avatar span,
     .mini-avatar span {
-        font-size: 28px !important;
+        font-size: 32px !important;
     }
     .seller-info .mini-avatar span {
-        font-size: 22px !important;
+        font-size: 26px !important;
     }
     #profileModal .avatar-circle .avatar-emoji,
     .modal .avatar-circle .avatar-emoji {
-        font-size: 52px !important;
+        font-size: 64px !important;
     }
     #stepModal .avatar-circle .avatar-emoji,
     #borderModal .avatar-circle .avatar-emoji {
-        font-size: 56px !important;
+        font-size: 68px !important;
     }
 }
 
 /* Коррекция смещения эмодзи (чтобы не обрезались) */
 @media (min-width: 561px) {
-    .avatar-emoji[style*="👤"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="😀"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="😎"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="👍"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🐱"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="🐶"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🦊"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🐼"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="🍕"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🍔"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🍩"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="☕"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="💎"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="💰"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🎲"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="🏆"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🎁"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🌟"] { transform: translateY(-1px) !important; }
-    .avatar-emoji[style*="🔥"] { transform: translateY(-3px) !important; }
-    .avatar-emoji[style*="❤️"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🚀"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="🍀"] { transform: translateY(-2px) !important; }
-    .avatar-emoji[style*="👑"] { transform: translateY(-1px) !important; }
-    .avatar-emoji[style*="🎯"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="👤"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="😀"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="😎"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="👍"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🐱"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🐶"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🦊"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🐼"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🍕"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🍔"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🍩"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="☕"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="💎"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="💰"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🎲"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="🏆"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🎁"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🌟"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🔥"] { transform: translateY(-4px) !important; }
+    .avatar-emoji[style*="❤️"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🚀"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🍀"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="👑"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🎯"] { transform: translateY(-3px) !important; }
 }
 @media (min-width: 561px) {
     #stepModal .avatar-circle .avatar-emoji,
     #borderModal .avatar-circle .avatar-emoji {
-        transform: translateY(-4px) !important;
+        transform: translateY(-5px) !important;
     }
 }
 
