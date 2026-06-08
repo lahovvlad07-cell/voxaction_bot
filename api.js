@@ -376,3 +376,42 @@ window.claimReferralBonus = async (friendsNeeded, stars) => {
     });
     return response.json();
 };
+
+// ========== УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ МИНИ-АВАТАРА ==========
+window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
+    // Нормализуем фон: если это gradient1...gradient11, преобразуем в цвет
+    let bgColor = avatarBg;
+    if (avatarBg && !avatarBg.startsWith('#')) {
+        const mapping = {
+            'gradient1': '#2b6e9e', 'gradient2': '#9b59b6', 'gradient3': '#e67e22',
+            'gradient4': '#27ae60', 'gradient5': '#f1c40f', 'gradient6': '#e74c3c',
+            'gradient7': '#1abc9c', 'gradient8': '#3498db', 'gradient9': '#2c3e50',
+            'gradient10': '#ff9a9e', 'gradient11': '#a18cd1'
+        };
+        bgColor = mapping[avatarBg] || '#2b6e9e';
+    } else if (!avatarBg) {
+        bgColor = '#2b6e9e';
+    }
+    const borderColor = avatarBorder || '#ffffff';
+    const emoji = avatarUrl || '👤';
+    
+    // Адаптивный размер шрифта
+    let fontSize = '32px';
+    if (size === '52px') fontSize = '32px';
+    else if (size === '40px') fontSize = '24px';
+    else if (size === '36px') fontSize = '22px';
+    else fontSize = `calc(${size} * 0.6)`;
+    
+    return `<div class="mini-avatar" style="
+        width: ${size}; height: ${size};
+        background: ${bgColor};
+        border: 2px solid ${borderColor};
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: ${fontSize};
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        flex-shrink: 0;
+    "><span>${emoji}</span></div>`;
+};
