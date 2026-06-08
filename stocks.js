@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с матчингом ордеров и рыночной покупкой
+// stocks.js – полная версия, совместимая с текущим API
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -91,7 +91,7 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ---------- Рыночная покупка (сквозная) ----------
+// ---------- Рыночная покупка ----------
 async function marketBuy(starsAmountStars) {
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
