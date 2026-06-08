@@ -1,4 +1,4 @@
-// api.js – финальная версия (полная)
+// api.js – финальная версия (все функции, корректные модалки, фильтрация ника)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -203,7 +203,7 @@ window.getUserStats = async function(forceRefresh = false) {
     return stats;
 };
 
-// ========== СМЕНА НИКНЕЙМА (МАКСИМАЛЬНАЯ ФИЛЬТРАЦИЯ) ==========
+// ========== СМЕНА НИКНЕЙМА (РАСШИРЕННАЯ ФИЛЬТРАЦИЯ, БЕЗ АВТООБНОВЛЕНИЯ) ==========
 window.updateUsername = async function(newUsername) {
     if (!newUsername || newUsername.trim().length < 3) {
         throw new Error('Никнейм должен содержать минимум 3 символа');
@@ -282,11 +282,10 @@ window.updateUsername = async function(newUsername) {
     if (error) throw new Error(error.message);
 
     if (window.currentUser) window.currentUser.username = newUsername;
-    await window.refreshActiveTab();
     return { success: true, message: 'Никнейм успешно изменён!' };
 };
 
-// ========== ОБНОВЛЕНИЕ ТЕКУЩЕЙ ВКЛАДКИ ==========
+// ========== ОБНОВЛЕНИЕ ТЕКУЩЕЙ ВКЛАДКИ (ДЛЯ РЕАЛЬНОГО ВРЕМЕНИ) ==========
 window.refreshActiveTab = async function() {
     const { user } = await window.getOrCreateUser();
     window.currentUser = user;
