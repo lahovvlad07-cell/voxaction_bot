@@ -1,4 +1,4 @@
-/* referral.css – финальная версия */
+/* referral.css – финальная версия с выравниванием легенды по левому краю */
 .referral-header {
     text-align: center;
     margin-bottom: 24px;
@@ -407,12 +407,15 @@
 
 .legend {
     font-size: 12px;
-    text-align: center;
-    color: #6b7280;
-    margin-top: 24px;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 24px;
+    text-align: left;
+    color: #cbd5e1;
+    margin: 24px auto 0;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 20px;
+    line-height: 1.5;
+    max-width: 90%;
+    width: fit-content;
 }
 
 @media (max-width: 560px) {
@@ -478,5 +481,10 @@
     }
     .custom-code-section input, .custom-code-section button {
         width: 100%;
+    }
+    .legend {
+        font-size: 11px;
+        padding: 10px 12px;
+        max-width: 95%;
     }
 }
