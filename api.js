@@ -1,4 +1,4 @@
-// api.js – финальная версия с матчингом ордеров
+// api.js – финальная версия с поддержкой матчинга ордеров и корректной проверкой баланса
 // Содержит все базовые функции: пользователи, ордера, сделки, достижения, рефералы и т.д.
 
 // ---------- Вспомогательные функции ----------
@@ -20,6 +20,7 @@ function generateReferralCode() {
     return 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+// ---------- Пользователь ----------
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
@@ -140,6 +141,7 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
+// ---------- Рефералы ----------
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
@@ -184,6 +186,7 @@ window.getReferralRewardsProgress = async function(referralCount) {
     };
 };
 
+// ---------- Ордера и сделки ----------
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
@@ -203,7 +206,7 @@ window.cancelOrder = async function(orderId) {
     return true;
 };
 
-// НОВАЯ ФУНКЦИЯ: создание ордера на продажу с матчингом
+// Создание ордера на продажу с матчингом
 window.createOrder = async function(amountStars, priceStars) {
     const amountCents = window.toCents(amountStars);
     const priceCents = window.toCents(priceStars);
@@ -220,21 +223,26 @@ window.createOrder = async function(amountStars, priceStars) {
     
     const executed = window.fromCents(data.executed_amount || 0);
     const remaining = window.fromCents(data.remaining_amount || 0);
-    if (executed > 0) {
-        window.showToast(`✅ Продано ${executed} шт. по лучшей цене`);
-    }
-    if (remaining > 0) {
-        window.showToast(`📌 Остаток ${remaining} шт. выставлен в стакан`);
-    }
+    if (executed > 0) window.showToast(`✅ Продано ${executed} шт. по лучшей цене`);
+    if (remaining > 0) window.showToast(`📌 Остаток ${remaining} шт. выставлен в стакан`);
     return true;
 };
 
-// НОВАЯ ФУНКЦИЯ: создание ордера на покупку с матчингом
+// Создание ордера на покупку с матчингом и проверкой баланса
 window.createBuyOrder = async function(amountStars, priceStars) {
     const amountCents = window.toCents(amountStars);
     const priceCents = window.toCents(priceStars);
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
+    
+    // Обновляем данные пользователя, чтобы баланс был свежим
+    const { user: freshUser } = await window.getOrCreateUser();
+    window.currentUser = freshUser;
+    
+    const requiredStars = amountStars * priceStars;
+    if (window.currentUser.stars_balance < requiredStars) {
+        throw new Error(`❌ Недостаточно звёзд: нужно ${requiredStars.toFixed(2)} ⭐, у вас ${window.currentUser.stars_balance.toFixed(2)} ⭐`);
+    }
     
     const { data, error } = await window.supabase.rpc('create_buy_order_matched', {
         p_user_id: window.userId,
@@ -246,16 +254,12 @@ window.createBuyOrder = async function(amountStars, priceStars) {
     
     const executed = window.fromCents(data.executed_amount || 0);
     const remaining = window.fromCents(data.remaining_amount || 0);
-    if (executed > 0) {
-        window.showToast(`✅ Куплено ${executed} шт. по лучшей цене`);
-    }
-    if (remaining > 0) {
-        window.showToast(`📌 Остаток ${remaining} шт. выставлен в стакан`);
-    }
+    if (executed > 0) window.showToast(`✅ Куплено ${executed} шт. по лучшей цене`);
+    if (remaining > 0) window.showToast(`📌 Остаток ${remaining} шт. выставлен в стакан`);
     return true;
 };
 
-// Частичное исполнение сделки (для ручной покупки из стакана)
+// Частичное исполнение сделки (ручная покупка из стакана)
 window.executePartialTrade = async function(orderId, buyAmountCents) {
     const { data, error } = await window.supabase.rpc('execute_trade_partial', {
         p_order_id: orderId,
@@ -296,6 +300,7 @@ window.getTotalMarketCap = async function() {
     return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
 };
 
+// ---------- Рейтинг и статистика ----------
 window.getLeaderboard = async function() {
     const { data, error } = await window.supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
     if (error) throw new Error(error.message);
@@ -315,11 +320,43 @@ window.getUserStats = async function() {
     return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
 };
 
+window.getUserStatsForUser = async function(userId) {
+    const { data, error } = await window.supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+    if (error) return { totalTrades: 0, totalVolume: 0 };
+    return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
+};
+
+window.getUserRankForUser = async function(userId) {
+    const { data, error } = await window.supabase.from('users').select('id, shares').eq('hide_rating', false).order('shares', { ascending: false });
+    if (error) return null;
+    const idx = data.findIndex(u => u.id === userId);
+    if (idx === -1) return null;
+    return idx + 1;
+};
+
+// ---------- Достижения ----------
 window.getEarnedAchievements = async function() {
     const { data, error } = await window.supabase
         .from('user_achievements')
         .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
         .eq('user_id', window.userId);
+    if (error) return [];
+    return data.map(ua => ({
+        id: ua.achievements.id,
+        name: ua.achievements.name,
+        description: ua.achievements.description,
+        icon: ua.achievements.icon,
+        earned_at: ua.earned_at,
+        condition_type: ua.achievements.condition_type,
+        condition_value: ua.achievements.condition_value
+    }));
+};
+
+window.getEarnedAchievementsForUser = async function(userId) {
+    const { data, error } = await window.supabase
+        .from('user_achievements')
+        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
+        .eq('user_id', userId);
     if (error) return [];
     return data.map(ua => ({
         id: ua.achievements.id,
@@ -338,12 +375,14 @@ window.getAllAchievements = async function() {
     return data;
 };
 
+// ---------- Рейтинг продавца ----------
 window.getSellerRating = async function(sellerId) {
     const { data, error } = await window.supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
     if (error || !data.length) return null;
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
+// ---------- Кастомизация аватара ----------
 window.updateUserBorder = async function(color) {
     const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
     if (error) throw new Error(error.message);
@@ -351,6 +390,7 @@ window.updateUserBorder = async function(color) {
     return true;
 };
 
+// ---------- Админские функции ----------
 window.adminFetchStats = async function() {
     const res = await fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) });
     return res.json();
@@ -371,54 +411,14 @@ window.adminAddStars = async function(targetId, stars) {
     const res = await fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) });
     return res.json();
 };
+
+// ---------- Платежи ----------
 window.createInvoice = async function(amount) {
     const res = await fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) });
     return res.json();
 };
 
-// ========== Просмотр профилей других пользователей ==========
-window.getEarnedAchievementsForUser = async function(userId) {
-    const { data, error } = await window.supabase
-        .from('user_achievements')
-        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
-        .eq('user_id', userId);
-    if (error) return [];
-    return data.map(ua => ({
-        id: ua.achievements.id,
-        name: ua.achievements.name,
-        description: ua.achievements.description,
-        icon: ua.achievements.icon,
-        earned_at: ua.earned_at,
-        condition_type: ua.achievements.condition_type,
-        condition_value: ua.achievements.condition_value
-    }));
-};
-
-window.getUserStatsForUser = async function(userId) {
-    const { data, error } = await window.supabase
-        .from('trades')
-        .select('amount, total_stars')
-        .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
-    if (error) return { totalTrades: 0, totalVolume: 0 };
-    return {
-        totalTrades: data.length,
-        totalVolume: data.reduce((s,t) => s + (t.total_stars / 100), 0)
-    };
-};
-
-window.getUserRankForUser = async function(userId) {
-    const { data, error } = await window.supabase
-        .from('users')
-        .select('id, shares')
-        .eq('hide_rating', false)
-        .order('shares', { ascending: false });
-    if (error) return null;
-    const idx = data.findIndex(u => u.id === userId);
-    if (idx === -1) return null;
-    return idx + 1;
-};
-
-// ========== Реферальные бонусы ==========
+// ---------- Реферальные бонусы (бэкенд) ----------
 window.claimReferralBonus = async (friendsNeeded, stars) => {
     const response = await fetch(`${window.BACKEND_URL}/claim-referral-bonus`, {
         method: 'POST',
@@ -428,7 +428,7 @@ window.claimReferralBonus = async (friendsNeeded, stars) => {
     return response.json();
 };
 
-// ========== Рендер мини-аватара ==========
+// ---------- Рендер мини-аватара ----------
 window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
     let bgColor = avatarBg;
     if (avatarBg && !avatarBg.startsWith('#')) {
