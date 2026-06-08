@@ -1,10 +1,11 @@
-// api.js – финальная версия с поддержкой матчинга ордеров и корректной проверкой баланса
-// Содержит все базовые функции: пользователи, ордера, сделки, достижения, рефералы и т.д.
+// api.js – полная финальная версия
+// Содержит все функции: пользователи, ордера, сделки, достижения, рефералы, админка, утилиты
 
-// ---------- Вспомогательные функции ----------
+// ---------- Утилиты ----------
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
+// ---------- Достижения и рефералы (вспомогательные) ----------
 async function ensureWelcomeAchievement(userId) {
     try {
         const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
@@ -186,7 +187,7 @@ window.getReferralRewardsProgress = async function(referralCount) {
     };
 };
 
-// ---------- Ордера и сделки ----------
+// ---------- Ордера ----------
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
@@ -259,7 +260,7 @@ window.createBuyOrder = async function(amountStars, priceStars) {
     return true;
 };
 
-// Частичное исполнение сделки (ручная покупка из стакана)
+// Частичное исполнение (ручная покупка из стакана)
 window.executePartialTrade = async function(orderId, buyAmountCents) {
     const { data, error } = await window.supabase.rpc('execute_trade_partial', {
         p_order_id: orderId,
@@ -271,6 +272,7 @@ window.executePartialTrade = async function(orderId, buyAmountCents) {
     return true;
 };
 
+// ---------- Сделки и история цен ----------
 window.getRecentTrades = async function(limit = 10) {
     const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
     if (error) throw new Error(error.message);
@@ -382,7 +384,7 @@ window.getSellerRating = async function(sellerId) {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
-// ---------- Кастомизация аватара ----------
+// ---------- Кастомизация ----------
 window.updateUserBorder = async function(color) {
     const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
     if (error) throw new Error(error.message);
