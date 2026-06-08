@@ -120,7 +120,7 @@
         if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
+        const SUPABASE_KEY = "eyJhbGciOiJIUiI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
@@ -132,10 +132,6 @@
             const notifyTopup = window.currentUser.notify_topup ?? true;
             const notifyReferral = window.currentUser.notify_referral ?? true;
             const username = window.currentUser.username || '';
-            const lastChange = window.currentUser.last_username_change ? new Date(window.currentUser.last_username_change) : null;
-            const daysSinceLastChange = lastChange ? Math.floor((Date.now() - lastChange.getTime()) / (1000 * 3600 * 24)) : 31;
-            const canChangeUsername = daysSinceLastChange >= 30;
-            const remainingDays = canChangeUsername ? 0 : 30 - daysSinceLastChange;
             
             const html = `
                 <div class="card">
@@ -145,10 +141,9 @@
                         <div style="font-size: 18px; font-weight: bold;">${escapeHtml(username)}</div>
                     </div>
                     <div>
-                        <div class="small-text" style="margin-bottom: 4px;">Новый никнейм (менять раз в 30 дней)</div>
-                        <input type="text" id="newUsernameInput" placeholder="Новый никнейм" maxlength="20" ${!canChangeUsername ? 'disabled' : ''}>
-                        ${!canChangeUsername ? `<div class="small-text" style="color: #fbbf24; margin-top: 4px;">⏳ Сменить никнейм можно через ${remainingDays} дн.</div>` : ''}
-                        <button id="changeUsernameBtn" style="margin-top: 8px;" ${!canChangeUsername ? 'disabled' : ''}>Изменить никнейм</button>
+                        <div class="small-text" style="margin-bottom: 4px;">Новый никнейм</div>
+                        <input type="text" id="newUsernameInput" placeholder="Новый никнейм" maxlength="20">
+                        <button id="changeUsernameBtn" style="margin-top: 8px;">Изменить никнейм</button>
                     </div>
                     <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.1);">
                     <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br>
