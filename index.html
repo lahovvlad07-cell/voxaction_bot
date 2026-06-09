@@ -100,51 +100,8 @@
             setTimeout(() => toast.remove(), 5000);
         };
         
-        // ========== ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ ТАБОВ (DRAG TO SCROLL) ==========
-        const tabsWrapper = document.querySelector('.tabs-wrapper');
-        if (tabsWrapper) {
-            let isDown = false;
-            let startX;
-            let scrollLeft;
-
-            // Мышь
-            tabsWrapper.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                isDown = true;
-                startX = e.clientX;
-                scrollLeft = tabsWrapper.scrollLeft;
-                tabsWrapper.style.cursor = 'grabbing';
-                e.preventDefault();
-            });
-            window.addEventListener('mouseup', () => {
-                if (!isDown) return;
-                isDown = false;
-                tabsWrapper.style.cursor = 'grab';
-            });
-            window.addEventListener('mousemove', (e) => {
-                if (!isDown) return;
-                e.preventDefault();
-                const x = e.clientX;
-                const walk = (x - startX) * 1.2;
-                tabsWrapper.scrollLeft = scrollLeft - walk;
-            });
-            tabsWrapper.addEventListener('dragstart', (e) => e.preventDefault());
-
-            // Тач
-            let touchStartX = 0, touchScrollLeft = 0;
-            tabsWrapper.addEventListener('touchstart', (e) => {
-                touchStartX = e.touches[0].clientX;
-                touchScrollLeft = tabsWrapper.scrollLeft;
-            });
-            tabsWrapper.addEventListener('touchmove', (e) => {
-                if (!touchStartX) return;
-                const deltaX = e.touches[0].clientX - touchStartX;
-                tabsWrapper.scrollLeft = touchScrollLeft - deltaX;
-            });
-            tabsWrapper.addEventListener('touchend', () => {
-                touchStartX = 0;
-            });
-        }
+        // Стандартный скролл (без кастомного драга) – оставляем только нативный
+        // Весь кастомный скролл удалён для стабильности
         
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
