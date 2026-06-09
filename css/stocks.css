@@ -1,4 +1,4 @@
-/* stocks.css – финальный, без фильтров, аккуратный */
+/* stocks.css – окончательный, понятный, с подсказками */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -36,7 +36,6 @@
 }
 .balance-item.price .value {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    background-size: 200% 200%;
 }
 .market-buttons {
     display: flex;
@@ -130,7 +129,6 @@ canvas {
     z-index: 10;
     border-left: 3px solid #2b6e9e;
     white-space: nowrap;
-    transition: opacity 0.1s;
 }
 .chart-placeholder {
     text-align: center;
@@ -181,11 +179,24 @@ canvas {
     flex-direction: column;
     gap: 16px;
 }
-.sell-form label {
+.sell-form .input-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 6px;
+}
+.sell-form .input-header label {
     font-weight: 500;
+}
+.sell-form .toggle-input-mode {
+    background: rgba(56, 189, 248, 0.2);
+    border: none;
+    width: auto;
+    padding: 4px 10px;
+    border-radius: 30px;
+    font-size: 12px;
+    cursor: pointer;
+    margin: 0;
 }
 input[type="range"] {
     width: 100%;
@@ -211,6 +222,7 @@ input, input[type="number"] {
     border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 44px;
     color: white;
+    font-size: 14px;
 }
 button {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
@@ -383,6 +395,12 @@ button:active {
 }
 .pagination-btn:disabled {
     opacity: 0.4;
+}
+.hint {
+    font-size: 11px;
+    color: #6b7280;
+    text-align: center;
+    margin-top: 8px;
 }
 @media (max-width: 560px) {
     .balance-item .value { font-size: 20px; }
