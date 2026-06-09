@@ -1,4 +1,4 @@
-// stocks.js – финальный, с центрированием пустых состояний и мобильной адаптацией
+// stocks.js – финальный, с горизонтальной панелью, процентным изменением средней цены
 let currentTimeframe = '30d';
 let realtimeChannel = null;
 
@@ -108,6 +108,7 @@ function drawCanvasChartWithAxes(history) {
     canvas.addEventListener('mouseleave', () => tooltip.style.display = 'none');
 }
 
+// ========== Тикер ==========
 async function updateTicker() {
     const trades = await window.getRecentTrades(10);
     const container = document.getElementById('ticker');
@@ -117,7 +118,38 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Рыночные операции с модалками ==========
+// ========== Вспомогательная функция для расчета изменения средней цены ==========
+async function getAvgPriceChange() {
+    const now = new Date();
+    const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000);
+    const twoDaysAgo = new Date(now.getTime() - 48 * 3600 * 1000);
+    const { data: todayData } = await window.supabase
+        .from('trades')
+        .select('amount, price_per_share')
+        .gte('created_at', dayAgo.toISOString());
+    const { data: yesterdayData } = await window.supabase
+        .from('trades')
+        .select('amount, price_per_share')
+        .lt('created_at', dayAgo.toISOString())
+        .gte('created_at', twoDaysAgo.toISOString());
+    
+    function avgPrice(trades) {
+        if (!trades.length) return 0;
+        let totalAmount = 0, totalStars = 0;
+        for (let t of trades) {
+            totalAmount += t.amount;
+            totalStars += t.amount * t.price_per_share;
+        }
+        return totalAmount ? totalStars / totalAmount / 100 : 0;
+    }
+    const todayAvg = avgPrice(todayData);
+    const yesterdayAvg = avgPrice(yesterdayData);
+    if (yesterdayAvg === 0) return { percent: 0, isPositive: false };
+    const change = ((todayAvg - yesterdayAvg) / yesterdayAvg) * 100;
+    return { percent: Math.abs(change).toFixed(2), isPositive: change >= 0 };
+}
+
+// ========== Рыночные операции (без изменений) ==========
 function showMarketBuyModal() {
     const currentPrice = (window.currentPriceCached / 100).toFixed(2);
     const modalHtml = `
@@ -246,6 +278,7 @@ async function renderOrderBook() {
     if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="empty-orders" style="text-align:center;">Нет заявок на покупку</p>';
 }
 
+// ========== История ордеров ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('seller_id', window.userId).in('status', ['completed', 'cancelled']).order('created_at', { ascending: false }).limit(5);
     if (error) return [];
@@ -446,13 +479,16 @@ window.renderStocksTab = async function(currentUser) {
         const { totalShares, marketCap } = await window.getTotalMarketCap();
         const avg24h = await window.get24hAvgPrice();
         const orderHistory = await loadOrderHistory();
+        const priceChange = await getAvgPriceChange();
 
         const html = `
             <div class="card">
-                <div class="balance-row">
-                    <div class="balance-item"><div class="label">📊 Акций</div><div class="value">${window.fromCents(currentUser.shares)}</div></div>
-                    <div class="balance-item"><div class="label">⭐ Stars</div><div class="value">${window.fromCents(currentUser.stars_balance)}</div></div>
-                    <div class="balance-item price"><div class="label">💰 Текущая цена</div><div class="value">${(currentPrice/100).toFixed(2)} ⭐</div></div>
+                <div class="balance-scroll">
+                    <div class="balance-row">
+                        <div class="balance-item"><div class="label">📊 Акций</div><div class="value">${window.fromCents(currentUser.shares)}</div></div>
+                        <div class="balance-item"><div class="label">⭐ Stars</div><div class="value">${window.fromCents(currentUser.stars_balance)}</div></div>
+                        <div class="balance-item price"><div class="label">💰 Текущая цена</div><div class="value">${(currentPrice/100).toFixed(2)} ⭐</div></div>
+                    </div>
                 </div>
                 <div class="market-buttons">
                     <button id="marketBuyBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🚀 Рыночная покупка</button>
@@ -461,7 +497,7 @@ window.renderStocksTab = async function(currentUser) {
                 <div class="info-panel">
                     <div class="info-card"><div class="small-text">🏦 Рыночная капитализация</div><div class="price">${Math.round(marketCap)} ⭐</div></div>
                     <div class="info-card"><div class="small-text">📦 Всего акций</div><div class="price">${(totalShares/100).toFixed(2)}</div></div>
-                    <div class="info-card"><div class="small-text">📈 Средняя цена (24ч)</div><div class="price">${avg24h.toFixed(2)} ⭐</div></div>
+                    <div class="info-card"><div class="small-text">📈 Средняя цена (24ч)</div><div class="price">${avg24h.toFixed(2)} ⭐</div><div class="change ${priceChange.isPositive ? 'positive' : 'negative'}">${priceChange.isPositive ? '▲' : '▼'} ${priceChange.percent}%</div></div>
                 </div>
                 <div class="timeframe-buttons">
                     <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
