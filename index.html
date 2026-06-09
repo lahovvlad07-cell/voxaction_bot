@@ -61,6 +61,7 @@
 <script src="wallet.js"></script>
 <script src="referral.js"></script>
 <script src="admin.js"></script>
+<script src="games.js"></script>
 
 <script>
     (async () => {
@@ -69,6 +70,7 @@
             return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
         }
         
+        // ----- ПОЛНОЦЕННАЯ МОДАЛКА -----
         window.showCustomModal = function(title, message) {
             const existingModal = document.getElementById('customMessageModal');
             if (existingModal) existingModal.remove();
@@ -76,8 +78,8 @@
                 <div class="modal" id="customMessageModal" style="display:flex;">
                     <div class="modal-content">
                         <span class="close-modal" id="closeCustomModal">&times;</span>
-                        <h3>${title}</h3>
-                        <p style="margin:20px 0; text-align:center;">${message}</p>
+                        <h3>${escapeHtml(title)}</h3>
+                        <p style="margin:20px 0; text-align:center; white-space:pre-wrap;">${escapeHtml(message)}</p>
                         <button id="customModalOkBtn">OK</button>
                     </div>
                 </div>
@@ -99,14 +101,6 @@
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
         };
-        
-        const tabsWrapper = document.querySelector('.tabs-wrapper');
-        let isDown = false, startX, scrollLeft;
-        if (tabsWrapper) {
-            tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
-            window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
-            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
-        }
         
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
