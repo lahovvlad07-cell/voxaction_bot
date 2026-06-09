@@ -1,4 +1,4 @@
-// stocks.js – финальная чистая версия (без дублирования кнопок, с исправленной таблицей)
+// stocks.js – финальная, чистая, с единым стилем
 let currentTimeframe = '30d';
 let realtimeChannel = null;
 let useSlidersLocal = false;   // по умолчанию поля ввода
@@ -74,7 +74,6 @@ function drawChart(history) {
     }
 }
 
-// ========== ТИКЕР ==========
 async function updateTicker() {
     const trades = await window.getRecentTrades(10);
     const container = document.getElementById('stocks-ticker');
@@ -87,14 +86,11 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== РЫНОЧНЫЕ СДЕЛКИ ==========
+// Рыночные сделки (с запасными вариантами)
 async function marketBuy(starsAmount) {
     if (starsAmount <= 0) throw new Error('Сумма должна быть больше 0');
     try {
-        const { data, error } = await window.supabase.rpc('market_buy', {
-            p_user_id: window.userId,
-            p_stars_amount: starsAmount
-        });
+        const { data, error } = await window.supabase.rpc('market_buy', { p_user_id: window.userId, p_stars_amount: starsAmount });
         if (error) throw error;
         if (!data.success) throw new Error(data.error);
         window.showToast(`✅ Куплено ${window.fromCents(data.bought)} шт. за ${starsAmount} ⭐`);
@@ -109,10 +105,7 @@ async function marketBuy(starsAmount) {
 async function marketSell(sharesAmount) {
     if (sharesAmount <= 0) throw new Error('Количество должно быть больше 0');
     try {
-        const { data, error } = await window.supabase.rpc('market_sell', {
-            p_user_id: window.userId,
-            p_amount_stars: sharesAmount
-        });
+        const { data, error } = await window.supabase.rpc('market_sell', { p_user_id: window.userId, p_amount_stars: sharesAmount });
         if (error) throw error;
         if (!data.success) throw new Error(data.error);
         window.showToast(`✅ Продано ${window.fromCents(data.sold)} шт. за ${window.fromCents(data.earned)} ⭐`);
@@ -124,21 +117,9 @@ async function marketSell(sharesAmount) {
     await window.refreshActiveTab();
 }
 
-// ========== СТАКАН ==========
 async function renderOrderBook() {
-    const { data: sells } = await window.supabase
-        .from('orders')
-        .select('amount, price_per_share, seller_id')
-        .eq('status', 'active')
-        .order('price_per_share', { ascending: true })
-        .limit(4);
-    const { data: buys } = await window.supabase
-        .from('buy_orders')
-        .select('amount, price_per_share, buyer_id')
-        .eq('status', 'active')
-        .order('price_per_share', { ascending: false })
-        .limit(4);
-    
+    const { data: sells } = await window.supabase.from('orders').select('amount, price_per_share, seller_id').eq('status', 'active').order('price_per_share', { ascending: true }).limit(4);
+    const { data: buys } = await window.supabase.from('buy_orders').select('amount, price_per_share, buyer_id').eq('status', 'active').order('price_per_share', { ascending: false }).limit(4);
     const userIds = [...(sells?.map(s=>s.seller_id)||[]), ...(buys?.map(b=>b.buyer_id)||[])];
     let userMap = new Map();
     if (userIds.length) {
@@ -151,16 +132,9 @@ async function renderOrderBook() {
     document.getElementById('buyOrdersList').innerHTML = buyHtml || '<div class="small-text">Нет заявок</div>';
 }
 
-// ========== МОИ ОРДЕРА ==========
 async function loadMyOrders() {
     const orders = await window.getUserOrders();
-    const html = orders.map(o => `
-        <div class="order-card">
-            <span>${window.fromCents(o.amount)} шт.</span>
-            <span class="price-sell">${window.fromCents(o.price_per_share)} ⭐</span>
-            <button class="cancel-btn-small" data-id="${o.id}">Отменить</button>
-        </div>
-    `).join('');
+    const html = orders.map(o => `<div class="order-card"><span>${window.fromCents(o.amount)} шт.</span><span class="price-sell">${window.fromCents(o.price_per_share)} ⭐</span><button class="cancel-btn-small" data-id="${o.id}">Отменить</button></div>`).join('');
     document.getElementById('mySellOrdersList').innerHTML = html || '<div class="small-text">Нет активных ордеров</div>';
     document.querySelectorAll('#mySellOrdersList .cancel-btn-small').forEach(btn => {
         btn.onclick = async () => {
@@ -174,13 +148,7 @@ async function loadMyOrders() {
 
 async function loadMyBuyOrders() {
     const { data } = await window.supabase.from('buy_orders').select('*').eq('buyer_id', window.userId).eq('status', 'active');
-    const html = (data||[]).map(o => `
-        <div class="order-card">
-            <span>Купить ${window.fromCents(o.amount)} шт.</span>
-            <span class="price-buy">${window.fromCents(o.price_per_share)} ⭐</span>
-            <button class="cancel-buy-btn" data-id="${o.id}">Отменить</button>
-        </div>
-    `).join('');
+    const html = (data||[]).map(o => `<div class="order-card"><span>Купить ${window.fromCents(o.amount)} шт.</span><span class="price-buy">${window.fromCents(o.price_per_share)} ⭐</span><button class="cancel-buy-btn" data-id="${o.id}">Отменить</button></div>`).join('');
     document.getElementById('myBuyOrdersList').innerHTML = html || '<div class="small-text">Нет активных заявок</div>';
     document.querySelectorAll('#myBuyOrdersList .cancel-buy-btn').forEach(btn => {
         btn.onclick = async () => {
@@ -192,68 +160,34 @@ async function loadMyBuyOrders() {
     });
 }
 
-// ========== ИСТОРИЯ ОРДЕРОВ (исправленная таблица) ==========
 async function loadOrderHistory() {
-    const { data } = await window.supabase
-        .from('orders')
-        .select('amount, price_per_share, status, created_at')
-        .eq('seller_id', window.userId)
-        .in('status', ['completed', 'cancelled'])
-        .order('created_at', { ascending: false })
-        .limit(8);
+    const { data } = await window.supabase.from('orders').select('amount, price_per_share, status, created_at').eq('seller_id', window.userId).in('status', ['completed', 'cancelled']).order('created_at', { ascending: false }).limit(8);
     if (!data?.length) {
         document.getElementById('orderHistoryList').innerHTML = '<div class="small-text">Нет истории</div>';
         return;
     }
     const tableHtml = `
         <table class="history-table">
-            <thead>
-                <tr>
-                    <th>Кол-во</th>
-                    <th>Цена</th>
-                    <th>Статус</th>
-                    <th>Дата</th>
-                </tr>
-            </thead>
+            <thead><tr><th>Кол-во</th><th>Цена</th><th>Статус</th><th>Дата</th></tr></thead>
             <tbody>
-                ${data.map(o => `
-                    <tr>
-                        <td>${window.fromCents(o.amount)}</td>
-                        <td>${window.fromCents(o.price_per_share)} ⭐</td>
-                        <td class="${o.status === 'completed' ? 'status-completed' : 'status-cancelled'}">${o.status === 'completed' ? '✅' : '❌'}</td>
-                        <td>${new Date(o.created_at).toLocaleString().slice(0,16)}</td>
-                    </tr>
-                `).join('')}
+                ${data.map(o => `<tr><td>${window.fromCents(o.amount)}</td><td>${window.fromCents(o.price_per_share)} ⭐</td><td class="${o.status === 'completed' ? 'status-completed' : 'status-cancelled'}">${o.status === 'completed' ? '✅' : '❌'}</td><td>${new Date(o.created_at).toLocaleString().slice(0,16)}</td></tr>`).join('')}
             </tbody>
         </table>
     `;
     document.getElementById('orderHistoryList').innerHTML = tableHtml;
 }
 
-// ========== ФОРМЫ ==========
 function renderSellForm(useSliders, maxShares) {
     if (useSliders) {
         return `
-            <div class="slider-group">
-                <label>Количество акций: <span id="sellAmountVal">0.01</span></label>
-                <input type="range" id="sellAmountSlider" min="0.01" max="${maxShares}" step="0.01" value="0.01">
-            </div>
-            <div class="slider-group">
-                <label>Цена (⭐): <span id="sellPriceVal">1</span></label>
-                <input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1">
-            </div>
+            <div class="slider-group"><label>Количество акций: <span id="sellAmountVal">0.01</span></label><input type="range" id="sellAmountSlider" min="0.01" max="${maxShares}" step="0.01" value="0.01"></div>
+            <div class="slider-group"><label>Цена (⭐): <span id="sellPriceVal">1</span></label><input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1"></div>
             <button id="sellBtn">Продать</button>
         `;
     } else {
         return `
-            <div class="form-row">
-                <label>Количество:</label>
-                <input type="number" id="sellAmount" placeholder="0.01" step="0.01" value="0.01">
-            </div>
-            <div class="form-row">
-                <label>Цена (⭐):</label>
-                <input type="number" id="sellPrice" placeholder="1" step="0.1" value="1">
-            </div>
+            <div class="form-row"><label>Количество:</label><input type="number" id="sellAmount" placeholder="0.01" step="0.01" value="0.01"></div>
+            <div class="form-row"><label>Цена (⭐):</label><input type="number" id="sellPrice" placeholder="1" step="0.1" value="1"></div>
             <button id="sellBtn">Продать</button>
         `;
     }
@@ -262,26 +196,14 @@ function renderSellForm(useSliders, maxShares) {
 function renderBuyForm(useSliders) {
     if (useSliders) {
         return `
-            <div class="slider-group">
-                <label>Количество акций: <span id="buyAmountVal">0.01</span></label>
-                <input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="0.01">
-            </div>
-            <div class="slider-group">
-                <label>Цена (⭐): <span id="buyPriceVal">1</span></label>
-                <input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1">
-            </div>
+            <div class="slider-group"><label>Количество акций: <span id="buyAmountVal">0.01</span></label><input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="0.01"></div>
+            <div class="slider-group"><label>Цена (⭐): <span id="buyPriceVal">1</span></label><input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1"></div>
             <button id="buyLimitBtn">Купить</button>
         `;
     } else {
         return `
-            <div class="form-row">
-                <label>Количество:</label>
-                <input type="number" id="buyAmountLimit" placeholder="0.01" step="0.01" value="0.01">
-            </div>
-            <div class="form-row">
-                <label>Цена (⭐):</label>
-                <input type="number" id="buyPriceLimit" placeholder="1" step="0.1" value="1">
-            </div>
+            <div class="form-row"><label>Количество:</label><input type="number" id="buyAmountLimit" placeholder="0.01" step="0.01" value="0.01"></div>
+            <div class="form-row"><label>Цена (⭐):</label><input type="number" id="buyPriceLimit" placeholder="1" step="0.1" value="1"></div>
             <button id="buyLimitBtn">Купить</button>
         `;
     }
@@ -296,7 +218,6 @@ window.renderStocksTab = async function(currentUser) {
         const { totalShares, currentPrice, marketCap } = await window.getTotalMarketCap();
         const avg24h = await window.get24hAvgPrice();
         
-        // Генерируем HTML без дублирования рыночных кнопок внутри контента
         const html = `
             <div class="stocks-content">
                 <div class="balance-row">
@@ -313,7 +234,7 @@ window.renderStocksTab = async function(currentUser) {
                     <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
                     <button class="timeframe-btn ${currentTimeframe === '7d' ? 'active' : ''}" data-tf="7d">7д</button>
                     <button class="timeframe-btn ${currentTimeframe === '30d' ? 'active' : ''}" data-tf="30d">30д</button>
-                    <button id="refreshChartBtn" style="background:rgba(255,255,255,0.1); margin-left:auto;">🔄</button>
+                    <button id="refreshChartBtn">🔄 Обновить</button>
                 </div>
                 <div id="stocks-chart-container" class="chart-container"></div>
                 <div id="stocks-ticker" class="ticker"></div>
@@ -354,16 +275,10 @@ window.renderStocksTab = async function(currentUser) {
         
         // Обработчики
         document.querySelectorAll('.timeframe-btn').forEach(btn => {
-            btn.onclick = async () => {
-                currentTimeframe = btn.dataset.tf;
-                await window.renderStocksTab(currentUser);
-            };
+            btn.onclick = async () => { currentTimeframe = btn.dataset.tf; await window.renderStocksTab(currentUser); };
         });
-        document.getElementById('refreshChartBtn').onclick = async () => {
-            await window.renderStocksTab(currentUser);
-        };
+        document.getElementById('refreshChartBtn').onclick = async () => { await window.renderStocksTab(currentUser); };
         
-        // Слайдеры
         if (useSlidersLocal) {
             const sellAmountSlider = document.getElementById('sellAmountSlider');
             const sellAmountVal = document.getElementById('sellAmountVal');
@@ -383,17 +298,9 @@ window.renderStocksTab = async function(currentUser) {
             }
         }
         
-        // Переключение режима
-        document.getElementById('toggleSellMode').onclick = () => {
-            useSlidersLocal = !useSlidersLocal;
-            window.renderStocksTab(currentUser);
-        };
-        document.getElementById('toggleBuyMode').onclick = () => {
-            useSlidersLocal = !useSlidersLocal;
-            window.renderStocksTab(currentUser);
-        };
+        document.getElementById('toggleSellMode').onclick = () => { useSlidersLocal = !useSlidersLocal; window.renderStocksTab(currentUser); };
+        document.getElementById('toggleBuyMode').onclick = () => { useSlidersLocal = !useSlidersLocal; window.renderStocksTab(currentUser); };
         
-        // Кнопки действий
         document.getElementById('sellBtn').onclick = async () => {
             let amount, price;
             if (useSlidersLocal) {
@@ -403,16 +310,8 @@ window.renderStocksTab = async function(currentUser) {
                 amount = parseFloat(document.getElementById('sellAmount').value);
                 price = parseFloat(document.getElementById('sellPrice').value);
             }
-            if (isNaN(amount) || amount <= 0 || isNaN(price) || price <= 0) {
-                window.showCustomModal('Ошибка', 'Введите корректные значения');
-                return;
-            }
-            try {
-                await window.createOrder(amount, price);
-                await window.renderStocksTab(currentUser);
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
+            if (isNaN(amount) || amount <= 0 || isNaN(price) || price <= 0) return window.showCustomModal('Ошибка', 'Введите корректные значения');
+            try { await window.createOrder(amount, price); await window.renderStocksTab(currentUser); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         };
         document.getElementById('buyLimitBtn').onclick = async () => {
             let amount, price;
@@ -423,34 +322,18 @@ window.renderStocksTab = async function(currentUser) {
                 amount = parseFloat(document.getElementById('buyAmountLimit').value);
                 price = parseFloat(document.getElementById('buyPriceLimit').value);
             }
-            if (isNaN(amount) || amount <= 0 || isNaN(price) || price <= 0) {
-                window.showCustomModal('Ошибка', 'Введите корректные значения');
-                return;
-            }
-            try {
-                await window.createBuyOrder(amount, price);
-                await window.renderStocksTab(currentUser);
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
+            if (isNaN(amount) || amount <= 0 || isNaN(price) || price <= 0) return window.showCustomModal('Ошибка', 'Введите корректные значения');
+            try { await window.createBuyOrder(amount, price); await window.renderStocksTab(currentUser); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         };
         document.getElementById('marketBuyBtn').onclick = async () => {
             const stars = parseFloat(prompt('Сколько ⭐ потратить?', '100'));
             if (isNaN(stars) || stars <= 0) return;
-            try {
-                await marketBuy(stars);
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
+            try { await marketBuy(stars); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         };
         document.getElementById('marketSellBtn').onclick = async () => {
             const shares = parseFloat(prompt('Сколько акций продать?', '1'));
             if (isNaN(shares) || shares <= 0) return;
-            try {
-                await marketSell(shares);
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
+            try { await marketSell(shares); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         };
         document.getElementById('cancelAllSellsBtn').onclick = async () => {
             if (confirm('Отменить все ваши ордера на продажу?')) {
@@ -469,19 +352,10 @@ window.renderStocksTab = async function(currentUser) {
             }
         };
         
-        // Realtime
         if (realtimeChannel) window.supabase.removeChannel(realtimeChannel);
-        realtimeChannel = window.supabase
-            .channel('stocks-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-                if (document.querySelector('.tab[data-tab="stocks"].active')) window.renderStocksTab(currentUser);
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => {
-                if (document.querySelector('.tab[data-tab="stocks"].active')) {
-                    updateTicker();
-                    window.renderStocksTab(currentUser);
-                }
-            })
+        realtimeChannel = window.supabase.channel('stocks-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { if (document.querySelector('.tab[data-tab="stocks"].active')) window.renderStocksTab(currentUser); })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => { if (document.querySelector('.tab[data-tab="stocks"].active')) { updateTicker(); window.renderStocksTab(currentUser); } })
             .subscribe();
     } catch (err) {
         console.error(err);
