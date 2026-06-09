@@ -1,100 +1,128 @@
-/* stocks.css – финальный, с плавающей верхней панелью и улучшенной инфо-панелью */
-.balance-sticky {
+/* stocks.css – финальный, с плавающими блоками и адаптивной сеткой */
+/* Общие сбросы и анимации */
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes scroll {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+/* ===== Плавающий блок баланса (сверху) ===== */
+.sticky-balance {
     position: sticky;
     top: 68px; /* под хедером Telegram */
     z-index: 95;
     background: rgba(18, 24, 38, 0.85);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
     border-radius: 28px;
-    margin: 0 16px 8px 16px;
-    padding: 8px 12px;
+    margin: 8px 16px;
+    padding: 10px 16px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .balance-scroll {
     overflow-x: auto;
     white-space: nowrap;
     scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
 }
 .balance-row {
     display: inline-flex;
-    gap: 12px;
+    gap: 16px;
     padding: 2px;
 }
 .balance-item {
     flex-shrink: 0;
-    width: 100px;
+    width: 110px;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(4px);
-    border-radius: 24px;
+    border-radius: 28px;
     padding: 8px 4px;
     text-align: center;
-    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .balance-item .label {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
     margin-bottom: 4px;
 }
 .balance-item .value {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 800;
-    color: white; /* fallback */
-}
-.balance-item.price .value {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-}
-.sticky-buttons {
-    position: sticky;
-    top: 120px; /* чуть ниже баланса */
-    z-index: 94;
-    background: rgba(18, 24, 38, 0.85);
-    backdrop-filter: blur(12px);
-    border-radius: 28px;
-    padding: 8px 16px;
-    margin: 0 16px 12px 16px;
-    display: flex;
-    gap: 12px;
-}
-.sticky-buttons button {
-    flex: 1;
-    margin: 0;
-    padding: 10px;
-    font-size: 14px;
-}
-.info-panel {
-    display: flex;
-    gap: 12px;
-    margin: 12px 0;
-    flex-wrap: wrap;
-}
-.info-card {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(4px);
-    border-radius: 24px;
-    padding: 12px;
-    text-align: center;
-    border: 1px solid rgba(56, 189, 248, 0.15);
-}
-.info-card .small-text {
-    font-size: 12px;
-    color: #9ca3af;
-    margin-bottom: 6px;
-}
-.info-card .price {
-    font-size: 18px;
-    font-weight: 700;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
+.balance-item.price .value {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+/* ===== Плавающие кнопки внизу (над табами) ===== */
+.sticky-buttons-bottom {
+    position: sticky;
+    bottom: 70px; /* над табами (высота табов ~60px + отступ) */
+    z-index: 95;
+    background: rgba(18, 24, 38, 0.9);
+    backdrop-filter: blur(20px);
+    border-radius: 44px;
+    margin: 8px 16px;
+    padding: 8px 16px;
+    display: flex;
+    gap: 12px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.sticky-buttons-bottom button {
+    flex: 1;
+    margin: 0;
+    padding: 10px;
+    font-size: 14px;
+}
+/* Кнопки рыночных операций – особые градиенты */
+#marketBuyBtn {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+#marketSellBtn {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+/* ===== Инфопанель (три карточки) – улучшенная сетка ===== */
+.info-panel {
+    display: flex;
+    gap: 16px;
+    margin: 20px 0;
+}
+.info-card {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    border-radius: 24px;
+    padding: 16px 8px;
+    text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    transition: transform 0.2s;
+}
+.info-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.5);
+}
+.info-card .small-text {
+    font-size: 13px;
+    color: #9ca3af;
+}
+.info-card .price {
+    font-size: 22px;
+    font-weight: 800;
+    margin-top: 8px;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: gradientShift 3s ease infinite;
+}
 .info-card .change {
-    font-size: 12px;
-    margin-top: 4px;
+    font-size: 13px;
+    margin-top: 6px;
 }
 .change.positive {
     color: #4ade80;
@@ -102,10 +130,12 @@
 .change.negative {
     color: #f87171;
 }
+
+/* ===== Остальные стили (график, стакан, формы, ордера) ===== */
 .timeframe-buttons {
     display: flex;
     gap: 10px;
-    margin: 16px 0;
+    margin: 20px 0 16px;
 }
 .timeframe-btn {
     flex: 1;
@@ -113,8 +143,9 @@
     border: 1px solid rgba(56, 189, 248, 0.3);
     padding: 8px 0;
     border-radius: 40px;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
+    transition: 0.2s;
 }
 .timeframe-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
@@ -134,9 +165,9 @@
     position: relative;
     background: #0f1320;
     border-radius: 28px;
-    padding: 6px;
-    margin: 12px 0;
-    height: 200px;
+    padding: 8px;
+    margin: 16px 0;
+    height: 220px;
     border: 1px solid rgba(56, 189, 248, 0.2);
 }
 canvas {
@@ -169,8 +200,9 @@ canvas {
     padding: 8px 16px;
     overflow: hidden;
     white-space: nowrap;
-    margin: 12px 0;
+    margin: 16px 0;
     font-size: 12px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .ticker-content {
     display: inline-block;
@@ -179,51 +211,45 @@ canvas {
 .trade-item {
     margin-right: 20px;
 }
-@keyframes scroll {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-}
 .card {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(16px);
     border-radius: 28px;
-    padding: 16px;
+    padding: 20px;
     margin: 12px 16px;
     border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .card h3 {
     text-align: center;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     font-size: 18px;
 }
 .sell-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
 .sell-form .input-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 .sell-form .input-header label {
     font-weight: 500;
-    font-size: 14px;
 }
 .sell-form .toggle-input-mode {
     background: rgba(56, 189, 248, 0.2);
     border: none;
     width: auto;
-    padding: 4px 8px;
+    padding: 4px 10px;
     border-radius: 30px;
-    font-size: 11px;
+    font-size: 12px;
     cursor: pointer;
-    margin: 0;
 }
 input[type="range"] {
     width: 100%;
-    margin: 6px 0;
+    margin: 8px 0;
     -webkit-appearance: none;
     background: rgba(255, 255, 255, 0.2);
     height: 4px;
@@ -231,8 +257,8 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: #2b6e9e;
     border: 2px solid #60a5fa;
@@ -240,17 +266,17 @@ input[type="range"]::-webkit-slider-thumb {
 }
 input, input[type="number"] {
     width: 100%;
-    padding: 10px 14px;
+    padding: 12px 16px;
     background: #111827;
     border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 44px;
     color: white;
-    font-size: 13px;
+    font-size: 14px;
 }
 button {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border: none;
-    padding: 10px;
+    padding: 12px;
     border-radius: 44px;
     font-weight: 600;
     color: white;
@@ -269,24 +295,24 @@ button:active {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    padding: 6px 0;
+    padding: 8px 0;
 }
 .accordion-title {
     flex: 1;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 .order-count {
     background: rgba(43, 110, 158, 0.5);
     border-radius: 30px;
-    padding: 2px 6px;
-    font-size: 11px;
+    padding: 2px 8px;
+    font-size: 12px;
 }
 .accordion-icon {
-    font-size: 18px;
+    font-size: 20px;
     transition: transform 0.2s;
 }
 .accordion-content {
@@ -299,31 +325,31 @@ button:active {
 }
 .accordion-content.expanded {
     max-height: 800px;
-    padding-top: 10px;
+    padding-top: 12px;
 }
 .empty-orders {
     text-align: center;
-    padding: 20px;
+    padding: 24px;
     color: #9ca3af;
     font-style: italic;
     background: rgba(0,0,0,0.2);
-    border-radius: 20px;
-    margin: 6px 0;
+    border-radius: 24px;
+    margin: 8px 0;
 }
 .cancel-all-btn {
     background: rgba(220,38,38,0.2);
     border: 1px solid #f97316;
-    margin-top: 10px;
-    padding: 6px;
-    font-size: 12px;
+    margin-top: 12px;
+    padding: 8px;
+    font-size: 14px;
     width: auto;
     display: inline-block;
 }
 .order-card {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 20px;
-    padding: 12px;
-    margin-bottom: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
     border-left: 4px solid #2b6e9e;
 }
 .order-card-best {
@@ -334,22 +360,22 @@ button:active {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
 }
 .seller-info {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 .seller-name {
     background: rgba(255,255,255,0.1);
-    padding: 2px 10px;
-    border-radius: 30px;
-    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 40px;
+    font-size: 13px;
 }
 .order-price-big {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 800;
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
@@ -361,18 +387,18 @@ button:active {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
 }
 .order-amount {
-    font-size: 13px;
+    font-size: 14px;
     color: #a5b4fc;
 }
 .buy-btn, .cancel-btn-small, .cancel-buy-btn {
     background: rgba(56,189,248,0.2);
     border: none;
-    padding: 4px 14px;
-    border-radius: 30px;
-    font-size: 11px;
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 12px;
     cursor: pointer;
 }
 .buy-btn {
@@ -389,11 +415,11 @@ button:active {
 .history-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 13px;
     text-align: center;
 }
 .history-table th, .history-table td {
-    padding: 8px 4px;
+    padding: 10px 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .history-table th {
@@ -406,13 +432,13 @@ button:active {
 .pagination-container {
     display: flex;
     justify-content: center;
-    gap: 12px;
-    margin-top: 16px;
+    gap: 16px;
+    margin-top: 20px;
 }
 .pagination-btn {
     background: rgba(43,110,158,0.3);
     border: 1px solid #2b6e9e;
-    padding: 5px 16px;
+    padding: 6px 18px;
     border-radius: 40px;
     width: auto;
 }
@@ -420,16 +446,16 @@ button:active {
     opacity: 0.4;
 }
 .hint {
-    font-size: 10px;
+    font-size: 11px;
     color: #6b7280;
     text-align: center;
-    margin-top: 6px;
+    margin-top: 8px;
 }
 .market-modal .modal-content {
     max-width: 320px;
 }
 .market-modal input {
-    margin: 12px 0;
+    margin: 16px 0;
 }
 .modal-buttons-row {
     display: flex;
@@ -441,15 +467,16 @@ button:active {
 }
 .current-price-info {
     background: rgba(0,0,0,0.3);
-    padding: 6px;
-    border-radius: 16px;
+    padding: 8px;
+    border-radius: 20px;
     text-align: center;
     margin: 8px 0;
 }
+/* Мобильная адаптация */
 @media (max-width: 560px) {
-    .balance-sticky {
-        top: 62px;
-        padding: 6px 8px;
+    .sticky-balance {
+        top: 64px;
+        padding: 6px 12px;
     }
     .balance-item {
         width: 85px;
@@ -457,29 +484,34 @@ button:active {
     .balance-item .value {
         font-size: 16px;
     }
-    .sticky-buttons {
-        top: 112px;
+    .sticky-buttons-bottom {
+        bottom: 68px;
         padding: 6px 12px;
-        margin: 0 12px 10px 12px;
     }
-    .sticky-buttons button {
+    .sticky-buttons-bottom button {
         font-size: 12px;
         padding: 8px;
     }
     .info-panel {
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
+    }
+    .info-card {
+        padding: 12px;
+    }
+    .info-card .price {
+        font-size: 20px;
     }
     .timeframe-buttons {
         flex-wrap: wrap;
     }
     .timeframe-btn {
-        flex: 1 0 calc(50% - 8px);
-        margin-bottom: 6px;
+        flex: 1 0 calc(50% - 10px);
+        margin-bottom: 8px;
     }
     #refreshChartBtn {
         width: 100%;
-        margin-top: 6px;
+        margin-top: 8px;
     }
     .order-card-header {
         flex-direction: column;
@@ -502,6 +534,6 @@ button:active {
         white-space: nowrap;
     }
     .accordion-title {
-        font-size: 14px;
+        font-size: 16px;
     }
 }
