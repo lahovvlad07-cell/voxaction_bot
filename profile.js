@@ -1,12 +1,11 @@
-// profile.js – полная рабочая версия
+// profile.js – исправленная версия с рабочими модалками кастомизации
+
 const avatarEmojis = [
-    '👤', '😀', '😎', '👍',
-    '🐱', '🐶', '🦊', '🐼',
-    '🍕', '🍔', '🍩', '☕',
-    '💎', '💰', '🎲', '🏆',
-    '🎁', '🌟', '🔥', '❤️',
-    '🚀', '🍀', '👑', '🎯'
+    '👤', '😀', '😎', '👍', '🐱', '🐶', '🦊', '🐼',
+    '🍕', '🍔', '🍩', '☕', '💎', '💰', '🎲', '🏆',
+    '🎁', '🌟', '🔥', '❤️', '🚀', '🍀', '👑', '🎯'
 ];
+
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' },
     { name: 'Фиолетовый', value: '#9b59b6' },
@@ -20,6 +19,7 @@ const bgColors = [
     { name: 'Розовый', value: '#ff9a9e' },
     { name: 'Лаванда', value: '#a18cd1' }
 ];
+
 const borderColors = [
     { name: 'Белый', value: '#ffffff' },
     { name: 'Чёрный', value: '#000000' },
@@ -40,6 +40,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${fontSize};`;
 }
 
+// ----- Вспомогательные функции (прогресс достижений, выдача "Стилист") -----
 async function getNextAchievementsProgress(currentUser, getUserStats, getAllAchievements, getEarnedAchievements) {
     const allAchievements = await getAllAchievements();
     const earned = await getEarnedAchievements();
@@ -82,9 +83,10 @@ async function getNextAchievementsProgress(currentUser, getUserStats, getAllAchi
 
 async function awardStylistAchievement() {
     const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
-    if (achData) await awardAchievement(achData.id);
+    if (achData) await window.awardAchievement(achData.id);
 }
 
+// ----- Модалка выбора достижений -----
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
     const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
     const isSlotOccupied = currentSlotAchievementId !== null;
@@ -168,6 +170,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
+// ----- ШАГ 1: выбор аватарки (с эмодзи и сеткой) -----
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -187,7 +190,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
                     </div>
                 </div>
                 <div class="scrollable-content">
-                    <div class="avatars-grid">${optionsHtml}</div>
+                    <div class="avatars-grid" style="display:grid; grid-template-columns:repeat(6,1fr); gap:12px; max-height:300px; overflow-y:auto;">${optionsHtml}</div>
                 </div>
                 <div class="modal-buttons">
                     <button id="nextBtn" style="width:100%">Далее →</button>
@@ -219,6 +222,7 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
+// ----- ШАГ 2: выбор фона (цвета) -----
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     let isCustomColor = false;
@@ -258,7 +262,7 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
                     </div>
                 </div>
                 <div class="scrollable-content">
-                    <div class="colors-grid" id="colorsGrid">${generateColorsHtml()}</div>
+                    <div class="colors-grid" id="colorsGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; max-height:300px; overflow-y:auto;">${generateColorsHtml()}</div>
                 </div>
                 <div class="modal-buttons">
                     <button id="backBtn" class="secondary">← Назад</button>
@@ -329,23 +333,20 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
+// ----- ШАГ 3: выбор обводки -----
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     let bgStyleInline = '';
     if (currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#')) {
         bgStyleInline = `background: ${currentUser.avatar_bg};`;
     } else {
-        const found = bgColors.find(c => {
-            const mapping = {
-                '#2b6e9e': 'gradient1', '#9b59b6': 'gradient2', '#e67e22': 'gradient3',
-                '#27ae60': 'gradient4', '#f1c40f': 'gradient5', '#e74c3c': 'gradient6',
-                '#1abc9c': 'gradient7', '#3498db': 'gradient8', '#2c3e50': 'gradient9',
-                '#ff9a9e': 'gradient10', '#a18cd1': 'gradient11'
-            };
-            return mapping[c.value] === currentUser.avatar_bg;
-        });
-        if (found) bgStyleInline = `background: ${found.value};`;
-        else bgStyleInline = `background: #2b6e9e;`;
+        const mapping = {
+            'gradient1': '#2b6e9e', 'gradient2': '#9b59b6', 'gradient3': '#e67e22',
+            'gradient4': '#27ae60', 'gradient5': '#f1c40f', 'gradient6': '#e74c3c',
+            'gradient7': '#1abc9c', 'gradient8': '#3498db', 'gradient9': '#2c3e50',
+            'gradient10': '#ff9a9e', 'gradient11': '#a18cd1'
+        };
+        bgStyleInline = `background: ${mapping[currentUser.avatar_bg] || '#2b6e9e'};`;
     }
     const colors = [...borderColors, { name: '🎨 Свой цвет', value: 'custom', isPicker: true }];
     const generateColorsHtml = () => {
@@ -370,7 +371,7 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
                     </div>
                 </div>
                 <div class="scrollable-content">
-                    <div class="colors-grid" id="colorsGrid">${generateColorsHtml()}</div>
+                    <div class="colors-grid" id="colorsGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; max-height:300px; overflow-y:auto;">${generateColorsHtml()}</div>
                 </div>
                 <div class="modal-buttons">
                     <button id="backBtn" class="secondary">← Назад</button>
@@ -431,6 +432,7 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     };
 }
 
+// ----- Основная кастомизация (обход трёх шагов) -----
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
     await new Promise(resolve => { showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal); });
     await new Promise(resolve => {
@@ -459,6 +461,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
+// ----- ОСНОВНОЙ РЕНДЕР ПРОФИЛЯ -----
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
