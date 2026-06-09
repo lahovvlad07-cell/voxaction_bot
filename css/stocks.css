@@ -1,107 +1,131 @@
-/* stocks.css – финальная, чистая, в стиле других вкладок */
+/* stocks.css – улучшенный визуал для вкладки «Акции» */
+
+/* Общие стили для контейнера */
+.stocks-content {
+    max-width: 700px;
+    margin: 0 auto;
+    padding-bottom: 20px;
+}
+
+/* Блок баланса – три колонки с карточками */
 .balance-row {
     display: flex;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
     flex-wrap: wrap;
 }
 .balance-item {
     flex: 1;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 24px;
-    padding: 12px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border-radius: 28px;
+    padding: 16px 8px;
     text-align: center;
-    min-width: 100px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    transition: transform 0.2s, border-color 0.2s;
+}
+.balance-item:hover {
+    transform: translateY(-2px);
+    border-color: #2b6e9e;
 }
 .balance-item .label {
-    font-size: 13px;
+    font-size: 14px;
     color: #9ca3af;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 .balance-item .value {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 800;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
-@media (max-width: 560px) {
-    .balance-row {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 8px;
-    }
-    .balance-item {
-        flex: 0 0 110px;
-    }
+.price .value {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
 
-/* Рыночные кнопки – фиксированная панель над табами (только здесь, дубликатов нет) */
-.market-buttons-fixed {
-    position: fixed;
-    bottom: 70px;
-    left: 0;
-    right: 0;
-    display: flex;
-    gap: 12px;
-    padding: 8px 16px;
-    background: rgba(10, 14, 26, 0.95);
-    backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(56, 189, 248, 0.2);
-    z-index: 99;
-}
-.market-buttons-fixed button {
-    flex: 1;
-    margin: 0;
-    padding: 10px;
-    font-size: 14px;
-}
-.stocks-content {
-    padding-bottom: 80px;
-}
-
-/* Информационная панель */
+/* Информационная панель (капитализация, акции, цена) */
 .info-panel {
     display: flex;
     gap: 12px;
-    margin: 16px 0;
+    margin: 24px 0;
 }
 .info-card {
     flex: 1;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 20px;
-    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 24px;
+    padding: 12px;
     text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.15);
 }
 .info-card .small-text {
-    font-size: 11px;
+    font-size: 12px;
     color: #9ca3af;
 }
 .info-card .price {
-    font-size: 16px;
-    font-weight: bold;
-    margin-top: 4px;
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 6px;
+    color: #eef2ff;
 }
 
-/* График и тикер */
+/* Таймфреймы */
+.timeframe-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+.timeframe-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 8px 0;
+    border-radius: 40px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.timeframe-btn.active {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    color: white;
+    border-color: transparent;
+}
+#refreshChartBtn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 8px 16px;
+    border-radius: 40px;
+    cursor: pointer;
+}
+
+/* График */
 .chart-container {
-    height: 160px;
-    margin: 12px 0;
     background: #0f1320;
-    border-radius: 20px;
+    border-radius: 24px;
+    padding: 12px;
+    margin: 16px 0;
+    height: 200px;
+    position: relative;
+}
+.chart-placeholder {
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: #9ca3af;
 }
+
+/* Тикер */
 .ticker {
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 40px;
-    padding: 6px 12px;
-    font-size: 12px;
+    border-radius: 60px;
+    padding: 8px 16px;
     overflow: hidden;
     white-space: nowrap;
-    margin: 8px 0;
+    margin: 16px 0;
+    font-size: 12px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .ticker-content {
     display: inline-block;
@@ -111,62 +135,57 @@
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
 }
+.trade-item {
+    margin-right: 24px;
+}
 
 /* Стакан заявок */
 .orderbook {
     display: flex;
     gap: 16px;
-    margin: 16px 0;
+    margin: 24px 0;
 }
 .orderbook-column {
     flex: 1;
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 20px;
-    padding: 8px;
+    border-radius: 24px;
+    padding: 12px;
 }
 .orderbook-column h4 {
-    font-size: 14px;
-    margin-bottom: 8px;
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 16px;
 }
 .orderbook-row {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    padding: 4px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 .price-sell { color: #fbbf24; }
 .price-buy { color: #4ade80; }
 
 /* Формы продажи/покупки */
 .sell-form, .buy-limit-form {
-    margin: 16px 0;
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 20px;
-    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 28px;
+    padding: 20px;
+    margin: 24px 0;
 }
-.form-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 12px;
-}
-.form-row label {
-    width: 80px;
-    font-size: 13px;
-}
-.form-row input {
-    flex: 1;
-    padding: 8px 12px;
-    margin: 0;
+.sell-form h3, .buy-limit-form h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 18px;
 }
 .slider-group {
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 .slider-group label {
     display: flex;
     justify-content: space-between;
-    font-size: 13px;
+    font-size: 14px;
+    margin-bottom: 6px;
 }
 input[type="range"] {
     width: 100%;
@@ -184,17 +203,29 @@ input[type="range"]::-webkit-slider-thumb {
     border: 2px solid #60a5fa;
     cursor: pointer;
 }
-.toggle-mode-btn {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 6px 12px;
-    font-size: 12px;
-    margin-top: 8px;
-    width: auto;
-    display: inline-block;
+.form-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
 }
-/* Кнопки действий внутри форм */
-#sellBtn, #buyLimitBtn {
+.form-row label {
+    width: 80px;
+    font-size: 14px;
+}
+.form-row input {
+    flex: 1;
+    margin: 0;
+}
+.toggle-mode-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 12px;
     margin-top: 12px;
+    cursor: pointer;
+    width: auto;
 }
 
 /* Мои ордера */
@@ -202,47 +233,47 @@ input[type="range"]::-webkit-slider-thumb {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 16px 0 8px;
+    margin: 24px 0 12px;
 }
 .section-header h3 {
-    font-size: 16px;
     margin: 0;
+    font-size: 18px;
 }
 .cancel-all-btn {
-    background: rgba(220, 38, 38, 0.2);
+    background: rgba(220,38,38,0.2);
     border: 1px solid #f87171;
     padding: 4px 12px;
     font-size: 12px;
-    width: auto;
+    border-radius: 30px;
+    cursor: pointer;
 }
 .order-card {
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 16px;
-    padding: 8px 12px;
+    border-radius: 20px;
+    padding: 12px;
     margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-.cancel-btn-small {
+.cancel-btn-small, .cancel-buy-btn {
     background: none;
     border: none;
     color: #f87171;
     cursor: pointer;
-    padding: 4px 8px;
     font-size: 12px;
-    width: auto;
+    padding: 4px 8px;
 }
 
-/* Таблица истории ордеров */
+/* Таблица истории */
 .history-table {
     width: 100%;
-    font-size: 12px;
     border-collapse: collapse;
+    font-size: 13px;
 }
 .history-table th, .history-table td {
-    padding: 8px 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     text-align: left;
 }
 .history-table th {
@@ -250,10 +281,58 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .status-completed { color: #4ade80; }
 .status-cancelled { color: #f87171; }
-/* На мобильных скрываем дату */
+
+/* Плавающие кнопки (фиксированы снизу) */
+.market-buttons-fixed {
+    position: fixed;
+    bottom: 70px;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(56,189,248,0.3);
+    z-index: 99;
+}
+.market-buttons-fixed button {
+    flex: 1;
+    margin: 0;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 44px;
+}
+#marketBuyBtn {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+#marketSellBtn {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+/* Мобильная адаптация */
 @media (max-width: 560px) {
-    .history-table th:nth-child(4),
-    .history-table td:nth-child(4) {
+    .balance-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 8px;
+    }
+    .balance-item {
+        flex: 0 0 110px;
+    }
+    .info-panel {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .orderbook {
+        flex-direction: column;
+    }
+    .history-table th:nth-child(4), .history-table td:nth-child(4) {
         display: none;
+    }
+    .market-buttons-fixed {
+        bottom: 65px;
+        padding: 8px 12px;
     }
 }
