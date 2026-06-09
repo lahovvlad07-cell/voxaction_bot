@@ -1,4 +1,4 @@
-/* stocks.css – улучшенный, с анимированными градиентами и tooltip */
+/* stocks.css – финальный, без фильтров, аккуратный */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -37,7 +37,14 @@
 .balance-item.price .value {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-size: 200% 200%;
-    animation: gradientShift 3s ease infinite;
+}
+.market-buttons {
+    display: flex;
+    gap: 12px;
+    margin: 8px 0 20px;
+}
+.market-buttons button {
+    flex: 1;
 }
 .info-panel {
     display: flex;
@@ -71,7 +78,6 @@
     display: flex;
     gap: 10px;
     margin: 20px 0;
-    flex-wrap: wrap;
 }
 .timeframe-btn {
     flex: 1;
