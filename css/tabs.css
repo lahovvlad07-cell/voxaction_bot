@@ -1,4 +1,3 @@
-/* tabs.css – горизонтальная прокрутка с drag-to-scroll */
 .tabs-wrapper {
     position: fixed;
     bottom: 0;
@@ -9,9 +8,8 @@
     border-top: 1px solid rgba(56, 189, 248, 0.25);
     padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
     z-index: 100;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-    scroll-behavior: smooth;
+    overflow-x: auto;
+    white-space: nowrap;
     -webkit-overflow-scrolling: touch;
     cursor: grab;
 }
