@@ -1,37 +1,34 @@
-/* stocks.css – полностью переработанный, аккуратный визуал */
+/* stocks.css – аккуратный, современный, единый стиль */
 .balance-row {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 .balance-item {
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(4px);
-    padding: 12px 16px;
-    border-radius: 32px;
-    font-size: 16px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    border-radius: 24px;
+    padding: 12px 8px;
     flex: 1;
     text-align: center;
-    font-weight: 600;
-    border: 1px solid rgba(56,189,248,0.2);
+    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .balance-item strong {
-    font-size: 20px;
     display: block;
-    margin-top: 4px;
+    font-size: 24px;
+    margin-top: 6px;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
-.price {
-    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+.price strong {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    font-weight: bold;
 }
 .info-panel {
     display: flex;
@@ -41,63 +38,60 @@
 .info-card {
     background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(4px);
-    border-radius: 24px;
+    border-radius: 20px;
     padding: 12px;
-    text-align: center;
     flex: 1;
-    border: 1px solid rgba(56,189,248,0.15);
+    text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.15);
 }
 .info-card .price {
-    font-size: 20px;
-    font-weight: 800;
+    font-size: 18px;
+    font-weight: 700;
     margin-top: 6px;
 }
 .timeframe-buttons {
     display: flex;
     gap: 10px;
-    margin-bottom: 16px;
+    margin: 20px 0;
     flex-wrap: wrap;
-    align-items: center;
 }
 .timeframe-btn {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(56,189,248,0.3);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.3);
     padding: 8px 0;
     border-radius: 40px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
     flex: 1;
+    font-size: 14px;
+    cursor: pointer;
     transition: 0.2s;
 }
 .timeframe-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    color: white;
     border-color: transparent;
-    box-shadow: 0 4px 12px rgba(43,110,158,0.4);
+    color: white;
+    box-shadow: 0 4px 12px rgba(43, 110, 158, 0.4);
 }
 #refreshChartBtn {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(56,189,248,0.3);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
     padding: 8px 16px;
     border-radius: 40px;
-    font-size: 13px;
     cursor: pointer;
+    width: auto;
 }
 .chart-container {
-    width: 100%;
-    height: 200px;
-    margin: 20px 0;
-    border-radius: 24px;
-    overflow: hidden;
     background: #0f1320;
-    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 24px;
+    padding: 8px;
+    margin: 16px 0;
+    height: 200px;
+    overflow: hidden;
+    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .chart-placeholder {
     text-align: center;
-    padding: 80px 20px;
+    padding: 70px 20px;
     color: #9ca3af;
-    font-style: italic;
 }
 .ticker {
     background: rgba(0, 0, 0, 0.4);
@@ -107,7 +101,7 @@
     white-space: nowrap;
     margin: 16px 0;
     font-size: 13px;
-    border: 1px solid rgba(56,189,248,0.2);
+    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .ticker-content {
     display: inline-block;
@@ -120,69 +114,77 @@
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
 }
-/* Аккордеон для фильтров */
-.filter-accordion-header {
+/* Общие карточки */
+.card {
+    background: rgba(18, 24, 38, 0.7);
+    backdrop-filter: blur(16px);
+    border-radius: 28px;
+    padding: 20px;
+    margin: 12px 16px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.card h3 {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 18px;
+}
+/* Формы слайдеров */
+.sell-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.sell-form label {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
-    padding: 8px 0;
-    user-select: none;
-    font-weight: bold;
-    font-size: 18px;
-    margin-bottom: 8px;
-}
-.filter-accordion-header .filter-title {
-    flex: 1;
-    text-align: center;
-}
-.filter-accordion-header .accordion-icon {
-    font-size: 20px;
-    transition: transform 0.2s;
-}
-.filter-accordion-content {
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-}
-.filter-accordion-content.collapsed {
-    max-height: 0;
-    padding: 0;
-}
-.filter-accordion-content.expanded {
-    max-height: 200px;
-    padding-top: 12px;
-}
-.filter-bar {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.filter-btn, .sort-btn {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(56,189,248,0.3);
-    padding: 8px 18px;
-    border-radius: 40px;
-    font-size: 13px;
     font-weight: 500;
+}
+input[type="range"] {
+    width: 100%;
+    margin: 8px 0;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    height: 4px;
+    border-radius: 10px;
+}
+input[type="range"]:focus {
+    outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #2b6e9e;
+    border: 2px solid #60a5fa;
     cursor: pointer;
-    transition: all 0.2s ease;
 }
-.filter-btn:hover, .sort-btn:hover {
-    transform: translateY(-2px);
-    background: rgba(43,110,158,0.3);
-    border-color: #2b6e9e;
-}
-.filter-btn.active, .sort-btn.active {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+input, input[type="number"] {
+    width: 100%;
+    padding: 12px 16px;
+    background: #111827;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 44px;
     color: white;
-    border-color: transparent;
-    box-shadow: 0 4px 10px rgba(43,110,158,0.4);
 }
-/* Аккордеоны для моих ордеров */
+button {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border: none;
+    padding: 12px;
+    border-radius: 44px;
+    font-weight: 600;
+    color: white;
+    width: 100%;
+    cursor: pointer;
+    transition: 0.2s;
+}
+button:active {
+    transform: scale(0.98);
+}
+/* Аккордеоны */
 .accordion-section {
     overflow: hidden;
-    transition: all 0.2s;
 }
 .accordion-header {
     display: flex;
@@ -190,38 +192,35 @@
     align-items: center;
     cursor: pointer;
     padding: 8px 0;
-    user-select: none;
 }
-.accordion-header .accordion-title {
+.accordion-title {
     flex: 1;
     font-size: 18px;
     font-weight: bold;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
+    gap: 8px;
 }
-.accordion-header .order-count {
-    background: rgba(43,110,158,0.5);
+.order-count {
+    background: rgba(43, 110, 158, 0.5);
     border-radius: 30px;
-    padding: 2px 10px;
-    font-size: 13px;
-    font-weight: normal;
+    padding: 2px 8px;
+    font-size: 12px;
 }
-.accordion-header .accordion-icon {
-    font-size: 22px;
+.accordion-icon {
+    font-size: 20px;
     transition: transform 0.2s;
 }
 .accordion-content {
     overflow: hidden;
-    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.3s ease-out;
 }
 .accordion-content.collapsed {
     max-height: 0;
     padding: 0;
 }
 .accordion-content.expanded {
-    max-height: 1200px;
+    max-height: 800px;
     padding-top: 12px;
 }
 .empty-orders {
@@ -237,58 +236,48 @@
     background: rgba(220,38,38,0.2);
     border: 1px solid #f97316;
     margin-top: 12px;
-    padding: 8px 16px;
+    padding: 8px;
     font-size: 14px;
-    font-weight: 600;
     width: auto;
     display: inline-block;
 }
 /* Карточки ордеров */
 .order-card {
     background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    border-radius: 24px;
-    padding: 16px;
-    margin-bottom: 12px;
-    transition: transform 0.15s, box-shadow 0.2s;
+    border-radius: 20px;
+    padding: 14px;
+    margin-bottom: 10px;
     border-left: 4px solid #2b6e9e;
 }
-.order-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(0,0,0,0.3);
-}
 .order-card-best {
-    background: rgba(34,197,94,0.15);
-    border-left: 4px solid #4ade80;
+    background: rgba(34, 197, 94, 0.15);
+    border-left-color: #4ade80;
 }
 .order-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
 }
 .seller-info {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
 }
 .seller-name {
-    font-weight: 600;
-    font-size: 14px;
     background: rgba(255,255,255,0.1);
     padding: 4px 12px;
     border-radius: 40px;
+    font-size: 13px;
 }
 .order-price-big {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    letter-spacing: -0.5px;
 }
 .order-card-body {
     display: flex;
@@ -298,106 +287,67 @@
     gap: 8px;
 }
 .order-amount {
-    font-size: 15px;
+    font-size: 14px;
     color: #a5b4fc;
-    font-weight: 500;
 }
-.buy-btn, .cancel-btn, .cancel-btn-small, .cancel-buy-btn {
+.buy-btn, .cancel-btn-small, .cancel-buy-btn {
     background: rgba(56,189,248,0.2);
     border: none;
-    padding: 6px 18px;
+    padding: 6px 16px;
     border-radius: 40px;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
-    transition: 0.2s;
 }
 .buy-btn {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
-    font-weight: 600;
 }
-.buy-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(43,110,158,0.5);
-}
-.cancel-btn, .cancel-btn-small, .cancel-buy-btn {
+.cancel-btn-small, .cancel-buy-btn {
     color: #f97316;
     border: 1px solid #f97316;
 }
-.cancel-btn:hover, .cancel-btn-small:hover, .cancel-buy-btn:hover {
-    background: rgba(249,115,22,0.2);
-    transform: scale(1.02);
-}
 .my-order-card {
     background: rgba(0,0,0,0.6);
-    border-left: 4px solid #2b6e9e;
 }
-/* Формы со слайдерами */
-.sell-form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-.sell-form label {
+/* Фильтры аккордеон */
+.filter-accordion-header {
     display: flex;
     justify-content: space-between;
-    font-weight: 500;
-    margin-bottom: 6px;
-}
-input[type="range"] {
-    width: 100%;
-    height: 6px;
-    -webkit-appearance: none;
-    background: rgba(255,255,255,0.2);
-    border-radius: 10px;
-    outline: none;
-}
-input[type="range"]:focus {
-    outline: none;
-}
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #2b6e9e;
+    align-items: center;
     cursor: pointer;
-    border: 2px solid #60a5fa;
+    margin-bottom: 8px;
 }
-input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
+.filter-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
-input, input[type="number"] {
-    width: 100%;
-    padding: 12px 16px;
-    margin: 8px 0;
-    background: #111827;
+.filter-btn, .sort-btn {
+    background: rgba(255,255,255,0.08);
     border: 1px solid rgba(56,189,248,0.3);
-    border-radius: 44px;
-    color: white;
-    font-size: 14px;
-}
-button {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    border: none;
-    padding: 12px;
-    border-radius: 44px;
-    font-weight: 600;
-    color: white;
-    width: 100%;
-    margin-top: 8px;
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 12px;
     cursor: pointer;
-    transition: 0.2s;
 }
-button:active {
-    transform: scale(0.98);
+.filter-btn.active, .sort-btn.active {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    color: white;
+    border-color: transparent;
 }
-.card h3 {
-    text-align: center;
-    margin-bottom: 16px;
-    font-size: 20px;
+.filter-accordion-content {
+    overflow: hidden;
+    transition: max-height 0.3s;
 }
-/* Таблица истории ордеров */
+.filter-accordion-content.collapsed {
+    max-height: 0;
+}
+.filter-accordion-content.expanded {
+    max-height: 150px;
+    padding-bottom: 12px;
+}
+/* Таблица истории */
 .history-table {
     width: 100%;
     border-collapse: collapse;
@@ -405,17 +355,12 @@ button:active {
     text-align: center;
 }
 .history-table th, .history-table td {
-    padding: 12px 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 10px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .history-table th {
-    font-weight: 700;
     color: #a5b4fc;
-    text-align: center;
-    background: rgba(0,0,0,0.2);
-}
-.history-table td {
-    color: #eef2ff;
+    font-weight: 600;
 }
 .history-table td:first-child, .history-table th:first-child {
     text-align: left;
@@ -424,50 +369,25 @@ button:active {
 .pagination-container {
     display: flex;
     justify-content: center;
-    align-items: center;
     gap: 16px;
-    margin-top: 24px;
-    padding: 8px 0;
+    margin-top: 20px;
 }
 .pagination-btn {
     background: rgba(43,110,158,0.3);
     border: 1px solid #2b6e9e;
-    padding: 8px 20px;
+    padding: 6px 18px;
     border-radius: 40px;
-    font-size: 14px;
-    cursor: pointer;
     width: auto;
-    transition: 0.2s;
-}
-.pagination-btn:hover:not(:disabled) {
-    background: #2b6e9e;
-    transform: scale(1.02);
 }
 .pagination-btn:disabled {
     opacity: 0.4;
-    cursor: not-allowed;
 }
-.pagination-info {
-    font-size: 14px;
-    background: rgba(0,0,0,0.4);
-    padding: 6px 14px;
-    border-radius: 40px;
-}
-/* Адаптация для мобильных */
+/* Мобильная адаптация */
 @media (max-width: 560px) {
-    .balance-row { gap: 8px; }
-    .balance-item { font-size: 13px; padding: 8px 12px; }
-    .balance-item strong { font-size: 16px; }
-    .info-card .price { font-size: 16px; }
-    .filter-btn, .sort-btn { padding: 4px 12px; font-size: 12px; }
+    .balance-item strong { font-size: 18px; }
     .order-card-header { flex-direction: column; align-items: flex-start; }
     .order-price-big { align-self: flex-end; }
     .order-card-body { flex-direction: column; align-items: stretch; }
-    .buy-btn, .cancel-btn, .cancel-btn-small, .cancel-buy-btn { width: 100%; text-align: center; }
-    .history-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 11px; }
-    .history-table th, .history-table td { padding: 8px 4px; }
-    .accordion-header .accordion-title { font-size: 16px; }
-    .order-count { font-size: 11px; }
-    .pagination-btn { padding: 6px 14px; font-size: 12px; }
-    .pagination-info { font-size: 12px; }
+    .buy-btn, .cancel-btn-small, .cancel-buy-btn { width: 100%; text-align: center; }
+    .history-table { display: block; overflow-x: auto; white-space: nowrap; }
 }
