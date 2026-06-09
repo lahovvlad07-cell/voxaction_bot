@@ -1,4 +1,4 @@
-// stocks.js – финальная стабильная версия
+// stocks.js – финальная чистая версия (без дублирования кнопок, с исправленной таблицей)
 let currentTimeframe = '30d';
 let realtimeChannel = null;
 let useSlidersLocal = false;   // по умолчанию поля ввода
@@ -192,7 +192,7 @@ async function loadMyBuyOrders() {
     });
 }
 
-// ========== ИСТОРИЯ ОРДЕРОВ (с цветными статусами) ==========
+// ========== ИСТОРИЯ ОРДЕРОВ (исправленная таблица) ==========
 async function loadOrderHistory() {
     const { data } = await window.supabase
         .from('orders')
@@ -207,7 +207,14 @@ async function loadOrderHistory() {
     }
     const tableHtml = `
         <table class="history-table">
-            <thead><tr><th>Кол-во</th><th>Цена</th><th>Статус</th><th>Дата</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Кол-во</th>
+                    <th>Цена</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                </tr>
+            </thead>
             <tbody>
                 ${data.map(o => `
                     <tr>
@@ -223,7 +230,7 @@ async function loadOrderHistory() {
     document.getElementById('orderHistoryList').innerHTML = tableHtml;
 }
 
-// ========== ФОРМЫ С ПЕРЕКЛЮЧЕНИЕМ ==========
+// ========== ФОРМЫ ==========
 function renderSellForm(useSliders, maxShares) {
     if (useSliders) {
         return `
@@ -289,6 +296,7 @@ window.renderStocksTab = async function(currentUser) {
         const { totalShares, currentPrice, marketCap } = await window.getTotalMarketCap();
         const avg24h = await window.get24hAvgPrice();
         
+        // Генерируем HTML без дублирования рыночных кнопок внутри контента
         const html = `
             <div class="stocks-content">
                 <div class="balance-row">
@@ -316,19 +324,19 @@ window.renderStocksTab = async function(currentUser) {
                 <div class="sell-form">
                     <h3>Продать акции</h3>
                     ${renderSellForm(useSliders, maxShares)}
-                    <button id="toggleSellMode" class="toggle-mode-btn">✍️ Ручной ввод</button>
+                    <button id="toggleSellMode" class="toggle-mode-btn">✍️ ${useSliders ? 'Поля ввода' : 'Ручной ввод'}</button>
                 </div>
                 <div class="buy-limit-form">
                     <h3>Купить (лимит)</h3>
                     ${renderBuyForm(useSliders)}
-                    <button id="toggleBuyMode" class="toggle-mode-btn">✍️ Ручной ввод</button>
+                    <button id="toggleBuyMode" class="toggle-mode-btn">✍️ ${useSliders ? 'Поля ввода' : 'Ручной ввод'}</button>
                 </div>
                 <div class="section-header"><h3>Мои ордера на продажу</h3><button id="cancelAllSellsBtn" class="cancel-all-btn">Отменить все</button></div>
                 <div id="mySellOrdersList"></div>
                 <div class="section-header"><h3>Мои заявки на покупку</h3><button id="cancelAllBuysBtn" class="cancel-all-btn">Отменить все</button></div>
                 <div id="myBuyOrdersList"></div>
                 <div class="section-header"><h3>История ордеров</h3></div>
-                <div id="orderHistoryList" class="history-list"></div>
+                <div id="orderHistoryList"></div>
             </div>
             <div class="market-buttons-fixed">
                 <button id="marketBuyBtn" style="background: linear-gradient(135deg,#fbbf24,#f59e0b);">🚀 Рыночная покупка</button>
@@ -344,7 +352,7 @@ window.renderStocksTab = async function(currentUser) {
         await loadMyBuyOrders();
         await loadOrderHistory();
         
-        // Обработчики времени
+        // Обработчики
         document.querySelectorAll('.timeframe-btn').forEach(btn => {
             btn.onclick = async () => {
                 currentTimeframe = btn.dataset.tf;
@@ -355,7 +363,7 @@ window.renderStocksTab = async function(currentUser) {
             await window.renderStocksTab(currentUser);
         };
         
-        // Слайдеры (если активны)
+        // Слайдеры
         if (useSlidersLocal) {
             const sellAmountSlider = document.getElementById('sellAmountSlider');
             const sellAmountVal = document.getElementById('sellAmountVal');
@@ -375,7 +383,7 @@ window.renderStocksTab = async function(currentUser) {
             }
         }
         
-        // Переключение режимов
+        // Переключение режима
         document.getElementById('toggleSellMode').onclick = () => {
             useSlidersLocal = !useSlidersLocal;
             window.renderStocksTab(currentUser);
