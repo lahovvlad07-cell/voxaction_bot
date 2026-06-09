@@ -1,4 +1,4 @@
-/* profile.css – аватар на ПК уменьшен до 110px */
+/* profile.css – финальная версия: аватар на ПК 90x90, эмодзи крупнее */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -8,15 +8,12 @@
     margin: 0 auto;
 }
 
-/* Базовый стиль аватара (для всех, но будет переопределён для мобильных и ПК) */
+/* Базовые стили аватара (запасные) */
 .avatar-circle {
-    width: 120px !important;
-    height: 120px !important;
     border-radius: 50%;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 70px !important;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     background-color: rgba(0, 0, 0, 0.25);
@@ -29,35 +26,53 @@
     line-height: 1;
 }
 
-/* ПК – ширина экрана больше 560px (уменьшенный аватар) */
-@media (min-width: 561px) {
+/* ПК (ширина экрана 1024px и больше) – аватар 90x90, эмодзи 56px */
+@media (min-width: 1024px) {
     .avatar-circle {
-        width: 110px !important;
-        height: 110px !important;
-        font-size: 64px !important;
+        width: 90px !important;
+        height: 90px !important;
+    }
+    .avatar-circle .avatar-emoji {
+        font-size: 56px !important;
+        line-height: 1 !important;
     }
 }
 
-/* Телефоны (ширина до 560px) – оставляем 120px */
-@media (max-width: 560px) {
-    .avatar-circle {
-        width: 120px !important;
-        height: 120px !important;
-        font-size: 70px !important;
-    }
-}
-
-/* Очень маленькие телефоны (до 400px) – чуть меньше */
-@media (max-width: 400px) {
+/* Планшеты (768px – 1023px) – аватар 100x100, эмодзи 60px */
+@media (min-width: 768px) and (max-width: 1023px) {
     .avatar-circle {
         width: 100px !important;
         height: 100px !important;
+    }
+    .avatar-circle .avatar-emoji {
         font-size: 60px !important;
     }
 }
 
-/* Смещение эмодзи внутри аватарки (только для ПК, чтобы не прыгало) */
-@media (min-width: 561px) {
+/* Телефоны (до 767px) – аватар 110x110, эмодзи 66px */
+@media (max-width: 767px) {
+    .avatar-circle {
+        width: 110px !important;
+        height: 110px !important;
+    }
+    .avatar-circle .avatar-emoji {
+        font-size: 66px !important;
+    }
+}
+
+/* Очень маленькие телефоны (до 480px) – чуть меньше */
+@media (max-width: 480px) {
+    .avatar-circle {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    .avatar-circle .avatar-emoji {
+        font-size: 60px !important;
+    }
+}
+
+/* Смещение эмодзи внутри аватарки (только для ПК) */
+@media (min-width: 1024px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-3px) !important; }
     .avatar-emoji[style*="😀"] { transform: translateY(-2px) !important; }
     .avatar-emoji[style*="😎"] { transform: translateY(-2px) !important; }
@@ -84,20 +99,22 @@
     .avatar-emoji[style*="🎯"] { transform: translateY(-2px) !important; }
 }
 
-/* Для модалок предпросмотр аватара – размер чуть меньше */
+/* Для модалок предпросмотра аватара – размер 80x80 */
 #stepModal .avatar-circle,
 #borderModal .avatar-circle {
     width: 80px !important;
     height: 80px !important;
+}
+#stepModal .avatar-circle .avatar-emoji,
+#borderModal .avatar-circle .avatar-emoji {
     font-size: 48px !important;
 }
 
+/* ===== ОСТАЛЬНЫЕ СТИЛИ (сетки, достижения, статистика) – без изменений ===== */
 .small-text {
     font-size: 12px;
     color: #9ca3af;
 }
-
-/* Сетка выбора аватаров */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(65px, 1fr));
@@ -132,8 +149,6 @@
     line-height: 1;
     transform: none !important;
 }
-
-/* Сетка цветов */
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -163,8 +178,6 @@
     font-size: 24px;
     text-shadow: 0 0 2px black;
 }
-
-/* Кружки достижений */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -195,7 +208,6 @@
     transform: scale(1.1);
     box-shadow: 0 0 25px rgba(251, 191, 36, 0.9);
 }
-
 @media (max-width: 560px) {
     .achi-icon {
         width: 60px !important;
@@ -206,8 +218,6 @@
         gap: 16px;
     }
 }
-
-/* Модалка выбора достижений – увеличенные карточки */
 .modal-content {
     max-width: 450px;
     width: 90%;
@@ -251,8 +261,6 @@
     color: #cbd5e1;
     margin-top: 4px;
 }
-
-/* Статистика и прогресс-бары */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -316,8 +324,6 @@
     padding: 12px;
     margin-top: 12px;
 }
-
-/* Анимация градиента */
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
