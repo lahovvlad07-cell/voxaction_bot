@@ -1,14 +1,12 @@
 // stocks.js – финальная версия без фильтров, с tooltip на графике
 let currentTimeframe = '30d';
-let currentOrdersFilter = 'all'; // оставим для совместимости, но фильтр не показываем
-let currentSortDir = 'asc';
 let realtimeChannel = null;
 
 let currentOrdersPage = 1;
 const ORDERS_PER_PAGE = 10;
-let filteredOrders = [];
+let allOrdersData = [];
 
-// ========== График с tooltip ==========
+// ========== График ==========
 window.fetchPriceHistoryForTimeframe = async function(timeframe) {
     let startDate = new Date();
     if (timeframe === '1d') startDate.setDate(startDate.getDate() - 1);
@@ -81,7 +79,7 @@ function drawCanvasChartWithAxes(history) {
         ctx.fillText(lastDate, width - padding.right - 40, height - padding.bottom + 15);
     }
 
-    // Tooltip: отслеживание движения мыши
+    // Tooltip
     const tooltip = document.createElement('div');
     tooltip.className = 'chart-tooltip';
     tooltip.style.display = 'none';
@@ -90,8 +88,6 @@ function drawCanvasChartWithAxes(history) {
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        // Найти ближайшую точку
         let minDist = Infinity;
         let idx = -1;
         for (let i = 0; i < values.length; i++) {
@@ -113,12 +109,10 @@ function drawCanvasChartWithAxes(history) {
             tooltip.style.display = 'none';
         }
     });
-    canvas.addEventListener('mouseleave', () => {
-        tooltip.style.display = 'none';
-    });
+    canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
 }
 
-// ========== Остальные функции (без изменений, кроме удаления фильтров) ==========
+// ========== Тикер ==========
 async function updateTicker() {
     const trades = await window.getRecentTrades(10);
     const container = document.getElementById('ticker');
@@ -131,8 +125,8 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
+// ========== Рыночные операции ==========
 async function marketBuy(starsAmountStars) {
-    // ... (код без изменений)
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
     let totalBoughtSharesCents = 0;
@@ -173,7 +167,6 @@ async function marketBuy(starsAmountStars) {
 }
 
 async function marketSell(sharesAmountStars) {
-    // ... (код без изменений)
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
     if (userShares < window.toCents(sharesAmountStars)) throw new Error('Недостаточно акций для продажи');
@@ -199,6 +192,7 @@ async function marketSell(sharesAmountStars) {
     }
 }
 
+// ========== Стакан заявок ==========
 async function renderOrderBook() {
     const { data: sellsRaw } = await window.supabase
         .from('orders')
@@ -230,6 +224,7 @@ async function renderOrderBook() {
     if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="empty-orders">Нет заявок на покупку</p>';
 }
 
+// ========== История ордеров ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase
         .from('orders')
@@ -253,6 +248,7 @@ function renderOrderHistory(orders) {
     container.innerHTML = tableHtml;
 }
 
+// ========== Ордера пользователя ==========
 async function loadMyBuyOrders() {
     const { data, error } = await window.supabase
         .from('buy_orders')
@@ -289,6 +285,7 @@ async function cancelBuyOrder(buyOrderId) {
     return true;
 }
 
+// ========== Формы ==========
 function renderSellForm() {
     const useSliders = window.getUseSliders ? window.getUseSliders() : true;
     if (useSliders) {
@@ -307,10 +304,9 @@ function renderBuyLimitForm() {
     }
 }
 
+// ========== Загрузка ордеров с продавцами ==========
 async function loadOrdersWithSellers() {
-    let orders = [];
-    if (currentOrdersFilter === 'all') orders = await window.getActiveOrders();
-    else orders = await window.getUserOrders();
+    const orders = await window.getActiveOrders();
     if (!orders.length) return [];
     const sellerIds = [...new Set(orders.map(o => o.seller_id))];
     const { data: users } = await window.supabase.from('users').select('id, username, avatar_url').in('id', sellerIds);
@@ -324,44 +320,31 @@ async function loadOrdersWithSellers() {
     return orders;
 }
 
+// ========== Отрисовка списка ордеров (только чужие, без пагинации) ==========
 function renderOrdersList(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
-    let filtered = orders.filter(o => o.seller_id !== window.userId);
+    const filtered = orders.filter(o => o.seller_id !== window.userId);
     if (!filtered.length) {
         container.innerHTML = '<p class="empty-orders">Нет ордеров для отображения</p>';
-        document.getElementById('ordersPagination')?.remove();
         return;
     }
-    filtered.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
-    filteredOrders = filtered;
-    const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
-    if (currentOrdersPage > totalPages) currentOrdersPage = totalPages;
-    if (currentOrdersPage < 1) currentOrdersPage = 1;
-    const start = (currentOrdersPage - 1) * ORDERS_PER_PAGE;
-    const pageOrders = filteredOrders.slice(start, start + ORDERS_PER_PAGE);
-    const bestPrice = Math.min(...pageOrders.map(o => o.price_per_share));
+    // Сортировка по возрастанию цены
+    filtered.sort((a,b) => a.price_per_share - b.price_per_share);
+    const bestPrice = Math.min(...filtered.map(o => o.price_per_share));
     let html = '';
-    for (let order of pageOrders) {
+    for (let order of filtered) {
         const isBest = order.price_per_share === bestPrice;
         const avatarMini = window.renderAvatarHtml(order.seller_avatar, null, null, '32px');
         html += `<div class="order-card ${isBest ? 'order-card-best' : ''}" data-order='${JSON.stringify(order)}'><div class="order-card-header"><div class="seller-info">${avatarMini}<span class="seller-name">${escapeHtml(order.seller_name)}</span>${order.seller_rating ? `<span class="stars-rating">${'★'.repeat(Math.floor(order.seller_rating))}</span>` : ''}</div><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div></div><div class="order-card-body"><span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span><button class="buy-btn">Купить</button></div></div>`;
     }
-    let paginationHtml = '';
-    if (totalPages > 1) {
-        paginationHtml = `<div class="pagination-container"><button class="pagination-btn" id="ordersPrevPage" ${currentOrdersPage === 1 ? 'disabled' : ''}>← Назад</button><span class="pagination-info">${currentOrdersPage} / ${totalPages}</span><button class="pagination-btn" id="ordersNextPage" ${currentOrdersPage === totalPages ? 'disabled' : ''}>Вперёд →</button></div>`;
-    }
-    container.innerHTML = html + paginationHtml;
+    container.innerHTML = html;
     document.querySelectorAll('.buy-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const order = JSON.parse(btn.closest('.order-card').dataset.order);
             showBuyModal(order);
         });
     });
-    const prevBtn = document.getElementById('ordersPrevPage');
-    const nextBtn = document.getElementById('ordersNextPage');
-    if (prevBtn) prevBtn.addEventListener('click', () => { if (currentOrdersPage > 1) { currentOrdersPage--; renderOrdersList(filteredOrders); } });
-    if (nextBtn) nextBtn.addEventListener('click', () => { if (currentOrdersPage < totalPages) { currentOrdersPage++; renderOrdersList(filteredOrders); } });
 }
 
 function showBuyModal(order) {
@@ -398,7 +381,7 @@ function subscribeToRealtime() {
         .subscribe();
 }
 
-// ========== ГЛАВНЫЙ РЕНДЕР (без фильтров) ==========
+// ========== ГЛАВНЫЙ РЕНДЕР ==========
 window.renderStocksTab = async function(currentUser) {
     try {
         const allOrders = await loadOrdersWithSellers();
@@ -409,41 +392,21 @@ window.renderStocksTab = async function(currentUser) {
         const avg24h = await window.get24hAvgPrice();
         const orderHistory = await loadOrderHistory();
 
-        currentOrdersPage = 1;
-
         const html = `
             <div class="card">
                 <div class="balance-row">
-                    <div class="balance-item">
-                        <div class="label">📊 Акций</div>
-                        <div class="value">${window.fromCents(currentUser.shares)}</div>
-                    </div>
-                    <div class="balance-item">
-                        <div class="label">⭐ Stars</div>
-                        <div class="value">${window.fromCents(currentUser.stars_balance)}</div>
-                    </div>
-                    <div class="balance-item price">
-                        <div class="label">💰 Цена</div>
-                        <div class="value">${(currentPrice/100).toFixed(2)} ⭐</div>
-                    </div>
+                    <div class="balance-item"><div class="label">📊 Акций</div><div class="value">${window.fromCents(currentUser.shares)}</div></div>
+                    <div class="balance-item"><div class="label">⭐ Stars</div><div class="value">${window.fromCents(currentUser.stars_balance)}</div></div>
+                    <div class="balance-item price"><div class="label">💰 Цена</div><div class="value">${(currentPrice/100).toFixed(2)} ⭐</div></div>
                 </div>
-                <div class="balance-row" style="margin-top:8px;">
+                <div class="market-buttons">
                     <button id="marketBuyBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🚀 Рыночная покупка</button>
                     <button id="marketSellBtn" style="background: linear-gradient(135deg, #f97316, #ea580c);">📉 Рыночная продажа</button>
                 </div>
                 <div class="info-panel">
-                    <div class="info-card">
-                        <div class="small-text">Рыночная капитализация</div>
-                        <div class="price">${Math.round(marketCap)} ⭐</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="small-text">Всего акций</div>
-                        <div class="price">${(totalShares/100).toFixed(2)}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="small-text">Средняя цена (24ч)</div>
-                        <div class="price">${avg24h.toFixed(2)} ⭐</div>
-                    </div>
+                    <div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price">${Math.round(marketCap)} ⭐</div></div>
+                    <div class="info-card"><div class="small-text">Всего акций</div><div class="price">${(totalShares/100).toFixed(2)}</div></div>
+                    <div class="info-card"><div class="small-text">Средняя цена (24ч)</div><div class="price">${avg24h.toFixed(2)} ⭐</div></div>
                 </div>
                 <div class="timeframe-buttons">
                     <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
@@ -495,6 +458,7 @@ window.renderStocksTab = async function(currentUser) {
         await renderOrderBook();
         renderOrderHistory(orderHistory);
 
+        // Мои ордера на продажу
         if (myOrders.length) {
             const myDiv = document.getElementById('myOrdersList');
             myDiv.innerHTML = myOrders.map(order => `<div class="order-card my-order-card" data-order='${JSON.stringify(order)}'><div class="order-card-header"><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div><button class="cancel-btn-small" data-id="${order.id}">Отменить</button></div><div class="order-card-body"><span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span></div></div>`).join('');
@@ -506,6 +470,7 @@ window.renderStocksTab = async function(currentUser) {
             });
         }
 
+        // Мои заявки на покупку
         if (myBuyOrders.length) {
             const buyDiv = document.getElementById('myBuyOrdersList');
             buyDiv.innerHTML = myBuyOrders.map(order => `<div class="order-card my-order-card" data-buy-order-id="${order.id}"><div class="order-card-header"><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div><button class="cancel-buy-btn" data-id="${order.id}">Отменить</button></div><div class="order-card-body"><span class="order-amount">📦 Купить ${window.fromCents(order.amount)} шт.</span></div></div>`).join('');
@@ -520,6 +485,7 @@ window.renderStocksTab = async function(currentUser) {
         document.getElementById('cancelAllSellsBtn')?.addEventListener('click', async () => { if (confirm('Отменить ВСЕ активные ордера на продажу?')) await cancelAllSellOrders(); });
         document.getElementById('cancelAllBuysBtn')?.addEventListener('click', async () => { if (confirm('Отменить ВСЕ активные заявки на покупку?')) await cancelAllBuyOrders(); });
 
+        // Аккордеоны
         document.querySelectorAll('.accordion-header').forEach(header => {
             header.addEventListener('click', () => {
                 const targetId = header.dataset.target;
@@ -539,12 +505,14 @@ window.renderStocksTab = async function(currentUser) {
 
         renderOrdersList(allOrders);
 
+        // Обработчики таймфреймов
         document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentTimeframe = btn.dataset.tf;
             await window.renderStocksTab(currentUser);
         }));
         document.getElementById('refreshChartBtn')?.addEventListener('click', async () => { await window.renderStocksTab(currentUser); });
 
+        // Слайдеры
         const useSliders = window.getUseSliders();
         if (useSliders) {
             const sellAmountSlider = document.getElementById('sellAmountSlider');
