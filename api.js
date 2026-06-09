@@ -1,4 +1,4 @@
-// api.js – полная финальная версия (акции, рефералы, достижения, админка, игры)
+// api.js – исправленная версия (добавлена window.awardAchievement)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -10,8 +10,8 @@ window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
 };
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ ==========
-async function awardAchievement(achievementId) {
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ (МОДАЛЬНОЕ ОКНО) ==========
+window.awardAchievement = async function(achievementId) {
     try {
         const { data: existing } = await window.supabase
             .from('user_achievements')
@@ -33,7 +33,7 @@ async function awardAchievement(achievementId) {
         }
         if (window.renderProfileTab) window.renderProfileTab();
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
-}
+};
 
 async function checkAllAchievements() {
     const stats = await window.getUserStats(true);
@@ -57,7 +57,7 @@ async function checkAllAchievements() {
             case 'stars_held': conditionMet = user.stars_balance >= ach.condition_value; break;
             case 'days_active': conditionMet = (user.days_active || 0) >= ach.condition_value; break;
         }
-        if (conditionMet) await awardAchievement(ach.id);
+        if (conditionMet) await window.awardAchievement(ach.id);
     }
 }
 
@@ -165,7 +165,7 @@ window.getOrCreateUser = async function() {
         }
         
         try {
-            await awardAchievement(1);
+            await window.awardAchievement(1);
         } catch(e) { console.error('Ошибка выдачи достижения', e); }
         
         return { user: newUser, isNew: true };
@@ -211,24 +211,84 @@ window.getUserStats = async function(forceRefresh = false) {
     return stats;
 };
 
-// ========== СМЕНА НИКНЕЙМА ==========
+// ========== СМЕНА НИКНЕЙМА (РАСШИРЕННАЯ ФИЛЬТРАЦИЯ) ==========
 window.updateUsername = async function(newUsername) {
-    if (!newUsername || newUsername.trim().length < 3) throw new Error('Никнейм должен содержать минимум 3 символа');
-    if (newUsername.length > 20) throw new Error('Никнейм не может быть длиннее 20 символов');
-    if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) throw new Error('Никнейм может содержать только латинские буквы, цифры, _ и -');
+    if (!newUsername || newUsername.trim().length < 3) {
+        throw new Error('Никнейм должен содержать минимум 3 символа');
+    }
+    if (newUsername.length > 20) {
+        throw new Error('Никнейм не может быть длиннее 20 символов');
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) {
+        throw new Error('Никнейм может содержать только латинские буквы, цифры, _ и -');
+    }
+
     let normalized = newUsername.toLowerCase();
     normalized = normalized.replace(/0/g, 'o').replace(/1/g, 'i').replace(/2/g, 'z').replace(/3/g, 'e')
         .replace(/4/g, 'a').replace(/5/g, 's').replace(/6/g, 'g').replace(/7/g, 't')
         .replace(/8/g, 'b').replace(/9/g, 'g').replace(/\$/g, 's').replace(/@/g, 'a').replace(/\+/g, 't');
-    const forbiddenWords = ['blya','blyat','ebat','ebal','ebuch','eblan','pizda','pizdec','pizduk','huy','huylo','hueta','huinya','pidor','pidaras','pidr','pedik','pedal','gondon','gandon','mudak','mudilo','mudack','mudozvon','svoloch','suka','sukin','sukablya','tvar','tvarina','gnida','gnilida','shluha','shluh','prostitutka','kurva','kuryok','kurok','lopuh','loh','lox','loch','chmo','chmok','chmonya','olen','baran','kozel','svinya','petuh','durak','duren','dolboeb','dolbaeb','dolboyob','dolboyeb','rak','rakovina','zhopa','zhopnik','zadnica','shmarovoz','shmaruhoz','pischa','pizd','piz','pizdets','huyak','huyata','khuy','khui','khnya','hnya','yob','yoba','yoban','yobat','yobt','yop','yopt','yopta','perehot','perehod','nahuy','nahui','pohuy','pohui','huyovo','huyota','huil','huilo','huilam','huilom','gavno','govno','gavnyuk','govnuk','srat','srano','sral','srak','srach','zrit','zral','zralnya','peder','pederast','pederasty','pedofil','pedo','pedophile','incest','insest','inkest','nympho','nymphoman','zoophile','zoophil','bestial','bestiality','perv','pervert','izvrash','izvraschen','sodom','sodomit','sodomite','bugger','fuck','fucking','fucker','fuk','fuq','fkc','phuck','fcuk','shet','sht','shat','shit','shitting','shitty','shite','bullshit','horseshit','bitch','bitching','bitches','bich','bch','btch','cunt','cunting','cunts','kunt','dick','dickhead','dickweed','dickhole','dickface','dicknose','diq','dyck','pussy','pusy','puss','pussie','puzi','nigger','nigga','niggar','niga','niger','neger','nig','nigg','faggot','fag','fagg','fagot','fagit','faget','faggo','fagga','retard','retarded','retart','retad','retrd','moron','moronic','stupid','stoopid','dumbass','dumass','dumb','dum','whore','whoring','hoar','hore','ho','slut','slutty','slutt','bastard','bastrd','bastid','wanker','wank','wanksta','twat','twatted','twatface','cock','cocksucker','cocksuk','coksucker','motherfucker','mothafucka','muthafucka','motherfuck','mofo','douchebag','douche','douch','shithead','shitbag','shitface','fuckface','asshole','asswipe','asshat','assface','assole','ass','arse','arsehole','arsewipe','bollocks','balls','ballbag','dickweed','dicknose','prick','prk','prickhead','turd','turdman','turdburglar','crap','crappy','crapface','piss','pissed','pisser','pissface','screw','screwed','screwup','loser','noob','noobish','churka','churkan','hach','hachik','khach','khachik','niger','nigeria','negro','nigerian','arab','arap','arapka','zhid','zhidov','zhidovsk','jew','jewish','kike','gypsy','cygan','cyganka','tsygan','tsyganok','tsyg','mongol','mongoloid','viet','vietcong','kambodzha','kambodzhec','kambodzhe','kambodz','amerikos','pindos','pendos','libeh','liberal','liberast','homik','homo','homosek','homosexual','gay','gey','lesba','lesbian','trany','transvestite','tranny','gender','genderqueer','feminist','femik','femi','siyons','siyona','siyonsk','sion','sionist','nazi','hitler','fascist','fashist','fash','stalin','lenin','kommunist','communist','soviet','sovok','sovkov','sovetsk','rusnya','russkie','katsap','kacap','ukrop','ukri','ukrov','hohol','hohly','hohl','banderlog','bandera','pnk','pnx','ebal','ebra','ebre','ebrei','evrei','evrey','zhyd','jood','joop','joden','natsik','natsi','nazik','gestapo','gepapo','schutz','ss','waffen','fat','fatass','faty','fatto','tolst','tolsy','tolsty','thick','thickass','pig','piggy','swine','cow','cowy','cowlike','obese','obez','obezn','ugly','ugli','uglyface','uglo','zombie','zombi','mutant','freak','freaks','abomination','ugliness','uglification','weak','weakling','spineless','faint','faintheart','fail','failure'];
-    for (let word of forbiddenWords) { if (normalized.includes(word)) throw new Error('Никнейм содержит запрещённые слова'); }
+
+    const forbiddenWords = [
+        'blya','blyat','ebat','ebal','ebuch','eblan','pizda','pizdec','pizduk','huy','huylo','hueta','huinya',
+        'pidor','pidaras','pidr','pedik','pedal','gondon','gandon','mudak','mudilo','mudack','mudozvon','svoloch',
+        'suka','sukin','sukablya','tvar','tvarina','gnida','gnilida','shluha','shluh','prostitutka','kurva','kuryok',
+        'kurok','lopuh','loh','lox','loch','chmo','chmok','chmonya','olen','baran','kozel','svinya','petuh','durak',
+        'duren','dolboeb','dolbaeb','dolboyob','dolboyeb','rak','rakovina','zhopa','zhopnik','zadnica','shmarovoz',
+        'shmaruhoz','pischa','pizd','piz','pizdets','huyak','huyata','khuy','khui','khnya','hnya','yob','yoba','yoban',
+        'yobat','yobt','yop','yopt','yopta','perehot','perehod','nahuy','nahui','pohuy','pohui','huyovo','huyota','huil',
+        'huilo','huilam','huilom','gavno','govno','gavnyuk','govnuk','srat','srano','sral','srak','srach','zrit','zral',
+        'zralnya','peder','pederast','pederasty','pedofil','pedo','pedophile','incest','insest','inkest','nympho','nymphoman',
+        'zoophile','zoophil','bestial','bestiality','perv','pervert','izvrash','izvraschen','sodom','sodomit','sodomite','bugger',
+        'fuck','fucking','fucker','fuk','fuq','fkc','phuck','fcuk','shet','sht','shat','shit','shitting','shitty','shite',
+        'bullshit','horseshit','bitch','bitching','bitches','bich','bch','btch','cunt','cunting','cunts','kunt','dick',
+        'dickhead','dickweed','dickhole','dickface','dicknose','diq','dyck','pussy','pusy','puss','pussie','puzi',
+        'nigger','nigga','niggar','niga','niger','neger','nig','nigg','faggot','fag','fagg','fagot','fagit','faget',
+        'faggo','fagga','retard','retarded','retart','retad','retrd','moron','moronic','stupid','stoopid','dumbass',
+        'dumass','dumb','dum','whore','whoring','hoar','hore','ho','slut','slutty','slutt','bastard','bastrd','bastid',
+        'wanker','wank','wanksta','twat','twatted','twatface','cock','cocksucker','cocksuk','coksucker','motherfucker',
+        'mothafucka','muthafucka','motherfuck','mofo','douchebag','douche','douch','shithead','shitbag','shitface','fuckface',
+        'asshole','asswipe','asshat','assface','assole','ass','arse','arsehole','arsewipe','bollocks','balls','ballbag','dickweed',
+        'dicknose','prick','prk','prickhead','turd','turdman','turdburglar','crap','crappy','crapface','piss','pissed','pisser',
+        'pissface','screw','screwed','screwup','loser','noob','noobish','churka','churkan','hach','hachik','khach','khachik',
+        'niger','nigeria','negro','nigerian','arab','arap','arapka','zhid','zhidov','zhidovsk','jew','jewish','kike','gypsy',
+        'cygan','cyganka','tsygan','tsyganok','tsyg','mongol','mongoloid','viet','vietcong','kambodzha','kambodzhec','kambodzhe',
+        'kambodz','amerikos','pindos','pendos','libeh','liberal','liberast','homik','homo','homosek','homosexual','gay','gey',
+        'lesba','lesbian','trany','transvestite','tranny','gender','genderqueer','feminist','femik','femi','siyons','siyona',
+        'siyonsk','sion','sionist','nazi','hitler','fascist','fashist','fash','stalin','lenin','kommunist','communist','soviet',
+        'sovok','sovkov','sovetsk','rusnya','russkie','katsap','kacap','ukrop','ukri','ukrov','hohol','hohly','hohl','banderlog',
+        'bandera','pnk','pnx','ebal','ebra','ebre','ebrei','evrei','evrey','zhyd','jood','joop','joden','natsik','natsi','nazik',
+        'gestapo','gepapo','schutz','ss','waffen','fat','fatass','faty','fatto','tolst','tolsy','tolsty','thick','thickass','pig',
+        'piggy','swine','cow','cowy','cowlike','obese','obez','obezn','ugly','ugli','uglyface','uglo','zombie','zombi','mutant',
+        'freak','freaks','abomination','ugliness','uglification','weak','weakling','spineless','faint','faintheart','fail','failure'
+    ];
+
+    for (let word of forbiddenWords) {
+        if (normalized.includes(word)) {
+            throw new Error('Никнейм содержит запрещённые слова');
+        }
+    }
+
     const russianBad = /(хуй|хyi|хyй|пидор|пидр|пидар|гандон|шлюха|ебат|ебал|пизд|сука|бля|бляд|даун|дебил|лох|мудак|долбоеб|чмо|олень|козел|свинья|петух|рaк|урод|сволочь|тварь|гнида)/i;
-    if (russianBad.test(newUsername)) throw new Error('Никнейм содержит запрещенные символы');
-    const { data: user } = await window.supabase.from('users').select('username').eq('id', window.userId).single();
+    if (russianBad.test(newUsername)) {
+        throw new Error('Никнейм содержит запрещенные символы');
+    }
+
+    const { data: user } = await window.supabase
+        .from('users')
+        .select('username')
+        .eq('id', window.userId)
+        .single();
     if (!user) throw new Error('Пользователь не найден');
-    if (user.username === newUsername) return { success: true, message: 'Никнейм не изменён' };
-    const { error } = await window.supabase.from('users').update({ username: newUsername, last_username_change: new Date().toISOString() }).eq('id', window.userId);
+    if (user.username === newUsername) {
+        return { success: true, message: 'Никнейм не изменён' };
+    }
+
+    const { error } = await window.supabase
+        .from('users')
+        .update({ username: newUsername, last_username_change: new Date().toISOString() })
+        .eq('id', window.userId);
     if (error) throw new Error(error.message);
+
     if (window.currentUser) window.currentUser.username = newUsername;
     return { success: true, message: 'Никнейм успешно изменён!' };
 };
@@ -248,13 +308,24 @@ window.refreshActiveTab = async function() {
                 window.updateBellBadge, window.showNotificationsModal
             );
             break;
-        case 'stocks': if (window.renderStocksTab) await window.renderStocksTab(window.currentUser); break;
-        case 'analytics': if (window.renderAnalyticsTab) await window.renderAnalyticsTab(); break;
-        case 'rating': if (window.renderRatingTab) await window.renderRatingTab(); break;
-        case 'wallet': if (window.renderWalletTab) await window.renderWalletTab(); break;
-        case 'referral': if (window.renderReferralTab) await window.renderReferralTab(); break;
-        case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
-        case 'games': if (window.renderGamesTab) await window.renderGamesTab(); break;
+        case 'stocks':
+            if (window.renderStocksTab) await window.renderStocksTab(window.currentUser);
+            break;
+        case 'analytics':
+            if (window.renderAnalyticsTab) await window.renderAnalyticsTab();
+            break;
+        case 'rating':
+            if (window.renderRatingTab) await window.renderRatingTab();
+            break;
+        case 'wallet':
+            if (window.renderWalletTab) await window.renderWalletTab();
+            break;
+        case 'referral':
+            if (window.renderReferralTab) await window.renderReferralTab();
+            break;
+        case 'admin':
+            if (window.renderAdminTab) await window.renderAdminTab();
+            break;
     }
 };
 
@@ -315,66 +386,26 @@ window.createOrder = async function(amountStars, priceStars) {
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
     
-    const { user: freshUser } = await window.getOrCreateUser();
-    if (freshUser.shares < amountCents) {
-        throw new Error(`❌ Недостаточно акций: нужно ${amountStars}, у вас ${window.fromCents(freshUser.shares)}`);
+    const { data, error } = await window.supabase.rpc('create_sell_order_matched', {
+        p_user_id: window.userId,
+        p_amount_cents: amountCents,
+        p_price_cents: priceCents
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    
+    const executed = window.fromCents(data.executed_amount || 0);
+    const remaining = window.fromCents(data.remaining_amount || 0);
+    if (executed > 0) {
+        window.showToast(`✅ Частично продано ${executed} шт. по лучшей цене`);
     }
-
-    let remainingAmountCents = amountCents;
-    let totalExecutedCents = 0;
-    let totalReceivedStarsCents = 0;
-
-    while (remainingAmountCents > 0) {
-        const { data: buyOrders, error } = await window.supabase
-            .from('buy_orders')
-            .select('*')
-            .eq('status', 'active')
-            .neq('buyer_id', window.userId)
-            .gte('price_per_share', priceCents)
-            .order('price_per_share', { ascending: false })
-            .limit(1);
-        if (error) throw new Error('Ошибка загрузки ордеров на покупку');
-        if (!buyOrders || buyOrders.length === 0) break;
-
-        const buyOrder = buyOrders[0];
-        const maxMatchCents = Math.min(remainingAmountCents, buyOrder.amount);
-        if (maxMatchCents <= 0) break;
-
-        const { data, error: tradeError } = await window.supabase.rpc('execute_trade_partial_for_buy_order', {
-            p_buy_order_id: buyOrder.id,
-            p_seller_id: window.userId,
-            p_sell_amount_cents: maxMatchCents
-        });
-        if (tradeError) throw new Error(tradeError.message);
-        if (!data.success) throw new Error(data.error);
-
-        remainingAmountCents -= maxMatchCents;
-        totalExecutedCents += maxMatchCents;
-        totalReceivedStarsCents += (maxMatchCents / 100) * buyOrder.price_per_share;
+    if (remaining > 0) {
+        window.showToast(`✅ Запрос на продажу ${remaining} шт. по ${priceStars} ⭐ создан`);
+    } else if (executed === 0) {
+        window.showToast(`✅ Запрос на продажу ${amountStars} шт. по ${priceStars} ⭐ создан`);
     }
-
-    if (remainingAmountCents > 0) {
-        const { error } = await window.supabase
-            .from('orders')
-            .insert({
-                seller_id: window.userId,
-                amount: remainingAmountCents,
-                price_per_share: priceCents,
-                status: 'active',
-                created_at: new Date().toISOString()
-            });
-        if (error) throw new Error(error.message);
-    }
-
     await updateUserStats();
     await checkAllAchievements();
-
-    if (totalExecutedCents > 0) {
-        window.showToast(`✅ Продано ${window.fromCents(totalExecutedCents)} шт., получено ${window.fromCents(totalReceivedStarsCents)} ⭐`);
-    }
-    if (remainingAmountCents > 0) {
-        window.showToast(`✅ Остаток ${window.fromCents(remainingAmountCents)} шт. выставлен как ордер по ${priceStars} ⭐`);
-    }
     return true;
 };
 
@@ -385,68 +416,34 @@ window.createBuyOrder = async function(amountStars, priceStars) {
     const priceCents = window.toCents(priceStars);
     if (amountCents < 100) throw new Error('Минимум 1 акция');
     if (priceCents < 100) throw new Error('Минимум 1 Star');
-
+    
     const { user: freshUser } = await window.getOrCreateUser();
-    const requiredStarsCents = (amountCents / 100) * priceCents;
-    if (freshUser.stars_balance < requiredStarsCents) {
-        throw new Error(`❌ Недостаточно звёзд: нужно ${window.fromCents(requiredStarsCents)} ⭐, у вас ${window.fromCents(freshUser.stars_balance)} ⭐`);
+    window.currentUser = freshUser;
+    const requiredStars = amountStars * priceStars;
+    if (window.currentUser.stars_balance < requiredStars) {
+        throw new Error(`❌ Недостаточно звёзд: нужно ${requiredStars.toFixed(2)} ⭐, у вас ${window.currentUser.stars_balance.toFixed(2)} ⭐`);
     }
-
-    let remainingAmountCents = amountCents;
-    let totalExecutedCents = 0;
-    let totalSpentStarsCents = 0;
-
-    while (remainingAmountCents > 0) {
-        const { data: sellOrders, error } = await window.supabase
-            .from('orders')
-            .select('*')
-            .eq('status', 'active')
-            .neq('seller_id', window.userId)
-            .lte('price_per_share', priceCents)
-            .order('price_per_share', { ascending: true })
-            .limit(1);
-        if (error) throw new Error('Ошибка загрузки ордеров на продажу');
-        if (!sellOrders || sellOrders.length === 0) break;
-
-        const sellOrder = sellOrders[0];
-        const maxMatchCents = Math.min(remainingAmountCents, sellOrder.amount);
-        if (maxMatchCents <= 0) break;
-
-        const { data, error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
-            p_order_id: sellOrder.id,
-            p_buyer_id: window.userId,
-            p_buy_amount_cents: maxMatchCents
-        });
-        if (tradeError) throw new Error(tradeError.message);
-        if (!data.success) throw new Error(data.error);
-
-        remainingAmountCents -= maxMatchCents;
-        totalExecutedCents += maxMatchCents;
-        totalSpentStarsCents += (maxMatchCents / 100) * sellOrder.price_per_share;
+    
+    const { data, error } = await window.supabase.rpc('create_buy_order_matched', {
+        p_user_id: window.userId,
+        p_amount_cents: amountCents,
+        p_price_cents: priceCents
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    
+    const executed = window.fromCents(data.executed_amount || 0);
+    const remaining = window.fromCents(data.remaining_amount || 0);
+    if (executed > 0) {
+        window.showToast(`✅ Частично куплено ${executed} шт. по лучшей цене`);
     }
-
-    if (remainingAmountCents > 0) {
-        const { error } = await window.supabase
-            .from('buy_orders')
-            .insert({
-                buyer_id: window.userId,
-                amount: remainingAmountCents,
-                price_per_share: priceCents,
-                status: 'active',
-                created_at: new Date().toISOString()
-            });
-        if (error) throw new Error(error.message);
+    if (remaining > 0) {
+        window.showToast(`✅ Запрос на покупку ${remaining} шт. по ${priceStars} ⭐ создан`);
+    } else if (executed === 0) {
+        window.showToast(`✅ Запрос на покупку ${amountStars} шт. по ${priceStars} ⭐ создан`);
     }
-
     await updateUserStats();
     await checkAllAchievements();
-
-    if (totalExecutedCents > 0) {
-        window.showToast(`✅ Куплено ${window.fromCents(totalExecutedCents)} шт., потрачено ${window.fromCents(totalSpentStarsCents)} ⭐`);
-    }
-    if (remainingAmountCents > 0) {
-        window.showToast(`✅ Остаток ${window.fromCents(remainingAmountCents)} шт. выставлен как заявка на покупку по ${priceStars} ⭐`);
-    }
     return true;
 };
 
@@ -662,52 +659,4 @@ window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52
     else if (size === '36px') fontSize = '22px';
     else fontSize = `calc(${size} * 0.6)`;
     return `<div class="mini-avatar" style="width:${size}; height:${size}; background:${bgColor}; border:2px solid ${borderColor}; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:${fontSize}; box-shadow:0 2px 6px rgba(0,0,0,0.3); flex-shrink:0;"><span>${emoji}</span></div>`;
-};
-
-// ========== ФУНКЦИИ ДЛЯ ИГР (дополнительные) ==========
-window.getBotBudget = async function() {
-    const { data, error } = await window.supabase.from('bot_budget').select('balance_cents').eq('id', 1).single();
-    if (error || !data) {
-        await window.supabase.from('bot_budget').insert({ id: 1, balance_cents: 100000 });
-        return 100000;
-    }
-    return data.balance_cents;
-};
-
-window.updateBotBudget = async function(newBalanceCents) {
-    await window.supabase.from('bot_budget').update({ balance_cents: newBalanceCents, updated_at: new Date().toISOString() }).eq('id', 1);
-};
-
-window.getUserGameStats = async function(userId) {
-    const { data, error } = await window.supabase.from('user_game_stats').select('*').eq('user_id', userId).single();
-    if (error || !data) {
-        const defaultStats = {
-            user_id: userId,
-            global_skill_score: 500,
-            daily_win_streak: 0,
-            daily_total_won_cents: 0,
-            last_reset_date: new Date().toISOString().slice(0,10),
-            total_games_played: 0,
-            total_wins: 0
-        };
-        await window.supabase.from('user_game_stats').insert(defaultStats);
-        return defaultStats;
-    }
-    return data;
-};
-
-window.updateUserGameStats = async function(userId, updates) {
-    await window.supabase.from('user_game_stats').update(updates).eq('user_id', userId);
-};
-
-window.logGame = async function(userId, gameType, betCents, winCents, userChoice, botChoice, result) {
-    await window.supabase.from('game_logs').insert({
-        user_id: userId,
-        game_type: gameType,
-        bet_cents: betCents,
-        win_cents: winCents,
-        user_choice: userChoice,
-        bot_choice: botChoice,
-        result: result
-    });
 };
