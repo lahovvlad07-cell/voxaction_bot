@@ -33,7 +33,6 @@
         <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
         <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
         <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
-        <div class="tab" data-tab="games"><div class="tab-icon">🎮</div><div class="tab-label">Игры</div></div>
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
 </div>
@@ -62,11 +61,9 @@
 <script src="wallet.js"></script>
 <script src="referral.js"></script>
 <script src="admin.js"></script>
-<script src="games.js"></script>
 
 <script>
     (async () => {
-        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНЫ) ==========
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
@@ -90,7 +87,9 @@
             const closeModal = () => modal.remove();
             document.getElementById('closeCustomModal').onclick = closeModal;
             document.getElementById('customModalOkBtn').onclick = closeModal;
-            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
         };
         
         window.showToast = function(message) {
@@ -101,7 +100,14 @@
             setTimeout(() => toast.remove(), 5000);
         };
         
-        // ========== ИНИЦИАЛИЗАЦИЯ TELEGRAM ==========
+        const tabsWrapper = document.querySelector('.tabs-wrapper');
+        let isDown = false, startX, scrollLeft;
+        if (tabsWrapper) {
+            tabsWrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - tabsWrapper.offsetLeft; scrollLeft = tabsWrapper.scrollLeft; tabsWrapper.style.cursor = 'grabbing'; });
+            window.addEventListener('mouseup', () => { isDown = false; tabsWrapper.style.cursor = 'grab'; });
+            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - tabsWrapper.offsetLeft; const walk = (x - startX) * 2; tabsWrapper.scrollLeft = scrollLeft - walk; });
+        }
+        
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
         window.tg = tg;
@@ -113,20 +119,90 @@
         }
         if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
-        // ========== SUPABASE ==========
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
-        // ========== НАСТРОЙКИ (НА ВРЕМЯ ВОССТАНОВЛЕНИЯ – ПУСТАЯ ФУНКЦИЯ) ==========
         async function renderSettingsTab() {
-            // Минимальная реализация, чтобы не падало
-            document.getElementById('app').innerHTML = '<div class="card"><h2>⚙️ Настройки</h2><p>Временно недоступно</p><button onclick="location.reload()">Обновить</button></div>';
+            const hideRating = window.currentUser.hide_rating || false;
+            const customColor = localStorage.getItem('custom_color') || '#2b6e9e';
+            const notifyTrades = window.currentUser.notify_trades ?? true;
+            const notifyTopup = window.currentUser.notify_topup ?? true;
+            const notifyReferral = window.currentUser.notify_referral ?? true;
+            const username = window.currentUser.username || '';
+            const useSliders = window.getUseSliders ? window.getUseSliders() : true;
+            
+            const html = `
+                <div class="card">
+                    <h2>⚙️ Настройки</h2>
+                    <div style="margin: 16px 0;">
+                        <div class="small-text" style="margin-bottom: 4px;">Текущий никнейм</div>
+                        <div style="font-size: 18px; font-weight: bold;">${escapeHtml(username)}</div>
+                    </div>
+                    <div>
+                        <div class="small-text" style="margin-bottom: 4px;">Новый никнейм</div>
+                        <input type="text" id="newUsernameInput" placeholder="Новый никнейм" maxlength="20">
+                        <button id="changeUsernameBtn" style="margin-top: 8px;">Изменить никнейм</button>
+                    </div>
+                    <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.1);">
+                    <label><input type="checkbox" id="hideRatingCheckbox" ${hideRating?'checked':''}> Скрыть из рейтинга</label><br><br>
+                    <label><input type="checkbox" id="useSlidersCheckbox" ${useSliders ? 'checked' : ''}> Использовать слайдеры в формах продажи/покупки</label><br><br>
+                    <div><strong>Уведомления от бота:</strong></div>
+                    <label><input type="checkbox" id="notifyTradesCheckbox" ${notifyTrades?'checked':''}> О сделках</label><br>
+                    <label><input type="checkbox" id="notifyTopupCheckbox" ${notifyTopup?'checked':''}> О пополнении</label><br>
+                    <label><input type="checkbox" id="notifyReferralCheckbox" ${notifyReferral?'checked':''}> О рефералах</label><br><br>
+                    <div><strong>Цвет акцента:</strong></div>
+                    <input type="color" id="colorPicker" value="${customColor}" style="width:60px; padding:0;"><br>
+                    <button id="saveSettings" style="margin-top: 12px;">Сохранить</button>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+            
+            document.getElementById('colorPicker').addEventListener('input', (e) => document.documentElement.style.setProperty('--accent', e.target.value));
+            document.getElementById('saveSettings').onclick = async () => {
+                const newHide = document.getElementById('hideRatingCheckbox').checked;
+                const newColor = document.getElementById('colorPicker').value;
+                const newUseSliders = document.getElementById('useSlidersCheckbox').checked;
+                localStorage.setItem('custom_color', newColor);
+                document.documentElement.style.setProperty('--accent', newColor);
+                if (window.setUseSliders) window.setUseSliders(newUseSliders);
+                await window.supabase.from('users').update({ 
+                    hide_rating: newHide, 
+                    notify_trades: document.getElementById('notifyTradesCheckbox').checked, 
+                    notify_topup: document.getElementById('notifyTopupCheckbox').checked, 
+                    notify_referral: document.getElementById('notifyReferralCheckbox').checked 
+                }).eq('id', window.userId);
+                window.currentUser.hide_rating = newHide;
+                window.showCustomModal('Успех', 'Настройки сохранены');
+                if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
+                    await window.renderStocksTab(window.currentUser);
+                }
+            };
+            
+            document.getElementById('changeUsernameBtn')?.addEventListener('click', async () => {
+                const newUsername = document.getElementById('newUsernameInput').value.trim();
+                if (!newUsername) {
+                    window.showCustomModal('Ошибка', 'Введите новый никнейм');
+                    return;
+                }
+                try {
+                    const result = await window.updateUsername(newUsername);
+                    window.showCustomModal('Успех', result.message);
+                    if (result.success && window.currentUser.username !== newUsername) {
+                        window.currentUser.username = newUsername;
+                        await renderSettingsTab();
+                        if (document.querySelector('.tab.active').dataset.tab === 'stocks' && window.renderStocksTab) {
+                            await window.renderStocksTab(window.currentUser);
+                        }
+                    }
+                } catch(err) {
+                    window.showCustomModal('Ошибка', err.message);
+                }
+            });
         }
         
-        // ========== ЗАПУСК ==========
         try {
             const { user, isNew } = await window.getOrCreateUser();
             window.currentUser = user;
@@ -157,7 +233,6 @@
             return;
         }
         
-        // ========== ОБРАБОТЧИКИ КНОПОК ==========
         document.getElementById('headerNotificationBell')?.addEventListener('click', () => { if (window.showNotificationsModal) window.showNotificationsModal(); });
         document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
         
@@ -177,7 +252,6 @@
                 else if(tabName === 'wallet') await window.renderWalletTab();
                 else if(tabName === 'referral') await window.renderReferralTab();
                 else if(tabName === 'admin') await window.renderAdminTab();
-                else if(tabName === 'games') await window.renderGamesTab();
             });
         });
     })();
