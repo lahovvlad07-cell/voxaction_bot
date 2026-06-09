@@ -1,4 +1,4 @@
-/* stocks.css – финальная улучшенная версия */
+/* stocks.css – финальная версия с аккуратным визуалом */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -97,7 +97,7 @@
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
 }
-/* Сворачиваемый блок фильтров */
+/* Аккордеон для фильтров */
 .filter-accordion-header {
     display: flex;
     justify-content: space-between;
@@ -158,7 +158,7 @@
     border-color: transparent;
     box-shadow: 0 4px 10px rgba(43,110,158,0.4);
 }
-/* Аккордеоны для ордеров */
+/* Аккордеоны для моих ордеров */
 .accordion-section {
     overflow: hidden;
     transition: all 0.2s;
@@ -203,6 +203,12 @@
 .accordion-content.expanded {
     max-height: 1200px;
     padding-top: 12px;
+}
+.empty-orders {
+    text-align: center;
+    padding: 20px;
+    color: #9ca3af;
+    font-style: italic;
 }
 .cancel-all-btn {
     background: rgba(220,38,38,0.2);
@@ -365,7 +371,7 @@ button:active {
     text-align: center;
     margin-bottom: 12px;
 }
-/* Таблица истории ордеров (полное центрирование) */
+/* Таблица истории ордеров */
 .history-table {
     width: 100%;
     border-collapse: collapse;
