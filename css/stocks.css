@@ -1,62 +1,59 @@
-/* stocks.css – только для вкладки Акции, не переопределяет глобальные стили */
-.stocks-container {
-    padding: 0;
-}
-.stocks-balance-row {
+/* stocks.css – простая, стабильная версия, не мешает другим вкладкам */
+.balance-row {
     display: flex;
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 20px;
 }
-.stocks-balance-item {
+.balance-item {
     flex: 1;
     background: rgba(0,0,0,0.3);
     border-radius: 24px;
     padding: 12px;
     text-align: center;
 }
-.stocks-balance-item .label {
+.balance-item .label {
     font-size: 13px;
     color: #9ca3af;
 }
-.stocks-balance-item .value {
+.balance-item .value {
     font-size: 22px;
     font-weight: 800;
     margin-top: 4px;
     color: #eef2ff;
 }
-.stocks-market-buttons {
+.market-buttons {
     display: flex;
     gap: 12px;
     margin: 16px 0;
 }
-.stocks-market-buttons button {
+.market-buttons button {
     flex: 1;
 }
-.stocks-info-panel {
+.info-panel {
     display: flex;
     gap: 12px;
     margin: 20px 0;
 }
-.stocks-info-card {
+.info-card {
     flex: 1;
     background: rgba(0,0,0,0.3);
     border-radius: 20px;
     padding: 12px;
     text-align: center;
 }
-.stocks-info-card .price {
+.info-card .price {
     font-size: 18px;
     font-weight: 700;
     margin-top: 6px;
     color: #eef2ff;
 }
-.stocks-timeframe-buttons {
+.timeframe-buttons {
     display: flex;
     gap: 10px;
     margin: 20px 0;
 }
-.stocks-timeframe-btn {
+.timeframe-btn {
     flex: 1;
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(56,189,248,0.3);
@@ -64,25 +61,25 @@
     border-radius: 40px;
     cursor: pointer;
 }
-.stocks-timeframe-btn.active {
+.timeframe-btn.active {
     background: #2b6e9e;
     color: white;
 }
-.stocks-refresh-btn {
+#refreshChartBtn {
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(56,189,248,0.3);
     padding: 8px 16px;
     border-radius: 40px;
     cursor: pointer;
 }
-.stocks-chart-container {
+.chart-container {
     background: #0f1320;
     border-radius: 20px;
     padding: 8px;
     height: 200px;
     margin: 16px 0;
 }
-.stocks-ticker {
+.ticker {
     background: rgba(0,0,0,0.3);
     border-radius: 60px;
     padding: 8px 16px;
@@ -90,39 +87,39 @@
     white-space: nowrap;
     margin: 16px 0;
 }
-.stocks-order-card {
+.order-card {
     background: rgba(0,0,0,0.5);
     border-radius: 20px;
     padding: 12px;
     margin-bottom: 10px;
 }
-.stocks-order-card-header {
+.order-card-header {
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
 }
-.stocks-order-price-big {
+.order-price-big {
     font-size: 20px;
     font-weight: bold;
 }
-.stocks-buy-btn, .stocks-cancel-btn {
+.buy-btn, .cancel-btn-small {
     background: rgba(56,189,248,0.2);
     border: none;
     padding: 6px 16px;
     border-radius: 40px;
     cursor: pointer;
 }
-.stocks-history-table {
+.history-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
 }
-.stocks-history-table th, .stocks-history-table td {
+.history-table th, .history-table td {
     padding: 8px 4px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 @media (max-width: 560px) {
-    .stocks-balance-row, .stocks-market-buttons, .stocks-info-panel {
+    .balance-row, .market-buttons, .info-panel {
         flex-direction: column;
         gap: 8px;
     }
