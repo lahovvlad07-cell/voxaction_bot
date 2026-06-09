@@ -1,15 +1,15 @@
-// stocks.js – финальная версия с пагинацией ордеров, удалёнными "последними сделками", центровкой таблицы
+// stocks.js – финальная версия с пагинацией, аккордеонами, сворачиваемыми фильтрами
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
 let realtimeChannel = null;
 
-// Пагинация для ордеров (чужие)
+// Пагинация для ордеров
 let currentOrdersPage = 1;
 const ORDERS_PER_PAGE = 10;
-let filteredOrders = []; // храним отфильтрованные и отсортированные ордера
+let filteredOrders = [];
 
-// ========== График ==========
+// ========== ГРАФИК ==========
 window.fetchPriceHistoryForTimeframe = async function(timeframe) {
     let startDate = new Date();
     if (timeframe === '1d') startDate.setDate(startDate.getDate() - 1);
@@ -83,7 +83,7 @@ function drawCanvasChartWithAxes(history) {
     }
 }
 
-// ========== Тикер ==========
+// ========== ТИКЕР ==========
 async function updateTicker() {
     const trades = await window.getRecentTrades(10);
     const container = document.getElementById('ticker');
@@ -96,7 +96,7 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Рыночная покупка ==========
+// ========== РЫНОЧНЫЕ СДЕЛКИ ==========
 async function marketBuy(starsAmountStars) {
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
@@ -145,7 +145,6 @@ async function marketBuy(starsAmountStars) {
     await window.refreshActiveTab();
 }
 
-// ========== Рыночная продажа ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
@@ -173,7 +172,7 @@ async function marketSell(sharesAmountStars) {
     }
 }
 
-// ========== Стакан заявок (лучшие 3) ==========
+// ========== СТАКАН ЗАЯВОК ==========
 async function renderOrderBook() {
     const { data: sellsRaw } = await window.supabase
         .from('orders')
@@ -234,7 +233,7 @@ async function renderOrderBook() {
     if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="small-text" style="text-align:center;">Нет заявок на покупку</p>';
 }
 
-// ========== История завершённых ордеров (5 записей) ==========
+// ========== ИСТОРИЯ ОРДЕРОВ ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase
         .from('orders')
@@ -274,7 +273,7 @@ function renderOrderHistory(orders) {
     container.innerHTML = tableHtml;
 }
 
-// ========== Мои ордера на покупку ==========
+// ========== МОИ ОРДЕРА НА ПОКУПКУ ==========
 async function loadMyBuyOrders() {
     const { data, error } = await window.supabase
         .from('buy_orders')
@@ -286,7 +285,7 @@ async function loadMyBuyOrders() {
     return data || [];
 }
 
-// ========== Отмена всех ордеров на продажу ==========
+// ========== ОТМЕНА ОРДЕРОВ ==========
 async function cancelAllSellOrders() {
     const { data: orders, error } = await window.supabase
         .from('orders')
@@ -305,7 +304,6 @@ async function cancelAllSellOrders() {
     await window.refreshActiveTab();
 }
 
-// ========== Отмена всех ордеров на покупку ==========
 async function cancelAllBuyOrders() {
     const { data: orders, error } = await window.supabase
         .from('buy_orders')
@@ -318,13 +316,12 @@ async function cancelAllBuyOrders() {
         return;
     }
     for (let order of orders) {
-        await window.cancelBuyOrder(order.id);
+        await cancelBuyOrder(order.id);
     }
     window.showToast(`✅ Отменено ${orders.length} заявок на покупку`);
     await window.refreshActiveTab();
 }
 
-// ========== Отмена ордера на покупку (одного) ==========
 async function cancelBuyOrder(buyOrderId) {
     const { data, error } = await window.supabase.rpc('cancel_buy_order', {
         p_buy_order_id: buyOrderId,
@@ -335,7 +332,7 @@ async function cancelBuyOrder(buyOrderId) {
     return true;
 }
 
-// ========== Формы ==========
+// ========== ФОРМЫ ==========
 function renderSellForm() {
     const useSliders = window.getUseSliders ? window.getUseSliders() : true;
     if (useSliders) {
@@ -390,11 +387,9 @@ function renderBuyLimitForm() {
     }
 }
 
-// ========== Загрузка ордеров с именами продавцов ==========
+// ========== ЗАГРУЗКА ОРДЕРОВ ==========
 async function loadOrdersWithSellers() {
-    let orders = [];
-    if (currentOrdersFilter === 'all') orders = await window.getActiveOrders();
-    else orders = await window.getUserOrders();
+    let orders = await window.getActiveOrders();
     if (!orders.length) return [];
     const sellerIds = [...new Set(orders.map(o => o.seller_id))];
     const { data: users } = await window.supabase
@@ -411,15 +406,15 @@ async function loadOrdersWithSellers() {
     return orders;
 }
 
-// ========== Отрисовка списка ордеров (чужие) с пагинацией ==========
+// ========== ОТРИСОВКА СПИСКА ОРДЕРОВ (ВСЕ, БЕЗ ФИЛЬТРА "ЧУЖИЕ") ==========
 function renderOrdersList(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
     
-    // Фильтруем свои ордера (если нужно)
-    let filtered = orders.filter(o => o.seller_id !== window.userId);
+    // Показываем ВСЕ активные ордера (и свои, и чужие)
+    let filtered = [...orders];
     if (!filtered.length) {
-        container.innerHTML = '<p class="empty-orders" style="text-align:center;">Нет ордеров для отображения</p>';
+        container.innerHTML = '<p class="empty-orders" style="text-align:center;">Нет активных ордеров</p>';
         document.getElementById('ordersPagination')?.remove();
         return;
     }
@@ -553,7 +548,7 @@ function showBuyModal(order) {
     };
 }
 
-// ========== Подписка на реалтайм ==========
+// ========== РЕАЛТАЙМ ==========
 function subscribeToRealtime() {
     if (realtimeChannel) return;
     realtimeChannel = window.supabase
@@ -584,10 +579,9 @@ window.renderStocksTab = async function(currentUser) {
         const avg24h = await window.get24hAvgPrice();
         const orderHistory = await loadOrderHistory();
         
-        // Сброс пагинации при смене фильтра
+        // Сброс пагинации
         currentOrdersPage = 1;
         
-        // Базовый HTML (верхняя часть)
         let html = `
             <div class="card">
                 <div class="balance-row">
@@ -650,14 +644,20 @@ window.renderStocksTab = async function(currentUser) {
             </div>
         `;
 
-        // Список чужих ордеров (с пагинацией)
+        // Блок с фильтрами (аккордеон) и списком ордеров
         html += `
             <div class="card">
-                <div class="filter-bar">
-                    <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все (чужие)</button>
-                    <button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои ордера</button>
-                    <button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена</button>
-                    <button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена</button>
+                <div class="filter-accordion-header" id="filterAccordionHeader">
+                    <div>📋 Фильтры и сортировка</div>
+                    <div class="accordion-icon" id="filterAccordionIcon">▼</div>
+                </div>
+                <div id="filterAccordionContent" class="filter-accordion-content collapsed">
+                    <div class="filter-bar">
+                        <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button>
+                        <button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои ордера</button>
+                        <button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена</button>
+                        <button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена</button>
+                    </div>
                 </div>
                 <h3>📋 Ордера на продажу</h3>
                 <div id="ordersList"></div>
@@ -673,7 +673,7 @@ window.renderStocksTab = async function(currentUser) {
         await renderOrderBook();
         renderOrderHistory(orderHistory);
 
-        // Заполнение моих ордеров на продажу
+        // Мои ордера на продажу
         if (myOrders.length) {
             const myDiv = document.getElementById('myOrdersList');
             myDiv.innerHTML = myOrders.map(order => `
@@ -701,7 +701,7 @@ window.renderStocksTab = async function(currentUser) {
             });
         }
 
-        // Заполнение моих ордеров на покупку
+        // Мои заявки на покупку
         if (myBuyOrders.length) {
             const buyDiv = document.getElementById('myBuyOrdersList');
             buyDiv.innerHTML = myBuyOrders.map(order => `
@@ -729,7 +729,7 @@ window.renderStocksTab = async function(currentUser) {
             });
         }
 
-        // Кнопки "Отменить все продажи" и "Отменить все покупки"
+        // Кнопки "Отменить все"
         document.getElementById('cancelAllSellsBtn')?.addEventListener('click', async () => {
             if (confirm('Отменить ВСЕ активные ордера на продажу?')) {
                 try {
@@ -749,7 +749,7 @@ window.renderStocksTab = async function(currentUser) {
             }
         });
 
-        // Аккордеон: сворачивание/разворачивание
+        // Аккордеон для моих ордеров
         document.querySelectorAll('.accordion-header').forEach(header => {
             header.addEventListener('click', () => {
                 const targetId = header.dataset.target;
@@ -767,36 +767,51 @@ window.renderStocksTab = async function(currentUser) {
             });
         });
 
-        // Рендер ордеров (чужие) с пагинацией
-        renderOrdersList(allOrders);
+        // Аккордеон для фильтров
+        const filterHeader = document.getElementById('filterAccordionHeader');
+        const filterContent = document.getElementById('filterAccordionContent');
+        const filterIcon = document.getElementById('filterAccordionIcon');
+        if (filterHeader && filterContent && filterIcon) {
+            filterHeader.addEventListener('click', () => {
+                if (filterContent.classList.contains('collapsed')) {
+                    filterContent.classList.remove('collapsed');
+                    filterContent.classList.add('expanded');
+                    filterIcon.innerHTML = '▲';
+                } else {
+                    filterContent.classList.remove('expanded');
+                    filterContent.classList.add('collapsed');
+                    filterIcon.innerHTML = '▼';
+                }
+            });
+        }
 
-        // Обработчики фильтров и сортировки (сброс пагинации)
+        // Обработчики фильтров и сортировки
         document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentOrdersFilter = btn.dataset.filter;
             currentOrdersPage = 1;
-            const newOrders = await loadOrdersWithSellers();
             if (currentOrdersFilter === 'all') {
-                renderOrdersList(newOrders);
+                renderOrdersList(allOrders);
             } else {
-                const myFiltered = newOrders.filter(o => o.seller_id === window.userId);
+                const myFiltered = allOrders.filter(o => o.seller_id === window.userId);
                 renderOrdersList(myFiltered);
             }
-            await window.renderStocksTab(currentUser);
         }));
         
         document.querySelectorAll('.sort-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentSortDir = btn.dataset.sort;
             currentOrdersPage = 1;
-            const newOrders = await loadOrdersWithSellers();
             if (currentOrdersFilter === 'all') {
-                renderOrdersList(newOrders);
+                renderOrdersList(allOrders);
             } else {
-                const myFiltered = newOrders.filter(o => o.seller_id === window.userId);
+                const myFiltered = allOrders.filter(o => o.seller_id === window.userId);
                 renderOrdersList(myFiltered);
             }
-            await window.renderStocksTab(currentUser);
         }));
 
+        // Первоначальный рендер списка ордеров (все)
+        renderOrdersList(allOrders);
+
+        // Остальные обработчики (таймфреймы и т.д.)
         document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentTimeframe = btn.dataset.tf;
             await window.renderStocksTab(currentUser);
