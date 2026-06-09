@@ -1,4 +1,3 @@
-// api.js – полная рабочая версия
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -213,20 +212,14 @@ window.getUserStats = async function(forceRefresh = false) {
 
 // ========== СМЕНА НИКНЕЙМА ==========
 window.updateUsername = async function(newUsername) {
-    if (!newUsername || newUsername.trim().length < 3) throw new Error('Никнейм должен содержать минимум 3 символа');
-    if (newUsername.length > 20) throw new Error('Никнейм не может быть длиннее 20 символов');
-    if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) throw new Error('Никнейм может содержать только латинские буквы, цифры, _ и -');
-    let normalized = newUsername.toLowerCase();
-    normalized = normalized.replace(/0/g, 'o').replace(/1/g, 'i').replace(/2/g, 'z').replace(/3/g, 'e')
-        .replace(/4/g, 'a').replace(/5/g, 's').replace(/6/g, 'g').replace(/7/g, 't')
-        .replace(/8/g, 'b').replace(/9/g, 'g').replace(/\$/g, 's').replace(/@/g, 'a').replace(/\+/g, 't');
-    const forbiddenWords = ['blya','blyat','ebat','ebal','ebuch','eblan','pizda','pizdec','pizduk','huy','huylo','hueta','huinya','pidor','pidaras','pidr','pedik','pedal','gondon','gandon','mudak','mudilo','mudack','mudozvon','svoloch','suka','sukin','sukablya','tvar','tvarina','gnida','gnilida','shluha','shluh','prostitutka','kurva','kuryok','kurok','lopuh','loh','lox','loch','chmo','chmok','chmonya','olen','baran','kozel','svinya','petuh','durak','duren','dolboeb','dolbaeb','dolboyob','dolboyeb','rak','rakovina','zhopa','zhopnik','zadnica','shmarovoz','shmaruhoz','pischa','pizd','piz','pizdets','huyak','huyata','khuy','khui','khnya','hnya','yob','yoba','yoban','yobat','yobt','yop','yopt','yopta','perehot','perehod','nahuy','nahui','pohuy','pohui','huyovo','huyota','huil','huilo','huilam','huilom','gavno','govno','gavnyuk','govnuk','srat','srano','sral','srak','srach','zrit','zral','zralnya','peder','pederast','pederasty','pedofil','pedo','pedophile','incest','insest','inkest','nympho','nymphoman','zoophile','zoophil','bestial','bestiality','perv','pervert','izvrash','izvraschen','sodom','sodomit','sodomite','bugger','fuck','fucking','fucker','fuk','fuq','fkc','phuck','fcuk','shet','sht','shat','shit','shitting','shitty','shite','bullshit','horseshit','bitch','bitching','bitches','bich','bch','btch','cunt','cunting','cunts','kunt','dick','dickhead','dickweed','dickhole','dickface','dicknose','diq','dyck','pussy','pusy','puss','pussie','puzi','nigger','nigga','niggar','niga','niger','neger','nig','nigg','faggot','fag','fagg','fagot','fagit','faget','faggo','fagga','retard','retarded','retart','retad','retrd','moron','moronic','stupid','stoopid','dumbass','dumass','dumb','dum','whore','whoring','hoar','hore','ho','slut','slutty','slutt','bastard','bastrd','bastid','wanker','wank','wanksta','twat','twatted','twatface','cock','cocksucker','cocksuk','coksucker','motherfucker','mothafucka','muthafucka','motherfuck','mofo','douchebag','douche','douch','shithead','shitbag','shitface','fuckface','asshole','asswipe','asshat','assface','assole','ass','arse','arsehole','arsewipe','bollocks','balls','ballbag','dickweed','dicknose','prick','prk','prickhead','turd','turdman','turdburglar','crap','crappy','crapface','piss','pissed','pisser','pissface','screw','screwed','screwup','loser','noob','noobish','churka','churkan','hach','hachik','khach','khachik','niger','nigeria','negro','nigerian','arab','arap','arapka','zhid','zhidov','zhidovsk','jew','jewish','kike','gypsy','cygan','cyganka','tsygan','tsyganok','tsyg','mongol','mongoloid','viet','vietcong','kambodzha','kambodzhec','kambodzhe','kambodz','amerikos','pindos','pendos','libeh','liberal','liberast','homik','homo','homosek','homosexual','gay','gey','lesba','lesbian','trany','transvestite','tranny','gender','genderqueer','feminist','femik','femi','siyons','siyona','siyonsk','sion','sionist','nazi','hitler','fascist','fashist','fash','stalin','lenin','kommunist','communist','soviet','sovok','sovkov','sovetsk','rusnya','russkie','katsap','kacap','ukrop','ukri','ukrov','hohol','hohly','hohl','banderlog','bandera','pnk','pnx','ebal','ebra','ebre','ebrei','evrei','evrey','zhyd','jood','joop','joden','natsik','natsi','nazik','gestapo','gepapo','schutz','ss','waffen','fat','fatass','faty','fatto','tolst','tolsy','tolsty','thick','thickass','pig','piggy','swine','cow','cowy','cowlike','obese','obez','obezn','ugly','ugli','uglyface','uglo','zombie','zombi','mutant','freak','freaks','abomination','ugliness','uglification','weak','weakling','spineless','faint','faintheart','fail','failure'];
-    for (let word of forbiddenWords) { if (normalized.includes(word)) throw new Error('Никнейм содержит запрещённые слова'); }
-    const russianBad = /(хуй|хyi|хyй|пидор|пидр|пидар|гандон|шлюха|ебат|ебал|пизд|сука|бля|бляд|даун|дебил|лох|мудак|долбоеб|чмо|олень|козел|свинья|петух|рaк|урод|сволочь|тварь|гнида)/i;
-    if (russianBad.test(newUsername)) throw new Error('Никнейм содержит запрещенные символы');
+    if (!newUsername || newUsername.trim().length < 3) throw new Error('Минимум 3 символа');
+    if (newUsername.length > 20) throw new Error('Не длиннее 20 символов');
+    if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) throw new Error('Только латиница, цифры, _ и -');
+    
     const { data: user } = await window.supabase.from('users').select('username').eq('id', window.userId).single();
     if (!user) throw new Error('Пользователь не найден');
     if (user.username === newUsername) return { success: true, message: 'Никнейм не изменён' };
+    
     const { error } = await window.supabase.from('users').update({ username: newUsername, last_username_change: new Date().toISOString() }).eq('id', window.userId);
     if (error) throw new Error(error.message);
     if (window.currentUser) window.currentUser.username = newUsername;
@@ -254,36 +247,18 @@ window.refreshActiveTab = async function() {
         case 'wallet': if (window.renderWalletTab) await window.renderWalletTab(); break;
         case 'referral': if (window.renderReferralTab) await window.renderReferralTab(); break;
         case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
+        case 'games': if (window.renderGamesTab) await window.renderGamesTab(); break;
     }
 };
 
 // ========== СРЕДНЕВЗВЕШЕННАЯ ЦЕНА ЗА 24 ЧАСА ==========
 window.get24hAvgPrice = async function() {
     const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const { data, error } = await window.supabase
-        .from('trades')
-        .select('amount, price_per_share')
-        .gte('created_at', oneDayAgo);
+    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').gte('created_at', oneDayAgo);
     if (error || !data || data.length === 0) return 0;
     let totalAmount = 0, totalStars = 0;
-    for (let t of data) {
-        totalAmount += t.amount;
-        totalStars += t.amount * t.price_per_share;
-    }
+    for (let t of data) { totalAmount += t.amount; totalStars += t.amount * t.price_per_share; }
     return totalAmount ? totalStars / totalAmount / 100 : 0;
-};
-
-// ========== ИСТОРИЯ ЗАВЕРШЁННЫХ ОРДЕРОВ ==========
-window.getCompletedOrders = async function(limit = 10) {
-    const { data, error } = await window.supabase
-        .from('orders')
-        .select('*')
-        .eq('seller_id', window.userId)
-        .in('status', ['completed', 'cancelled'])
-        .order('created_at', { ascending: false })
-        .limit(limit);
-    if (error) throw new Error(error.message);
-    return data || [];
 };
 
 // ========== ОРДЕРА И СДЕЛКИ ==========
@@ -307,145 +282,46 @@ window.cancelOrder = async function(orderId) {
 };
 
 window.createOrder = async function(amountStars, priceStars) {
-    if (amountStars < 1) throw new Error('Количество должно быть ≥ 1 акции');
-    if (priceStars < 1) throw new Error('Цена должна быть ≥ 1 Star');
+    if (amountStars < 1) throw new Error('Количество должно быть ≥ 1');
+    if (priceStars < 1) throw new Error('Цена должна быть ≥ 1');
     const amountCents = window.toCents(amountStars);
     const priceCents = window.toCents(priceStars);
-    if (amountCents < 100) throw new Error('Минимум 1 акция');
-    if (priceCents < 100) throw new Error('Минимум 1 Star');
     
-    const { user: freshUser } = await window.getOrCreateUser();
-    if (freshUser.shares < amountCents) {
-        throw new Error(`❌ Недостаточно акций: нужно ${amountStars}, у вас ${window.fromCents(freshUser.shares)}`);
-    }
-
-    let remainingAmountCents = amountCents;
-    let totalExecutedCents = 0;
-    let totalReceivedStarsCents = 0;
-
-    while (remainingAmountCents > 0) {
-        const { data: buyOrders, error } = await window.supabase
-            .from('buy_orders')
-            .select('*')
-            .eq('status', 'active')
-            .neq('buyer_id', window.userId)
-            .gte('price_per_share', priceCents)
-            .order('price_per_share', { ascending: false })
-            .limit(1);
-        if (error) throw new Error('Ошибка загрузки ордеров на покупку');
-        if (!buyOrders || buyOrders.length === 0) break;
-
-        const buyOrder = buyOrders[0];
-        const maxMatchCents = Math.min(remainingAmountCents, buyOrder.amount);
-        if (maxMatchCents <= 0) break;
-
-        const { data, error: tradeError } = await window.supabase.rpc('execute_trade_partial_for_buy_order', {
-            p_buy_order_id: buyOrder.id,
-            p_seller_id: window.userId,
-            p_sell_amount_cents: maxMatchCents
-        });
-        if (tradeError) throw new Error(tradeError.message);
-        if (!data.success) throw new Error(data.error);
-
-        remainingAmountCents -= maxMatchCents;
-        totalExecutedCents += maxMatchCents;
-        totalReceivedStarsCents += (maxMatchCents / 100) * buyOrder.price_per_share;
-    }
-
-    if (remainingAmountCents > 0) {
-        const { error } = await window.supabase
-            .from('orders')
-            .insert({
-                seller_id: window.userId,
-                amount: remainingAmountCents,
-                price_per_share: priceCents,
-                status: 'active',
-                created_at: new Date().toISOString()
-            });
-        if (error) throw new Error(error.message);
-    }
-
+    const { data, error } = await window.supabase.rpc('create_sell_order_matched', {
+        p_user_id: window.userId,
+        p_amount_cents: amountCents,
+        p_price_cents: priceCents
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    if (data.executed_amount > 0) window.showToast(`✅ Продано ${window.fromCents(data.executed_amount)} шт.`);
+    if (data.remaining_amount > 0) window.showToast(`✅ Остаток ${window.fromCents(data.remaining_amount)} шт. в ордере`);
     await updateUserStats();
     await checkAllAchievements();
-
-    if (totalExecutedCents > 0) {
-        window.showToast(`✅ Продано ${window.fromCents(totalExecutedCents)} шт., получено ${window.fromCents(totalReceivedStarsCents)} ⭐`);
-    }
-    if (remainingAmountCents > 0) {
-        window.showToast(`✅ Остаток ${window.fromCents(remainingAmountCents)} шт. выставлен как ордер по ${priceStars} ⭐`);
-    }
     return true;
 };
 
 window.createBuyOrder = async function(amountStars, priceStars) {
-    if (amountStars < 1) throw new Error('Количество должно быть ≥ 1 акции');
-    if (priceStars < 1) throw new Error('Цена должна быть ≥ 1 Star');
+    if (amountStars < 1) throw new Error('Количество должно быть ≥ 1');
+    if (priceStars < 1) throw new Error('Цена должна быть ≥ 1');
     const amountCents = window.toCents(amountStars);
     const priceCents = window.toCents(priceStars);
-    if (amountCents < 100) throw new Error('Минимум 1 акция');
-    if (priceCents < 100) throw new Error('Минимум 1 Star');
-
+    
     const { user: freshUser } = await window.getOrCreateUser();
-    const requiredStarsCents = (amountCents / 100) * priceCents;
-    if (freshUser.stars_balance < requiredStarsCents) {
-        throw new Error(`❌ Недостаточно звёзд: нужно ${window.fromCents(requiredStarsCents)} ⭐, у вас ${window.fromCents(freshUser.stars_balance)} ⭐`);
-    }
-
-    let remainingAmountCents = amountCents;
-    let totalExecutedCents = 0;
-    let totalSpentStarsCents = 0;
-
-    while (remainingAmountCents > 0) {
-        const { data: sellOrders, error } = await window.supabase
-            .from('orders')
-            .select('*')
-            .eq('status', 'active')
-            .neq('seller_id', window.userId)
-            .lte('price_per_share', priceCents)
-            .order('price_per_share', { ascending: true })
-            .limit(1);
-        if (error) throw new Error('Ошибка загрузки ордеров на продажу');
-        if (!sellOrders || sellOrders.length === 0) break;
-
-        const sellOrder = sellOrders[0];
-        const maxMatchCents = Math.min(remainingAmountCents, sellOrder.amount);
-        if (maxMatchCents <= 0) break;
-
-        const { data, error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
-            p_order_id: sellOrder.id,
-            p_buyer_id: window.userId,
-            p_buy_amount_cents: maxMatchCents
-        });
-        if (tradeError) throw new Error(tradeError.message);
-        if (!data.success) throw new Error(data.error);
-
-        remainingAmountCents -= maxMatchCents;
-        totalExecutedCents += maxMatchCents;
-        totalSpentStarsCents += (maxMatchCents / 100) * sellOrder.price_per_share;
-    }
-
-    if (remainingAmountCents > 0) {
-        const { error } = await window.supabase
-            .from('buy_orders')
-            .insert({
-                buyer_id: window.userId,
-                amount: remainingAmountCents,
-                price_per_share: priceCents,
-                status: 'active',
-                created_at: new Date().toISOString()
-            });
-        if (error) throw new Error(error.message);
-    }
-
+    const requiredStars = amountStars * priceStars;
+    if (freshUser.stars_balance < requiredStars) throw new Error(`Недостаточно звёзд: нужно ${requiredStars.toFixed(2)} ⭐`);
+    
+    const { data, error } = await window.supabase.rpc('create_buy_order_matched', {
+        p_user_id: window.userId,
+        p_amount_cents: amountCents,
+        p_price_cents: priceCents
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    if (data.executed_amount > 0) window.showToast(`✅ Куплено ${window.fromCents(data.executed_amount)} шт.`);
+    if (data.remaining_amount > 0) window.showToast(`✅ Остаток ${window.fromCents(data.remaining_amount)} шт. в заявке`);
     await updateUserStats();
     await checkAllAchievements();
-
-    if (totalExecutedCents > 0) {
-        window.showToast(`✅ Куплено ${window.fromCents(totalExecutedCents)} шт., потрачено ${window.fromCents(totalSpentStarsCents)} ⭐`);
-    }
-    if (remainingAmountCents > 0) {
-        window.showToast(`✅ Остаток ${window.fromCents(remainingAmountCents)} шт. выставлен как заявка на покупку по ${priceStars} ⭐`);
-    }
     return true;
 };
 
@@ -464,12 +340,6 @@ window.executePartialTrade = async function(orderId, buyAmountCents) {
 
 window.getRecentTrades = async (limit = 10) => {
     const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
-    if (error) throw new Error(error.message);
-    return data || [];
-};
-
-window.getPriceHistory = async () => {
-    const { data, error } = await window.supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
     if (error) throw new Error(error.message);
     return data || [];
 };
@@ -567,25 +437,6 @@ window.getReferralsList = async function() {
         topupAmount: r.topup_amount_cents ? r.topup_amount_cents / 100 : 0,
         bonusEarned: r.bonus_earned
     }));
-};
-
-window.getReferralRewardsProgress = async function(referralCount) {
-    const rewards = [
-        { count: 3, shares: 1000, achievement: '🤝 Наставник' },
-        { count: 5, shares: 2000, achievement: '🌟 Лидер' },
-        { count: 10, shares: 5000, achievement: '👑 Король рефералов' }
-    ];
-    const earnedAchievements = await window.getEarnedAchievements();
-    const earnedNames = new Set(earnedAchievements.map(a => a.name));
-    const nextReward = rewards.find(r => referralCount < r.count && !earnedNames.has(r.achievement));
-    if (!nextReward) return null;
-    return {
-        needed: nextReward.count,
-        current: referralCount,
-        rewardShares: nextReward.shares / 100,
-        achievementName: nextReward.achievement,
-        progress: (referralCount / nextReward.count) * 100
-    };
 };
 
 window.claimReferralBonus = async (friendsNeeded, stars) => {
