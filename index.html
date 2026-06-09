@@ -66,44 +66,98 @@
 
 <script>
     (async () => {
-        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]); }
+        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНЫ) ==========
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
+        }
         
-        window.showCustomModal = function(title, message) { /* ... как раньше ... */ };
-        window.showToast = function(message) { /* ... как раньше ... */ };
+        window.showCustomModal = function(title, message) {
+            const existingModal = document.getElementById('customMessageModal');
+            if (existingModal) existingModal.remove();
+            const modalHtml = `
+                <div class="modal" id="customMessageModal" style="display:flex;">
+                    <div class="modal-content">
+                        <span class="close-modal" id="closeCustomModal">&times;</span>
+                        <h3>${title}</h3>
+                        <p style="margin:20px 0; text-align:center;">${message}</p>
+                        <button id="customModalOkBtn">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = document.getElementById('customMessageModal');
+            const closeModal = () => modal.remove();
+            document.getElementById('closeCustomModal').onclick = closeModal;
+            document.getElementById('customModalOkBtn').onclick = closeModal;
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        };
         
-        // Убираем кастомный скролл – оставляем нативный
+        window.showToast = function(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        };
+        
+        // ========== ИНИЦИАЛИЗАЦИЯ TELEGRAM ==========
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
         window.tg = tg;
         window.userId = tg.initDataUnsafe?.user?.id;
         window.username = tg.initDataUnsafe?.user?.username || `user_${window.userId}`;
-        if (!window.userId) { document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; return; }
+        if (!window.userId) { 
+            document.getElementById('app').innerHTML = '<div class="card" style="text-align:center;">Ошибка: запустите через Telegram</div>'; 
+            return; 
+        }
         if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
+        // ========== SUPABASE ==========
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
-        async function renderSettingsTab() { /* ... без изменений ... */ }
+        // ========== НАСТРОЙКИ (НА ВРЕМЯ ВОССТАНОВЛЕНИЯ – ПУСТАЯ ФУНКЦИЯ) ==========
+        async function renderSettingsTab() {
+            // Минимальная реализация, чтобы не падало
+            document.getElementById('app').innerHTML = '<div class="card"><h2>⚙️ Настройки</h2><p>Временно недоступно</p><button onclick="location.reload()">Обновить</button></div>';
+        }
         
+        // ========== ЗАПУСК ==========
         try {
             const { user, isNew } = await window.getOrCreateUser();
             window.currentUser = user;
             const savedColor = localStorage.getItem('custom_color') || '#2b6e9e';
             document.documentElement.style.setProperty('--accent', savedColor);
             await window.renderStocksTab(window.currentUser);
-            if (isNew) setTimeout(() => window.renderProfileTab(...), 500);
+            if (isNew) setTimeout(() => window.renderProfileTab(
+                window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
+                window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
+                window.updateBellBadge, window.showNotificationsModal
+            ), 500);
             if (typeof setupRealtimeNotifications === 'function') setupRealtimeNotifications();
             if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
             if (typeof initTopupModal === 'function') initTopupModal();
-            window.supabase.channel('global-updates').on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => { if (document.querySelector('.tab.active').dataset.tab === 'rating') window.refreshActiveTab(); }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => { if (document.querySelector('.tab.active').dataset.tab === 'rating') window.refreshActiveTab(); }).subscribe();
+            
+            window.supabase
+                .channel('global-updates')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+                    if (document.querySelector('.tab.active').dataset.tab === 'rating') window.refreshActiveTab();
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => {
+                    if (document.querySelector('.tab.active').dataset.tab === 'rating') window.refreshActiveTab();
+                })
+                .subscribe();
         } catch(err) {
-            document.getElementById('app').innerHTML = `<div class="card error" style="color:red; text-align:center;">Ошибка загрузки: ${err.message}</div>`;
+            document.getElementById('app').innerHTML = `<div class="card error" style="color:red; text-align:center;">Ошибка загрузки: ${err.message}<br><br>Попробуйте перезагрузить страницу или напишите в поддержку.</div>`;
+            console.error('Ошибка при инициализации:', err);
             return;
         }
         
+        // ========== ОБРАБОТЧИКИ КНОПОК ==========
         document.getElementById('headerNotificationBell')?.addEventListener('click', () => { if (window.showNotificationsModal) window.showNotificationsModal(); });
         document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
         
@@ -112,7 +166,11 @@
                 const tabName = tab.dataset.tab;
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                if(tabName === 'profile') await window.renderProfileTab(...);
+                if(tabName === 'profile') await window.renderProfileTab(
+                    window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
+                    window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
+                    window.updateBellBadge, window.showNotificationsModal
+                );
                 else if(tabName === 'stocks') await window.renderStocksTab(window.currentUser);
                 else if(tabName === 'analytics') await window.renderAnalyticsTab();
                 else if(tabName === 'rating') await window.renderRatingTab();
