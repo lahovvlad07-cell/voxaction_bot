@@ -1,21 +1,30 @@
-/* stocks.css – финальный, с компактной панелью и sticky кнопками */
+/* stocks.css – финальный, с плавающей верхней панелью и улучшенной инфо-панелью */
+.balance-sticky {
+    position: sticky;
+    top: 68px; /* под хедером Telegram */
+    z-index: 95;
+    background: rgba(18, 24, 38, 0.85);
+    backdrop-filter: blur(12px);
+    border-radius: 28px;
+    margin: 0 16px 8px 16px;
+    padding: 8px 12px;
+}
 .balance-scroll {
     overflow-x: auto;
     white-space: nowrap;
-    margin-bottom: 12px;
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
 }
 .balance-row {
     display: inline-flex;
-    gap: 10px;
+    gap: 12px;
     padding: 2px;
 }
 .balance-item {
     flex-shrink: 0;
     width: 100px;
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(4px);
     border-radius: 24px;
     padding: 8px 4px;
     text-align: center;
@@ -29,19 +38,19 @@
 .balance-item .value {
     font-size: 18px;
     font-weight: 800;
-    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    color: white; /* fallback */
+}
+.balance-item.price .value {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
-.balance-item.price .value {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-}
 .sticky-buttons {
     position: sticky;
-    top: 70px; /* высота хедера Telegram */
-    z-index: 95;
-    background: rgba(18, 24, 38, 0.8);
+    top: 120px; /* чуть ниже баланса */
+    z-index: 94;
+    background: rgba(18, 24, 38, 0.85);
     backdrop-filter: blur(12px);
     border-radius: 28px;
     padding: 8px 16px;
@@ -59,32 +68,33 @@
     display: flex;
     gap: 12px;
     margin: 12px 0;
+    flex-wrap: wrap;
 }
 .info-card {
     flex: 1;
     background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(4px);
     border-radius: 24px;
-    padding: 10px;
+    padding: 12px;
     text-align: center;
     border: 1px solid rgba(56, 189, 248, 0.15);
 }
 .info-card .small-text {
-    font-size: 11px;
+    font-size: 12px;
     color: #9ca3af;
+    margin-bottom: 6px;
 }
 .info-card .price {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
-    margin-top: 4px;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
 .info-card .change {
-    font-size: 11px;
-    margin-top: 2px;
+    font-size: 12px;
+    margin-top: 4px;
 }
 .change.positive {
     color: #4ade80;
@@ -101,7 +111,7 @@
     flex: 1;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(56, 189, 248, 0.3);
-    padding: 6px 0;
+    padding: 8px 0;
     border-radius: 40px;
     font-size: 13px;
     cursor: pointer;
@@ -115,7 +125,7 @@
 #refreshChartBtn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(56, 189, 248, 0.3);
-    padding: 6px 16px;
+    padding: 8px 16px;
     border-radius: 40px;
     cursor: pointer;
     width: auto;
@@ -172,11 +182,6 @@ canvas {
 @keyframes scroll {
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
-}
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
 }
 .card {
     background: rgba(18, 24, 38, 0.7);
@@ -442,6 +447,10 @@ button:active {
     margin: 8px 0;
 }
 @media (max-width: 560px) {
+    .balance-sticky {
+        top: 62px;
+        padding: 6px 8px;
+    }
     .balance-item {
         width: 85px;
     }
@@ -449,7 +458,7 @@ button:active {
         font-size: 16px;
     }
     .sticky-buttons {
-        top: 68px;
+        top: 112px;
         padding: 6px 12px;
         margin: 0 12px 10px 12px;
     }
@@ -459,7 +468,7 @@ button:active {
     }
     .info-panel {
         flex-direction: column;
-        gap: 6px;
+        gap: 8px;
     }
     .timeframe-buttons {
         flex-wrap: wrap;
