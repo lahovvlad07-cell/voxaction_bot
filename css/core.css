@@ -1,5 +1,4 @@
 /* core.css – базовые стили, карточки, кнопки, модалки, уведомления */
-/* Добавлены правила для курсора на .tabs-wrapper */
 
 * {
     margin: 0;
@@ -211,4 +210,34 @@ input:focus {
 }
 .tabs-wrapper:active {
     cursor: grabbing !important;
+}
+
+/* ===== ОПТИМИЗАЦИЯ ПРОКРУТКИ И ОТКЛЮЧЕНИЕ АНИМАЦИЙ НА МОБИЛЬНЫХ ===== */
+
+/* Ускорение прокрутки табов */
+.tabs-wrapper {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    will-change: transform;
+}
+
+/* Отключаем анимацию градиента на элементах, которые могут мешать скроллу */
+.balance-item .value,
+.order-price-big,
+.stat-circle .value,
+.price,
+.stat-value,
+.stat-number,
+.referral-title,
+.referral-stat-value {
+    animation: none !important;
+    background-size: auto !important;
+}
+
+/* Для мобильных устройств отключаем анимацию на всех элементах при скролле */
+@media (max-width: 768px) {
+    * {
+        animation-duration: 0.001s !important;
+        transition-duration: 0.001s !important;
+    }
 }
