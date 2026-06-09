@@ -1,10 +1,15 @@
-// stocks.js – финальная версия без фильтров, с tooltip на графике
+// stocks.js – финальный, с переключением слайдер/числа, подсказками, без дублей
 let currentTimeframe = '30d';
 let realtimeChannel = null;
 
-let currentOrdersPage = 1;
-const ORDERS_PER_PAGE = 10;
-let allOrdersData = [];
+// Настройки типов ввода (localStorage)
+function getInputMode(formId, defaultMode = 'slider') {
+    const saved = localStorage.getItem(`input_mode_${formId}`);
+    return saved === 'number' ? 'number' : defaultMode;
+}
+function setInputMode(formId, mode) {
+    localStorage.setItem(`input_mode_${formId}`, mode);
+}
 
 // ========== График ==========
 window.fetchPriceHistoryForTimeframe = async function(timeframe) {
@@ -84,19 +89,14 @@ function drawCanvasChartWithAxes(history) {
     tooltip.className = 'chart-tooltip';
     tooltip.style.display = 'none';
     container.appendChild(tooltip);
-    container.style.position = 'relative';
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
-        let minDist = Infinity;
-        let idx = -1;
+        let minDist = Infinity, idx = -1;
         for (let i = 0; i < values.length; i++) {
             const x = padding.left + i * stepX;
             const dist = Math.abs(mouseX - x);
-            if (dist < minDist && dist < 20) {
-                minDist = dist;
-                idx = i;
-            }
+            if (dist < minDist && dist < 20) { minDist = dist; idx = i; }
         }
         if (idx !== -1) {
             const price = values[idx].toFixed(2);
@@ -105,11 +105,9 @@ function drawCanvasChartWithAxes(history) {
             tooltip.innerHTML = `💰 ${price} ⭐<br>📅 ${date}`;
             tooltip.style.left = (padding.left + idx * stepX + 15) + 'px';
             tooltip.style.top = (padding.top + graphHeight - ((values[idx] - min) / range) * graphHeight - 30) + 'px';
-        } else {
-            tooltip.style.display = 'none';
-        }
+        } else tooltip.style.display = 'none';
     });
-    canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+    canvas.addEventListener('mouseleave', () => tooltip.style.display = 'none');
 }
 
 // ========== Тикер ==========
@@ -117,27 +115,18 @@ async function updateTicker() {
     const trades = await window.getRecentTrades(10);
     const container = document.getElementById('ticker');
     if (!container) return;
-    if (!trades.length) {
-        container.innerHTML = '<div class="ticker-content">Нет сделок</div>';
-        return;
-    }
+    if (!trades.length) { container.innerHTML = '<div class="ticker-content">Нет сделок</div>'; return; }
     const items = trades.map(t => `<span class="trade-item">${window.fromCents(t.amount)} шт. по ${window.fromCents(t.price_per_share)} ⭐</span>`).join('');
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Рыночные операции ==========
+// ========== Рыночные операции (без изменений) ==========
 async function marketBuy(starsAmountStars) {
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
-    let totalBoughtSharesCents = 0;
-    let totalSpentCents = 0;
+    let totalBoughtSharesCents = 0, totalSpentCents = 0;
     while (remainingStarsCents > 0) {
-        const { data: sellOrders, error } = await window.supabase
-            .from('orders')
-            .select('*')
-            .eq('status', 'active')
-            .order('price_per_share', { ascending: true })
-            .limit(1);
+        const { data: sellOrders, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true }).limit(1);
         if (error) throw new Error('Ошибка загрузки ордеров');
         if (!sellOrders.length) break;
         const order = sellOrders[0];
@@ -147,11 +136,7 @@ async function marketBuy(starsAmountStars) {
         if (maxUnits <= 0) break;
         let buySharesCents = maxUnits * 100;
         if (buySharesCents > availableSharesCents) buySharesCents = availableSharesCents;
-        const { error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
-            p_order_id: order.id,
-            p_buyer_id: window.userId,
-            p_buy_amount_cents: buySharesCents
-        });
+        const { error: tradeError } = await window.supabase.rpc('execute_trade_partial', { p_order_id: order.id, p_buyer_id: window.userId, p_buy_amount_cents: buySharesCents });
         if (tradeError) throw new Error(`Ошибка покупки: ${tradeError.message}`);
         const costCents = (buySharesCents / 100) * priceCents;
         remainingStarsCents -= costCents;
@@ -165,47 +150,27 @@ async function marketBuy(starsAmountStars) {
     window.showToast(`✅ Куплено ${window.fromCents(totalBoughtSharesCents)} шт. за ${window.fromCents(totalSpentCents)} ⭐`);
     await window.refreshActiveTab();
 }
-
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
     if (userShares < window.toCents(sharesAmountStars)) throw new Error('Недостаточно акций для продажи');
     try {
-        const { data, error } = await window.supabase.rpc('market_sell', {
-            p_user_id: window.userId,
-            p_amount_stars: sharesAmountStars
-        });
+        const { data, error } = await window.supabase.rpc('market_sell', { p_user_id: window.userId, p_amount_stars: sharesAmountStars });
         if (error) throw new Error(error.message);
         if (!data.success) throw new Error(data.error);
-        if (data.sold === 0) {
-            window.showToast('❌ Не удалось продать ни одной акции (нет подходящих ордеров на покупку)');
-            return;
-        }
+        if (data.sold === 0) { window.showToast('❌ Не удалось продать ни одной акции (нет подходящих ордеров на покупку)'); return; }
         window.showToast(`✅ Продано ${window.fromCents(data.sold)} шт. за ${window.fromCents(data.earned)} ⭐`);
         await window.refreshActiveTab();
     } catch (err) {
-        if (err.message.includes('нет ордеров') || err.message.includes('no orders') || err.message.includes('не найдено')) {
-            window.showToast('❌ Не удалось продать ни одной акции (нет подходящих ордеров на покупку)');
-        } else {
-            window.showCustomModal('Ошибка', err.message);
-        }
+        if (err.message.includes('нет ордеров') || err.message.includes('no orders')) window.showToast('❌ Не удалось продать ни одной акции (нет подходящих ордеров на покупку)');
+        else window.showCustomModal('Ошибка', err.message);
     }
 }
 
 // ========== Стакан заявок ==========
 async function renderOrderBook() {
-    const { data: sellsRaw } = await window.supabase
-        .from('orders')
-        .select('amount, price_per_share, seller_id')
-        .eq('status', 'active')
-        .order('price_per_share', { ascending: true })
-        .limit(3);
-    const { data: buysRaw } = await window.supabase
-        .from('buy_orders')
-        .select('amount, price_per_share, buyer_id')
-        .eq('status', 'active')
-        .order('price_per_share', { ascending: false })
-        .limit(3);
+    const { data: sellsRaw } = await window.supabase.from('orders').select('amount, price_per_share, seller_id').eq('status', 'active').order('price_per_share', { ascending: true }).limit(3);
+    const { data: buysRaw } = await window.supabase.from('buy_orders').select('amount, price_per_share, buyer_id').eq('status', 'active').order('price_per_share', { ascending: false }).limit(3);
     const userIds = [...(sellsRaw?.map(s => s.seller_id) || []), ...(buysRaw?.map(b => b.buyer_id) || [])];
     let userMap = new Map();
     if (userIds.length) {
@@ -226,40 +191,24 @@ async function renderOrderBook() {
 
 // ========== История ордеров ==========
 async function loadOrderHistory() {
-    const { data, error } = await window.supabase
-        .from('orders')
-        .select('*')
-        .eq('seller_id', window.userId)
-        .in('status', ['completed', 'cancelled'])
-        .order('created_at', { ascending: false })
-        .limit(5);
+    const { data, error } = await window.supabase.from('orders').select('*').eq('seller_id', window.userId).in('status', ['completed', 'cancelled']).order('created_at', { ascending: false }).limit(5);
     if (error) return [];
     return data || [];
 }
-
 function renderOrderHistory(orders) {
     const container = document.getElementById('orderHistoryList');
     if (!container) return;
-    if (!orders.length) {
-        container.innerHTML = '<p class="empty-orders">Нет завершённых ордеров</p>';
-        return;
-    }
+    if (!orders.length) { container.innerHTML = '<p class="empty-orders">Нет завершённых ордеров</p>'; return; }
     const tableHtml = `<table class="history-table"><thead><tr><th>Кол-во (шт)</th><th>Цена (⭐)</th><th>Статус</th><th>Дата</th></tr></thead><tbody>${orders.map(o => `<tr><td>${window.fromCents(o.amount)}</td><td>${window.fromCents(o.price_per_share)}</td><td>${o.status === 'completed' ? '✅ Исполнен' : '❌ Отменён'}</td><td>${new Date(o.created_at).toLocaleString()}</td></tr>`).join('')}</tbody></table>`;
     container.innerHTML = tableHtml;
 }
 
 // ========== Ордера пользователя ==========
 async function loadMyBuyOrders() {
-    const { data, error } = await window.supabase
-        .from('buy_orders')
-        .select('*')
-        .eq('buyer_id', window.userId)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
+    const { data, error } = await window.supabase.from('buy_orders').select('*').eq('buyer_id', window.userId).eq('status', 'active').order('created_at', { ascending: false });
     if (error) return [];
     return data || [];
 }
-
 async function cancelAllSellOrders() {
     const { data: orders, error } = await window.supabase.from('orders').select('id').eq('seller_id', window.userId).eq('status', 'active');
     if (error) throw new Error(error.message);
@@ -268,7 +217,6 @@ async function cancelAllSellOrders() {
     window.showToast(`✅ Отменено ${orders.length} ордеров на продажу`);
     await window.refreshActiveTab();
 }
-
 async function cancelAllBuyOrders() {
     const { data: orders, error } = await window.supabase.from('buy_orders').select('id').eq('buyer_id', window.userId).eq('status', 'active');
     if (error) throw new Error(error.message);
@@ -277,7 +225,6 @@ async function cancelAllBuyOrders() {
     window.showToast(`✅ Отменено ${orders.length} заявок на покупку`);
     await window.refreshActiveTab();
 }
-
 async function cancelBuyOrder(buyOrderId) {
     const { data, error } = await window.supabase.rpc('cancel_buy_order', { p_buy_order_id: buyOrderId, p_user_id: window.userId });
     if (error) throw new Error(error.message);
@@ -285,22 +232,83 @@ async function cancelBuyOrder(buyOrderId) {
     return true;
 }
 
-// ========== Формы ==========
+// ========== Формы с переключением слайдер / числа ==========
 function renderSellForm() {
-    const useSliders = window.getUseSliders ? window.getUseSliders() : true;
-    if (useSliders) {
-        return `<div class="sell-form"><div><label>📦 Количество (акций): <span id="sellAmountVal">1.00</span></label><input type="range" id="sellAmountSlider" min="0.01" max="${window.fromCents(window.currentUser.shares)}" step="0.01" value="1"></div><div><label>⭐ Цена за акцию: <span id="sellPriceVal">1.00</span></label><input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1"></div><button id="sellBtn">➕ Выставить на продажу</button></div>`;
+    const mode = getInputMode('sell', 'slider');
+    const maxShares = window.fromCents(window.currentUser.shares);
+    if (mode === 'slider') {
+        return `
+            <div class="sell-form">
+                <div class="input-header">
+                    <label>📦 Количество (акций)</label>
+                    <button class="toggle-input-mode" data-form="sell" data-mode="number">⌨️ Поля</button>
+                </div>
+                <div><span id="sellAmountVal">1.00</span></div>
+                <input type="range" id="sellAmountSlider" min="1" max="${maxShares}" step="0.01" value="1">
+                <div class="input-header">
+                    <label>⭐ Цена за акцию</label>
+                </div>
+                <div><span id="sellPriceVal">1.00</span></div>
+                <input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1">
+                <button id="sellBtn">➕ Выставить на продажу</button>
+                <div class="hint">Минимум 1 акция, 1 Star</div>
+            </div>
+        `;
     } else {
-        return `<div class="sell-form"><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)"><button id="sellBtn">➕ Выставить на продажу</button></div>`;
+        return `
+            <div class="sell-form">
+                <div class="input-header">
+                    <label>📦 Количество (акций)</label>
+                    <button class="toggle-input-mode" data-form="sell" data-mode="slider">🎚️ Слайдеры</button>
+                </div>
+                <input type="number" id="sellAmount" step="0.01" min="1" value="1" placeholder="Количество">
+                <div class="input-header">
+                    <label>⭐ Цена за акцию</label>
+                </div>
+                <input type="number" id="sellPrice" step="0.01" min="1" value="1" placeholder="Цена">
+                <button id="sellBtn">➕ Выставить на продажу</button>
+                <div class="hint">Минимум 1 акция, 1 Star</div>
+            </div>
+        `;
     }
 }
 
 function renderBuyLimitForm() {
-    const useSliders = window.getUseSliders ? window.getUseSliders() : true;
-    if (useSliders) {
-        return `<div class="sell-form"><div><label>📦 Количество (акций): <span id="buyAmountVal">1.00</span></label><input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="1"></div><div><label>⭐ Цена за акцию: <span id="buyPriceVal">1.00</span></label><input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1"></div><button id="buyLimitBtn">💰 Выставить заявку на покупку</button></div>`;
+    const mode = getInputMode('buy', 'slider');
+    if (mode === 'slider') {
+        return `
+            <div class="sell-form">
+                <div class="input-header">
+                    <label>📦 Количество (акций)</label>
+                    <button class="toggle-input-mode" data-form="buy" data-mode="number">⌨️ Поля</button>
+                </div>
+                <div><span id="buyAmountVal">1.00</span></div>
+                <input type="range" id="buyAmountSlider" min="1" max="1000" step="0.01" value="1">
+                <div class="input-header">
+                    <label>⭐ Цена за акцию</label>
+                </div>
+                <div><span id="buyPriceVal">1.00</span></div>
+                <input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1">
+                <button id="buyLimitBtn">💰 Выставить заявку на покупку</button>
+                <div class="hint">Минимум 1 акция, 1 Star</div>
+            </div>
+        `;
     } else {
-        return `<div class="sell-form"><input type="number" id="buyAmountLimit" step="0.01" min="1" placeholder="Количество (от 1)"><input type="number" id="buyPriceLimit" step="0.01" min="1" placeholder="Цена (от 1 Star)"><button id="buyLimitBtn">💰 Выставить заявку на покупку</button></div>`;
+        return `
+            <div class="sell-form">
+                <div class="input-header">
+                    <label>📦 Количество (акций)</label>
+                    <button class="toggle-input-mode" data-form="buy" data-mode="slider">🎚️ Слайдеры</button>
+                </div>
+                <input type="number" id="buyAmountLimit" step="0.01" min="1" value="1" placeholder="Количество">
+                <div class="input-header">
+                    <label>⭐ Цена за акцию</label>
+                </div>
+                <input type="number" id="buyPriceLimit" step="0.01" min="1" value="1" placeholder="Цена">
+                <button id="buyLimitBtn">💰 Выставить заявку на покупку</button>
+                <div class="hint">Минимум 1 акция, 1 Star</div>
+            </div>
+        `;
     }
 }
 
@@ -320,16 +328,12 @@ async function loadOrdersWithSellers() {
     return orders;
 }
 
-// ========== Отрисовка списка ордеров (только чужие, без пагинации) ==========
+// ========== Отрисовка списка ордеров ==========
 function renderOrdersList(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
     const filtered = orders.filter(o => o.seller_id !== window.userId);
-    if (!filtered.length) {
-        container.innerHTML = '<p class="empty-orders">Нет ордеров для отображения</p>';
-        return;
-    }
-    // Сортировка по возрастанию цены
+    if (!filtered.length) { container.innerHTML = '<p class="empty-orders">Нет ордеров для отображения</p>'; return; }
     filtered.sort((a,b) => a.price_per_share - b.price_per_share);
     const bestPrice = Math.min(...filtered.map(o => o.price_per_share));
     let html = '';
@@ -512,8 +516,18 @@ window.renderStocksTab = async function(currentUser) {
         }));
         document.getElementById('refreshChartBtn')?.addEventListener('click', async () => { await window.renderStocksTab(currentUser); });
 
-        // Слайдеры
-        const useSliders = window.getUseSliders();
+        // Обработчики переключения режимов ввода
+        document.querySelectorAll('.toggle-input-mode').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const form = btn.dataset.form;
+                const mode = btn.dataset.mode;
+                setInputMode(form, mode);
+                window.renderStocksTab(currentUser);
+            });
+        });
+
+        // Инициализация слайдеров (если они есть в DOM)
+        const useSliders = (getInputMode('sell') === 'slider') || (getInputMode('buy') === 'slider');
         if (useSliders) {
             const sellAmountSlider = document.getElementById('sellAmountSlider');
             const sellAmountVal = document.getElementById('sellAmountVal');
@@ -533,9 +547,11 @@ window.renderStocksTab = async function(currentUser) {
             }
         }
 
+        // Кнопки создания ордеров
         document.getElementById('sellBtn')?.addEventListener('click', async () => {
             let amount, price;
-            if (window.getUseSliders()) {
+            const mode = getInputMode('sell');
+            if (mode === 'slider') {
                 amount = parseFloat(document.getElementById('sellAmountSlider').value);
                 price = parseFloat(document.getElementById('sellPriceSlider').value);
             } else {
@@ -547,7 +563,8 @@ window.renderStocksTab = async function(currentUser) {
         });
         document.getElementById('buyLimitBtn')?.addEventListener('click', async () => {
             let amount, price;
-            if (window.getUseSliders()) {
+            const mode = getInputMode('buy');
+            if (mode === 'slider') {
                 amount = parseFloat(document.getElementById('buyAmountSlider').value);
                 price = parseFloat(document.getElementById('buyPriceSlider').value);
             } else {
@@ -558,13 +575,13 @@ window.renderStocksTab = async function(currentUser) {
             try { await window.createBuyOrder(amount, price); await window.refreshActiveTab(); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         });
         document.getElementById('marketBuyBtn')?.addEventListener('click', async () => {
-            const stars = parseFloat(prompt('Сколько ⭐ потратить?', '100'));
-            if (isNaN(stars) || stars <= 0) return;
+            const stars = parseFloat(prompt('Сколько ⭐ потратить? (мин 1)', '100'));
+            if (isNaN(stars) || stars < 1) return;
             try { await marketBuy(stars); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         });
         document.getElementById('marketSellBtn')?.addEventListener('click', async () => {
-            const shares = parseFloat(prompt('Сколько акций продать?', '1'));
-            if (isNaN(shares) || shares <= 0) return;
+            const shares = parseFloat(prompt('Сколько акций продать? (мин 1)', '1'));
+            if (isNaN(shares) || shares < 1) return;
             try { await marketSell(shares); } catch (err) { if (!err.message.includes('Не удалось продать')) window.showCustomModal('Ошибка', err.message); }
         });
 
