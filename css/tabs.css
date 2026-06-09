@@ -1,4 +1,4 @@
-/* tabs.css – стили нижней панели вкладок с поддержкой drag to scroll */
+/* tabs.css – улучшенная прокрутка */
 .tabs-wrapper {
     position: fixed;
     bottom: 0;
@@ -15,6 +15,7 @@
     cursor: grab;
     user-select: none;
     -webkit-overflow-scrolling: touch;
+    will-change: transform;
 }
 .tabs-wrapper:active {
     cursor: grabbing;
@@ -43,7 +44,6 @@
 .tab-icon { font-size: 22px; margin-bottom: 4px; }
 .tab-label { font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
 
-/* На мобильных устройствах курсор не меняем */
 @media (hover: none) {
     .tabs-wrapper {
         cursor: default;
