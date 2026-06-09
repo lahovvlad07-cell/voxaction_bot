@@ -1,12 +1,10 @@
-/* animations.css – анимации для градиентов и прочего (нормальная скорость) */
-
+/* animations.css – нормальные анимации (без ускорения) */
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
 
-/* Анимация для элементов, использующих gradientShift */
 .header-logo,
 .price,
 .stat-value,
@@ -17,5 +15,26 @@
     animation: gradientShift 3s ease infinite;
 }
 
-/* Дополнительные анимации (если нужны) */
-/* Убедитесь, что нет переопределений с animation-duration: 0.001s */
+/* Шестерёнка и колокольчик – нормальная скорость */
+#headerSettingsGear {
+    animation: gearSpin 4s linear infinite;
+}
+@keyframes gearSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#headerNotificationBell {
+    animation: bellShake 2.5s ease-in-out infinite;
+    transform-origin: top center;
+}
+@keyframes bellShake {
+    0%, 100% { transform: rotate(0deg); }
+    15% { transform: rotate(8deg); }
+    30% { transform: rotate(-6deg); }
+    45% { transform: rotate(4deg); }
+    60% { transform: rotate(-2deg); }
+    75% { transform: rotate(1deg); }
+}
+
+/* Все остальные анимации – без принудительного ускорения */
