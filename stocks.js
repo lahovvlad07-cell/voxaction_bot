@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с улучшенным визуалом, аккордеонами, пагинацией
+// stocks.js – финальная версия с аккуратной вёрсткой и полной логикой
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -8,7 +8,7 @@ let currentOrdersPage = 1;
 const ORDERS_PER_PAGE = 10;
 let filteredOrders = [];
 
-// ========== График ==========
+// ========== График (без изменений) ==========
 window.fetchPriceHistoryForTimeframe = async function(timeframe) {
     let startDate = new Date();
     if (timeframe === '1d') startDate.setDate(startDate.getDate() - 1);
@@ -82,7 +82,6 @@ function drawCanvasChartWithAxes(history) {
     }
 }
 
-// ========== Тикер ==========
 async function updateTicker() {
     const trades = await window.getRecentTrades(10);
     const container = document.getElementById('ticker');
@@ -95,13 +94,11 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Рыночная покупка ==========
 async function marketBuy(starsAmountStars) {
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
     let totalBoughtSharesCents = 0;
     let totalSpentCents = 0;
-
     while (remainingStarsCents > 0) {
         const { data: sellOrders, error } = await window.supabase
             .from('orders')
@@ -111,45 +108,36 @@ async function marketBuy(starsAmountStars) {
             .limit(1);
         if (error) throw new Error('Ошибка загрузки ордеров');
         if (!sellOrders.length) break;
-
         const order = sellOrders[0];
         const priceCents = order.price_per_share;
         const availableSharesCents = order.amount;
-        
         let maxUnits = Math.floor(remainingStarsCents / priceCents);
         if (maxUnits <= 0) break;
         let buySharesCents = maxUnits * 100;
         if (buySharesCents > availableSharesCents) buySharesCents = availableSharesCents;
-        
         const { error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
             p_order_id: order.id,
             p_buyer_id: window.userId,
             p_buy_amount_cents: buySharesCents
         });
         if (tradeError) throw new Error(`Ошибка покупки: ${tradeError.message}`);
-        
         const costCents = (buySharesCents / 100) * priceCents;
         remainingStarsCents -= costCents;
         totalBoughtSharesCents += buySharesCents;
         totalSpentCents += costCents;
-        
         window.currentUser.shares += buySharesCents;
         window.currentUser.stars_balance -= costCents;
-        
         await new Promise(r => setTimeout(r, 50));
     }
-    
     if (totalBoughtSharesCents === 0) throw new Error('Не удалось купить ни одной акции');
     window.showToast(`✅ Куплено ${window.fromCents(totalBoughtSharesCents)} шт. за ${window.fromCents(totalSpentCents)} ⭐`);
     await window.refreshActiveTab();
 }
 
-// ========== Рыночная продажа ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
     if (userShares < window.toCents(sharesAmountStars)) throw new Error('Недостаточно акций для продажи');
-    
     try {
         const { data, error } = await window.supabase.rpc('market_sell', {
             p_user_id: window.userId,
@@ -172,7 +160,6 @@ async function marketSell(sharesAmountStars) {
     }
 }
 
-// ========== Стакан заявок ==========
 async function renderOrderBook() {
     const { data: sellsRaw } = await window.supabase
         .from('orders')
@@ -186,54 +173,24 @@ async function renderOrderBook() {
         .eq('status', 'active')
         .order('price_per_share', { ascending: false })
         .limit(3);
-
-    const userIds = [
-        ...(sellsRaw?.map(s => s.seller_id) || []),
-        ...(buysRaw?.map(b => b.buyer_id) || [])
-    ];
+    const userIds = [...(sellsRaw?.map(s => s.seller_id) || []), ...(buysRaw?.map(b => b.buyer_id) || [])];
     let userMap = new Map();
     if (userIds.length) {
-        const { data: users } = await window.supabase
-            .from('users')
-            .select('id, username')
-            .in('id', userIds);
+        const { data: users } = await window.supabase.from('users').select('id, username').in('id', userIds);
         users?.forEach(u => userMap.set(u.id, u.username));
     }
-
-    const sells = (sellsRaw || []).map(s => ({
-        ...s,
-        username: userMap.get(s.seller_id) || `user_${s.seller_id}`
-    }));
-    const buys = (buysRaw || []).map(b => ({
-        ...b,
-        username: userMap.get(b.buyer_id) || `user_${b.buyer_id}`
-    }));
-
+    const sells = (sellsRaw || []).map(s => ({ ...s, username: userMap.get(s.seller_id) || `user_${s.seller_id}` }));
+    const buys = (buysRaw || []).map(b => ({ ...b, username: userMap.get(b.buyer_id) || `user_${b.buyer_id}` }));
     const bestSellPrice = sells.length ? sells[0].price_per_share : null;
     const bestBuyPrice = buys.length ? buys[0].price_per_share : null;
-
-    const sellHtml = sells.map(s => `
-        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom:1px solid rgba(255,255,255,0.05); ${s.price_per_share === bestSellPrice ? 'background: rgba(239,68,68,0.15);' : ''}">
-            <span>${window.fromCents(s.amount)} шт.</span>
-            <span style="color:#fbbf24;">${window.fromCents(s.price_per_share)} ⭐</span>
-            <span class="small-text">${escapeHtml(s.username)}</span>
-        </div>
-    `).join('');
-    const buyHtml = buys.map(b => `
-        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom:1px solid rgba(255,255,255,0.05); ${b.price_per_share === bestBuyPrice ? 'background: rgba(34,197,94,0.15);' : ''}">
-            <span>${window.fromCents(b.amount)} шт.</span>
-            <span style="color:#4ade80;">${window.fromCents(b.price_per_share)} ⭐</span>
-            <span class="small-text">${escapeHtml(b.username)}</span>
-        </div>
-    `).join('');
-
+    const sellHtml = sells.map(s => `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); ${s.price_per_share === bestSellPrice ? 'background:rgba(239,68,68,0.15);' : ''}"><span>${window.fromCents(s.amount)} шт.</span><span style="color:#fbbf24;">${window.fromCents(s.price_per_share)} ⭐</span><span class="small-text">${escapeHtml(s.username)}</span></div>`).join('');
+    const buyHtml = buys.map(b => `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); ${b.price_per_share === bestBuyPrice ? 'background:rgba(34,197,94,0.15);' : ''}"><span>${window.fromCents(b.amount)} шт.</span><span style="color:#4ade80;">${window.fromCents(b.price_per_share)} ⭐</span><span class="small-text">${escapeHtml(b.username)}</span></div>`).join('');
     const sellDiv = document.getElementById('sellOrdersList');
     const buyDiv = document.getElementById('buyOrdersList');
-    if (sellDiv) sellDiv.innerHTML = sellHtml || '<p class="empty-orders" style="text-align:center;">Нет заявок на продажу</p>';
-    if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="empty-orders" style="text-align:center;">Нет заявок на покупку</p>';
+    if (sellDiv) sellDiv.innerHTML = sellHtml || '<p class="empty-orders">Нет заявок на продажу</p>';
+    if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="empty-orders">Нет заявок на покупку</p>';
 }
 
-// ========== История завершённых ордеров ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase
         .from('orders')
@@ -253,27 +210,10 @@ function renderOrderHistory(orders) {
         container.innerHTML = '<p class="empty-orders">Нет завершённых ордеров</p>';
         return;
     }
-    const tableHtml = `
-        <table class="history-table">
-            <thead>
-                <tr><th>Кол-во (шт)</th><th>Цена (⭐)</th><th>Статус</th><th>Дата</th></tr>
-            </thead>
-            <tbody>
-                ${orders.map(o => `
-                    <tr>
-                        <td>${window.fromCents(o.amount)}</td>
-                        <td>${window.fromCents(o.price_per_share)}</td>
-                        <td>${o.status === 'completed' ? '✅ Исполнен' : '❌ Отменён'}</td>
-                        <td>${new Date(o.created_at).toLocaleString()}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
+    const tableHtml = `<table class="history-table"><thead><tr><th>Кол-во (шт)</th><th>Цена (⭐)</th><th>Статус</th><th>Дата</th></tr></thead><tbody>${orders.map(o => `<tr><td>${window.fromCents(o.amount)}</td><td>${window.fromCents(o.price_per_share)}</td><td>${o.status === 'completed' ? '✅ Исполнен' : '❌ Отменён'}</td><td>${new Date(o.created_at).toLocaleString()}</td></tr>`).join('')}</tbody></table>`;
     container.innerHTML = tableHtml;
 }
 
-// ========== Мои ордера на покупку ==========
 async function loadMyBuyOrders() {
     const { data, error } = await window.supabase
         .from('buy_orders')
@@ -285,121 +225,56 @@ async function loadMyBuyOrders() {
     return data || [];
 }
 
-// ========== Отмена всех ордеров на продажу ==========
 async function cancelAllSellOrders() {
-    const { data: orders, error } = await window.supabase
-        .from('orders')
-        .select('id')
-        .eq('seller_id', window.userId)
-        .eq('status', 'active');
+    const { data: orders, error } = await window.supabase.from('orders').select('id').eq('seller_id', window.userId).eq('status', 'active');
     if (error) throw new Error(error.message);
-    if (!orders.length) {
-        window.showToast('У вас нет активных ордеров на продажу');
-        return;
-    }
-    for (let order of orders) {
-        await window.cancelOrder(order.id);
-    }
+    if (!orders.length) { window.showToast('У вас нет активных ордеров на продажу'); return; }
+    for (let order of orders) await window.cancelOrder(order.id);
     window.showToast(`✅ Отменено ${orders.length} ордеров на продажу`);
     await window.refreshActiveTab();
 }
 
-// ========== Отмена всех ордеров на покупку ==========
 async function cancelAllBuyOrders() {
-    const { data: orders, error } = await window.supabase
-        .from('buy_orders')
-        .select('id')
-        .eq('buyer_id', window.userId)
-        .eq('status', 'active');
+    const { data: orders, error } = await window.supabase.from('buy_orders').select('id').eq('buyer_id', window.userId).eq('status', 'active');
     if (error) throw new Error(error.message);
-    if (!orders.length) {
-        window.showToast('У вас нет активных заявок на покупку');
-        return;
-    }
-    for (let order of orders) {
-        await window.cancelBuyOrder(order.id);
-    }
+    if (!orders.length) { window.showToast('У вас нет активных заявок на покупку'); return; }
+    for (let order of orders) await window.cancelBuyOrder(order.id);
     window.showToast(`✅ Отменено ${orders.length} заявок на покупку`);
     await window.refreshActiveTab();
 }
 
-// ========== Отмена ордера на покупку (одного) ==========
 async function cancelBuyOrder(buyOrderId) {
-    const { data, error } = await window.supabase.rpc('cancel_buy_order', {
-        p_buy_order_id: buyOrderId,
-        p_user_id: window.userId
-    });
+    const { data, error } = await window.supabase.rpc('cancel_buy_order', { p_buy_order_id: buyOrderId, p_user_id: window.userId });
     if (error) throw new Error(error.message);
     if (!data.success) throw new Error(data.error);
     return true;
 }
 
-// ========== Формы со слайдерами ==========
 function renderSellForm() {
     const useSliders = window.getUseSliders ? window.getUseSliders() : true;
     if (useSliders) {
-        return `
-            <div class="sell-form">
-                <div>
-                    <label>📦 Количество (акций): <span id="sellAmountVal" style="color:#60a5fa;">1.00</span></label>
-                    <input type="range" id="sellAmountSlider" min="0.01" max="${window.fromCents(window.currentUser.shares)}" step="0.01" value="1">
-                </div>
-                <div>
-                    <label>⭐ Цена за акцию: <span id="sellPriceVal" style="color:#fbbf24;">1.00</span></label>
-                    <input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1">
-                </div>
-                <button id="sellBtn">➕ Выставить на продажу</button>
-            </div>
-        `;
+        return `<div class="sell-form"><div><label>📦 Количество (акций): <span id="sellAmountVal">1.00</span></label><input type="range" id="sellAmountSlider" min="0.01" max="${window.fromCents(window.currentUser.shares)}" step="0.01" value="1"></div><div><label>⭐ Цена за акцию: <span id="sellPriceVal">1.00</span></label><input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1"></div><button id="sellBtn">➕ Выставить на продажу</button></div>`;
     } else {
-        return `
-            <div class="sell-form">
-                <input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)">
-                <input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)">
-                <button id="sellBtn">➕ Выставить на продажу</button>
-            </div>
-        `;
+        return `<div class="sell-form"><input type="number" id="sellAmount" step="0.01" min="1" placeholder="Количество (от 1)"><input type="number" id="sellPrice" step="0.01" min="1" placeholder="Цена (от 1 Star)"><button id="sellBtn">➕ Выставить на продажу</button></div>`;
     }
 }
 
 function renderBuyLimitForm() {
     const useSliders = window.getUseSliders ? window.getUseSliders() : true;
     if (useSliders) {
-        return `
-            <div class="sell-form">
-                <div>
-                    <label>📦 Количество (акций): <span id="buyAmountVal" style="color:#60a5fa;">1.00</span></label>
-                    <input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="1">
-                </div>
-                <div>
-                    <label>⭐ Цена за акцию: <span id="buyPriceVal" style="color:#fbbf24;">1.00</span></label>
-                    <input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1">
-                </div>
-                <button id="buyLimitBtn">💰 Выставить заявку на покупку</button>
-            </div>
-        `;
+        return `<div class="sell-form"><div><label>📦 Количество (акций): <span id="buyAmountVal">1.00</span></label><input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="1"></div><div><label>⭐ Цена за акцию: <span id="buyPriceVal">1.00</span></label><input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1"></div><button id="buyLimitBtn">💰 Выставить заявку на покупку</button></div>`;
     } else {
-        return `
-            <div class="sell-form">
-                <input type="number" id="buyAmountLimit" step="0.01" min="1" placeholder="Количество (от 1)">
-                <input type="number" id="buyPriceLimit" step="0.01" min="1" placeholder="Цена (от 1 Star)">
-                <button id="buyLimitBtn">💰 Выставить заявку на покупку</button>
-            </div>
-        `;
+        return `<div class="sell-form"><input type="number" id="buyAmountLimit" step="0.01" min="1" placeholder="Количество (от 1)"><input type="number" id="buyPriceLimit" step="0.01" min="1" placeholder="Цена (от 1 Star)"><button id="buyLimitBtn">💰 Выставить заявку на покупку</button></div>`;
     }
 }
 
-// ========== Загрузка ордеров с именами продавцов ==========
 async function loadOrdersWithSellers() {
     let orders = [];
     if (currentOrdersFilter === 'all') orders = await window.getActiveOrders();
     else orders = await window.getUserOrders();
     if (!orders.length) return [];
     const sellerIds = [...new Set(orders.map(o => o.seller_id))];
-    const { data: users } = await window.supabase
-        .from('users')
-        .select('id, username, avatar_url')
-        .in('id', sellerIds);
+    const { data: users } = await window.supabase.from('users').select('id, username, avatar_url').in('id', sellerIds);
     const userMap = new Map(users?.map(u => [u.id, u]) || []);
     for (let o of orders) {
         const user = userMap.get(o.seller_id);
@@ -410,7 +285,6 @@ async function loadOrdersWithSellers() {
     return orders;
 }
 
-// ========== Отрисовка списка ордеров (с пагинацией) ==========
 function renderOrdersList(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
@@ -432,32 +306,11 @@ function renderOrdersList(orders) {
     for (let order of pageOrders) {
         const isBest = order.price_per_share === bestPrice;
         const avatarMini = window.renderAvatarHtml(order.seller_avatar, null, null, '32px');
-        html += `
-            <div class="order-card ${isBest ? 'order-card-best' : ''}" data-order='${JSON.stringify(order)}'>
-                <div class="order-card-header">
-                    <div class="seller-info">
-                        ${avatarMini}
-                        <span class="seller-name">${escapeHtml(order.seller_name)}</span>
-                        ${order.seller_rating ? `<span class="stars-rating">${'★'.repeat(Math.floor(order.seller_rating))}</span>` : ''}
-                    </div>
-                    <div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div>
-                </div>
-                <div class="order-card-body">
-                    <span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span>
-                    <button class="buy-btn">Купить</button>
-                </div>
-            </div>
-        `;
+        html += `<div class="order-card ${isBest ? 'order-card-best' : ''}" data-order='${JSON.stringify(order)}'><div class="order-card-header"><div class="seller-info">${avatarMini}<span class="seller-name">${escapeHtml(order.seller_name)}</span>${order.seller_rating ? `<span class="stars-rating">${'★'.repeat(Math.floor(order.seller_rating))}</span>` : ''}</div><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div></div><div class="order-card-body"><span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span><button class="buy-btn">Купить</button></div></div>`;
     }
     let paginationHtml = '';
     if (totalPages > 1) {
-        paginationHtml = `
-            <div class="pagination-container" id="ordersPagination">
-                <button class="pagination-btn" id="ordersPrevPage" ${currentOrdersPage === 1 ? 'disabled' : ''}>← Назад</button>
-                <span class="pagination-info">${currentOrdersPage} / ${totalPages}</span>
-                <button class="pagination-btn" id="ordersNextPage" ${currentOrdersPage === totalPages ? 'disabled' : ''}>Вперёд →</button>
-            </div>
-        `;
+        paginationHtml = `<div class="pagination-container"><button class="pagination-btn" id="ordersPrevPage" ${currentOrdersPage === 1 ? 'disabled' : ''}>← Назад</button><span class="pagination-info">${currentOrdersPage} / ${totalPages}</span><button class="pagination-btn" id="ordersNextPage" ${currentOrdersPage === totalPages ? 'disabled' : ''}>Вперёд →</button></div>`;
     }
     container.innerHTML = html + paginationHtml;
     document.querySelectorAll('.buy-btn').forEach(btn => {
@@ -472,78 +325,41 @@ function renderOrdersList(orders) {
     if (nextBtn) nextBtn.addEventListener('click', () => { if (currentOrdersPage < totalPages) { currentOrdersPage++; renderOrdersList(filteredOrders); } });
 }
 
-// ========== Модалка покупки ==========
 function showBuyModal(order) {
     const maxShares = window.fromCents(order.amount);
     const pricePerShare = window.fromCents(order.price_per_share);
-    const modalHtml = `
-        <div class="modal" id="buyModal" style="display:flex;">
-            <div class="modal-content" style="max-width: 320px;">
-                <span class="close-modal" id="closeBuyModal">&times;</span>
-                <h3>Покупка акций</h3>
-                <div class="buy-price">Цена: <strong>${pricePerShare} ⭐</strong> / шт.</div>
-                <div class="buy-available">Доступно: <strong>${maxShares}</strong> шт.</div>
-                <div class="buy-amount-row">
-                    <input type="number" id="buyAmount" value="1" step="0.01" min="1" max="${maxShares}" placeholder="Количество">
-                    <button id="buyMaxBtn" class="max-btn">Макс</button>
-                </div>
-                <div class="buy-total">Итого: <span id="totalPrice">${pricePerShare}</span> ⭐</div>
-                <button id="confirmBuyBtn" class="buy-confirm-btn">Подтвердить</button>
-            </div>
-        </div>
-    `;
+    const modalHtml = `<div class="modal" id="buyModal" style="display:flex;"><div class="modal-content" style="max-width:320px;"><span class="close-modal" id="closeBuyModal">&times;</span><h3>Покупка акций</h3><div class="buy-price">Цена: <strong>${pricePerShare} ⭐</strong> / шт.</div><div class="buy-available">Доступно: <strong>${maxShares}</strong> шт.</div><div class="buy-amount-row"><input type="number" id="buyAmount" value="1" step="0.01" min="1" max="${maxShares}" placeholder="Количество"><button id="buyMaxBtn" class="max-btn">Макс</button></div><div class="buy-total">Итого: <span id="totalPrice">${pricePerShare}</span> ⭐</div><button id="confirmBuyBtn" class="buy-confirm-btn">Подтвердить</button></div></div>`;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modal = document.getElementById('buyModal');
     const amountInput = document.getElementById('buyAmount');
     const totalSpan = document.getElementById('totalPrice');
-    const updateTotal = () => {
-        let amount = parseFloat(amountInput.value) || 0;
-        totalSpan.innerText = (amount * pricePerShare).toFixed(2);
-    };
+    const updateTotal = () => { let amount = parseFloat(amountInput.value) || 0; totalSpan.innerText = (amount * pricePerShare).toFixed(2); };
     amountInput.addEventListener('input', updateTotal);
-    document.getElementById('buyMaxBtn').onclick = () => {
-        amountInput.value = maxShares;
-        updateTotal();
-    };
+    document.getElementById('buyMaxBtn').onclick = () => { amountInput.value = maxShares; updateTotal(); };
     document.getElementById('closeBuyModal').onclick = () => modal.remove();
     document.getElementById('confirmBuyBtn').onclick = async () => {
         let amount = parseFloat(amountInput.value);
-        if (isNaN(amount) || amount < 1 || amount > maxShares) {
-            window.showCustomModal('Ошибка', 'Некорректное количество');
-            return;
-        }
+        if (isNaN(amount) || amount < 1 || amount > maxShares) { window.showCustomModal('Ошибка', 'Некорректное количество'); return; }
         try {
             await window.executePartialTrade(order.id, window.toCents(amount));
             window.showCustomModal('Успех', 'Сделка завершена');
             modal.remove();
             await window.refreshActiveTab();
-        } catch (err) {
-            window.showCustomModal('Ошибка', err.message);
-        }
+        } catch (err) { window.showCustomModal('Ошибка', err.message); }
     };
 }
 
-// ========== Realtime ==========
 function subscribeToRealtime() {
     if (realtimeChannel) return;
     realtimeChannel = window.supabase
         .channel('stocks-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-            if (document.querySelector('.tab[data-tab="stocks"].active')) window.refreshActiveTab();
-        })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => {
-            if (document.querySelector('.tab[data-tab="stocks"].active')) {
-                updateTicker();
-                window.refreshActiveTab();
-            }
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${window.userId}` }, () => {
-            if (document.querySelector('.tab[data-tab="stocks"].active')) window.refreshActiveTab();
-        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { if (document.querySelector('.tab[data-tab="stocks"].active')) window.refreshActiveTab(); })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => { if (document.querySelector('.tab[data-tab="stocks"].active')) { updateTicker(); window.refreshActiveTab(); } })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${window.userId}` }, () => { if (document.querySelector('.tab[data-tab="stocks"].active')) window.refreshActiveTab(); })
         .subscribe();
 }
 
-// ========== ОСНОВНОЙ РЕНДЕР ==========
+// ========== ГЛАВНЫЙ РЕНДЕР ==========
 window.renderStocksTab = async function(currentUser) {
     try {
         const allOrders = await loadOrdersWithSellers();
@@ -556,7 +372,7 @@ window.renderStocksTab = async function(currentUser) {
 
         currentOrdersPage = 1;
 
-        let html = `
+        const html = `
             <div class="card">
                 <div class="balance-row">
                     <div class="balance-item">📊 Акций<br><strong>${window.fromCents(currentUser.shares)}</strong></div>
@@ -582,17 +398,14 @@ window.renderStocksTab = async function(currentUser) {
                 <div id="ticker" class="ticker"></div>
             </div>
             <div class="card">
-                <h3 style="text-align: center;">📖 Стакан заявок</h3>
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex:1;"><h4 style="text-align:center;">💰 Продажа (лучшие цены)</h4><div id="sellOrdersList"></div></div>
-                    <div style="flex:1;"><h4 style="text-align:center;">🏦 Покупка (лучшие цены)</h4><div id="buyOrdersList"></div></div>
+                <h3>📖 Стакан заявок</h3>
+                <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <div style="flex:1;"><h4 style="text-align:center;">💰 Продажа</h4><div id="sellOrdersList"></div></div>
+                    <div style="flex:1;"><h4 style="text-align:center;">🏦 Покупка</h4><div id="buyOrdersList"></div></div>
                 </div>
             </div>
             <div class="card"><h3>📈 Продать акции</h3>${renderSellForm()}</div>
             <div class="card"><h3>🛒 Купить акции (лимитная заявка)</h3>${renderBuyLimitForm()}</div>
-        `;
-
-        html += `
             <div class="card accordion-section">
                 <div class="accordion-header" data-target="mySellsList">
                     <div class="accordion-title">📌 Мои ордера на продажу <span class="order-count">(${myOrders.length})</span></div>
@@ -632,72 +445,36 @@ window.renderStocksTab = async function(currentUser) {
 
         document.getElementById('app').innerHTML = html;
 
-        // Отрисовка графики
         drawCanvasChartWithAxes(priceHistory);
         await updateTicker();
         await renderOrderBook();
         renderOrderHistory(orderHistory);
 
-        // Мои ордера на продажу
         if (myOrders.length) {
             const myDiv = document.getElementById('myOrdersList');
-            myDiv.innerHTML = myOrders.map(order => `
-                <div class="order-card my-order-card" data-order='${JSON.stringify(order)}'>
-                    <div class="order-card-header">
-                        <div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div>
-                        <button class="cancel-btn-small" data-id="${order.id}">Отменить</button>
-                    </div>
-                    <div class="order-card-body"><span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span></div>
-                </div>
-            `).join('');
+            myDiv.innerHTML = myOrders.map(order => `<div class="order-card my-order-card" data-order='${JSON.stringify(order)}'><div class="order-card-header"><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div><button class="cancel-btn-small" data-id="${order.id}">Отменить</button></div><div class="order-card-body"><span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span></div></div>`).join('');
             document.querySelectorAll('#myOrdersList .cancel-btn-small').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const order = JSON.parse(btn.closest('.order-card').dataset.order);
-                    if (confirm('Отменить ордер на продажу?')) {
-                        try {
-                            await window.cancelOrder(order.id);
-                            window.showToast('Ордер на продажу отменён');
-                            await window.refreshActiveTab();
-                        } catch (err) { window.showCustomModal('Ошибка', err.message); }
-                    }
+                    if (confirm('Отменить ордер на продажу?')) { try { await window.cancelOrder(order.id); window.showToast('Ордер на продажу отменён'); await window.refreshActiveTab(); } catch (err) { window.showCustomModal('Ошибка', err.message); } }
                 });
             });
         }
 
-        // Мои заявки на покупку
         if (myBuyOrders.length) {
             const buyDiv = document.getElementById('myBuyOrdersList');
-            buyDiv.innerHTML = myBuyOrders.map(order => `
-                <div class="order-card my-order-card" data-buy-order-id="${order.id}">
-                    <div class="order-card-header">
-                        <div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div>
-                        <button class="cancel-buy-btn" data-id="${order.id}">Отменить</button>
-                    </div>
-                    <div class="order-card-body"><span class="order-amount">📦 Купить ${window.fromCents(order.amount)} шт.</span></div>
-                </div>
-            `).join('');
+            buyDiv.innerHTML = myBuyOrders.map(order => `<div class="order-card my-order-card" data-buy-order-id="${order.id}"><div class="order-card-header"><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div><button class="cancel-buy-btn" data-id="${order.id}">Отменить</button></div><div class="order-card-body"><span class="order-amount">📦 Купить ${window.fromCents(order.amount)} шт.</span></div></div>`).join('');
             document.querySelectorAll('#myBuyOrdersList .cancel-buy-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const orderId = parseInt(btn.dataset.id);
-                    if (confirm('Отменить заявку на покупку?')) {
-                        try {
-                            await cancelBuyOrder(orderId);
-                            window.showToast('Заявка на покупку отменена');
-                            await window.refreshActiveTab();
-                        } catch (err) { window.showCustomModal('Ошибка', err.message); }
-                    }
+                    if (confirm('Отменить заявку на покупку?')) { try { await cancelBuyOrder(orderId); window.showToast('Заявка на покупку отменена'); await window.refreshActiveTab(); } catch (err) { window.showCustomModal('Ошибка', err.message); } }
                 });
             });
         }
 
-        document.getElementById('cancelAllSellsBtn')?.addEventListener('click', async () => {
-            if (confirm('Отменить ВСЕ активные ордера на продажу?')) await cancelAllSellOrders();
-        });
-        document.getElementById('cancelAllBuysBtn')?.addEventListener('click', async () => {
-            if (confirm('Отменить ВСЕ активные заявки на покупку?')) await cancelAllBuyOrders();
-        });
+        document.getElementById('cancelAllSellsBtn')?.addEventListener('click', async () => { if (confirm('Отменить ВСЕ активные ордера на продажу?')) await cancelAllSellOrders(); });
+        document.getElementById('cancelAllBuysBtn')?.addEventListener('click', async () => { if (confirm('Отменить ВСЕ активные заявки на покупку?')) await cancelAllBuyOrders(); });
 
-        // Аккордеоны
         document.querySelectorAll('.accordion-header').forEach(header => {
             header.addEventListener('click', () => {
                 const targetId = header.dataset.target;
@@ -734,7 +511,6 @@ window.renderStocksTab = async function(currentUser) {
 
         renderOrdersList(allOrders);
 
-        // Обработчики фильтров и сортировки
         document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentOrdersFilter = btn.dataset.filter;
             currentOrdersPage = 1;
@@ -756,11 +532,8 @@ window.renderStocksTab = async function(currentUser) {
             currentTimeframe = btn.dataset.tf;
             await window.renderStocksTab(currentUser);
         }));
-        document.getElementById('refreshChartBtn')?.addEventListener('click', async () => {
-            await window.renderStocksTab(currentUser);
-        });
+        document.getElementById('refreshChartBtn')?.addEventListener('click', async () => { await window.renderStocksTab(currentUser); });
 
-        // Слайдеры
         const useSliders = window.getUseSliders();
         if (useSliders) {
             const sellAmountSlider = document.getElementById('sellAmountSlider');
@@ -790,14 +563,8 @@ window.renderStocksTab = async function(currentUser) {
                 amount = parseFloat(document.getElementById('sellAmount').value);
                 price = parseFloat(document.getElementById('sellPrice').value);
             }
-            if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
-                window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1');
-                return;
-            }
-            try {
-                await window.createOrder(amount, price);
-                await window.refreshActiveTab();
-            } catch (err) { window.showCustomModal('Ошибка', err.message); }
+            if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) { window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1'); return; }
+            try { await window.createOrder(amount, price); await window.refreshActiveTab(); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         });
         document.getElementById('buyLimitBtn')?.addEventListener('click', async () => {
             let amount, price;
@@ -808,14 +575,8 @@ window.renderStocksTab = async function(currentUser) {
                 amount = parseFloat(document.getElementById('buyAmountLimit').value);
                 price = parseFloat(document.getElementById('buyPriceLimit').value);
             }
-            if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
-                window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1');
-                return;
-            }
-            try {
-                await window.createBuyOrder(amount, price);
-                await window.refreshActiveTab();
-            } catch (err) { window.showCustomModal('Ошибка', err.message); }
+            if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) { window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1'); return; }
+            try { await window.createBuyOrder(amount, price); await window.refreshActiveTab(); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         });
         document.getElementById('marketBuyBtn')?.addEventListener('click', async () => {
             const stars = parseFloat(prompt('Сколько ⭐ потратить?', '100'));
