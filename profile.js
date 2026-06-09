@@ -1,4 +1,4 @@
-// profile.js – исправленная версия (работает выбор фона и обводки)
+// profile.js – полная рабочая версия
 const avatarEmojis = [
     '👤', '😀', '😎', '👍',
     '🐱', '🐶', '🦊', '🐼',
@@ -41,7 +41,43 @@ function getAvatarStyle(emoji) {
 }
 
 async function getNextAchievementsProgress(currentUser, getUserStats, getAllAchievements, getEarnedAchievements) {
-    // ... (оставьте без изменений, работает)
+    const allAchievements = await getAllAchievements();
+    const earned = await getEarnedAchievements();
+    const earnedIds = new Set(earned.map(a => a.id));
+    const ignoreNames = ['🌟 Первый шаг', '🎨 Стилист'];
+    const notEarned = allAchievements.filter(a => !earnedIds.has(a.id) && !ignoreNames.includes(a.name));
+    if (notEarned.length === 0) return [];
+    const stats = await getUserStats();
+    const tradesCount = stats.totalTrades;
+    const sharesCents = currentUser.shares;
+    const referralsCount = currentUser.referral_count || 0;
+    const totalTopupCents = currentUser.total_topup || 0;
+    const totalSpentCents = currentUser.total_spent || 0;
+    const totalEarnedCents = currentUser.total_earned || 0;
+    const totalVolumeCents = currentUser.total_volume || 0;
+    const starsBalanceCents = currentUser.stars_balance;
+    const daysActive = currentUser.days_active || 0;
+    const nextAchievements = [];
+    for (let ach of notEarned) {
+        let current = 0, needed = ach.condition_value;
+        switch (ach.condition_type) {
+            case 'trades_count': current = tradesCount; break;
+            case 'shares_held': current = sharesCents; break;
+            case 'referrals_count': current = referralsCount; break;
+            case 'total_topup': current = totalTopupCents; break;
+            case 'total_spent': current = totalSpentCents; break;
+            case 'total_earned': current = totalEarnedCents; break;
+            case 'total_volume': current = totalVolumeCents; break;
+            case 'stars_held': current = starsBalanceCents; break;
+            case 'days_active': current = daysActive; break;
+            default: continue;
+        }
+        if (current < needed) {
+            nextAchievements.push({ ...ach, current, needed, progress: Math.min(100, (current / needed) * 100) });
+        }
+        if (nextAchievements.length >= 3) break;
+    }
+    return nextAchievements;
 }
 
 async function awardStylistAchievement() {
@@ -50,10 +86,88 @@ async function awardStylistAchievement() {
 }
 
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
-    // ... (оставьте без изменений, работает)
+    const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
+    const isSlotOccupied = currentSlotAchievementId !== null;
+    const gridHtml = earnedAchievements.map(ach => {
+        const isSelected = (currentSlotAchievementId === ach.id);
+        const isUsedElsewhere = otherSelected.includes(ach.id);
+        const disabledClass = isUsedElsewhere ? 'disabled' : '';
+        const selectedClass = isSelected ? 'selected' : '';
+        const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleString() : 'дата не указана';
+        let conditionText = '';
+        const hideCondition = ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист';
+        if (!hideCondition && ach.condition_type !== 'none') {
+            switch(ach.condition_type) {
+                case 'trades_count': conditionText = `📊 Сделок: ${ach.condition_value}`; break;
+                case 'shares_held': conditionText = `📈 Акций: ${ach.condition_value/100}`; break;
+                case 'referrals_count': conditionText = `👥 Приглашений: ${ach.condition_value}`; break;
+                case 'total_topup': conditionText = `💰 Пополнено: ${ach.condition_value/100} ⭐`; break;
+                case 'total_spent': conditionText = `💸 Потрачено: ${ach.condition_value/100} ⭐`; break;
+                case 'total_earned': conditionText = `💵 Заработано: ${ach.condition_value/100} ⭐`; break;
+            }
+        }
+        return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
+            <div class="achievement-name">${ach.name}</div>
+            <div class="achievement-desc">${ach.description}</div>
+            ${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}
+            <div class="achievement-date">🏅 Получено: ${earnedDate}</div>
+        </div>`;
+    }).join('');
+    const modalHtml = `
+        <div class="modal" id="achiSelectorModal" style="display:flex;">
+            <div class="modal-content">
+                <span class="close-modal" id="closeAchiSelector">&times;</span>
+                <h3>Выберите достижение</h3>
+                <div class="small-text" style="margin-bottom: 10px; text-align: center;">слот ${slot+1}</div>
+                <div class="scrollable-content">
+                    <div class="achievements-grid" id="achiGrid">${gridHtml}</div>
+                </div>
+                <div class="modal-buttons">
+                    ${isSlotOccupied ? `<button id="clearSlotBtn" class="secondary">🗑️ Очистить слот</button>` : ''}
+                    <button id="saveAchiSelection">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('achiSelectorModal');
+    document.getElementById('closeAchiSelector').onclick = () => modal.remove();
+    if (isSlotOccupied) {
+        document.getElementById('clearSlotBtn').onclick = async () => {
+            let newSelectedIds = [...currentSelectedIds];
+            newSelectedIds[slot] = null;
+            newSelectedIds = newSelectedIds.filter(id => id !== null);
+            await updateUserCallback({ selected_achievements: newSelectedIds });
+            currentUser.selected_achievements = newSelectedIds;
+            modal.remove();
+            await renderProfileTab();
+        };
+    }
+    document.getElementById('saveAchiSelection').onclick = async () => {
+        const selectedCard = document.querySelector('#achiGrid .achievement-card.selected:not(.disabled)');
+        let newSelectedIds = [...currentSelectedIds];
+        if (selectedCard) {
+            const selectedId = parseInt(selectedCard.dataset.achId);
+            newSelectedIds[slot] = selectedId;
+        }
+        newSelectedIds = newSelectedIds.filter(id => id !== null);
+        await updateUserCallback({ selected_achievements: newSelectedIds });
+        currentUser.selected_achievements = newSelectedIds;
+        modal.remove();
+        await renderProfileTab();
+    };
+    document.querySelectorAll('#achiGrid .achievement-card').forEach(card => {
+        card.addEventListener('click', () => {
+            if (card.dataset.disabled === 'true') {
+                showCustomModal('Недоступно', 'Это достижение уже используется в другом слоте');
+                return;
+            }
+            document.querySelectorAll('#achiGrid .achievement-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+        });
+    });
 }
 
-// Шаг 1: аватарка
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -105,7 +219,6 @@ function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomMod
     };
 }
 
-// Шаг 2: фон (исправлен выбор)
 function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentBg = currentUser.avatar_bg || 'gradient1';
     let isCustomColor = false;
@@ -216,7 +329,6 @@ function showBackgroundStep(currentUser, updateCallback, nextCallback, backCallb
     };
 }
 
-// Шаг 3: обводка (исправлен выбор)
 async function showBorderColorStep(currentUser, updateCallback, nextCallback, backCallback, showCustomModal) {
     const currentColor = currentUser.avatar_border || '#ffffff';
     let bgStyleInline = '';
@@ -319,7 +431,6 @@ async function showBorderColorStep(currentUser, updateCallback, nextCallback, ba
     };
 }
 
-// Главная кастомизация
 async function startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTab, showCustomModal) {
     await new Promise(resolve => { showAvatarStep(currentUser, updateUserCallback, resolve, showCustomModal); });
     await new Promise(resolve => {
@@ -348,7 +459,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
-// Основной рендер профиля (без изменений, но он уже корректно отображает достижения)
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
