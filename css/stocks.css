@@ -1,5 +1,4 @@
-/* stocks.css – улучшенный, с пагинацией, центровкой таблицы и аккордеонами */
-
+/* stocks.css – финальная улучшенная версия */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -98,8 +97,7 @@
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
 }
-
-/* ===== СВОРАЧИВАЕМЫЙ БЛОК ФИЛЬТРОВ ===== */
+/* Сворачиваемый блок фильтров */
 .filter-accordion-header {
     display: flex;
     justify-content: space-between;
@@ -110,6 +108,11 @@
     font-weight: bold;
     font-size: 18px;
     margin-bottom: 8px;
+    text-align: center;
+}
+.filter-accordion-header .filter-title {
+    flex: 1;
+    text-align: center;
 }
 .filter-accordion-header .accordion-icon {
     font-size: 20px;
@@ -155,26 +158,61 @@
     border-color: transparent;
     box-shadow: 0 4px 10px rgba(43,110,158,0.4);
 }
-
-.sell-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+/* Аккордеоны для ордеров */
+.accordion-section {
+    overflow: hidden;
+    transition: all 0.2s;
 }
-.sell-form input[type="range"] {
-    width: 100%;
-    margin: 8px 0;
-}
-.sell-form label {
+.accordion-header {
     display: flex;
     justify-content: space-between;
-}
-.empty-orders {
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 0;
+    user-select: none;
     text-align: center;
-    padding: 20px;
-    color: #9ca3af;
 }
-/* Карточки ордеров (общие) */
+.accordion-header .accordion-title {
+    flex: 1;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.accordion-header .order-count {
+    background: rgba(43,110,158,0.5);
+    border-radius: 30px;
+    padding: 2px 10px;
+    font-size: 13px;
+    font-weight: normal;
+}
+.accordion-header .accordion-icon {
+    font-size: 22px;
+    transition: transform 0.2s;
+}
+.accordion-content {
+    overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.accordion-content.collapsed {
+    max-height: 0;
+    padding: 0;
+}
+.accordion-content.expanded {
+    max-height: 1200px;
+    padding-top: 12px;
+}
+.cancel-all-btn {
+    background: rgba(220,38,38,0.2);
+    border: 1px solid #f97316;
+    margin-top: 12px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+}
+/* Карточки ордеров */
 .order-card {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 20px;
@@ -327,15 +365,7 @@ button:active {
     text-align: center;
     margin-bottom: 12px;
 }
-#sellOrdersList .small-text,
-#buyOrdersList .small-text,
-#orderHistoryList .small-text {
-    text-align: center !important;
-}
-#sellOrdersList, #buyOrdersList, #orderHistoryList {
-    margin-top: 8px;
-}
-/* ===== ТАБЛИЦА ИСТОРИИ ОРДЕРОВ (ЦЕНТРИРОВАНА) ===== */
+/* Таблица истории ордеров (полное центрирование) */
 .history-table {
     width: 100%;
     border-collapse: collapse;
@@ -357,58 +387,7 @@ button:active {
 .history-table td:first-child, .history-table th:first-child {
     text-align: left;
 }
-/* ===== АККОРДЕОН ДЛЯ МОИХ ОРДЕРОВ ===== */
-.accordion-section {
-    overflow: hidden;
-    transition: all 0.2s;
-}
-.accordion-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    padding: 8px 0;
-    user-select: none;
-}
-.accordion-title {
-    font-size: 18px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.order-count {
-    background: rgba(43,110,158,0.5);
-    border-radius: 30px;
-    padding: 2px 10px;
-    font-size: 13px;
-    font-weight: normal;
-}
-.accordion-icon {
-    font-size: 22px;
-    transition: transform 0.2s;
-}
-.accordion-content {
-    overflow: hidden;
-    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.accordion-content.collapsed {
-    max-height: 0;
-    padding: 0;
-}
-.accordion-content.expanded {
-    max-height: 1200px;
-    padding-top: 12px;
-}
-.cancel-all-btn {
-    background: rgba(220,38,38,0.2);
-    border: 1px solid #f97316;
-    margin-top: 12px;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
-}
-/* ===== ПАГИНАЦИЯ ДЛЯ ОРДЕРОВ ===== */
+/* Пагинация */
 .pagination-container {
     display: flex;
     justify-content: center;
@@ -441,7 +420,7 @@ button:active {
     padding: 6px 14px;
     border-radius: 40px;
 }
-/* ===== АДАПТАЦИЯ ===== */
+/* Адаптация для мобильных */
 @media (max-width: 560px) {
     .balance-row { gap: 6px; }
     .balance-item { font-size: 12px; padding: 4px 8px; }
@@ -455,9 +434,8 @@ button:active {
     .max-btn { width: 100%; }
     .history-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 11px; }
     .history-table th, .history-table td { padding: 6px 4px; }
-    .accordion-title { font-size: 16px; }
+    .accordion-header .accordion-title { font-size: 16px; }
     .order-count { font-size: 11px; }
     .pagination-btn { padding: 6px 14px; font-size: 12px; }
     .pagination-info { font-size: 12px; }
-    .filter-accordion-content.expanded { max-height: 260px; }
 }
