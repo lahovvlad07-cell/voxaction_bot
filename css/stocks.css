@@ -1,4 +1,4 @@
-/* stocks.css – финальный, с модалками и центрированием */
+/* stocks.css – финальный, с центрированием пустых сообщений */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -423,6 +423,11 @@ button:active {
     border-radius: 20px;
     text-align: center;
     margin: 8px 0;
+}
+/* Принудительное центрирование текста в пустых сообщениях аккордеонов */
+#mySellsList .empty-orders,
+#myBuysList .empty-orders {
+    text-align: center !important;
 }
 @media (max-width: 560px) {
     .balance-item .value { font-size: 20px; }
