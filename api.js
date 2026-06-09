@@ -281,6 +281,13 @@ window.cancelOrder = async function(orderId) {
     return true;
 };
 
+window.cancelBuyOrder = async function(buyOrderId) {
+    const { data, error } = await window.supabase.rpc('cancel_buy_order', { p_buy_order_id: buyOrderId, p_user_id: window.userId });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    return true;
+};
+
 window.createOrder = async function(amountStars, priceStars) {
     if (amountStars < 1) throw new Error('Количество должно быть ≥ 1');
     if (priceStars < 1) throw new Error('Цена должна быть ≥ 1');
@@ -340,6 +347,12 @@ window.executePartialTrade = async function(orderId, buyAmountCents) {
 
 window.getRecentTrades = async (limit = 10) => {
     const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getPriceHistory = async () => {
+    const { data, error } = await window.supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
     if (error) throw new Error(error.message);
     return data || [];
 };
@@ -410,6 +423,31 @@ window.updateUserBorder = async (color) => {
     if (error) throw new Error(error.message);
     if (window.currentUser) window.currentUser.avatar_border = color;
     return true;
+};
+
+// ========== РЫНОЧНЫЕ СДЕЛКИ ==========
+window.marketBuy = async function(starsAmount) {
+    if (starsAmount <= 0) throw new Error('Сумма должна быть больше 0');
+    const { data, error } = await window.supabase.rpc('market_buy', {
+        p_user_id: window.userId,
+        p_stars_amount: starsAmount
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    window.showToast(`✅ Куплено ${window.fromCents(data.bought)} шт. за ${starsAmount} ⭐`);
+    await window.refreshActiveTab();
+};
+
+window.marketSell = async function(sharesAmount) {
+    if (sharesAmount <= 0) throw new Error('Количество должно быть больше 0');
+    const { data, error } = await window.supabase.rpc('market_sell', {
+        p_user_id: window.userId,
+        p_amount_stars: sharesAmount
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    window.showToast(`✅ Продано ${window.fromCents(data.sold)} шт. за ${window.fromCents(data.earned)} ⭐`);
+    await window.refreshActiveTab();
 };
 
 // ========== АДМИНКА ==========
