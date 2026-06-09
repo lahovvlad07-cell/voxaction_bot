@@ -1,4 +1,4 @@
-/* tabs.css – плавная прокрутка без задержек */
+/* tabs.css – плавная прокрутка + drag to scroll */
 .tabs-wrapper {
     position: fixed;
     bottom: 0;
@@ -9,8 +9,8 @@
     border-top: 1px solid rgba(56, 189, 248, 0.25);
     padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
     z-index: 100;
-    overflow-x: auto;
-    white-space: nowrap;
+    overflow-x: auto !important;      /* обязательно для скролла */
+    white-space: nowrap !important;   /* чтобы табы не переносились */
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     cursor: grab;
