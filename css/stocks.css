@@ -1,103 +1,121 @@
-/* stocks.css – финальный, с мобильной адаптацией и центрированием */
+/* stocks.css – финальный, с компактной панелью и sticky кнопками */
+.balance-scroll {
+    overflow-x: auto;
+    white-space: nowrap;
+    margin-bottom: 12px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
 .balance-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 24px;
+    display: inline-flex;
+    gap: 10px;
+    padding: 2px;
 }
 .balance-item {
-    flex: 1;
+    flex-shrink: 0;
+    width: 100px;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
-    border-radius: 28px;
-    padding: 14px 8px;
+    border-radius: 24px;
+    padding: 8px 4px;
     text-align: center;
     border: 1px solid rgba(56, 189, 248, 0.2);
-    transition: transform 0.2s;
-}
-.balance-item:hover {
-    transform: translateY(-2px);
-    border-color: rgba(56, 189, 248, 0.5);
 }
 .balance-item .label {
-    font-size: 14px;
+    font-size: 12px;
     color: #9ca3af;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 .balance-item .value {
-    font-size: 28px;
+    font-size: 18px;
     font-weight: 800;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
-    background-size: 200% 200%;
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    animation: gradientShift 3s ease infinite;
 }
 .balance-item.price .value {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
-.market-buttons {
+.sticky-buttons {
+    position: sticky;
+    top: 70px; /* высота хедера Telegram */
+    z-index: 95;
+    background: rgba(18, 24, 38, 0.8);
+    backdrop-filter: blur(12px);
+    border-radius: 28px;
+    padding: 8px 16px;
+    margin: 0 16px 12px 16px;
     display: flex;
     gap: 12px;
-    margin: 8px 0 20px;
 }
-.market-buttons button {
+.sticky-buttons button {
     flex: 1;
+    margin: 0;
+    padding: 10px;
+    font-size: 14px;
 }
 .info-panel {
     display: flex;
     gap: 12px;
-    margin: 20px 0;
+    margin: 12px 0;
 }
 .info-card {
     flex: 1;
     background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(4px);
     border-radius: 24px;
-    padding: 12px;
+    padding: 10px;
     text-align: center;
     border: 1px solid rgba(56, 189, 248, 0.15);
 }
 .info-card .small-text {
-    font-size: 12px;
+    font-size: 11px;
     color: #9ca3af;
 }
 .info-card .price {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
-    margin-top: 6px;
+    margin-top: 4px;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    animation: gradientShift 3s ease infinite;
+}
+.info-card .change {
+    font-size: 11px;
+    margin-top: 2px;
+}
+.change.positive {
+    color: #4ade80;
+}
+.change.negative {
+    color: #f87171;
 }
 .timeframe-buttons {
     display: flex;
     gap: 10px;
-    margin: 20px 0;
+    margin: 16px 0;
 }
 .timeframe-btn {
     flex: 1;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(56, 189, 248, 0.3);
-    padding: 8px 0;
+    padding: 6px 0;
     border-radius: 40px;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
-    transition: 0.2s;
 }
 .timeframe-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border-color: transparent;
     color: white;
-    box-shadow: 0 4px 12px rgba(43, 110, 158, 0.4);
+    box-shadow: 0 2px 8px rgba(43, 110, 158, 0.4);
 }
 #refreshChartBtn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(56, 189, 248, 0.3);
-    padding: 8px 16px;
+    padding: 6px 16px;
     border-radius: 40px;
     cursor: pointer;
     width: auto;
@@ -106,9 +124,9 @@
     position: relative;
     background: #0f1320;
     border-radius: 28px;
-    padding: 8px;
-    margin: 16px 0;
-    height: 240px;
+    padding: 6px;
+    margin: 12px 0;
+    height: 200px;
     border: 1px solid rgba(56, 189, 248, 0.2);
 }
 canvas {
@@ -121,36 +139,35 @@ canvas {
     position: absolute;
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(8px);
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 11px;
     color: #eef2ff;
     pointer-events: none;
     z-index: 10;
-    border-left: 3px solid #2b6e9e;
+    border-left: 2px solid #2b6e9e;
     white-space: nowrap;
 }
 .chart-placeholder {
     text-align: center;
-    padding: 90px 20px;
+    padding: 70px 20px;
     color: #9ca3af;
 }
 .ticker {
     background: rgba(0, 0, 0, 0.4);
     border-radius: 60px;
-    padding: 10px 16px;
+    padding: 8px 16px;
     overflow: hidden;
     white-space: nowrap;
-    margin: 16px 0;
-    font-size: 13px;
-    border: 1px solid rgba(56, 189, 248, 0.2);
+    margin: 12px 0;
+    font-size: 12px;
 }
 .ticker-content {
     display: inline-block;
     animation: scroll 20s linear infinite;
 }
 .trade-item {
-    margin-right: 24px;
+    margin-right: 20px;
 }
 @keyframes scroll {
     0% { transform: translateX(100%); }
@@ -165,42 +182,43 @@ canvas {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(16px);
     border-radius: 28px;
-    padding: 20px;
+    padding: 16px;
     margin: 12px 16px;
     border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .card h3 {
     text-align: center;
-    margin-bottom: 16px;
-    font-size: 20px;
+    margin-bottom: 12px;
+    font-size: 18px;
 }
 .sell-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 .sell-form .input-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 .sell-form .input-header label {
     font-weight: 500;
+    font-size: 14px;
 }
 .sell-form .toggle-input-mode {
     background: rgba(56, 189, 248, 0.2);
     border: none;
     width: auto;
-    padding: 4px 10px;
+    padding: 4px 8px;
     border-radius: 30px;
-    font-size: 12px;
+    font-size: 11px;
     cursor: pointer;
     margin: 0;
 }
 input[type="range"] {
     width: 100%;
-    margin: 8px 0;
+    margin: 6px 0;
     -webkit-appearance: none;
     background: rgba(255, 255, 255, 0.2);
     height: 4px;
@@ -208,8 +226,8 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: #2b6e9e;
     border: 2px solid #60a5fa;
@@ -217,17 +235,17 @@ input[type="range"]::-webkit-slider-thumb {
 }
 input, input[type="number"] {
     width: 100%;
-    padding: 12px 16px;
+    padding: 10px 14px;
     background: #111827;
     border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 44px;
     color: white;
-    font-size: 14px;
+    font-size: 13px;
 }
 button {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border: none;
-    padding: 12px;
+    padding: 10px;
     border-radius: 44px;
     font-weight: 600;
     color: white;
@@ -246,24 +264,24 @@ button:active {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    padding: 8px 0;
+    padding: 6px 0;
 }
 .accordion-title {
     flex: 1;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 .order-count {
     background: rgba(43, 110, 158, 0.5);
     border-radius: 30px;
-    padding: 2px 8px;
-    font-size: 12px;
+    padding: 2px 6px;
+    font-size: 11px;
 }
 .accordion-icon {
-    font-size: 20px;
+    font-size: 18px;
     transition: transform 0.2s;
 }
 .accordion-content {
@@ -276,31 +294,31 @@ button:active {
 }
 .accordion-content.expanded {
     max-height: 800px;
-    padding-top: 12px;
+    padding-top: 10px;
 }
 .empty-orders {
     text-align: center;
-    padding: 24px;
+    padding: 20px;
     color: #9ca3af;
     font-style: italic;
     background: rgba(0,0,0,0.2);
-    border-radius: 24px;
-    margin: 8px 0;
+    border-radius: 20px;
+    margin: 6px 0;
 }
 .cancel-all-btn {
     background: rgba(220,38,38,0.2);
     border: 1px solid #f97316;
-    margin-top: 12px;
-    padding: 8px;
-    font-size: 14px;
+    margin-top: 10px;
+    padding: 6px;
+    font-size: 12px;
     width: auto;
     display: inline-block;
 }
 .order-card {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 20px;
-    padding: 14px;
-    margin-bottom: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
     border-left: 4px solid #2b6e9e;
 }
 .order-card-best {
@@ -311,22 +329,22 @@ button:active {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
 }
 .seller-info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 .seller-name {
     background: rgba(255,255,255,0.1);
-    padding: 4px 12px;
-    border-radius: 40px;
-    font-size: 13px;
+    padding: 2px 10px;
+    border-radius: 30px;
+    font-size: 12px;
 }
 .order-price-big {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
@@ -338,18 +356,18 @@ button:active {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
 }
 .order-amount {
-    font-size: 14px;
+    font-size: 13px;
     color: #a5b4fc;
 }
 .buy-btn, .cancel-btn-small, .cancel-buy-btn {
     background: rgba(56,189,248,0.2);
     border: none;
-    padding: 6px 16px;
-    border-radius: 40px;
-    font-size: 12px;
+    padding: 4px 14px;
+    border-radius: 30px;
+    font-size: 11px;
     cursor: pointer;
 }
 .buy-btn {
@@ -366,11 +384,11 @@ button:active {
 .history-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 12px;
     text-align: center;
 }
 .history-table th, .history-table td {
-    padding: 10px 4px;
+    padding: 8px 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .history-table th {
@@ -383,13 +401,13 @@ button:active {
 .pagination-container {
     display: flex;
     justify-content: center;
-    gap: 16px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 16px;
 }
 .pagination-btn {
     background: rgba(43,110,158,0.3);
     border: 1px solid #2b6e9e;
-    padding: 6px 18px;
+    padding: 5px 16px;
     border-radius: 40px;
     width: auto;
 }
@@ -397,16 +415,16 @@ button:active {
     opacity: 0.4;
 }
 .hint {
-    font-size: 11px;
+    font-size: 10px;
     color: #6b7280;
     text-align: center;
-    margin-top: 8px;
+    margin-top: 6px;
 }
 .market-modal .modal-content {
     max-width: 320px;
 }
 .market-modal input {
-    margin: 16px 0;
+    margin: 12px 0;
 }
 .modal-buttons-row {
     display: flex;
@@ -418,38 +436,41 @@ button:active {
 }
 .current-price-info {
     background: rgba(0,0,0,0.3);
-    padding: 8px;
-    border-radius: 20px;
+    padding: 6px;
+    border-radius: 16px;
     text-align: center;
     margin: 8px 0;
 }
-
-/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
 @media (max-width: 560px) {
-    .balance-row {
-        flex-direction: column;
-        gap: 8px;
+    .balance-item {
+        width: 85px;
     }
     .balance-item .value {
-        font-size: 24px;
+        font-size: 16px;
     }
-    .market-buttons {
-        flex-direction: column;
+    .sticky-buttons {
+        top: 68px;
+        padding: 6px 12px;
+        margin: 0 12px 10px 12px;
+    }
+    .sticky-buttons button {
+        font-size: 12px;
+        padding: 8px;
     }
     .info-panel {
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
     }
     .timeframe-buttons {
         flex-wrap: wrap;
     }
     .timeframe-btn {
-        flex: 1 0 calc(50% - 10px);
-        margin-bottom: 8px;
+        flex: 1 0 calc(50% - 8px);
+        margin-bottom: 6px;
     }
     #refreshChartBtn {
         width: 100%;
-        margin-top: 8px;
+        margin-top: 6px;
     }
     .order-card-header {
         flex-direction: column;
@@ -472,9 +493,6 @@ button:active {
         white-space: nowrap;
     }
     .accordion-title {
-        font-size: 16px;
-    }
-    .accordion-icon {
-        font-size: 18px;
+        font-size: 14px;
     }
 }
