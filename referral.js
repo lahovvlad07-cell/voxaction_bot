@@ -1,14 +1,12 @@
-// referral.js – финальная версия (бонусы до 10 друзей, только пополнившие)
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
-    
-    const allReferrals = await window.getReferralsList();
-    const confirmedCount = allReferrals.filter(r => r.topupCompleted === true).length;
+    let referralCount = currentUser.referral_count || 0;
     let totalEarnedStars = 0;
 
     async function loadFreshData() {
         const { user } = await window.getOrCreateUser();
         window.currentUser = user;
+        referralCount = user.referral_count || 0;
         try {
             const { data } = await window.supabase
                 .from('referral_bonuses')
@@ -44,17 +42,21 @@ window.renderReferralTab = async function() {
     }
     const allCompleted = !nextLevel;
     const target = nextLevel ? nextLevel.friends : bonusLevels[bonusLevels.length-1].friends;
-    const progressPercent = Math.min(100, (confirmedCount / target) * 100);
-    const remaining = Math.max(0, target - confirmedCount);
+    const progressPercent = Math.min(100, (referralCount / target) * 100);
+    const remaining = Math.max(0, target - referralCount);
     const rewardStars = nextLevel ? nextLevel.stars : 0;
-    const canClaim = (confirmedCount >= target) && nextLevel !== null;
+    const canClaim = (referralCount >= target) && nextLevel !== null;
 
     let currentPage = 1;
     const itemsPerPage = 10;
-    let fullReferralsList = allReferrals;
-    let totalPages = Math.ceil(fullReferralsList.length / itemsPerPage);
+    let fullReferralsList = [];
+    let totalPages = 0;
 
     async function loadReferralsPage(page) {
+        if (fullReferralsList.length === 0) {
+            fullReferralsList = await window.getReferralsList();
+            totalPages = Math.ceil(fullReferralsList.length / itemsPerPage);
+        }
         const start = (page - 1) * itemsPerPage;
         const end = start + itemsPerPage;
         const pageItems = fullReferralsList.slice(start, end);
@@ -138,31 +140,29 @@ window.renderReferralTab = async function() {
     let html = `
         <div class="card" style="overflow: visible !important;">
             <div class="referral-header">
-                <h2>🔗 Реферальная программа</h2>
-                <p>Приглашайте друзей, засчитываются только после пополнения от 10 ⭐</p>
+                <h2>Приводи друзей и зарабатывай</h2>
+                <p>Приглашай друзей, получай звёзды и бонусы</p>
             </div>
             <div class="stats-circles">
                 <div class="stat-circle">
-                    <div class="value">${confirmedCount}</div>
-                    <div class="label">активных друзей</div>
+                    <div class="value">${referralCount}</div>
+                    <div class="label">друзей</div>
                 </div>
                 <div class="stat-circle">
                     <div class="value">${totalEarnedStars}</div>
-                    <div class="label">заработано ⭐</div>
+                    <div class="label">заработано</div>
                 </div>
             </div>
     `;
 
     if (allCompleted) {
-        html += `<div class="progress-block"><div class="all-bonuses-claimed">🏆 Все бонусы получены!</div></div>`;
+        html += `<div class="progress-block"><div class="all-bonuses-claimed">🎉 Все награды собраны! Спасибо, что с нами!</div></div>`;
     } else {
         html += `
             <div class="progress-block">
-                <div class="progress-label">
-                    🎁 Следующая награда: <strong>${rewardStars} ⭐</strong> за приглашение ещё <strong>${remaining}</strong> ${declension(remaining, 'активного друга', 'активных друзей', 'активных друзей')}
-                </div>
+                <div class="progress-label">🎯 До следующей награды <strong>${rewardStars} ⭐</strong> осталось пригласить <strong>${remaining}</strong> друга(ей)</div>
                 <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
-                <div class="progress-stats">${confirmedCount} / ${target}</div>
+                <div class="progress-stats">${referralCount} / ${target}</div>
                 ${canClaim ? `<button class="claim-btn" data-friends="${target}" data-stars="${rewardStars}">🎁 Получить ${rewardStars} ⭐</button>` : ''}
             </div>
         `;
@@ -184,7 +184,7 @@ window.renderReferralTab = async function() {
             <div class="referrals-toggle" id="referralsToggle">
                 <span class="btn-icon">👥</span>
                 <span class="label-text">Приглашённые</span>
-                <span class="badge">${fullReferralsList.length}</span>
+                <span class="badge">${referralCount}</span>
             </div>
             <div class="referrals-list-collapsible" id="referralsListCollapsible">
                 <div id="referralsListContent"></div>
@@ -197,23 +197,14 @@ window.renderReferralTab = async function() {
                 </div>
             </div>
             <div class="legend">
-                ✅ Засчитываются только друзья, пополнившие баланс от 10 ⭐.<br>
-                ⭐ Звёзды за приглашения начисляются автоматически после достижения порога.<br>
-                📈 Бонусные акции за пополнение друга — после его первого пополнения.
+                ⭐ Звёзды начисляются автоматически за каждого приведённого друга (по достижении порога). 
+                Бонусные акции за пополнение друга — после его первого пополнения от 10 ⭐.
             </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
 
-    function declension(n, one, few, many) {
-        n = Math.abs(n) % 100;
-        if (n >= 5 && n <= 20) return many;
-        n %= 10;
-        if (n === 1) return one;
-        if (n >= 2 && n <= 4) return few;
-        return many;
-    }
-
+    // --- Обработчики ---
     const fullLinkSpan = document.getElementById('refLinkText');
     const copyBtn = document.getElementById('copyRefLinkBtn');
     const shareBtn = document.getElementById('shareRefLinkBtn');
@@ -255,6 +246,7 @@ window.renderReferralTab = async function() {
             window.showCustomModal('Успех', 'Реферальный код сохранён!');
             updateLink();
         } else {
+            // Исправленное сообщение: если ошибка содержит "уже занят" – показываем специфичную фразу
             if (data.error && (data.error.includes('уже занят') || data.error.includes('already'))) {
                 window.showCustomModal('Ошибка', 'Этот код уже занят');
             } else {

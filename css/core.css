@@ -1,0 +1,205 @@
+/* core.css – базовые стили, карточки, кнопки, модалки, уведомления */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    background: #0a0e1a;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: #eef2ff;
+    padding-top: 70px;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+/* ===== Карточка профиля (общая) ===== */
+.card {
+    background: rgba(18, 24, 38, 0.7);
+    backdrop-filter: blur(16px);
+    border-radius: 28px;
+    padding: 20px;
+    margin: 12px 16px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== Кнопки и поля ===== */
+button {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border: none;
+    padding: 12px 20px;
+    border-radius: 44px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    width: 100%;
+    margin-top: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+button:active {
+    transform: scale(0.96);
+    opacity: 0.9;
+}
+button.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    margin-top: 8px;
+}
+input {
+    width: 100%;
+    padding: 14px 18px;
+    margin: 8px 0;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 44px;
+    font-size: 16px;
+    background: #111827;
+    color: #f0f4ff;
+    outline: none;
+}
+input:focus {
+    border-color: #2b6e9e;
+    box-shadow: 0 0 0 2px rgba(43, 110, 158, 0.4);
+}
+
+/* ===== Модальные окна ===== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background: #121826;
+    border-radius: 32px;
+    max-width: 90%;
+    width: 450px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #2b6e9e;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+.modal-content h3 {
+    text-align: center;
+    margin: 16px 0 0 0;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.close-modal {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #9ca3af;
+    z-index: 1;
+}
+.modal-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 16px 0;
+    flex-shrink: 0;
+}
+.scrollable-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px;
+}
+.modal-buttons {
+    position: sticky;
+    bottom: 0;
+    background: #121826;
+    padding: 16px 20px;
+    margin-top: auto;
+    border-top: 1px solid rgba(56, 189, 248, 0.2);
+    display: flex;
+    gap: 12px;
+}
+.modal-buttons button {
+    flex: 1;
+    margin-top: 0;
+}
+
+/* ===== Уведомления ===== */
+.notifications-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.notification-item {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.notification-item.unread {
+    background: rgba(43, 110, 158, 0.2);
+    border-left: 3px solid #2b6e9e;
+}
+.notification-message {
+    flex: 1;
+    font-size: 13px;
+}
+.notification-time {
+    font-size: 10px;
+    color: #9ca3af;
+    margin: 0 12px;
+    min-width: 80px;
+    text-align: right;
+}
+.notification-actions button {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 16px;
+    width: auto;
+    margin: 0;
+    box-shadow: none;
+}
+
+/* ===== Тосты ===== */
+.toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(12px);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 40px;
+    z-index: 2000;
+    font-size: 14px;
+    border-left: 4px solid #2b6e9e;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: fadeInOut 5s ease forwards;
+    pointer-events: none;
+    white-space: nowrap;
+}
+@keyframes fadeInOut {
+    0% { opacity:0; transform:translateX(-50%) translateY(-20px); }
+    10% { opacity:1; transform:translateX(-50%) translateY(0); }
+    90% { opacity:1; transform:translateX(-50%) translateY(0); }
+    100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
+}

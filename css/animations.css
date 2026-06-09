@@ -1,0 +1,20 @@
+/* animations.css – анимации для градиентов и прочего */
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Анимация для элементов, использующих gradientShift */
+.header-logo,
+.price,
+.stat-value,
+.stat-number,
+.referral-title,
+.referral-stat-value {
+    background-size: 200% 200% !important;
+    animation: gradientShift 3s ease infinite;
+}
+
+/* Дополнительные анимации (если нужны) */

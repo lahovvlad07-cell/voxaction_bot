@@ -1,4 +1,5 @@
-// topup.js – с вызовом refreshActiveTab после оплаты
+// topup.js – полная версия (модалка пополнения, комиссия, инвойс)
+
 let selectedAmount = null;
 
 window.updateTopupFee = function(amount) {
@@ -52,10 +53,10 @@ function initTopupModal() {
             try {
                 const res = await window.createInvoice(selectedAmount);
                 if (res.ok && res.invoice_link) {
-                    window.tg.openInvoice(res.invoice_link, async (status) => {
+                    window.tg.openInvoice(res.invoice_link, (status) => {
                         if (status === 'paid') {
                             window.showCustomModal('Успех', 'Баланс пополнен');
-                            await window.refreshActiveTab(); // автообновление
+                            if (window.refreshAll) window.refreshAll();
                         }
                     });
                 } else {
