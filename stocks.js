@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с уникальными эмодзи, центрированием пустых сообщений
+// stocks.js – финальная версия с улучшенным визуалом, аккордеонами, пагинацией
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -95,7 +95,7 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Рыночные операции ==========
+// ========== Рыночная покупка ==========
 async function marketBuy(starsAmountStars) {
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
@@ -144,6 +144,7 @@ async function marketBuy(starsAmountStars) {
     await window.refreshActiveTab();
 }
 
+// ========== Рыночная продажа ==========
 async function marketSell(sharesAmountStars) {
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
@@ -228,11 +229,11 @@ async function renderOrderBook() {
 
     const sellDiv = document.getElementById('sellOrdersList');
     const buyDiv = document.getElementById('buyOrdersList');
-    if (sellDiv) sellDiv.innerHTML = sellHtml || '<p class="small-text" style="text-align:center;">Нет заявок на продажу</p>';
-    if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="small-text" style="text-align:center;">Нет заявок на покупку</p>';
+    if (sellDiv) sellDiv.innerHTML = sellHtml || '<p class="empty-orders" style="text-align:center;">Нет заявок на продажу</p>';
+    if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="empty-orders" style="text-align:center;">Нет заявок на покупку</p>';
 }
 
-// ========== История ордеров ==========
+// ========== История завершённых ордеров ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase
         .from('orders')
@@ -249,7 +250,7 @@ function renderOrderHistory(orders) {
     const container = document.getElementById('orderHistoryList');
     if (!container) return;
     if (!orders.length) {
-        container.innerHTML = '<p class="small-text" style="text-align:center;">Нет завершённых ордеров</p>';
+        container.innerHTML = '<p class="empty-orders">Нет завершённых ордеров</p>';
         return;
     }
     const tableHtml = `
@@ -272,7 +273,7 @@ function renderOrderHistory(orders) {
     container.innerHTML = tableHtml;
 }
 
-// ========== Ордера пользователя ==========
+// ========== Мои ордера на покупку ==========
 async function loadMyBuyOrders() {
     const { data, error } = await window.supabase
         .from('buy_orders')
@@ -284,6 +285,7 @@ async function loadMyBuyOrders() {
     return data || [];
 }
 
+// ========== Отмена всех ордеров на продажу ==========
 async function cancelAllSellOrders() {
     const { data: orders, error } = await window.supabase
         .from('orders')
@@ -302,6 +304,7 @@ async function cancelAllSellOrders() {
     await window.refreshActiveTab();
 }
 
+// ========== Отмена всех ордеров на покупку ==========
 async function cancelAllBuyOrders() {
     const { data: orders, error } = await window.supabase
         .from('buy_orders')
@@ -320,6 +323,7 @@ async function cancelAllBuyOrders() {
     await window.refreshActiveTab();
 }
 
+// ========== Отмена ордера на покупку (одного) ==========
 async function cancelBuyOrder(buyOrderId) {
     const { data, error } = await window.supabase.rpc('cancel_buy_order', {
         p_buy_order_id: buyOrderId,
@@ -330,18 +334,18 @@ async function cancelBuyOrder(buyOrderId) {
     return true;
 }
 
-// ========== Формы ==========
+// ========== Формы со слайдерами ==========
 function renderSellForm() {
     const useSliders = window.getUseSliders ? window.getUseSliders() : true;
     if (useSliders) {
         return `
             <div class="sell-form">
                 <div>
-                    <label>Количество (акций): <span id="sellAmountVal">1</span></label>
+                    <label>📦 Количество (акций): <span id="sellAmountVal" style="color:#60a5fa;">1.00</span></label>
                     <input type="range" id="sellAmountSlider" min="0.01" max="${window.fromCents(window.currentUser.shares)}" step="0.01" value="1">
                 </div>
                 <div>
-                    <label>Цена (⭐ за акцию): <span id="sellPriceVal">1</span></label>
+                    <label>⭐ Цена за акцию: <span id="sellPriceVal" style="color:#fbbf24;">1.00</span></label>
                     <input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1">
                 </div>
                 <button id="sellBtn">➕ Выставить на продажу</button>
@@ -364,11 +368,11 @@ function renderBuyLimitForm() {
         return `
             <div class="sell-form">
                 <div>
-                    <label>Количество (акций): <span id="buyAmountVal">1</span></label>
+                    <label>📦 Количество (акций): <span id="buyAmountVal" style="color:#60a5fa;">1.00</span></label>
                     <input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="1">
                 </div>
                 <div>
-                    <label>Цена (⭐ за акцию): <span id="buyPriceVal">1</span></label>
+                    <label>⭐ Цена за акцию: <span id="buyPriceVal" style="color:#fbbf24;">1.00</span></label>
                     <input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1">
                 </div>
                 <button id="buyLimitBtn">💰 Выставить заявку на покупку</button>
@@ -385,7 +389,7 @@ function renderBuyLimitForm() {
     }
 }
 
-// ========== Загрузка ордеров с продавцами ==========
+// ========== Загрузка ордеров с именами продавцов ==========
 async function loadOrdersWithSellers() {
     let orders = [];
     if (currentOrdersFilter === 'all') orders = await window.getActiveOrders();
@@ -410,26 +414,20 @@ async function loadOrdersWithSellers() {
 function renderOrdersList(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
-    
     let filtered = orders.filter(o => o.seller_id !== window.userId);
     if (!filtered.length) {
-        container.innerHTML = '<p class="empty-orders" style="text-align:center;">Нет ордеров для отображения</p>';
+        container.innerHTML = '<p class="empty-orders">Нет ордеров для отображения</p>';
         document.getElementById('ordersPagination')?.remove();
         return;
     }
-    
     filtered.sort((a,b) => currentSortDir === 'asc' ? a.price_per_share - b.price_per_share : b.price_per_share - a.price_per_share);
     filteredOrders = filtered;
-    
     const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
     if (currentOrdersPage > totalPages) currentOrdersPage = totalPages;
     if (currentOrdersPage < 1) currentOrdersPage = 1;
-    
     const start = (currentOrdersPage - 1) * ORDERS_PER_PAGE;
     const pageOrders = filteredOrders.slice(start, start + ORDERS_PER_PAGE);
-    
     const bestPrice = Math.min(...pageOrders.map(o => o.price_per_share));
-    
     let html = '';
     for (let order of pageOrders) {
         const isBest = order.price_per_share === bestPrice;
@@ -451,7 +449,6 @@ function renderOrdersList(orders) {
             </div>
         `;
     }
-    
     let paginationHtml = '';
     if (totalPages > 1) {
         paginationHtml = `
@@ -462,36 +459,20 @@ function renderOrdersList(orders) {
             </div>
         `;
     }
-    
     container.innerHTML = html + paginationHtml;
-    
     document.querySelectorAll('.buy-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const order = JSON.parse(btn.closest('.order-card').dataset.order);
             showBuyModal(order);
         });
     });
-    
     const prevBtn = document.getElementById('ordersPrevPage');
     const nextBtn = document.getElementById('ordersNextPage');
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            if (currentOrdersPage > 1) {
-                currentOrdersPage--;
-                renderOrdersList(filteredOrders);
-            }
-        });
-    }
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            if (currentOrdersPage < totalPages) {
-                currentOrdersPage++;
-                renderOrdersList(filteredOrders);
-            }
-        });
-    }
+    if (prevBtn) prevBtn.addEventListener('click', () => { if (currentOrdersPage > 1) { currentOrdersPage--; renderOrdersList(filteredOrders); } });
+    if (nextBtn) nextBtn.addEventListener('click', () => { if (currentOrdersPage < totalPages) { currentOrdersPage++; renderOrdersList(filteredOrders); } });
 }
 
+// ========== Модалка покупки ==========
 function showBuyModal(order) {
     const maxShares = window.fromCents(order.amount);
     const pricePerShare = window.fromCents(order.price_per_share);
@@ -572,30 +553,30 @@ window.renderStocksTab = async function(currentUser) {
         const { totalShares, currentPrice, marketCap } = await window.getTotalMarketCap();
         const avg24h = await window.get24hAvgPrice();
         const orderHistory = await loadOrderHistory();
-        
+
         currentOrdersPage = 1;
-        
+
         let html = `
             <div class="card">
                 <div class="balance-row">
-                    <div class="balance-item">📊 Акций: <strong>${window.fromCents(currentUser.shares)}</strong></div>
-                    <div class="balance-item">⭐ Stars: <strong>${window.fromCents(currentUser.stars_balance)}</strong></div>
-                    <div class="balance-item price">💰 ${(currentPrice/100).toFixed(2)} ⭐</div>
+                    <div class="balance-item">📊 Акций<br><strong>${window.fromCents(currentUser.shares)}</strong></div>
+                    <div class="balance-item">⭐ Stars<br><strong>${window.fromCents(currentUser.stars_balance)}</strong></div>
+                    <div class="balance-item price">💰 Цена<br><strong>${(currentPrice/100).toFixed(2)} ⭐</strong></div>
                 </div>
                 <div class="balance-row" style="margin-top:8px;">
                     <button id="marketBuyBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🚀 Рыночная покупка</button>
                     <button id="marketSellBtn" style="background: linear-gradient(135deg, #f97316, #ea580c);">📉 Рыночная продажа</button>
                 </div>
                 <div class="info-panel">
-                    <div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price" style="font-size:20px;">${Math.round(marketCap)} ⭐</div></div>
-                    <div class="info-card"><div class="small-text">Всего акций</div><div class="price" style="font-size:20px;">${(totalShares/100).toFixed(2)}</div></div>
-                    <div class="info-card"><div class="small-text">Средняя цена (24ч)</div><div class="price" style="font-size:20px;">${avg24h.toFixed(2)} ⭐</div></div>
+                    <div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price">${Math.round(marketCap)} ⭐</div></div>
+                    <div class="info-card"><div class="small-text">Всего акций</div><div class="price">${(totalShares/100).toFixed(2)}</div></div>
+                    <div class="info-card"><div class="small-text">Средняя цена (24ч)</div><div class="price">${avg24h.toFixed(2)} ⭐</div></div>
                 </div>
                 <div class="timeframe-buttons">
                     <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
                     <button class="timeframe-btn ${currentTimeframe === '7d' ? 'active' : ''}" data-tf="7d">7д</button>
                     <button class="timeframe-btn ${currentTimeframe === '30d' ? 'active' : ''}" data-tf="30d">30д</button>
-                    <button id="refreshChartBtn" style="background: rgba(255,255,255,0.1); margin-left: auto;">🔄 Обновить</button>
+                    <button id="refreshChartBtn">🔄 Обновить</button>
                 </div>
                 <div id="chart-container" class="chart-container"></div>
                 <div id="ticker" class="ticker"></div>
@@ -611,7 +592,6 @@ window.renderStocksTab = async function(currentUser) {
             <div class="card"><h3>🛒 Купить акции (лимитная заявка)</h3>${renderBuyLimitForm()}</div>
         `;
 
-        // Мои ордера на продажу (аккордеон)
         html += `
             <div class="card accordion-section">
                 <div class="accordion-header" data-target="mySellsList">
@@ -619,26 +599,18 @@ window.renderStocksTab = async function(currentUser) {
                     <div class="accordion-icon">▼</div>
                 </div>
                 <div id="mySellsList" class="accordion-content collapsed">
-                    ${myOrders.length ? '<div id="myOrdersList"></div><button id="cancelAllSellsBtn" class="cancel-all-btn">✖ Отменить все продажи</button>' : '<p class="empty-orders" style="text-align:center;">Нет активных ордеров на продажу</p>'}
+                    ${myOrders.length ? '<div id="myOrdersList"></div><button id="cancelAllSellsBtn" class="cancel-all-btn">✖ Отменить все продажи</button>' : '<p class="empty-orders">Нет активных ордеров на продажу</p>'}
                 </div>
             </div>
-        `;
-
-        // Мои ордера на покупку (аккордеон)
-        html += `
             <div class="card accordion-section">
                 <div class="accordion-header" data-target="myBuysList">
                     <div class="accordion-title">🛒 Мои заявки на покупку <span class="order-count">(${myBuyOrders.length})</span></div>
                     <div class="accordion-icon">▼</div>
                 </div>
                 <div id="myBuysList" class="accordion-content collapsed">
-                    ${myBuyOrders.length ? '<div id="myBuyOrdersList"></div><button id="cancelAllBuysBtn" class="cancel-all-btn">✖ Отменить все покупки</button>' : '<p class="empty-orders" style="text-align:center;">Нет активных заявок на покупку</p>'}
+                    ${myBuyOrders.length ? '<div id="myBuyOrdersList"></div><button id="cancelAllBuysBtn" class="cancel-all-btn">✖ Отменить все покупки</button>' : '<p class="empty-orders">Нет активных заявок на покупку</p>'}
                 </div>
             </div>
-        `;
-
-        // Блок фильтров (аккордеон)
-        html += `
             <div class="card">
                 <div class="filter-accordion-header" id="filterAccordionHeader">
                     <div class="filter-title">🔍 Фильтры и сортировка</div>
@@ -660,12 +632,13 @@ window.renderStocksTab = async function(currentUser) {
 
         document.getElementById('app').innerHTML = html;
 
+        // Отрисовка графики
         drawCanvasChartWithAxes(priceHistory);
         await updateTicker();
         await renderOrderBook();
         renderOrderHistory(orderHistory);
 
-        // Рендер моих ордеров на продажу
+        // Мои ордера на продажу
         if (myOrders.length) {
             const myDiv = document.getElementById('myOrdersList');
             myDiv.innerHTML = myOrders.map(order => `
@@ -685,15 +658,13 @@ window.renderStocksTab = async function(currentUser) {
                             await window.cancelOrder(order.id);
                             window.showToast('Ордер на продажу отменён');
                             await window.refreshActiveTab();
-                        } catch (err) {
-                            window.showCustomModal('Ошибка', err.message);
-                        }
+                        } catch (err) { window.showCustomModal('Ошибка', err.message); }
                     }
                 });
             });
         }
 
-        // Рендер моих заявок на покупку
+        // Мои заявки на покупку
         if (myBuyOrders.length) {
             const buyDiv = document.getElementById('myBuyOrdersList');
             buyDiv.innerHTML = myBuyOrders.map(order => `
@@ -713,35 +684,20 @@ window.renderStocksTab = async function(currentUser) {
                             await cancelBuyOrder(orderId);
                             window.showToast('Заявка на покупку отменена');
                             await window.refreshActiveTab();
-                        } catch (err) {
-                            window.showCustomModal('Ошибка', err.message);
-                        }
+                        } catch (err) { window.showCustomModal('Ошибка', err.message); }
                     }
                 });
             });
         }
 
-        // Кнопки "Отменить все"
         document.getElementById('cancelAllSellsBtn')?.addEventListener('click', async () => {
-            if (confirm('Отменить ВСЕ активные ордера на продажу?')) {
-                try {
-                    await cancelAllSellOrders();
-                } catch (err) {
-                    window.showCustomModal('Ошибка', err.message);
-                }
-            }
+            if (confirm('Отменить ВСЕ активные ордера на продажу?')) await cancelAllSellOrders();
         });
         document.getElementById('cancelAllBuysBtn')?.addEventListener('click', async () => {
-            if (confirm('Отменить ВСЕ активные заявки на покупку?')) {
-                try {
-                    await cancelAllBuyOrders();
-                } catch (err) {
-                    window.showCustomModal('Ошибка', err.message);
-                }
-            }
+            if (confirm('Отменить ВСЕ активные заявки на покупку?')) await cancelAllBuyOrders();
         });
 
-        // Аккордеон для моих ордеров
+        // Аккордеоны
         document.querySelectorAll('.accordion-header').forEach(header => {
             header.addEventListener('click', () => {
                 const targetId = header.dataset.target;
@@ -759,7 +715,6 @@ window.renderStocksTab = async function(currentUser) {
             });
         });
 
-        // Аккордеон для фильтров
         const filterHeader = document.getElementById('filterAccordionHeader');
         const filterContent = document.getElementById('filterAccordionContent');
         const filterIcon = document.getElementById('filterAccordionIcon');
@@ -777,7 +732,6 @@ window.renderStocksTab = async function(currentUser) {
             });
         }
 
-        // Рендер ордеров (чужие)
         renderOrdersList(allOrders);
 
         // Обработчики фильтров и сортировки
@@ -785,25 +739,16 @@ window.renderStocksTab = async function(currentUser) {
             currentOrdersFilter = btn.dataset.filter;
             currentOrdersPage = 1;
             const newOrders = await loadOrdersWithSellers();
-            if (currentOrdersFilter === 'all') {
-                renderOrdersList(newOrders);
-            } else {
-                const myFiltered = newOrders.filter(o => o.seller_id === window.userId);
-                renderOrdersList(myFiltered);
-            }
+            if (currentOrdersFilter === 'all') renderOrdersList(newOrders);
+            else renderOrdersList(newOrders.filter(o => o.seller_id === window.userId));
             await window.renderStocksTab(currentUser);
         }));
-        
         document.querySelectorAll('.sort-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentSortDir = btn.dataset.sort;
             currentOrdersPage = 1;
             const newOrders = await loadOrdersWithSellers();
-            if (currentOrdersFilter === 'all') {
-                renderOrdersList(newOrders);
-            } else {
-                const myFiltered = newOrders.filter(o => o.seller_id === window.userId);
-                renderOrdersList(myFiltered);
-            }
+            if (currentOrdersFilter === 'all') renderOrdersList(newOrders);
+            else renderOrdersList(newOrders.filter(o => o.seller_id === window.userId));
             await window.renderStocksTab(currentUser);
         }));
 
@@ -823,16 +768,16 @@ window.renderStocksTab = async function(currentUser) {
             const sellPriceSlider = document.getElementById('sellPriceSlider');
             const sellPriceVal = document.getElementById('sellPriceVal');
             if (sellAmountSlider) {
-                sellAmountSlider.addEventListener('input', () => { sellAmountVal.innerText = sellAmountSlider.value; });
-                sellPriceSlider.addEventListener('input', () => { sellPriceVal.innerText = sellPriceSlider.value; });
+                sellAmountSlider.addEventListener('input', () => { sellAmountVal.innerText = parseFloat(sellAmountSlider.value).toFixed(2); });
+                sellPriceSlider.addEventListener('input', () => { sellPriceVal.innerText = parseFloat(sellPriceSlider.value).toFixed(2); });
             }
             const buyAmountSlider = document.getElementById('buyAmountSlider');
             const buyAmountVal = document.getElementById('buyAmountVal');
             const buyPriceSlider = document.getElementById('buyPriceSlider');
             const buyPriceVal = document.getElementById('buyPriceVal');
             if (buyAmountSlider) {
-                buyAmountSlider.addEventListener('input', () => { buyAmountVal.innerText = buyAmountSlider.value; });
-                buyPriceSlider.addEventListener('input', () => { buyPriceVal.innerText = buyPriceSlider.value; });
+                buyAmountSlider.addEventListener('input', () => { buyAmountVal.innerText = parseFloat(buyAmountSlider.value).toFixed(2); });
+                buyPriceSlider.addEventListener('input', () => { buyPriceVal.innerText = parseFloat(buyPriceSlider.value).toFixed(2); });
             }
         }
 
@@ -852,9 +797,7 @@ window.renderStocksTab = async function(currentUser) {
             try {
                 await window.createOrder(amount, price);
                 await window.refreshActiveTab();
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
+            } catch (err) { window.showCustomModal('Ошибка', err.message); }
         });
         document.getElementById('buyLimitBtn')?.addEventListener('click', async () => {
             let amount, price;
@@ -872,29 +815,17 @@ window.renderStocksTab = async function(currentUser) {
             try {
                 await window.createBuyOrder(amount, price);
                 await window.refreshActiveTab();
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
+            } catch (err) { window.showCustomModal('Ошибка', err.message); }
         });
         document.getElementById('marketBuyBtn')?.addEventListener('click', async () => {
             const stars = parseFloat(prompt('Сколько ⭐ потратить?', '100'));
             if (isNaN(stars) || stars <= 0) return;
-            try {
-                await marketBuy(stars);
-            } catch (err) {
-                window.showCustomModal('Ошибка', err.message);
-            }
+            try { await marketBuy(stars); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         });
         document.getElementById('marketSellBtn')?.addEventListener('click', async () => {
             const shares = parseFloat(prompt('Сколько акций продать?', '1'));
             if (isNaN(shares) || shares <= 0) return;
-            try {
-                await marketSell(shares);
-            } catch (err) {
-                if (!err.message.includes('Не удалось продать')) {
-                    window.showCustomModal('Ошибка', err.message);
-                }
-            }
+            try { await marketSell(shares); } catch (err) { if (!err.message.includes('Не удалось продать')) window.showCustomModal('Ошибка', err.message); }
         });
 
         subscribeToRealtime();
