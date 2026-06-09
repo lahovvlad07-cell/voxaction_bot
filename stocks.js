@@ -1,4 +1,4 @@
-// stocks.js – финальный, с горизонтальной панелью, процентным изменением средней цены
+// stocks.js – финальный, с компактной панелью, sticky кнопками, корректной ценой
 let currentTimeframe = '30d';
 let realtimeChannel = null;
 
@@ -35,7 +35,7 @@ function drawCanvasChartWithAxes(history) {
         return;
     }
     const canvas = document.createElement('canvas');
-    const width = container.clientWidth, height = 240;
+    const width = container.clientWidth, height = 200;
     canvas.width = width; canvas.height = height;
     canvas.style.width = '100%'; canvas.style.height = 'auto';
     container.appendChild(canvas);
@@ -118,7 +118,7 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Вспомогательная функция для расчета изменения средней цены ==========
+// ========== Процент изменения средней цены ==========
 async function getAvgPriceChange() {
     const now = new Date();
     const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000);
@@ -149,7 +149,7 @@ async function getAvgPriceChange() {
     return { percent: Math.abs(change).toFixed(2), isPositive: change >= 0 };
 }
 
-// ========== Рыночные операции (без изменений) ==========
+// ========== Рыночные операции (модалки) ==========
 function showMarketBuyModal() {
     const currentPrice = (window.currentPriceCached / 100).toFixed(2);
     const modalHtml = `
@@ -470,8 +470,16 @@ function subscribeToRealtime() {
 
 window.renderStocksTab = async function(currentUser) {
     try {
-        const { currentPrice } = await window.getTotalMarketCap();
+        // Получаем данные о цене, если нет сделок – принудительно ставим 100 центов (1.00 ⭐)
+        let currentPrice = 100; // по умолчанию 1.00 ⭐
+        try {
+            const priceData = await window.getTotalMarketCap();
+            if (priceData && priceData.currentPrice && !isNaN(priceData.currentPrice)) {
+                currentPrice = priceData.currentPrice;
+            }
+        } catch(e) { console.warn('Ошибка получения цены, используем 1.00'); }
         window.currentPriceCached = currentPrice;
+        
         const allOrders = await loadOrdersWithSellers();
         const myOrders = allOrders.filter(o => o.seller_id === window.userId);
         const myBuyOrders = await loadMyBuyOrders();
@@ -482,18 +490,20 @@ window.renderStocksTab = async function(currentUser) {
         const priceChange = await getAvgPriceChange();
 
         const html = `
-            <div class="card">
+            <div class="card" style="padding-bottom: 8px;">
                 <div class="balance-scroll">
                     <div class="balance-row">
                         <div class="balance-item"><div class="label">📊 Акций</div><div class="value">${window.fromCents(currentUser.shares)}</div></div>
                         <div class="balance-item"><div class="label">⭐ Stars</div><div class="value">${window.fromCents(currentUser.stars_balance)}</div></div>
-                        <div class="balance-item price"><div class="label">💰 Текущая цена</div><div class="value">${(currentPrice/100).toFixed(2)} ⭐</div></div>
+                        <div class="balance-item price"><div class="label">💰 Цена</div><div class="value">${(currentPrice/100).toFixed(2)} ⭐</div></div>
                     </div>
                 </div>
-                <div class="market-buttons">
-                    <button id="marketBuyBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🚀 Рыночная покупка</button>
-                    <button id="marketSellBtn" style="background: linear-gradient(135deg, #f97316, #ea580c);">📉 Рыночная продажа</button>
-                </div>
+            </div>
+            <div class="sticky-buttons">
+                <button id="marketBuyBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🚀 Рыночная покупка</button>
+                <button id="marketSellBtn" style="background: linear-gradient(135deg, #f97316, #ea580c);">📉 Рыночная продажа</button>
+            </div>
+            <div class="card">
                 <div class="info-panel">
                     <div class="info-card"><div class="small-text">🏦 Рыночная капитализация</div><div class="price">${Math.round(marketCap)} ⭐</div></div>
                     <div class="info-card"><div class="small-text">📦 Всего акций</div><div class="price">${(totalShares/100).toFixed(2)}</div></div>
@@ -549,6 +559,7 @@ window.renderStocksTab = async function(currentUser) {
         await renderOrderBook();
         renderOrderHistory(orderHistory);
 
+        // Мои ордера на продажу
         if (myOrders.length) {
             const myDiv = document.getElementById('myOrdersList');
             myDiv.innerHTML = myOrders.map(order => `<div class="order-card my-order-card" data-order='${JSON.stringify(order)}'><div class="order-card-header"><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div><button class="cancel-btn-small" data-id="${order.id}">Отменить</button></div><div class="order-card-body"><span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span></div></div>`).join('');
@@ -560,6 +571,7 @@ window.renderStocksTab = async function(currentUser) {
             });
         }
 
+        // Мои заявки на покупку
         if (myBuyOrders.length) {
             const buyDiv = document.getElementById('myBuyOrdersList');
             buyDiv.innerHTML = myBuyOrders.map(order => `<div class="order-card my-order-card" data-buy-order-id="${order.id}"><div class="order-card-header"><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div><button class="cancel-buy-btn" data-id="${order.id}">Отменить</button></div><div class="order-card-body"><span class="order-amount">📦 Купить ${window.fromCents(order.amount)} шт.</span></div></div>`).join('');
