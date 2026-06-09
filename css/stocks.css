@@ -1,4 +1,4 @@
-/* stocks.css – окончательный, понятный, с подсказками */
+/* stocks.css – финальный, с модалками и центрированием */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -401,6 +401,28 @@ button:active {
     color: #6b7280;
     text-align: center;
     margin-top: 8px;
+}
+/* Модалки для рыночных операций */
+.market-modal .modal-content {
+    max-width: 320px;
+}
+.market-modal input {
+    margin: 16px 0;
+}
+.modal-buttons-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+.modal-buttons-row button {
+    flex: 1;
+}
+.current-price-info {
+    background: rgba(0,0,0,0.3);
+    padding: 8px;
+    border-radius: 20px;
+    text-align: center;
+    margin: 8px 0;
 }
 @media (max-width: 560px) {
     .balance-item .value { font-size: 20px; }
