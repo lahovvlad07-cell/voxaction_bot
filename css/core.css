@@ -1,4 +1,4 @@
-/* core.css – базовые стили, карточки, кнопки, модалки, уведомления */
+/* core.css – базовые стили (без ускорения анимаций) */
 * {
     margin: 0;
     padding: 0;
@@ -19,7 +19,6 @@ body {
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
 }
 
-/* ===== Карточка профиля (общая) ===== */
 .card {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(16px);
@@ -30,7 +29,6 @@ body {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* ===== Кнопки и поля ===== */
 button {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border: none;
@@ -69,7 +67,6 @@ input:focus {
     box-shadow: 0 0 0 2px rgba(43, 110, 158, 0.4);
 }
 
-/* ===== Модальные окна ===== */
 .modal {
     display: none;
     position: fixed;
@@ -138,7 +135,6 @@ input:focus {
     margin-top: 0;
 }
 
-/* ===== Уведомления ===== */
 .notifications-list {
     max-height: 400px;
     overflow-y: auto;
@@ -177,7 +173,6 @@ input:focus {
     box-shadow: none;
 }
 
-/* ===== Тосты ===== */
 .toast {
     position: fixed;
     top: 80px;
@@ -203,10 +198,14 @@ input:focus {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ===== ДОПОЛНИТЕЛЬНО: курсор для табов (drag to scroll) ===== */
-.tabs-wrapper {
-    cursor: grab !important;
+/* ===== ЗОЛОТОЕ СВЕЧЕНИЕ ДЛЯ ДОСТИЖЕНИЙ ===== */
+.achi-icon.earned:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.9) !important;
+    transition: all 0.2s ease;
 }
-.tabs-wrapper:active {
-    cursor: grabbing !important;
+.achievement-card.selected {
+    border: 2px solid #fbbf24 !important;
+    background: rgba(251, 191, 36, 0.2) !important;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.6) !important;
 }
