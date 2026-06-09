@@ -1,0 +1,245 @@
+/* rating.css – полная финальная версия */
+.rating-title {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    width: 100%;
+}
+
+.sort-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.sort-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 6px 14px;
+    border-radius: 40px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.sort-btn.active {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    color: white;
+    border-color: transparent;
+}
+.sort-btn:hover {
+    transform: scale(1.02);
+}
+
+.search-container {
+    margin-bottom: 16px;
+}
+.search-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 40px;
+    color: #eef2ff;
+    font-size: 13px;
+    outline: none;
+}
+.search-input:focus {
+    border-color: #2b6e9e;
+}
+
+#ratingListContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 2px;
+}
+.rating-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(18, 24, 38, 0.6);
+    backdrop-filter: blur(4px);
+    border-radius: 20px;
+    padding: 10px 14px;
+    transition: 0.2s;
+    cursor: pointer;
+    border: 1px solid rgba(56, 189, 248, 0.15);
+}
+.rating-item:hover {
+    transform: translateY(-2px);
+    background: rgba(43, 110, 158, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+.rating-rank {
+    width: 48px;
+    text-align: center;
+}
+.medal {
+    font-size: 30px;
+}
+.medal.gold { text-shadow: 0 0 4px #fbbf24; }
+.medal.silver { text-shadow: 0 0 4px #cbd5e1; }
+.medal.bronze { text-shadow: 0 0 4px #f97316; }
+.rank-number {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 10px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+}
+.rating-avatar {
+    width: 48px;
+    flex-shrink: 0;
+}
+.mini-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+.rating-info {
+    flex: 1;
+}
+.rating-username {
+    font-weight: 700;
+    font-size: 15px;
+    color: #f0f4ff;
+    margin-bottom: 6px;
+}
+.rating-stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.rating-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(96, 165, 250, 0.15);
+    padding: 3px 10px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #a5b4fc;
+}
+.rating-stat span {
+    font-weight: 700;
+    color: #eef2ff;
+}
+.rating-item.current-user-row {
+    background: rgba(43, 110, 158, 0.3);
+    border-left: 2px solid #2b6e9e;
+}
+
+.my-rank-card {
+    background: linear-gradient(135deg, rgba(43, 110, 158, 0.25), rgba(26, 76, 110, 0.35));
+    backdrop-filter: blur(8px);
+    border-radius: 24px;
+    padding: 16px;
+    margin-top: 20px;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+}
+.my-rank-title {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    color: #60a5fa;
+    text-align: center;
+}
+.my-rank-details {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.my-rank-item {
+    background: rgba(96, 165, 250, 0.15);
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #a5b4fc;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.my-rank-item strong {
+    color: #eef2ff;
+}
+.progress-to-next {
+    margin-top: 12px;
+}
+.progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 6px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+.progress-fill {
+    background: linear-gradient(90deg, #2b6e9e, #60a5fa);
+    height: 100%;
+    width: 0%;
+    border-radius: 10px;
+}
+.skeleton-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(18, 24, 38, 0.5);
+    border-radius: 20px;
+    margin-bottom: 8px;
+}
+.skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(90deg, #2a2f3f 25%, #3a4055 50%, #2a2f3f 75%);
+    background-size: 200% 100%;
+    border-radius: 50%;
+    animation: shimmer 1.5s infinite;
+}
+.skeleton-line {
+    flex: 1;
+    height: 14px;
+    background: linear-gradient(90deg, #2a2f3f 25%, #3a4055 50%, #2a2f3f 75%);
+    background-size: 200% 100%;
+    border-radius: 8px;
+    animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 560px) {
+    .sort-btn {
+        padding: 4px 12px;
+        font-size: 12px;
+    }
+    .rating-stat {
+        font-size: 10px;
+        padding: 2px 8px;
+    }
+    .rating-username {
+        font-size: 14px;
+    }
+    .my-rank-item {
+        font-size: 11px;
+        padding: 2px 8px;
+    }
+}
