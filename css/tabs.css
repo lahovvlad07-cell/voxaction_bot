@@ -1,5 +1,4 @@
-/* tabs.css – стили нижней панели вкладок */
-
+/* tabs.css – плавная прокрутка без задержек */
 .tabs-wrapper {
     position: fixed;
     bottom: 0;
@@ -12,6 +11,12 @@
     z-index: 100;
     overflow-x: auto;
     white-space: nowrap;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    cursor: grab;
+}
+.tabs-wrapper:active {
+    cursor: grabbing;
 }
 .tabs {
     display: inline-flex;
