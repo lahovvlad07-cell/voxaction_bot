@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с центрированными заголовками, убранными "(чужие)" и всеми улучшениями
+// stocks.js – финальная версия с уникальными эмодзи, центрированием пустых сообщений
 let currentTimeframe = '30d';
 let currentOrdersFilter = 'all';
 let currentSortDir = 'asc';
@@ -619,7 +619,7 @@ window.renderStocksTab = async function(currentUser) {
                     <div class="accordion-icon">▼</div>
                 </div>
                 <div id="mySellsList" class="accordion-content collapsed">
-                    ${myOrders.length ? '<div id="myOrdersList"></div><button id="cancelAllSellsBtn" class="cancel-all-btn">✖ Отменить все продажи</button>' : '<p class="empty-orders">Нет активных ордеров на продажу</p>'}
+                    ${myOrders.length ? '<div id="myOrdersList"></div><button id="cancelAllSellsBtn" class="cancel-all-btn">✖ Отменить все продажи</button>' : '<p class="empty-orders" style="text-align:center;">Нет активных ордеров на продажу</p>'}
                 </div>
             </div>
         `;
@@ -628,11 +628,11 @@ window.renderStocksTab = async function(currentUser) {
         html += `
             <div class="card accordion-section">
                 <div class="accordion-header" data-target="myBuysList">
-                    <div class="accordion-title">📌 Мои заявки на покупку <span class="order-count">(${myBuyOrders.length})</span></div>
+                    <div class="accordion-title">🛒 Мои заявки на покупку <span class="order-count">(${myBuyOrders.length})</span></div>
                     <div class="accordion-icon">▼</div>
                 </div>
                 <div id="myBuysList" class="accordion-content collapsed">
-                    ${myBuyOrders.length ? '<div id="myBuyOrdersList"></div><button id="cancelAllBuysBtn" class="cancel-all-btn">✖ Отменить все покупки</button>' : '<p class="empty-orders">Нет активных заявок на покупку</p>'}
+                    ${myBuyOrders.length ? '<div id="myBuyOrdersList"></div><button id="cancelAllBuysBtn" class="cancel-all-btn">✖ Отменить все покупки</button>' : '<p class="empty-orders" style="text-align:center;">Нет активных заявок на покупку</p>'}
                 </div>
             </div>
         `;
@@ -641,7 +641,7 @@ window.renderStocksTab = async function(currentUser) {
         html += `
             <div class="card">
                 <div class="filter-accordion-header" id="filterAccordionHeader">
-                    <div class="filter-title">📋 Фильтры и сортировка</div>
+                    <div class="filter-title">🔍 Фильтры и сортировка</div>
                     <div class="accordion-icon" id="filterAccordionIcon">▼</div>
                 </div>
                 <div id="filterAccordionContent" class="filter-accordion-content collapsed">
