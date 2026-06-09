@@ -1,4 +1,4 @@
-// api.js – ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ
+// api.js – полная рабочая версия
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -10,7 +10,7 @@ window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
 };
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ (МОДАЛЬНОЕ ОКНО) ==========
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ ==========
 window.awardAchievement = async function(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -254,7 +254,6 @@ window.refreshActiveTab = async function() {
         case 'wallet': if (window.renderWalletTab) await window.renderWalletTab(); break;
         case 'referral': if (window.renderReferralTab) await window.renderReferralTab(); break;
         case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
-        case 'games': if (window.renderGamesTab) await window.renderGamesTab(); break;
     }
 };
 
