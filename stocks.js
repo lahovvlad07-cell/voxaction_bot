@@ -1,4 +1,4 @@
-// stocks.js – финальный, с переключением слайдер/числа, подсказками, без дублей
+// stocks.js – финальный, с модалками для рыночных операций, центрированием пустых состояний
 let currentTimeframe = '30d';
 let realtimeChannel = null;
 
@@ -120,7 +120,75 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Рыночные операции (без изменений) ==========
+// ========== Рыночные операции (теперь с модалками) ==========
+function showMarketBuyModal() {
+    const currentPrice = (window.currentPriceCached / 100).toFixed(2);
+    const modalHtml = `
+        <div class="modal market-modal" id="marketBuyModal" style="display:flex;">
+            <div class="modal-content">
+                <span class="close-modal" id="closeMarketBuyModal">&times;</span>
+                <h3>🚀 Рыночная покупка</h3>
+                <div class="current-price-info">Текущая цена: <strong>${currentPrice} ⭐</strong> за акцию</div>
+                <input type="number" id="marketBuyStars" placeholder="Сумма в Stars (мин 1)" min="1" step="1">
+                <div class="modal-buttons-row">
+                    <button id="confirmMarketBuyBtn" class="buy-confirm-btn">Купить</button>
+                    <button id="cancelMarketBuyBtn" class="secondary">Отмена</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('marketBuyModal');
+    document.getElementById('closeMarketBuyModal').onclick = () => modal.remove();
+    document.getElementById('cancelMarketBuyBtn').onclick = () => modal.remove();
+    document.getElementById('confirmMarketBuyBtn').onclick = async () => {
+        const stars = parseFloat(document.getElementById('marketBuyStars').value);
+        if (isNaN(stars) || stars < 1) { window.showCustomModal('Ошибка', 'Введите сумму от 1 ⭐'); return; }
+        modal.remove();
+        try {
+            await marketBuy(stars);
+        } catch (err) {
+            window.showCustomModal('Ошибка', err.message);
+        }
+    };
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+function showMarketSellModal() {
+    const currentPrice = (window.currentPriceCached / 100).toFixed(2);
+    const maxShares = window.fromCents(window.currentUser.shares);
+    const modalHtml = `
+        <div class="modal market-modal" id="marketSellModal" style="display:flex;">
+            <div class="modal-content">
+                <span class="close-modal" id="closeMarketSellModal">&times;</span>
+                <h3>📉 Рыночная продажа</h3>
+                <div class="current-price-info">Текущая цена: <strong>${currentPrice} ⭐</strong> за акцию</div>
+                <input type="number" id="marketSellShares" placeholder="Количество акций (макс ${maxShares})" min="1" step="0.01">
+                <div class="modal-buttons-row">
+                    <button id="confirmMarketSellBtn" class="buy-confirm-btn">Продать</button>
+                    <button id="cancelMarketSellBtn" class="secondary">Отмена</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('marketSellModal');
+    document.getElementById('closeMarketSellModal').onclick = () => modal.remove();
+    document.getElementById('cancelMarketSellBtn').onclick = () => modal.remove();
+    document.getElementById('confirmMarketSellBtn').onclick = async () => {
+        const shares = parseFloat(document.getElementById('marketSellShares').value);
+        if (isNaN(shares) || shares < 0.01) { window.showCustomModal('Ошибка', 'Введите количество от 0.01'); return; }
+        if (shares > parseFloat(maxShares)) { window.showCustomModal('Ошибка', `У вас только ${maxShares} акций`); return; }
+        modal.remove();
+        try {
+            await marketSell(shares);
+        } catch (err) {
+            if (!err.message.includes('Не удалось продать')) window.showCustomModal('Ошибка', err.message);
+        }
+    };
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
 async function marketBuy(starsAmountStars) {
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
@@ -232,7 +300,7 @@ async function cancelBuyOrder(buyOrderId) {
     return true;
 }
 
-// ========== Формы с переключением слайдер / числа ==========
+// ========== Формы с переключением ==========
 function renderSellForm() {
     const mode = getInputMode('sell', 'slider');
     const maxShares = window.fromCents(window.currentUser.shares);
@@ -272,7 +340,6 @@ function renderSellForm() {
         `;
     }
 }
-
 function renderBuyLimitForm() {
     const mode = getInputMode('buy', 'slider');
     if (mode === 'slider') {
@@ -350,7 +417,6 @@ function renderOrdersList(orders) {
         });
     });
 }
-
 function showBuyModal(order) {
     const maxShares = window.fromCents(order.amount);
     const pricePerShare = window.fromCents(order.price_per_share);
@@ -388,11 +454,15 @@ function subscribeToRealtime() {
 // ========== ГЛАВНЫЙ РЕНДЕР ==========
 window.renderStocksTab = async function(currentUser) {
     try {
+        // Кешируем текущую цену для модалок
+        const { currentPrice } = await window.getTotalMarketCap();
+        window.currentPriceCached = currentPrice;
+        
         const allOrders = await loadOrdersWithSellers();
         const myOrders = allOrders.filter(o => o.seller_id === window.userId);
         const myBuyOrders = await loadMyBuyOrders();
         const priceHistory = await window.fetchPriceHistoryForTimeframe(currentTimeframe);
-        const { totalShares, currentPrice, marketCap } = await window.getTotalMarketCap();
+        const { totalShares, marketCap } = await window.getTotalMarketCap();
         const avg24h = await window.get24hAvgPrice();
         const orderHistory = await loadOrderHistory();
 
@@ -401,16 +471,16 @@ window.renderStocksTab = async function(currentUser) {
                 <div class="balance-row">
                     <div class="balance-item"><div class="label">📊 Акций</div><div class="value">${window.fromCents(currentUser.shares)}</div></div>
                     <div class="balance-item"><div class="label">⭐ Stars</div><div class="value">${window.fromCents(currentUser.stars_balance)}</div></div>
-                    <div class="balance-item price"><div class="label">💰 Цена</div><div class="value">${(currentPrice/100).toFixed(2)} ⭐</div></div>
+                    <div class="balance-item price"><div class="label">💰 Текущая цена</div><div class="value">${(currentPrice/100).toFixed(2)} ⭐</div></div>
                 </div>
                 <div class="market-buttons">
                     <button id="marketBuyBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🚀 Рыночная покупка</button>
                     <button id="marketSellBtn" style="background: linear-gradient(135deg, #f97316, #ea580c);">📉 Рыночная продажа</button>
                 </div>
                 <div class="info-panel">
-                    <div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price">${Math.round(marketCap)} ⭐</div></div>
-                    <div class="info-card"><div class="small-text">Всего акций</div><div class="price">${(totalShares/100).toFixed(2)}</div></div>
-                    <div class="info-card"><div class="small-text">Средняя цена (24ч)</div><div class="price">${avg24h.toFixed(2)} ⭐</div></div>
+                    <div class="info-card"><div class="small-text">🏦 Рыночная капитализация</div><div class="price">${Math.round(marketCap)} ⭐</div></div>
+                    <div class="info-card"><div class="small-text">📦 Всего акций</div><div class="price">${(totalShares/100).toFixed(2)}</div></div>
+                    <div class="info-card"><div class="small-text">📈 Средняя цена (24ч)</div><div class="price">${avg24h.toFixed(2)} ⭐</div></div>
                 </div>
                 <div class="timeframe-buttons">
                     <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
@@ -436,7 +506,7 @@ window.renderStocksTab = async function(currentUser) {
                     <div class="accordion-icon">▼</div>
                 </div>
                 <div id="mySellsList" class="accordion-content collapsed">
-                    ${myOrders.length ? '<div id="myOrdersList"></div><button id="cancelAllSellsBtn" class="cancel-all-btn">✖ Отменить все продажи</button>' : '<p class="empty-orders">Нет активных ордеров на продажу</p>'}
+                    ${myOrders.length ? '<div id="myOrdersList"></div><button id="cancelAllSellsBtn" class="cancel-all-btn">✖ Отменить все продажи</button>' : '<p class="empty-orders" style="text-align:center;">Нет активных ордеров на продажу</p>'}
                 </div>
             </div>
             <div class="card accordion-section">
@@ -445,7 +515,7 @@ window.renderStocksTab = async function(currentUser) {
                     <div class="accordion-icon">▼</div>
                 </div>
                 <div id="myBuysList" class="accordion-content collapsed">
-                    ${myBuyOrders.length ? '<div id="myBuyOrdersList"></div><button id="cancelAllBuysBtn" class="cancel-all-btn">✖ Отменить все покупки</button>' : '<p class="empty-orders">Нет активных заявок на покупку</p>'}
+                    ${myBuyOrders.length ? '<div id="myBuyOrdersList"></div><button id="cancelAllBuysBtn" class="cancel-all-btn">✖ Отменить все покупки</button>' : '<p class="empty-orders" style="text-align:center;">Нет активных заявок на покупку</p>'}
                 </div>
             </div>
             <div class="card">
@@ -516,7 +586,7 @@ window.renderStocksTab = async function(currentUser) {
         }));
         document.getElementById('refreshChartBtn')?.addEventListener('click', async () => { await window.renderStocksTab(currentUser); });
 
-        // Обработчики переключения режимов ввода
+        // Переключение режимов ввода
         document.querySelectorAll('.toggle-input-mode').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const form = btn.dataset.form;
@@ -526,7 +596,7 @@ window.renderStocksTab = async function(currentUser) {
             });
         });
 
-        // Инициализация слайдеров (если они есть в DOM)
+        // Инициализация слайдеров (если они есть)
         const useSliders = (getInputMode('sell') === 'slider') || (getInputMode('buy') === 'slider');
         if (useSliders) {
             const sellAmountSlider = document.getElementById('sellAmountSlider');
@@ -574,16 +644,10 @@ window.renderStocksTab = async function(currentUser) {
             if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) { window.showCustomModal('Ошибка', 'Введите количество ≥1 и цену ≥1'); return; }
             try { await window.createBuyOrder(amount, price); await window.refreshActiveTab(); } catch (err) { window.showCustomModal('Ошибка', err.message); }
         });
-        document.getElementById('marketBuyBtn')?.addEventListener('click', async () => {
-            const stars = parseFloat(prompt('Сколько ⭐ потратить? (мин 1)', '100'));
-            if (isNaN(stars) || stars < 1) return;
-            try { await marketBuy(stars); } catch (err) { window.showCustomModal('Ошибка', err.message); }
-        });
-        document.getElementById('marketSellBtn')?.addEventListener('click', async () => {
-            const shares = parseFloat(prompt('Сколько акций продать? (мин 1)', '1'));
-            if (isNaN(shares) || shares < 1) return;
-            try { await marketSell(shares); } catch (err) { if (!err.message.includes('Не удалось продать')) window.showCustomModal('Ошибка', err.message); }
-        });
+
+        // Модалки для рыночных операций
+        document.getElementById('marketBuyBtn')?.addEventListener('click', () => showMarketBuyModal());
+        document.getElementById('marketSellBtn')?.addEventListener('click', () => showMarketSellModal());
 
         subscribeToRealtime();
     } catch (err) {
