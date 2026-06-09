@@ -1,92 +1,121 @@
-/* stocks.css – компактная версия */
-.balance-scroll {
-    overflow-x: auto;
-    white-space: nowrap;
-    margin-bottom: 16px;
-}
+/* stocks.css – компактный, адаптивный, с плавающей панелью кнопок */
+
+/* Баланс – на ПК 3 карточки в ряд, на телефоне скролл */
 .balance-row {
-    display: inline-flex;
-    gap: 10px;
-    padding: 4px 2px;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
 }
 .balance-item {
-    flex-shrink: 0;
-    width: 110px;
-    background: rgba(0,0,0,0.4);
+    flex: 1;
+    background: rgba(0,0,0,0.3);
     border-radius: 24px;
-    padding: 10px 4px;
+    padding: 12px 8px;
     text-align: center;
-    border: 1px solid rgba(56,189,248,0.2);
+    min-width: 100px;
 }
 .balance-item .label {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
 }
 .balance-item .value {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
 }
-.market-buttons {
+@media (max-width: 560px) {
+    .balance-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 8px;
+    }
+    .balance-item {
+        flex: 0 0 110px;
+    }
+}
+
+/* Рыночные кнопки – фиксированная панель внизу */
+.market-buttons-fixed {
+    position: fixed;
+    bottom: 70px; /* чуть выше табов */
+    left: 0;
+    right: 0;
     display: flex;
-    gap: 10px;
-    margin: 12px 0;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(56,189,248,0.2);
+    z-index: 99;
+    justify-content: center;
 }
-.market-buttons button {
+.market-buttons-fixed button {
+    flex: 1;
+    margin: 0;
+    padding: 10px 0;
     font-size: 14px;
-    padding: 8px;
 }
+@media (min-width: 561px) {
+    .market-buttons-fixed {
+        bottom: 80px;
+    }
+}
+/* Отступ внизу контента, чтобы кнопки не перекрывали */
+.stocks-content {
+    padding-bottom: 80px;
+}
+
+/* Информационная панель – компактно */
 .info-panel {
     display: flex;
-    gap: 10px;
-    margin: 12px 0;
+    gap: 12px;
+    margin: 16px 0;
 }
 .info-card {
-    background: rgba(0,0,0,0.3);
+    flex: 1;
+    background: rgba(0,0,0,0.2);
     border-radius: 20px;
     padding: 8px;
     text-align: center;
-    flex: 1;
 }
 .info-card .small-text {
-    font-size: 10px;
+    font-size: 11px;
+    color: #9ca3af;
 }
 .info-card .price {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: bold;
     margin-top: 4px;
 }
-.timeframe-buttons {
-    display: flex;
-    gap: 8px;
-    margin: 12px 0;
-}
-.timeframe-btn {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(56,189,248,0.3);
-    padding: 6px 0;
-    border-radius: 30px;
-    font-size: 13px;
-    flex: 1;
-}
+
+/* График и тикер */
 .chart-container {
     height: 160px;
     margin: 12px 0;
     background: #0f1320;
     border-radius: 20px;
-    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .ticker {
     background: rgba(0,0,0,0.3);
     border-radius: 40px;
     padding: 6px 12px;
     font-size: 12px;
-    margin: 12px 0;
+    overflow: hidden;
     white-space: nowrap;
-    overflow-x: auto;
+    margin: 8px 0;
 }
+
+/* Стакан – две колонки */
 .orderbook {
     display: flex;
-    gap: 12px;
+    gap: 16px;
     margin: 16px 0;
 }
 .orderbook-column {
@@ -104,37 +133,32 @@
     justify-content: space-between;
     font-size: 12px;
     padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+.price-sell { color: #fbbf24; }
+.price-buy { color: #4ade80; }
+
+/* Формы продажи/покупки – компактно */
 .sell-form, .buy-limit-form {
-    background: rgba(0,0,0,0.2);
+    margin: 16px 0;
+    background: rgba(0,0,0,0.15);
     border-radius: 20px;
     padding: 12px;
-    margin: 16px 0;
 }
-.input-row {
+.form-row {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
     margin-bottom: 12px;
 }
-.input-row label {
-    width: 100px;
+.form-row label {
+    width: 80px;
     font-size: 13px;
 }
-.input-row input {
+.form-row input {
     flex: 1;
     padding: 8px 12px;
-    font-size: 14px;
     margin: 0;
-}
-.toggle-mode {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    cursor: pointer;
-    margin-left: auto;
 }
 .slider-group {
     margin-bottom: 12px;
@@ -143,31 +167,31 @@
     display: flex;
     justify-content: space-between;
     font-size: 13px;
-    margin-bottom: 4px;
 }
-input[type="range"] {
-    width: 100%;
-    height: 4px;
+.toggle-mode-btn {
+    background: rgba(255,255,255,0.1);
+    padding: 6px;
+    font-size: 12px;
+    margin-top: 0;
 }
-.my-orders-section {
-    margin: 16px 0;
-}
+/* Мои ордера – заголовок с кнопкой */
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin: 16px 0 8px;
 }
-.section-header h4 {
+.section-header h3 {
     font-size: 16px;
     margin: 0;
 }
 .cancel-all-btn {
     background: rgba(220,38,38,0.2);
-    border: none;
-    padding: 4px 10px;
-    border-radius: 30px;
-    font-size: 11px;
+    border: 1px solid #f87171;
+    padding: 4px 12px;
+    font-size: 12px;
+    margin: 0;
+    width: auto;
 }
 .order-card {
     background: rgba(0,0,0,0.3);
@@ -178,18 +202,19 @@ input[type="range"] {
     justify-content: space-between;
     align-items: center;
 }
-.order-price {
-    font-weight: bold;
-    color: #fbbf24;
+.order-card span {
+    font-size: 13px;
 }
 .cancel-btn-small {
-    background: rgba(220,38,38,0.2);
+    background: none;
     border: none;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
+    color: #f87171;
     cursor: pointer;
+    padding: 4px 8px;
+    font-size: 12px;
+    width: auto;
 }
+/* История ордеров – таблица */
 .history-table {
     width: 100%;
     font-size: 12px;
@@ -203,14 +228,11 @@ input[type="range"] {
 .history-table th {
     color: #a5b4fc;
 }
-.scrollable-history {
-    max-height: 200px;
-    overflow-y: auto;
+.status-cancelled {
+    color: #f87171;
 }
 @media (max-width: 560px) {
-    .balance-item { width: 90px; }
-    .balance-item .value { font-size: 16px; }
-    .info-card .price { font-size: 14px; }
-    .input-row { flex-wrap: wrap; }
-    .input-row label { width: 100%; margin-bottom: 4px; }
+    .history-table th:nth-child(4), .history-table td:nth-child(4) {
+        display: none;
+    }
 }
