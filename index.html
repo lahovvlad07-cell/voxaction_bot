@@ -249,6 +249,36 @@
                 else if(tabName === 'admin') await window.renderAdminTab();
             });
         });
+        
+        // Drag to scroll для табов (мышь + тач)
+        (function() {
+            const wrapper = document.querySelector('.tabs-wrapper');
+            if (!wrapper) return;
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+            function onStart(x) {
+                isDown = true;
+                startX = x - wrapper.offsetLeft;
+                scrollLeft = wrapper.scrollLeft;
+                wrapper.style.cursor = 'grabbing';
+            }
+            function onMove(x) {
+                if (!isDown) return;
+                const walk = (x - wrapper.offsetLeft - startX) * 1.5;
+                wrapper.scrollLeft = scrollLeft - walk;
+            }
+            function onEnd() {
+                isDown = false;
+                wrapper.style.cursor = 'grab';
+            }
+            wrapper.addEventListener('mousedown', (e) => onStart(e.pageX));
+            window.addEventListener('mousemove', (e) => onMove(e.pageX));
+            window.addEventListener('mouseup', onEnd);
+            wrapper.addEventListener('touchstart', (e) => onStart(e.touches[0].pageX));
+            window.addEventListener('touchmove', (e) => onMove(e.touches[0].pageX));
+            window.addEventListener('touchend', onEnd);
+        })();
     })();
 </script>
 </body>
