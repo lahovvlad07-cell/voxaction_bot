@@ -1,6 +1,6 @@
-// stocks.js – финальная версия с аккуратной вёрсткой и полной логикой
+// stocks.js – финальная версия без фильтров, с tooltip на графике
 let currentTimeframe = '30d';
-let currentOrdersFilter = 'all';
+let currentOrdersFilter = 'all'; // оставим для совместимости, но фильтр не показываем
 let currentSortDir = 'asc';
 let realtimeChannel = null;
 
@@ -8,7 +8,7 @@ let currentOrdersPage = 1;
 const ORDERS_PER_PAGE = 10;
 let filteredOrders = [];
 
-// ========== График (без изменений) ==========
+// ========== График с tooltip ==========
 window.fetchPriceHistoryForTimeframe = async function(timeframe) {
     let startDate = new Date();
     if (timeframe === '1d') startDate.setDate(startDate.getDate() - 1);
@@ -33,7 +33,7 @@ function drawCanvasChartWithAxes(history) {
         return;
     }
     const canvas = document.createElement('canvas');
-    const width = container.clientWidth, height = 200;
+    const width = container.clientWidth, height = 240;
     canvas.width = width; canvas.height = height;
     canvas.style.width = '100%'; canvas.style.height = 'auto';
     container.appendChild(canvas);
@@ -80,8 +80,45 @@ function drawCanvasChartWithAxes(history) {
         ctx.fillText(midDate, padding.left + graphWidth/2 - 20, height - padding.bottom + 15);
         ctx.fillText(lastDate, width - padding.right - 40, height - padding.bottom + 15);
     }
+
+    // Tooltip: отслеживание движения мыши
+    const tooltip = document.createElement('div');
+    tooltip.className = 'chart-tooltip';
+    tooltip.style.display = 'none';
+    container.appendChild(tooltip);
+    container.style.position = 'relative';
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        // Найти ближайшую точку
+        let minDist = Infinity;
+        let idx = -1;
+        for (let i = 0; i < values.length; i++) {
+            const x = padding.left + i * stepX;
+            const dist = Math.abs(mouseX - x);
+            if (dist < minDist && dist < 20) {
+                minDist = dist;
+                idx = i;
+            }
+        }
+        if (idx !== -1) {
+            const price = values[idx].toFixed(2);
+            const date = new Date(history[idx].created_at).toLocaleString();
+            tooltip.style.display = 'block';
+            tooltip.innerHTML = `💰 ${price} ⭐<br>📅 ${date}`;
+            tooltip.style.left = (padding.left + idx * stepX + 15) + 'px';
+            tooltip.style.top = (padding.top + graphHeight - ((values[idx] - min) / range) * graphHeight - 30) + 'px';
+        } else {
+            tooltip.style.display = 'none';
+        }
+    });
+    canvas.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+    });
 }
 
+// ========== Остальные функции (без изменений, кроме удаления фильтров) ==========
 async function updateTicker() {
     const trades = await window.getRecentTrades(10);
     const container = document.getElementById('ticker');
@@ -95,6 +132,7 @@ async function updateTicker() {
 }
 
 async function marketBuy(starsAmountStars) {
+    // ... (код без изменений)
     if (starsAmountStars <= 0) throw new Error('Сумма должна быть больше 0');
     let remainingStarsCents = window.toCents(starsAmountStars);
     let totalBoughtSharesCents = 0;
@@ -135,6 +173,7 @@ async function marketBuy(starsAmountStars) {
 }
 
 async function marketSell(sharesAmountStars) {
+    // ... (код без изменений)
     if (sharesAmountStars <= 0) throw new Error('Количество должно быть больше 0');
     const userShares = window.currentUser.shares;
     if (userShares < window.toCents(sharesAmountStars)) throw new Error('Недостаточно акций для продажи');
@@ -359,7 +398,7 @@ function subscribeToRealtime() {
         .subscribe();
 }
 
-// ========== ГЛАВНЫЙ РЕНДЕР ==========
+// ========== ГЛАВНЫЙ РЕНДЕР (без фильтров) ==========
 window.renderStocksTab = async function(currentUser) {
     try {
         const allOrders = await loadOrdersWithSellers();
@@ -375,18 +414,36 @@ window.renderStocksTab = async function(currentUser) {
         const html = `
             <div class="card">
                 <div class="balance-row">
-                    <div class="balance-item">📊 Акций<br><strong>${window.fromCents(currentUser.shares)}</strong></div>
-                    <div class="balance-item">⭐ Stars<br><strong>${window.fromCents(currentUser.stars_balance)}</strong></div>
-                    <div class="balance-item price">💰 Цена<br><strong>${(currentPrice/100).toFixed(2)} ⭐</strong></div>
+                    <div class="balance-item">
+                        <div class="label">📊 Акций</div>
+                        <div class="value">${window.fromCents(currentUser.shares)}</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="label">⭐ Stars</div>
+                        <div class="value">${window.fromCents(currentUser.stars_balance)}</div>
+                    </div>
+                    <div class="balance-item price">
+                        <div class="label">💰 Цена</div>
+                        <div class="value">${(currentPrice/100).toFixed(2)} ⭐</div>
+                    </div>
                 </div>
                 <div class="balance-row" style="margin-top:8px;">
                     <button id="marketBuyBtn" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🚀 Рыночная покупка</button>
                     <button id="marketSellBtn" style="background: linear-gradient(135deg, #f97316, #ea580c);">📉 Рыночная продажа</button>
                 </div>
                 <div class="info-panel">
-                    <div class="info-card"><div class="small-text">Рыночная капитализация</div><div class="price">${Math.round(marketCap)} ⭐</div></div>
-                    <div class="info-card"><div class="small-text">Всего акций</div><div class="price">${(totalShares/100).toFixed(2)}</div></div>
-                    <div class="info-card"><div class="small-text">Средняя цена (24ч)</div><div class="price">${avg24h.toFixed(2)} ⭐</div></div>
+                    <div class="info-card">
+                        <div class="small-text">Рыночная капитализация</div>
+                        <div class="price">${Math.round(marketCap)} ⭐</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="small-text">Всего акций</div>
+                        <div class="price">${(totalShares/100).toFixed(2)}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="small-text">Средняя цена (24ч)</div>
+                        <div class="price">${avg24h.toFixed(2)} ⭐</div>
+                    </div>
                 </div>
                 <div class="timeframe-buttons">
                     <button class="timeframe-btn ${currentTimeframe === '1d' ? 'active' : ''}" data-tf="1d">1д</button>
@@ -425,18 +482,6 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
             </div>
             <div class="card">
-                <div class="filter-accordion-header" id="filterAccordionHeader">
-                    <div class="filter-title">🔍 Фильтры и сортировка</div>
-                    <div class="accordion-icon" id="filterAccordionIcon">▼</div>
-                </div>
-                <div id="filterAccordionContent" class="filter-accordion-content collapsed">
-                    <div class="filter-bar">
-                        <button class="filter-btn ${currentOrdersFilter === 'all' ? 'active' : ''}" data-filter="all">Все</button>
-                        <button class="filter-btn ${currentOrdersFilter === 'my' ? 'active' : ''}" data-filter="my">Мои ордера</button>
-                        <button class="sort-btn ${currentSortDir === 'asc' ? 'active' : ''}" data-sort="asc">↑ Цена</button>
-                        <button class="sort-btn ${currentSortDir === 'desc' ? 'active' : ''}" data-sort="desc">↓ Цена</button>
-                    </div>
-                </div>
                 <h3>📋 Ордера на продажу</h3>
                 <div id="ordersList"></div>
             </div>
@@ -492,41 +537,7 @@ window.renderStocksTab = async function(currentUser) {
             });
         });
 
-        const filterHeader = document.getElementById('filterAccordionHeader');
-        const filterContent = document.getElementById('filterAccordionContent');
-        const filterIcon = document.getElementById('filterAccordionIcon');
-        if (filterHeader && filterContent && filterIcon) {
-            filterHeader.addEventListener('click', () => {
-                if (filterContent.classList.contains('collapsed')) {
-                    filterContent.classList.remove('collapsed');
-                    filterContent.classList.add('expanded');
-                    filterIcon.innerHTML = '▲';
-                } else {
-                    filterContent.classList.remove('expanded');
-                    filterContent.classList.add('collapsed');
-                    filterIcon.innerHTML = '▼';
-                }
-            });
-        }
-
         renderOrdersList(allOrders);
-
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', async () => {
-            currentOrdersFilter = btn.dataset.filter;
-            currentOrdersPage = 1;
-            const newOrders = await loadOrdersWithSellers();
-            if (currentOrdersFilter === 'all') renderOrdersList(newOrders);
-            else renderOrdersList(newOrders.filter(o => o.seller_id === window.userId));
-            await window.renderStocksTab(currentUser);
-        }));
-        document.querySelectorAll('.sort-btn').forEach(btn => btn.addEventListener('click', async () => {
-            currentSortDir = btn.dataset.sort;
-            currentOrdersPage = 1;
-            const newOrders = await loadOrdersWithSellers();
-            if (currentOrdersFilter === 'all') renderOrdersList(newOrders);
-            else renderOrdersList(newOrders.filter(o => o.seller_id === window.userId));
-            await window.renderStocksTab(currentUser);
-        }));
 
         document.querySelectorAll('.timeframe-btn').forEach(btn => btn.addEventListener('click', async () => {
             currentTimeframe = btn.dataset.tf;
