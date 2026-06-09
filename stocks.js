@@ -1,6 +1,4 @@
-// stocks.js – улучшенная версия (график, стакан, слайдеры, рыночные сделки)
-// с возможностью переключения режима ввода (поля / слайдеры) без перезагрузки
-
+// stocks.js – финальная стабильная версия
 let currentTimeframe = '30d';
 let realtimeChannel = null;
 let useSlidersLocal = false;   // по умолчанию поля ввода
@@ -89,7 +87,7 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== РЫНОЧНЫЕ СДЕЛКИ (через RPC, если нет – эмуляция) ==========
+// ========== РЫНОЧНЫЕ СДЕЛКИ ==========
 async function marketBuy(starsAmount) {
     if (starsAmount <= 0) throw new Error('Сумма должна быть больше 0');
     try {
@@ -101,7 +99,6 @@ async function marketBuy(starsAmount) {
         if (!data.success) throw new Error(data.error);
         window.showToast(`✅ Куплено ${window.fromCents(data.bought)} шт. за ${starsAmount} ⭐`);
     } catch (e) {
-        // fallback: эмуляция через createBuyOrder с ценой выше рынка
         console.warn('RPC market_buy не найден, используется лимитный ордер');
         const price = await window.getCurrentPrice();
         await window.createBuyOrder(starsAmount / (price/100), price/100);
@@ -195,7 +192,7 @@ async function loadMyBuyOrders() {
     });
 }
 
-// ========== ИСТОРИЯ ОРДЕРОВ ==========
+// ========== ИСТОРИЯ ОРДЕРОВ (с цветными статусами) ==========
 async function loadOrderHistory() {
     const { data } = await window.supabase
         .from('orders')
@@ -216,7 +213,7 @@ async function loadOrderHistory() {
                     <tr>
                         <td>${window.fromCents(o.amount)}</td>
                         <td>${window.fromCents(o.price_per_share)} ⭐</td>
-                        <td class="status-cancelled">${o.status === 'completed' ? '✅' : '❌'}</td>
+                        <td class="${o.status === 'completed' ? 'status-completed' : 'status-cancelled'}">${o.status === 'completed' ? '✅' : '❌'}</td>
                         <td>${new Date(o.created_at).toLocaleString().slice(0,16)}</td>
                     </tr>
                 `).join('')}
