@@ -1,4 +1,4 @@
-/* profile.css – исправленный (нормальный размер достижений, золотой фон) */
+/* profile.css – аватар на ПК уменьшен до 110px */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -7,14 +7,16 @@
     cursor: pointer;
     margin: 0 auto;
 }
+
+/* Базовый стиль аватара (для всех, но будет переопределён для мобильных и ПК) */
 .avatar-circle {
-    width: 130px !important;
-    height: 130px !important;
+    width: 120px !important;
+    height: 120px !important;
     border-radius: 50%;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 90px !important;
+    font-size: 70px !important;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     background-color: rgba(0, 0, 0, 0.25);
@@ -26,6 +28,17 @@
     overflow: visible;
     line-height: 1;
 }
+
+/* ПК – ширина экрана больше 560px (уменьшенный аватар) */
+@media (min-width: 561px) {
+    .avatar-circle {
+        width: 110px !important;
+        height: 110px !important;
+        font-size: 64px !important;
+    }
+}
+
+/* Телефоны (ширина до 560px) – оставляем 120px */
 @media (max-width: 560px) {
     .avatar-circle {
         width: 120px !important;
@@ -33,6 +46,8 @@
         font-size: 70px !important;
     }
 }
+
+/* Очень маленькие телефоны (до 400px) – чуть меньше */
 @media (max-width: 400px) {
     .avatar-circle {
         width: 100px !important;
@@ -40,19 +55,49 @@
         font-size: 60px !important;
     }
 }
-.avatar-circle .avatar-emoji {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    vertical-align: middle !important;
-    line-height: 1 !important;
-    transform: none !important;
-    position: static !important;
+
+/* Смещение эмодзи внутри аватарки (только для ПК, чтобы не прыгало) */
+@media (min-width: 561px) {
+    .avatar-emoji[style*="👤"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="😀"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="😎"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="👍"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🐱"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🐶"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🦊"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🐼"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🍕"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🍔"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🍩"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="☕"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="💎"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="💰"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🎲"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="🏆"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🎁"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🌟"] { transform: translateY(-1px) !important; }
+    .avatar-emoji[style*="🔥"] { transform: translateY(-3px) !important; }
+    .avatar-emoji[style*="❤️"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🚀"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="🍀"] { transform: translateY(-2px) !important; }
+    .avatar-emoji[style*="👑"] { transform: translateY(-1px) !important; }
+    .avatar-emoji[style*="🎯"] { transform: translateY(-2px) !important; }
 }
+
+/* Для модалок предпросмотр аватара – размер чуть меньше */
+#stepModal .avatar-circle,
+#borderModal .avatar-circle {
+    width: 80px !important;
+    height: 80px !important;
+    font-size: 48px !important;
+}
+
 .small-text {
     font-size: 12px;
     color: #9ca3af;
 }
+
+/* Сетка выбора аватаров */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(65px, 1fr));
@@ -87,6 +132,8 @@
     line-height: 1;
     transform: none !important;
 }
+
+/* Сетка цветов */
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -116,7 +163,8 @@
     font-size: 24px;
     text-shadow: 0 0 2px black;
 }
-/* ===== ДОСТИЖЕНИЯ – НОРМАЛЬНЫЙ РАЗМЕР И ЗОЛОТОЙ ФОН ===== */
+
+/* Кружки достижений */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -147,6 +195,7 @@
     transform: scale(1.1);
     box-shadow: 0 0 25px rgba(251, 191, 36, 0.9);
 }
+
 @media (max-width: 560px) {
     .achi-icon {
         width: 60px !important;
@@ -157,7 +206,8 @@
         gap: 16px;
     }
 }
-/* ===== МОДАЛКА ВЫБОРА ДОСТИЖЕНИЙ – УВЕЛИЧЕННЫЕ КАРТОЧКИ ===== */
+
+/* Модалка выбора достижений – увеличенные карточки */
 .modal-content {
     max-width: 450px;
     width: 90%;
@@ -201,7 +251,8 @@
     color: #cbd5e1;
     margin-top: 4px;
 }
-/* Остальные стили (статистика, прогресс-бары) */
+
+/* Статистика и прогресс-бары */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -265,6 +316,8 @@
     padding: 12px;
     margin-top: 12px;
 }
+
+/* Анимация градиента */
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
