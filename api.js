@@ -1,36 +1,109 @@
-// api.js – стабильная версия с поддержкой кастомных кодов, бонусов и рендеринга аватарок
+// api.js – ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ
+window.toCents = (v) => Math.round(parseFloat(v) * 100);
+window.fromCents = (c) => (c / 100).toFixed(2);
 
-async function ensureWelcomeAchievement(userId) {
+// ========== НАСТРОЙКИ ИНТЕРФЕЙСА (СЛАЙДЕРЫ) ==========
+window.setUseSliders = function(use) {
+    localStorage.setItem('use_sliders', use ? 'true' : 'false');
+};
+window.getUseSliders = function() {
+    return localStorage.getItem('use_sliders') !== 'false';
+};
+
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ (МОДАЛЬНОЕ ОКНО) ==========
+window.awardAchievement = async function(achievementId) {
     try {
-        const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🌟 Первый шаг').maybeSingle();
-        if (!achData) return;
-        const { data: existing } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', userId).eq('achievement_id', achData.id).maybeSingle();
-        if (!existing) {
-            await window.supabase.from('user_achievements').insert({ user_id: userId, achievement_id: achData.id, earned_at: new Date().toISOString() });
+        const { data: existing } = await window.supabase
+            .from('user_achievements')
+            .select('id')
+            .eq('user_id', window.userId)
+            .eq('achievement_id', achievementId)
+            .maybeSingle();
+        if (existing) return;
+        await window.supabase.from('user_achievements').insert({
+            user_id: window.userId,
+            achievement_id: achievementId,
+            earned_at: new Date().toISOString()
+        });
+        const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
+        if (window.showCustomModal) {
+            window.showCustomModal(`🏆 Новое достижение!`, `${ach.icon} ${ach.name}\n\n${ach.description}`);
+        } else {
+            alert(`🏆 Достижение: ${ach.icon} ${ach.name}`);
         }
-    } catch(e) { console.error(e); }
+        if (window.renderProfileTab) window.renderProfileTab();
+    } catch(e) { console.error('Ошибка выдачи достижения', e); }
+};
+
+async function checkAllAchievements() {
+    const stats = await window.getUserStats(true);
+    const user = window.currentUser;
+    if (!user) return;
+    const achievementsList = await window.getAllAchievements();
+    const earned = await window.getEarnedAchievements();
+    const earnedIds = new Set(earned.map(a => a.id));
+    for (let ach of achievementsList) {
+        if (earnedIds.has(ach.id)) continue;
+        let conditionMet = false;
+        switch (ach.condition_type) {
+            case 'none': conditionMet = false; break;
+            case 'trades_count': conditionMet = stats.totalTrades >= ach.condition_value; break;
+            case 'shares_held': conditionMet = user.shares >= ach.condition_value; break;
+            case 'referrals_count': conditionMet = (user.referral_count || 0) >= ach.condition_value; break;
+            case 'total_topup': conditionMet = (user.total_topup || 0) >= ach.condition_value; break;
+            case 'total_spent': conditionMet = (user.total_spent || 0) >= ach.condition_value; break;
+            case 'total_earned': conditionMet = (user.total_earned || 0) >= ach.condition_value; break;
+            case 'total_volume': conditionMet = (user.total_volume || 0) >= ach.condition_value; break;
+            case 'stars_held': conditionMet = user.stars_balance >= ach.condition_value; break;
+            case 'days_active': conditionMet = (user.days_active || 0) >= ach.condition_value; break;
+        }
+        if (conditionMet) await window.awardAchievement(ach.id);
+    }
 }
 
-function generateReferralCode() {
-    return 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
+async function updateUserStats() {
+    const { data: trades } = await window.supabase
+        .from('trades')
+        .select('total_stars, buyer_id, seller_id')
+        .or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`);
+    let totalSpent = 0, totalEarned = 0;
+    for (let t of trades || []) {
+        if (t.buyer_id === window.userId) totalSpent += t.total_stars;
+        if (t.seller_id === window.userId) totalEarned += t.total_stars;
+    }
+    const totalVolume = totalSpent + totalEarned;
+    const totalTrades = trades?.length || 0;
+    await window.supabase.from('users').update({
+        total_spent: totalSpent,
+        total_earned: totalEarned,
+        total_volume: totalVolume,
+        trades_count: totalTrades
+    }).eq('id', window.userId);
+    if (window.currentUser) {
+        window.currentUser.total_spent = totalSpent;
+        window.currentUser.total_earned = totalEarned;
+        window.currentUser.total_volume = totalVolume;
+        window.currentUser.trades_count = totalTrades;
+    }
 }
 
+// ========== ПОЛЬЗОВАТЕЛЬ ==========
 window.getOrCreateUser = async function() {
     let { data, error } = await window.supabase.from('users').select('*').eq('id', window.userId).maybeSingle();
     if (error) throw new Error(`Ошибка запроса: ${error.message}`);
     
     if (!data) {
-        const avatarOptions = ['👤','😀','😎','🐱','🐶','🦊','🐼','⭐','🎮','⚽','🚀','💎','🌸','🔥','❤️','👍','🎉','🌟','🍕','🏆','🎨','📷','⚡','🔮'];
+        const avatarOptions = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
         const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
         const bgOptions = ['gradient1','gradient2','gradient3','gradient4','gradient5','gradient6','gradient7','gradient8','gradient9','gradient10','gradient11'];
         const randomBg = bgOptions[Math.floor(Math.random() * bgOptions.length)];
-        const borderOptions = ['#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff69b4', '#00ffff', '#9b30ff'];
+        const borderOptions = ['#ffffff','#ff0000','#00ff00','#0000ff','#ffff00','#ff69b4','#00ffff','#9b30ff'];
         const randomBorder = borderOptions[Math.floor(Math.random() * borderOptions.length)];
         
-        let referralCode = generateReferralCode();
+        let referralCode = 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
         let existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
         while (existingCode.data) {
-            referralCode = generateReferralCode();
+            referralCode = 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
             existingCode = await window.supabase.from('users').select('referral_code').eq('referral_code', referralCode).maybeSingle();
         }
         
@@ -59,93 +132,430 @@ window.getOrCreateUser = async function() {
             hide_rating: false,
             notify_trades: true,
             notify_topup: true,
-            notify_referral: true
+            notify_referral: true,
+            total_topup: 0,
+            total_spent: 0,
+            total_earned: 0,
+            total_volume: 0,
+            trades_count: 0,
+            days_active: 0,
+            last_username_change: new Date().toISOString()
         }]).select().single();
         
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
         
         if (referredById) {
-            await window.supabase.from('users').update({ stars_balance: 500 }).eq('id', window.userId);
-            await window.supabase.from('referrals').insert({
-                referrer_id: referredById,
-                referred_id: window.userId,
-                registered_at: new Date().toISOString(),
-                topup_completed: false,
-                bonus_earned: false
-            });
-            const referrer = await window.supabase.from('users').select('referral_count').eq('id', referredById).single();
-            if (referrer.data) {
-                const newCount = (referrer.data.referral_count || 0) + 1;
-                await window.supabase.from('users').update({ referral_count: newCount }).eq('id', referredById);
-            }
-            await window.supabase.from('notifications').insert({
-                user_id: referredById,
-                message: `🎉 Новый реферал! ${window.username} зарегистрировался по вашей ссылке.`,
-                type: 'notify_referral',
-                is_read: false
-            });
+            try {
+                await window.supabase.from('users').update({ stars_balance: 500 }).eq('id', window.userId);
+                await window.supabase.from('referrals').insert({
+                    referrer_id: referredById,
+                    referred_id: window.userId,
+                    registered_at: new Date().toISOString(),
+                    topup_completed: false,
+                    bonus_earned: false
+                });
+                await window.supabase.from('users').update({ referral_count: window.supabase.raw('referral_count + 1') }).eq('id', referredById);
+                await window.supabase.from('notifications').insert({
+                    user_id: referredById,
+                    message: `🎉 Новый реферал! ${window.username} зарегистрировался по вашей ссылке.`,
+                    type: 'notify_referral',
+                    is_read: false
+                });
+            } catch(e) { console.error('Ошибка при обработке реферала', e); }
         }
         
-        await ensureWelcomeAchievement(window.userId);
+        try {
+            await window.awardAchievement(1);
+        } catch(e) { console.error('Ошибка выдачи достижения', e); }
+        
         return { user: newUser, isNew: true };
     }
     
-    await ensureWelcomeAchievement(window.userId);
     let updated = false;
-    if (!data.selected_achievements) { data.selected_achievements = []; updated = true; }
-    if (!data.avatar_url) { data.avatar_url = '👤'; updated = true; }
-    if (!data.avatar_bg) { data.avatar_bg = 'gradient1'; updated = true; }
-    if (!data.avatar_border) { data.avatar_border = '#ffffff'; updated = true; }
-    if (!data.registered_at) { data.registered_at = new Date().toISOString(); updated = true; }
-    if (!data.referral_code) {
-        let newCode = generateReferralCode();
-        let existing = await window.supabase.from('users').select('referral_code').eq('referral_code', newCode).maybeSingle();
-        while (existing.data) {
-            newCode = generateReferralCode();
-            existing = await window.supabase.from('users').select('referral_code').eq('referral_code', newCode).maybeSingle();
-        }
-        data.referral_code = newCode;
-        updated = true;
+    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change'];
+    for (let f of newFields) {
+        if (data[f] === undefined) { data[f] = f === 'last_username_change' ? new Date().toISOString() : 0; updated = true; }
     }
-    if (data.custom_ref_code === undefined) { data.custom_ref_code = null; updated = true; }
-    if (data.total_earned_shares === undefined) { data.total_earned_shares = 0; updated = true; }
-    if (data.referral_count === undefined) { data.referral_count = 0; updated = true; }
-    if (data.hide_rating === undefined) { data.hide_rating = false; updated = true; }
-    if (data.notify_trades === undefined) { data.notify_trades = true; updated = true; }
-    if (data.notify_topup === undefined) { data.notify_topup = true; updated = true; }
-    if (data.notify_referral === undefined) { data.notify_referral = true; updated = true; }
-    
     if (updated) {
         await window.supabase.from('users').update({
-            selected_achievements: data.selected_achievements,
-            avatar_url: data.avatar_url,
-            avatar_bg: data.avatar_bg,
-            avatar_border: data.avatar_border,
-            referral_code: data.referral_code,
-            custom_ref_code: data.custom_ref_code,
-            registered_at: data.registered_at,
-            total_earned_shares: data.total_earned_shares,
-            referral_count: data.referral_count,
-            hide_rating: data.hide_rating,
-            notify_trades: data.notify_trades,
-            notify_topup: data.notify_topup,
-            notify_referral: data.notify_referral
+            total_topup: data.total_topup,
+            total_spent: data.total_spent,
+            total_earned: data.total_earned,
+            total_volume: data.total_volume,
+            trades_count: data.trades_count,
+            days_active: data.days_active,
+            last_username_change: data.last_username_change
         }).eq('id', window.userId);
     }
     return { user: data, isNew: false };
 };
 
+window.getUserStats = async function(forceRefresh = false) {
+    if (!forceRefresh && window._cachedStats) return window._cachedStats;
+    const { data: trades } = await window.supabase
+        .from('trades')
+        .select('total_stars, buyer_id, seller_id')
+        .or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`);
+    let totalSpent = 0, totalEarned = 0;
+    for (let t of trades || []) {
+        if (t.buyer_id === window.userId) totalSpent += t.total_stars;
+        if (t.seller_id === window.userId) totalEarned += t.total_stars;
+    }
+    const stats = {
+        totalTrades: trades?.length || 0,
+        totalVolume: (totalSpent + totalEarned) / 100,
+        totalSpent: totalSpent / 100,
+        totalEarned: totalEarned / 100
+    };
+    window._cachedStats = stats;
+    return stats;
+};
+
+// ========== СМЕНА НИКНЕЙМА ==========
+window.updateUsername = async function(newUsername) {
+    if (!newUsername || newUsername.trim().length < 3) throw new Error('Никнейм должен содержать минимум 3 символа');
+    if (newUsername.length > 20) throw new Error('Никнейм не может быть длиннее 20 символов');
+    if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) throw new Error('Никнейм может содержать только латинские буквы, цифры, _ и -');
+    let normalized = newUsername.toLowerCase();
+    normalized = normalized.replace(/0/g, 'o').replace(/1/g, 'i').replace(/2/g, 'z').replace(/3/g, 'e')
+        .replace(/4/g, 'a').replace(/5/g, 's').replace(/6/g, 'g').replace(/7/g, 't')
+        .replace(/8/g, 'b').replace(/9/g, 'g').replace(/\$/g, 's').replace(/@/g, 'a').replace(/\+/g, 't');
+    const forbiddenWords = ['blya','blyat','ebat','ebal','ebuch','eblan','pizda','pizdec','pizduk','huy','huylo','hueta','huinya','pidor','pidaras','pidr','pedik','pedal','gondon','gandon','mudak','mudilo','mudack','mudozvon','svoloch','suka','sukin','sukablya','tvar','tvarina','gnida','gnilida','shluha','shluh','prostitutka','kurva','kuryok','kurok','lopuh','loh','lox','loch','chmo','chmok','chmonya','olen','baran','kozel','svinya','petuh','durak','duren','dolboeb','dolbaeb','dolboyob','dolboyeb','rak','rakovina','zhopa','zhopnik','zadnica','shmarovoz','shmaruhoz','pischa','pizd','piz','pizdets','huyak','huyata','khuy','khui','khnya','hnya','yob','yoba','yoban','yobat','yobt','yop','yopt','yopta','perehot','perehod','nahuy','nahui','pohuy','pohui','huyovo','huyota','huil','huilo','huilam','huilom','gavno','govno','gavnyuk','govnuk','srat','srano','sral','srak','srach','zrit','zral','zralnya','peder','pederast','pederasty','pedofil','pedo','pedophile','incest','insest','inkest','nympho','nymphoman','zoophile','zoophil','bestial','bestiality','perv','pervert','izvrash','izvraschen','sodom','sodomit','sodomite','bugger','fuck','fucking','fucker','fuk','fuq','fkc','phuck','fcuk','shet','sht','shat','shit','shitting','shitty','shite','bullshit','horseshit','bitch','bitching','bitches','bich','bch','btch','cunt','cunting','cunts','kunt','dick','dickhead','dickweed','dickhole','dickface','dicknose','diq','dyck','pussy','pusy','puss','pussie','puzi','nigger','nigga','niggar','niga','niger','neger','nig','nigg','faggot','fag','fagg','fagot','fagit','faget','faggo','fagga','retard','retarded','retart','retad','retrd','moron','moronic','stupid','stoopid','dumbass','dumass','dumb','dum','whore','whoring','hoar','hore','ho','slut','slutty','slutt','bastard','bastrd','bastid','wanker','wank','wanksta','twat','twatted','twatface','cock','cocksucker','cocksuk','coksucker','motherfucker','mothafucka','muthafucka','motherfuck','mofo','douchebag','douche','douch','shithead','shitbag','shitface','fuckface','asshole','asswipe','asshat','assface','assole','ass','arse','arsehole','arsewipe','bollocks','balls','ballbag','dickweed','dicknose','prick','prk','prickhead','turd','turdman','turdburglar','crap','crappy','crapface','piss','pissed','pisser','pissface','screw','screwed','screwup','loser','noob','noobish','churka','churkan','hach','hachik','khach','khachik','niger','nigeria','negro','nigerian','arab','arap','arapka','zhid','zhidov','zhidovsk','jew','jewish','kike','gypsy','cygan','cyganka','tsygan','tsyganok','tsyg','mongol','mongoloid','viet','vietcong','kambodzha','kambodzhec','kambodzhe','kambodz','amerikos','pindos','pendos','libeh','liberal','liberast','homik','homo','homosek','homosexual','gay','gey','lesba','lesbian','trany','transvestite','tranny','gender','genderqueer','feminist','femik','femi','siyons','siyona','siyonsk','sion','sionist','nazi','hitler','fascist','fashist','fash','stalin','lenin','kommunist','communist','soviet','sovok','sovkov','sovetsk','rusnya','russkie','katsap','kacap','ukrop','ukri','ukrov','hohol','hohly','hohl','banderlog','bandera','pnk','pnx','ebal','ebra','ebre','ebrei','evrei','evrey','zhyd','jood','joop','joden','natsik','natsi','nazik','gestapo','gepapo','schutz','ss','waffen','fat','fatass','faty','fatto','tolst','tolsy','tolsty','thick','thickass','pig','piggy','swine','cow','cowy','cowlike','obese','obez','obezn','ugly','ugli','uglyface','uglo','zombie','zombi','mutant','freak','freaks','abomination','ugliness','uglification','weak','weakling','spineless','faint','faintheart','fail','failure'];
+    for (let word of forbiddenWords) { if (normalized.includes(word)) throw new Error('Никнейм содержит запрещённые слова'); }
+    const russianBad = /(хуй|хyi|хyй|пидор|пидр|пидар|гандон|шлюха|ебат|ебал|пизд|сука|бля|бляд|даун|дебил|лох|мудак|долбоеб|чмо|олень|козел|свинья|петух|рaк|урод|сволочь|тварь|гнида)/i;
+    if (russianBad.test(newUsername)) throw new Error('Никнейм содержит запрещенные символы');
+    const { data: user } = await window.supabase.from('users').select('username').eq('id', window.userId).single();
+    if (!user) throw new Error('Пользователь не найден');
+    if (user.username === newUsername) return { success: true, message: 'Никнейм не изменён' };
+    const { error } = await window.supabase.from('users').update({ username: newUsername, last_username_change: new Date().toISOString() }).eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    if (window.currentUser) window.currentUser.username = newUsername;
+    return { success: true, message: 'Никнейм успешно изменён!' };
+};
+
+// ========== ОБНОВЛЕНИЕ ТЕКУЩЕЙ ВКЛАДКИ ==========
+window.refreshActiveTab = async function() {
+    const { user } = await window.getOrCreateUser();
+    window.currentUser = user;
+    const activeTab = document.querySelector('.tab.active');
+    if (!activeTab) return;
+    const tabName = activeTab.dataset.tab;
+    switch(tabName) {
+        case 'profile':
+            if (window.renderProfileTab) await window.renderProfileTab(
+                window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
+                window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
+                window.updateBellBadge, window.showNotificationsModal
+            );
+            break;
+        case 'stocks': if (window.renderStocksTab) await window.renderStocksTab(window.currentUser); break;
+        case 'analytics': if (window.renderAnalyticsTab) await window.renderAnalyticsTab(); break;
+        case 'rating': if (window.renderRatingTab) await window.renderRatingTab(); break;
+        case 'wallet': if (window.renderWalletTab) await window.renderWalletTab(); break;
+        case 'referral': if (window.renderReferralTab) await window.renderReferralTab(); break;
+        case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
+        case 'games': if (window.renderGamesTab) await window.renderGamesTab(); break;
+    }
+};
+
+// ========== СРЕДНЕВЗВЕШЕННАЯ ЦЕНА ЗА 24 ЧАСА ==========
+window.get24hAvgPrice = async function() {
+    const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data, error } = await window.supabase
+        .from('trades')
+        .select('amount, price_per_share')
+        .gte('created_at', oneDayAgo);
+    if (error || !data || data.length === 0) return 0;
+    let totalAmount = 0, totalStars = 0;
+    for (let t of data) {
+        totalAmount += t.amount;
+        totalStars += t.amount * t.price_per_share;
+    }
+    return totalAmount ? totalStars / totalAmount / 100 : 0;
+};
+
+// ========== ИСТОРИЯ ЗАВЕРШЁННЫХ ОРДЕРОВ ==========
+window.getCompletedOrders = async function(limit = 10) {
+    const { data, error } = await window.supabase
+        .from('orders')
+        .select('*')
+        .eq('seller_id', window.userId)
+        .in('status', ['completed', 'cancelled'])
+        .order('created_at', { ascending: false })
+        .limit(limit);
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+// ========== ОРДЕРА И СДЕЛКИ ==========
+window.getActiveOrders = async function() {
+    const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getUserOrders = async function() {
+    const { data, error } = await window.supabase.from('orders').select('*').eq('seller_id', window.userId).eq('status', 'active');
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.cancelOrder = async function(orderId) {
+    const { data, error } = await window.supabase.rpc('cancel_order', { p_order_id: orderId, p_user_id: window.userId });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    return true;
+};
+
+window.createOrder = async function(amountStars, priceStars) {
+    if (amountStars < 1) throw new Error('Количество должно быть ≥ 1 акции');
+    if (priceStars < 1) throw new Error('Цена должна быть ≥ 1 Star');
+    const amountCents = window.toCents(amountStars);
+    const priceCents = window.toCents(priceStars);
+    if (amountCents < 100) throw new Error('Минимум 1 акция');
+    if (priceCents < 100) throw new Error('Минимум 1 Star');
+    
+    const { user: freshUser } = await window.getOrCreateUser();
+    if (freshUser.shares < amountCents) {
+        throw new Error(`❌ Недостаточно акций: нужно ${amountStars}, у вас ${window.fromCents(freshUser.shares)}`);
+    }
+
+    let remainingAmountCents = amountCents;
+    let totalExecutedCents = 0;
+    let totalReceivedStarsCents = 0;
+
+    while (remainingAmountCents > 0) {
+        const { data: buyOrders, error } = await window.supabase
+            .from('buy_orders')
+            .select('*')
+            .eq('status', 'active')
+            .neq('buyer_id', window.userId)
+            .gte('price_per_share', priceCents)
+            .order('price_per_share', { ascending: false })
+            .limit(1);
+        if (error) throw new Error('Ошибка загрузки ордеров на покупку');
+        if (!buyOrders || buyOrders.length === 0) break;
+
+        const buyOrder = buyOrders[0];
+        const maxMatchCents = Math.min(remainingAmountCents, buyOrder.amount);
+        if (maxMatchCents <= 0) break;
+
+        const { data, error: tradeError } = await window.supabase.rpc('execute_trade_partial_for_buy_order', {
+            p_buy_order_id: buyOrder.id,
+            p_seller_id: window.userId,
+            p_sell_amount_cents: maxMatchCents
+        });
+        if (tradeError) throw new Error(tradeError.message);
+        if (!data.success) throw new Error(data.error);
+
+        remainingAmountCents -= maxMatchCents;
+        totalExecutedCents += maxMatchCents;
+        totalReceivedStarsCents += (maxMatchCents / 100) * buyOrder.price_per_share;
+    }
+
+    if (remainingAmountCents > 0) {
+        const { error } = await window.supabase
+            .from('orders')
+            .insert({
+                seller_id: window.userId,
+                amount: remainingAmountCents,
+                price_per_share: priceCents,
+                status: 'active',
+                created_at: new Date().toISOString()
+            });
+        if (error) throw new Error(error.message);
+    }
+
+    await updateUserStats();
+    await checkAllAchievements();
+
+    if (totalExecutedCents > 0) {
+        window.showToast(`✅ Продано ${window.fromCents(totalExecutedCents)} шт., получено ${window.fromCents(totalReceivedStarsCents)} ⭐`);
+    }
+    if (remainingAmountCents > 0) {
+        window.showToast(`✅ Остаток ${window.fromCents(remainingAmountCents)} шт. выставлен как ордер по ${priceStars} ⭐`);
+    }
+    return true;
+};
+
+window.createBuyOrder = async function(amountStars, priceStars) {
+    if (amountStars < 1) throw new Error('Количество должно быть ≥ 1 акции');
+    if (priceStars < 1) throw new Error('Цена должна быть ≥ 1 Star');
+    const amountCents = window.toCents(amountStars);
+    const priceCents = window.toCents(priceStars);
+    if (amountCents < 100) throw new Error('Минимум 1 акция');
+    if (priceCents < 100) throw new Error('Минимум 1 Star');
+
+    const { user: freshUser } = await window.getOrCreateUser();
+    const requiredStarsCents = (amountCents / 100) * priceCents;
+    if (freshUser.stars_balance < requiredStarsCents) {
+        throw new Error(`❌ Недостаточно звёзд: нужно ${window.fromCents(requiredStarsCents)} ⭐, у вас ${window.fromCents(freshUser.stars_balance)} ⭐`);
+    }
+
+    let remainingAmountCents = amountCents;
+    let totalExecutedCents = 0;
+    let totalSpentStarsCents = 0;
+
+    while (remainingAmountCents > 0) {
+        const { data: sellOrders, error } = await window.supabase
+            .from('orders')
+            .select('*')
+            .eq('status', 'active')
+            .neq('seller_id', window.userId)
+            .lte('price_per_share', priceCents)
+            .order('price_per_share', { ascending: true })
+            .limit(1);
+        if (error) throw new Error('Ошибка загрузки ордеров на продажу');
+        if (!sellOrders || sellOrders.length === 0) break;
+
+        const sellOrder = sellOrders[0];
+        const maxMatchCents = Math.min(remainingAmountCents, sellOrder.amount);
+        if (maxMatchCents <= 0) break;
+
+        const { data, error: tradeError } = await window.supabase.rpc('execute_trade_partial', {
+            p_order_id: sellOrder.id,
+            p_buyer_id: window.userId,
+            p_buy_amount_cents: maxMatchCents
+        });
+        if (tradeError) throw new Error(tradeError.message);
+        if (!data.success) throw new Error(data.error);
+
+        remainingAmountCents -= maxMatchCents;
+        totalExecutedCents += maxMatchCents;
+        totalSpentStarsCents += (maxMatchCents / 100) * sellOrder.price_per_share;
+    }
+
+    if (remainingAmountCents > 0) {
+        const { error } = await window.supabase
+            .from('buy_orders')
+            .insert({
+                buyer_id: window.userId,
+                amount: remainingAmountCents,
+                price_per_share: priceCents,
+                status: 'active',
+                created_at: new Date().toISOString()
+            });
+        if (error) throw new Error(error.message);
+    }
+
+    await updateUserStats();
+    await checkAllAchievements();
+
+    if (totalExecutedCents > 0) {
+        window.showToast(`✅ Куплено ${window.fromCents(totalExecutedCents)} шт., потрачено ${window.fromCents(totalSpentStarsCents)} ⭐`);
+    }
+    if (remainingAmountCents > 0) {
+        window.showToast(`✅ Остаток ${window.fromCents(remainingAmountCents)} шт. выставлен как заявка на покупку по ${priceStars} ⭐`);
+    }
+    return true;
+};
+
+window.executePartialTrade = async function(orderId, buyAmountCents) {
+    const { data, error } = await window.supabase.rpc('execute_trade_partial', {
+        p_order_id: orderId,
+        p_buyer_id: window.userId,
+        p_buy_amount_cents: buyAmountCents
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    await updateUserStats();
+    await checkAllAchievements();
+    return true;
+};
+
+window.getRecentTrades = async (limit = 10) => {
+    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getPriceHistory = async () => {
+    const { data, error } = await window.supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getCurrentPrice = async () => {
+    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
+    if (error || !data || data.length === 0) return 100;
+    let totalAmount = 0, totalStars = 0;
+    for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
+    return totalAmount > 0 ? totalStars / totalAmount : 100;
+};
+
+window.getTotalMarketCap = async () => {
+    const { data, error } = await window.supabase.from('users').select('shares');
+    if (error) throw new Error(error.message);
+    const totalSharesCents = data.reduce((s,u) => s + u.shares, 0);
+    const currentPriceCents = await window.getCurrentPrice();
+    const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
+    return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
+};
+
+// ========== РЕЙТИНГ И ДОСТИЖЕНИЯ ==========
+window.getLeaderboard = async () => {
+    const { data, error } = await window.supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getUserRank = async () => {
+    const leaders = await window.getLeaderboard();
+    const idx = leaders.findIndex(u => u.id === window.userId);
+    if (idx === -1) return null;
+    return idx + 1;
+};
+
+window.getEarnedAchievements = async () => {
+    const { data, error } = await window.supabase
+        .from('user_achievements')
+        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
+        .eq('user_id', window.userId);
+    if (error) return [];
+    return data.map(ua => ({
+        id: ua.achievements.id,
+        name: ua.achievements.name,
+        description: ua.achievements.description,
+        icon: ua.achievements.icon,
+        earned_at: ua.earned_at,
+        condition_type: ua.achievements.condition_type,
+        condition_value: ua.achievements.condition_value
+    }));
+};
+
+window.getAllAchievements = async () => {
+    const { data, error } = await window.supabase.from('achievements').select('*');
+    if (error) return [];
+    return data;
+};
+
+window.getSellerRating = async (sellerId) => {
+    const { data, error } = await window.supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
+    if (error || !data.length) return null;
+    return data.reduce((s,r)=>s+r.rating,0)/data.length;
+};
+
+// ========== КАСТОМИЗАЦИЯ ==========
+window.updateUserBorder = async (color) => {
+    const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    if (window.currentUser) window.currentUser.avatar_border = color;
+    return true;
+};
+
+// ========== АДМИНКА ==========
+window.adminFetchStats = async () => fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
+window.adminFetchUsers = async () => fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
+window.adminCancelOrder = async (orderId) => fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) }).then(r=>r.json());
+window.adminAddShares = async (targetId, shares) => fetch(`${window.BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, shares }) }).then(r=>r.json());
+window.adminAddStars = async (targetId, stars) => fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) }).then(r=>r.json());
+window.createInvoice = async (amount) => fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) }).then(r=>r.json());
+
+// ========== РЕФЕРАЛЫ ==========
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
-        .select(`
-            referred_id,
-            registered_at,
-            topup_completed,
-            topup_amount_cents,
-            bonus_earned,
-            users:referred_id (username, avatar_url, id)
-        `)
+        .select(`referred_id, registered_at, topup_completed, topup_amount_cents, bonus_earned, users:referred_id (username, avatar_url, id)`)
         .eq('referrer_id', window.userId)
         .order('registered_at', { ascending: false });
     if (error) return [];
@@ -179,154 +589,17 @@ window.getReferralRewardsProgress = async function(referralCount) {
     };
 };
 
-window.getActiveOrders = async function() {
-    const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
-    if (error) throw new Error(error.message);
-    return data || [];
+window.claimReferralBonus = async (friendsNeeded, stars) => {
+    const response = await fetch(`${window.BACKEND_URL}/claim-referral-bonus`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: window.userId, friends_needed: friendsNeeded, stars: stars })
+    });
+    return response.json();
 };
 
-window.getUserOrders = async function() {
-    const { data, error } = await window.supabase.from('orders').select('*').eq('seller_id', window.userId).eq('status', 'active');
-    if (error) throw new Error(error.message);
-    return data || [];
-};
-
-window.cancelOrder = async function(orderId) {
-    const { data, error } = await window.supabase.rpc('cancel_order', { p_order_id: orderId, p_user_id: window.userId });
-    if (error) throw new Error(error.message);
-    if (!data.success) throw new Error(data.error);
-    return true;
-};
-
-window.createOrder = async function(amount, price) {
-    const amountCents = window.toCents(amount), priceCents = window.toCents(price);
-    if (amountCents < 100) throw new Error('Минимум 1 акция');
-    if (priceCents < 100) throw new Error('Минимум 1 Star');
-    const { data, error } = await window.supabase.rpc('create_sell_order', { p_user_id: window.userId, p_amount: amountCents, p_price: priceCents });
-    if (error) throw new Error(error.message);
-    if (!data.success) throw new Error(data.error);
-    window.currentUser.shares -= amountCents;
-    return true;
-};
-
-window.executePartialTrade = async function(orderId, buyAmountCents) {
-    const { data, error } = await window.supabase.rpc('execute_trade_partial', { p_order_id: orderId, p_buyer_id: window.userId, p_buy_amount: buyAmountCents });
-    if (error) throw new Error(error.message);
-    if (!data.success) throw new Error(data.error);
-    return true;
-};
-
-window.getRecentTrades = async function(limit = 10) {
-    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
-    if (error) throw new Error(error.message);
-    return data || [];
-};
-
-window.getPriceHistory = async function() {
-    const { data, error } = await window.supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
-    if (error) throw new Error(error.message);
-    return data || [];
-};
-
-window.getCurrentPrice = async function() {
-    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
-    if (error || !data || data.length === 0) return 100;
-    let totalAmount = 0, totalStars = 0;
-    for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
-    return totalAmount > 0 ? totalStars / totalAmount : 100;
-};
-
-window.getTotalMarketCap = async function() {
-    const { data, error } = await window.supabase.from('users').select('shares');
-    if (error) throw new Error(error.message);
-    const totalSharesCents = data.reduce((s,u) => s + u.shares, 0);
-    const currentPriceCents = await window.getCurrentPrice();
-    const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
-    return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
-};
-
-window.getLeaderboard = async function() {
-    const { data, error } = await window.supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
-    if (error) throw new Error(error.message);
-    return data || [];
-};
-
-window.getUserRank = async function() {
-    const leaders = await window.getLeaderboard();
-    const idx = leaders.findIndex(u => u.id === window.userId);
-    if (idx === -1) return null;
-    return idx + 1;
-};
-
-window.getUserStats = async function() {
-    const { data, error } = await window.supabase.from('trades').select('amount, total_stars').or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`);
-    if (error) return { totalTrades: 0, totalVolume: 0 };
-    return { totalTrades: data.length, totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0) };
-};
-
-window.getEarnedAchievements = async function() {
-    const { data, error } = await window.supabase
-        .from('user_achievements')
-        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
-        .eq('user_id', window.userId);
-    if (error) return [];
-    return data.map(ua => ({
-        id: ua.achievements.id,
-        name: ua.achievements.name,
-        description: ua.achievements.description,
-        icon: ua.achievements.icon,
-        earned_at: ua.earned_at,
-        condition_type: ua.achievements.condition_type,
-        condition_value: ua.achievements.condition_value
-    }));
-};
-
-window.getAllAchievements = async function() {
-    const { data, error } = await window.supabase.from('achievements').select('*');
-    if (error) return [];
-    return data;
-};
-
-window.getSellerRating = async function(sellerId) {
-    const { data, error } = await window.supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
-    if (error || !data.length) return null;
-    return data.reduce((s,r)=>s+r.rating,0)/data.length;
-};
-
-window.updateUserBorder = async function(color) {
-    const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
-    if (error) throw new Error(error.message);
-    if (window.currentUser) window.currentUser.avatar_border = color;
-    return true;
-};
-
-window.adminFetchStats = async function() {
-    const res = await fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) });
-    return res.json();
-};
-window.adminFetchUsers = async function() {
-    const res = await fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) });
-    return res.json();
-};
-window.adminCancelOrder = async function(orderId) {
-    const res = await fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) });
-    return res.json();
-};
-window.adminAddShares = async function(targetId, shares) {
-    const res = await fetch(`${window.BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, shares }) });
-    return res.json();
-};
-window.adminAddStars = async function(targetId, stars) {
-    const res = await fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) });
-    return res.json();
-};
-window.createInvoice = async function(amount) {
-    const res = await fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) });
-    return res.json();
-};
-
-// ========== ФУНКЦИИ ДЛЯ ПРОСМОТРА ПРОФИЛЕЙ ДРУГИХ ПОЛЬЗОВАТЕЛЕЙ ==========
-window.getEarnedAchievementsForUser = async function(userId) {
+// ========== ПРОСМОТР ПРОФИЛЕЙ ДРУГИХ ПОЛЬЗОВАТЕЛЕЙ ==========
+window.getEarnedAchievementsForUser = async (userId) => {
     const { data, error } = await window.supabase
         .from('user_achievements')
         .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
@@ -343,7 +616,7 @@ window.getEarnedAchievementsForUser = async function(userId) {
     }));
 };
 
-window.getUserStatsForUser = async function(userId) {
+window.getUserStatsForUser = async (userId) => {
     const { data, error } = await window.supabase
         .from('trades')
         .select('amount, total_stars')
@@ -351,11 +624,11 @@ window.getUserStatsForUser = async function(userId) {
     if (error) return { totalTrades: 0, totalVolume: 0 };
     return {
         totalTrades: data.length,
-        totalVolume: data.reduce((s,t) => s + (t.total_stars / 100), 0)
+        totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0)
     };
 };
 
-window.getUserRankForUser = async function(userId) {
+window.getUserRankForUser = async (userId) => {
     const { data, error } = await window.supabase
         .from('users')
         .select('id, shares')
@@ -367,17 +640,7 @@ window.getUserRankForUser = async function(userId) {
     return idx + 1;
 };
 
-// ========== ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ БОНУСОВ РЕФЕРАЛЬНОЙ СИСТЕМЫ ==========
-window.claimReferralBonus = async (friendsNeeded, stars) => {
-    const response = await fetch(`${window.BACKEND_URL}/claim-referral-bonus`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: window.userId, friends_needed: friendsNeeded, stars: stars })
-    });
-    return response.json();
-};
-
-// ========== УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ МИНИ-АВАТАРА ==========
+// ========== РЕНДЕР МИНИ-АВАТАРА ==========
 window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
     let bgColor = avatarBg;
     if (avatarBg && !avatarBg.startsWith('#')) {
@@ -393,23 +656,10 @@ window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52
     }
     const borderColor = avatarBorder || '#ffffff';
     const emoji = avatarUrl || '👤';
-    
     let fontSize = '32px';
     if (size === '52px') fontSize = '32px';
     else if (size === '40px') fontSize = '24px';
     else if (size === '36px') fontSize = '22px';
     else fontSize = `calc(${size} * 0.6)`;
-    
-    return `<div class="mini-avatar" style="
-        width: ${size}; height: ${size};
-        background: ${bgColor};
-        border: 2px solid ${borderColor};
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: ${fontSize};
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        flex-shrink: 0;
-    "><span>${emoji}</span></div>`;
+    return `<div class="mini-avatar" style="width:${size}; height:${size}; background:${bgColor}; border:2px solid ${borderColor}; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:${fontSize}; box-shadow:0 2px 6px rgba(0,0,0,0.3); flex-shrink:0;"><span>${emoji}</span></div>`;
 };
