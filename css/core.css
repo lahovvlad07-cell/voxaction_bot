@@ -1,5 +1,4 @@
 /* core.css – базовые стили, карточки, кнопки, модалки, уведомления */
-
 * {
     margin: 0;
     padding: 0;
@@ -202,4 +201,85 @@ input:focus {
     10% { opacity:1; transform:translateX(-50%) translateY(0); }
     90% { opacity:1; transform:translateX(-50%) translateY(0); }
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
+}
+
+/* ===== ДОПОЛНИТЕЛЬНО: курсор для табов (drag to scroll) ===== */
+.tabs-wrapper {
+    cursor: grab !important;
+}
+.tabs-wrapper:active {
+    cursor: grabbing !important;
+}
+
+/* ===== ОПТИМИЗАЦИЯ ПРОКРУТКИ И ОТКЛЮЧЕНИЕ АНИМАЦИЙ НА МОБИЛЬНЫХ ===== */
+.tabs-wrapper {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    will-change: transform;
+}
+
+/* Отключаем анимацию градиента на элементах, которые могут мешать скроллу */
+.balance-item .value,
+.order-price-big,
+.stat-circle .value,
+.price,
+.stat-value,
+.stat-number,
+.referral-title,
+.referral-stat-value {
+    animation: none !important;
+    background-size: auto !important;
+}
+
+/* Для мобильных устройств отключаем анимацию на всех элементах при скролле */
+@media (max-width: 768px) {
+    * {
+        animation-duration: 0.001s !important;
+        transition-duration: 0.001s !important;
+    }
+}
+
+/* ===== ЗОЛОТОЕ СВЕЧЕНИЕ ДЛЯ ДОСТИЖЕНИЙ (исправлено) ===== */
+.achi-icon.earned:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.9) !important;
+    transition: all 0.2s ease;
+}
+
+/* Для модалки выбора достижений – золотая подсветка выбранного */
+.achievement-card.selected {
+    border: 2px solid #fbbf24 !important;
+    background: rgba(251, 191, 36, 0.2) !important;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.6) !important;
+}
+
+/* Дополнительно: увеличенные карточки достижений в модалке (из profile.css, но продублируем на всякий случай) */
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 16px 0;
+    max-height: 500px;
+    overflow-y: auto;
+}
+.achievement-card {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 20px;
+    padding: 14px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.achievement-name {
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+.achievement-desc,
+.achievement-condition,
+.achievement-date {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin-top: 4px;
 }
