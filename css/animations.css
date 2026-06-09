@@ -1,4 +1,4 @@
-/* animations.css – анимации для градиентов и прочего */
+/* animations.css – анимации для градиентов и прочего (нормальная скорость) */
 
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
@@ -13,8 +13,9 @@
 .stat-number,
 .referral-title,
 .referral-stat-value {
-    background-size: 200% 200% !important;
+    background-size: 200% 200%;
     animation: gradientShift 3s ease infinite;
 }
 
 /* Дополнительные анимации (если нужны) */
+/* Убедитесь, что нет переопределений с animation-duration: 0.001s */
