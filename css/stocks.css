@@ -1,4 +1,4 @@
-/* stocks.css – финальный, с центрированием пустых сообщений */
+/* stocks.css – финальный, с мобильной адаптацией и центрированием */
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -402,7 +402,6 @@ button:active {
     text-align: center;
     margin-top: 8px;
 }
-/* Модалки для рыночных операций */
 .market-modal .modal-content {
     max-width: 320px;
 }
@@ -424,16 +423,58 @@ button:active {
     text-align: center;
     margin: 8px 0;
 }
-/* Принудительное центрирование текста в пустых сообщениях аккордеонов */
-#mySellsList .empty-orders,
-#myBuysList .empty-orders {
-    text-align: center !important;
-}
+
+/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
 @media (max-width: 560px) {
-    .balance-item .value { font-size: 20px; }
-    .order-card-header { flex-direction: column; align-items: flex-start; }
-    .order-price-big { align-self: flex-end; }
-    .order-card-body { flex-direction: column; align-items: stretch; }
-    .buy-btn, .cancel-btn-small, .cancel-buy-btn { width: 100%; text-align: center; }
-    .history-table { display: block; overflow-x: auto; white-space: nowrap; }
+    .balance-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .balance-item .value {
+        font-size: 24px;
+    }
+    .market-buttons {
+        flex-direction: column;
+    }
+    .info-panel {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .timeframe-buttons {
+        flex-wrap: wrap;
+    }
+    .timeframe-btn {
+        flex: 1 0 calc(50% - 10px);
+        margin-bottom: 8px;
+    }
+    #refreshChartBtn {
+        width: 100%;
+        margin-top: 8px;
+    }
+    .order-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .order-price-big {
+        align-self: flex-end;
+    }
+    .order-card-body {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .buy-btn, .cancel-btn-small, .cancel-buy-btn {
+        width: 100%;
+        text-align: center;
+    }
+    .history-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .accordion-title {
+        font-size: 16px;
+    }
+    .accordion-icon {
+        font-size: 18px;
+    }
 }
