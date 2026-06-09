@@ -1,4 +1,4 @@
-// stocks.js – финальный, с компактной панелью, sticky кнопками, корректной ценой
+// stocks.js – финальный, с корректной ценой, плавающими панелями и улучшенным info-panel
 let currentTimeframe = '30d';
 let realtimeChannel = null;
 
@@ -108,7 +108,6 @@ function drawCanvasChartWithAxes(history) {
     canvas.addEventListener('mouseleave', () => tooltip.style.display = 'none');
 }
 
-// ========== Тикер ==========
 async function updateTicker() {
     const trades = await window.getRecentTrades(10);
     const container = document.getElementById('ticker');
@@ -118,7 +117,6 @@ async function updateTicker() {
     container.innerHTML = `<div class="ticker-content">${items}</div>`;
 }
 
-// ========== Процент изменения средней цены ==========
 async function getAvgPriceChange() {
     const now = new Date();
     const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000);
@@ -149,7 +147,6 @@ async function getAvgPriceChange() {
     return { percent: Math.abs(change).toFixed(2), isPositive: change >= 0 };
 }
 
-// ========== Рыночные операции (модалки) ==========
 function showMarketBuyModal() {
     const currentPrice = (window.currentPriceCached / 100).toFixed(2);
     const modalHtml = `
@@ -256,7 +253,6 @@ async function marketSell(sharesAmountStars) {
     }
 }
 
-// ========== Стакан заявок ==========
 async function renderOrderBook() {
     const { data: sellsRaw } = await window.supabase.from('orders').select('amount, price_per_share, seller_id').eq('status', 'active').order('price_per_share', { ascending: true }).limit(3);
     const { data: buysRaw } = await window.supabase.from('buy_orders').select('amount, price_per_share, buyer_id').eq('status', 'active').order('price_per_share', { ascending: false }).limit(3);
@@ -278,7 +274,6 @@ async function renderOrderBook() {
     if (buyDiv) buyDiv.innerHTML = buyHtml || '<p class="empty-orders" style="text-align:center;">Нет заявок на покупку</p>';
 }
 
-// ========== История ордеров ==========
 async function loadOrderHistory() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('seller_id', window.userId).in('status', ['completed', 'cancelled']).order('created_at', { ascending: false }).limit(5);
     if (error) return [];
@@ -470,7 +465,6 @@ function subscribeToRealtime() {
 
 window.renderStocksTab = async function(currentUser) {
     try {
-        // Получаем данные о цене, если нет сделок – принудительно ставим 100 центов (1.00 ⭐)
         let currentPrice = 100; // по умолчанию 1.00 ⭐
         try {
             const priceData = await window.getTotalMarketCap();
@@ -490,7 +484,7 @@ window.renderStocksTab = async function(currentUser) {
         const priceChange = await getAvgPriceChange();
 
         const html = `
-            <div class="card" style="padding-bottom: 8px;">
+            <div class="balance-sticky">
                 <div class="balance-scroll">
                     <div class="balance-row">
                         <div class="balance-item"><div class="label">📊 Акций</div><div class="value">${window.fromCents(currentUser.shares)}</div></div>
@@ -559,7 +553,6 @@ window.renderStocksTab = async function(currentUser) {
         await renderOrderBook();
         renderOrderHistory(orderHistory);
 
-        // Мои ордера на продажу
         if (myOrders.length) {
             const myDiv = document.getElementById('myOrdersList');
             myDiv.innerHTML = myOrders.map(order => `<div class="order-card my-order-card" data-order='${JSON.stringify(order)}'><div class="order-card-header"><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div><button class="cancel-btn-small" data-id="${order.id}">Отменить</button></div><div class="order-card-body"><span class="order-amount">📦 ${window.fromCents(order.amount)} шт.</span></div></div>`).join('');
@@ -571,7 +564,6 @@ window.renderStocksTab = async function(currentUser) {
             });
         }
 
-        // Мои заявки на покупку
         if (myBuyOrders.length) {
             const buyDiv = document.getElementById('myBuyOrdersList');
             buyDiv.innerHTML = myBuyOrders.map(order => `<div class="order-card my-order-card" data-buy-order-id="${order.id}"><div class="order-card-header"><div class="order-price-big">${window.fromCents(order.price_per_share)} ⭐</div><button class="cancel-buy-btn" data-id="${order.id}">Отменить</button></div><div class="order-card-body"><span class="order-amount">📦 Купить ${window.fromCents(order.amount)} шт.</span></div></div>`).join('');
