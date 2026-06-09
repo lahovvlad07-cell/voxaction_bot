@@ -1,4 +1,5 @@
-/* stocks.css – улучшенный, с пагинацией и центровкой */
+/* stocks.css – улучшенный, с пагинацией, центровкой таблицы и аккордеонами */
+
 .balance-row {
     display: flex;
     justify-content: space-between;
@@ -97,26 +98,64 @@
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
 }
+
+/* ===== СВОРАЧИВАЕМЫЙ БЛОК ФИЛЬТРОВ ===== */
+.filter-accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 0;
+    user-select: none;
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+.filter-accordion-header .accordion-icon {
+    font-size: 20px;
+    transition: transform 0.2s;
+}
+.filter-accordion-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+.filter-accordion-content.collapsed {
+    max-height: 0;
+    padding: 0;
+}
+.filter-accordion-content.expanded {
+    max-height: 200px;
+    padding-top: 12px;
+}
 .filter-bar {
     display: flex;
     gap: 10px;
-    margin-bottom: 16px;
     flex-wrap: wrap;
+    justify-content: center;
 }
 .filter-btn, .sort-btn {
-    background: rgba(255,255,255,0.05);
-    border: none;
-    padding: 6px 14px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(56,189,248,0.3);
+    padding: 8px 18px;
     border-radius: 40px;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+.filter-btn:hover, .sort-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(43,110,158,0.3);
+    border-color: #2b6e9e;
 }
 .filter-btn.active, .sort-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
-    box-shadow: 0 2px 6px rgba(43,110,158,0.3);
+    border-color: transparent;
+    box-shadow: 0 4px 10px rgba(43,110,158,0.4);
 }
+
 .sell-form {
     display: flex;
     flex-direction: column;
@@ -318,7 +357,7 @@ button:active {
 .history-table td:first-child, .history-table th:first-child {
     text-align: left;
 }
-/* ===== АККОРДЕОН ===== */
+/* ===== АККОРДЕОН ДЛЯ МОИХ ОРДЕРОВ ===== */
 .accordion-section {
     overflow: hidden;
     transition: all 0.2s;
@@ -420,4 +459,5 @@ button:active {
     .order-count { font-size: 11px; }
     .pagination-btn { padding: 6px 14px; font-size: 12px; }
     .pagination-info { font-size: 12px; }
+    .filter-accordion-content.expanded { max-height: 260px; }
 }
