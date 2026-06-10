@@ -1,4 +1,4 @@
-// profile_v7.js – финальный, с зелёными галочками и ровным отображением
+// profile_v8.js – полностью исправленная версия
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -135,7 +135,7 @@ async function showAchievementsGuide(currentUser, getUserStats) {
         const conditionText = getConditionText(ach);
         const isCompleted = ach.earned;
         let progressPercent = 0;
-        let progressText = '';
+        let progressDisplay = '';
         if (ach.condition_type !== 'none') {
             const current = getCurrentProgress(ach);
             const needed = ach.condition_value;
@@ -148,8 +148,10 @@ async function showAchievementsGuide(currentUser, getUserStats) {
                     ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' ||
                     ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
                     curr = current / 100; need = needed / 100;
-                    progressText = `${curr.toFixed(2)}/${need.toFixed(2)}`;
-                } else progressText = `${curr}/${need}`;
+                    progressDisplay = `${curr.toFixed(2)}/${need.toFixed(2)}`;
+                } else {
+                    progressDisplay = `${curr}/${need}`;
+                }
             }
         }
         let displayIcon = ach.icon;
@@ -160,12 +162,17 @@ async function showAchievementsGuide(currentUser, getUserStats) {
         } else if (isCompleted) {
             statusHtml = '<div class="small-text" style="color:#4ade80;">✅ Получено</div>';
         } else {
-            statusHtml = `<div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
-                          <div class="small-text">${progressText}</div>`;
+            statusHtml = `
+                <div style="display:flex; justify-content:space-between; margin-top:6px;">
+                    <span class="small-text">Прогресс</span>
+                    <span class="small-text">${progressDisplay}</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
+            `;
         }
-        return `<div style="border-bottom:1px solid rgba(255,255,255,0.1); padding:12px 0;">
+        return `<div class="achievement-guide-item">
             <div style="display:flex; align-items:center; gap:12px;">
-                <span style="font-size:32px;">${displayIcon}</span>
+                <span class="guide-achievement-icon">${displayIcon}</span>
                 <div style="flex:1;">
                     <div style="font-weight:bold;">${ach.name}</div>
                     ${conditionText ? `<div class="small-text" style="color:#0ff;">${conditionText}</div>` : ''}
@@ -367,6 +374,7 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     }
     const rank = await getUserRank();
     const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px; font-weight:bold;">#${rank}</span></div>` : '';
+    
     const nextAchievements = await getNextAchievementsMixed(currentUser, getUserStats);
     let nextHtml = '';
     if (nextAchievements.length) {
@@ -381,19 +389,22 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
             } else {
                 progressDisplay = `${ach.current}/${ach.needed}`;
             }
-            nextHtml += `<div class="next-achievement-item">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:22px;">${ach.icon}</span>
-                    <span class="small-text">${conditionStr}</span>
+            nextHtml += `
+                <div class="next-achievement-item">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="next-achievement-icon">${ach.icon}</span>
+                        <span class="next-achievement-text">${conditionStr}</span>
+                        <span class="next-achievement-count">${progressDisplay}</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
                 </div>
-                <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
-                <div class="small-text">${progressDisplay}</div>
-            </div>`;
+            `;
         }
         nextHtml += `<button id="showGuideBtn" style="margin-top:16px; background:rgba(0,255,255,0.2); border:1px solid #0ff;">ℹ️ Инструкция по достижениям</button></div>`;
     } else {
         nextHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
     }
+    
     const avatarUrl = currentUser.avatar_url || '👤';
     const avatarBg = currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#') ? currentUser.avatar_bg : ({ gradient1:'#2b6e9e', gradient2:'#9b59b6', gradient3:'#e67e22', gradient4:'#27ae60', gradient5:'#f1c40f', gradient6:'#e74c3c', gradient7:'#1abc9c', gradient8:'#3498db', gradient9:'#2c3e50', gradient10:'#ff9a9e', gradient11:'#a18cd1' }[currentUser.avatar_bg] || '#2b6e9e');
     const avatarBorder = currentUser.avatar_border || '#ffffff';
