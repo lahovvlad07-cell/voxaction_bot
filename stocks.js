@@ -1,7 +1,7 @@
-// stocks.js – полная версия с переключателем полей/слайдеров
-// Все функции используют существующие методы из api.js
+// stocks.js – полная версия с графиком ВСЕГДА вверху
+// График отображается постоянно, табы переключают только дополнительный контент
 
-// ---- Вспомогательные функции для режима ввода ----
+// ---- Режим ввода (поля / слайдеры) ----
 function getInputMode() {
     return localStorage.getItem('stock_input_mode') === 'slider' ? 'slider' : 'field';
 }
@@ -42,7 +42,7 @@ function renderInputControls(amountContainer, priceContainer, mode, currentAmoun
     }
 }
 
-// ---- Получение заявок на покупку (добавляем в window, если ещё нет) ----
+// ---- Получение заявок на покупку (если ещё нет) ----
 if (!window.getActiveBuyOrders) {
     window.getActiveBuyOrders = async function() {
         const { data, error } = await window.supabase
@@ -55,7 +55,7 @@ if (!window.getActiveBuyOrders) {
     };
 }
 
-// ---- Главный рендер вкладки ----
+// ---- ГЛАВНЫЙ РЕНДЕР ----
 window.renderStocksTab = async function(currentUser) {
     // 1. Загрузка всех данных параллельно
     const [
@@ -114,33 +114,48 @@ window.renderStocksTab = async function(currentUser) {
     const totalShares = (marketCapData.totalShares / 100).toFixed(2);
     const avgPrice24h = (avgPrice24hCents / 100).toFixed(2);
 
-    // 2. HTML-структура
+    // 2. HTML-структура (график вверху, табы ниже)
     const html = `
         <div class="stocks-container">
-            <!-- Баланс -->
+            <!-- Баланс + статистика в одну строку -->
             <div class="balance-row">
                 <div class="balance-card"><div class="bal-label">📊 Акции</div><div class="bal-value">${userShares}</div></div>
                 <div class="balance-card"><div class="bal-label">⭐ Stars</div><div class="bal-value">${userStars}</div></div>
                 <div class="balance-card"><div class="bal-label">💰 Цена</div><div class="bal-value price">${currentPrice}</div></div>
             </div>
 
-            <!-- Статистика -->
             <div class="stats-row">
-                <div class="stat-item"><span>🏦 Капитализация</span><strong>${marketCap} ⭐</strong></div>
-                <div class="stat-item"><span>📦 Всего акций</span><strong>${totalShares}</strong></div>
-                <div class="stat-item"><span>📈 Средняя 24ч</span><strong>${avgPrice24h} ⭐</strong></div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏦</div>
+                    <div class="stat-label">Капитализация</div>
+                    <div class="stat-value">${marketCap} ⭐</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-label">Всего акций</div>
+                    <div class="stat-value">${totalShares}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-label">Средняя цена (24ч)</div>
+                    <div class="stat-value">${avgPrice24h} ⭐</div>
+                </div>
+            </div>
+
+            <!-- ГРАФИК – всегда виден -->
+            <div class="chart-container-main">
+                <canvas id="mainPriceChart" width="600" height="180" style="width:100%; height:180px;"></canvas>
             </div>
 
             <!-- Табы -->
             <div class="tabs-row">
                 <button class="tab-btn active" data-tab="overview">📊 Обзор</button>
-                <button class="tab-btn" data-tab="chart">📈 График</button>
                 <button class="tab-btn" data-tab="orderbook">📖 Стакан</button>
                 <button class="tab-btn" data-tab="orders">📋 Ордера</button>
                 <button class="tab-btn" data-tab="myorders">📌 Мои ордера</button>
             </div>
 
-            <!-- Панели табов -->
+            <!-- Контент табов -->
             <div id="tab-overview" class="tab-pane active">
                 <div class="order-form-panel">
                     <h4>✍️ Создать лимитный ордер</h4>
@@ -158,10 +173,6 @@ window.renderStocksTab = async function(currentUser) {
                     <button id="createOrderBtn">✅ Разместить ордер</button>
                     <div class="hint">После размещения ордер появится в стакане.</div>
                 </div>
-            </div>
-
-            <div id="tab-chart" class="tab-pane">
-                <canvas id="priceChart" width="600" height="200" style="width:100%; height:200px;"></canvas>
             </div>
 
             <div id="tab-orderbook" class="tab-pane">
@@ -203,13 +214,14 @@ window.renderStocksTab = async function(currentUser) {
 
     document.getElementById('app').innerHTML = html;
 
-    // ---- Функции отрисовки компонентов ----
-    function drawChart() {
-        const canvas = document.getElementById('priceChart');
+    // ---- Дальше будут функции отрисовки и обработчики (продолжение во 2й части) ----
+        // ---- Функция отрисовки ГЛАВНОГО графика (всегда виден) ----
+    function drawMainChart() {
+        const canvas = document.getElementById('mainPriceChart');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         const w = canvas.clientWidth;
-        const h = 200;
+        const h = 180;
         canvas.width = w;
         canvas.height = h;
 
@@ -245,6 +257,7 @@ window.renderStocksTab = async function(currentUser) {
         ctx.fill();
     }
 
+    // ---- Функции для стакана, ордеров ----
     function renderOrderBook() {
         const sellMap = new Map();
         activeSellOrders.forEach(o => {
@@ -368,11 +381,10 @@ window.renderStocksTab = async function(currentUser) {
         });
     }
 
-    // ---- Переключение табов ----
+    // ---- Переключение табов (без вкладки "График", он всегда виден) ----
     const tabs = document.querySelectorAll('.tab-btn');
     const panes = {
         overview: document.getElementById('tab-overview'),
-        chart: document.getElementById('tab-chart'),
         orderbook: document.getElementById('tab-orderbook'),
         orders: document.getElementById('tab-orders'),
         myorders: document.getElementById('tab-myorders')
@@ -384,7 +396,6 @@ window.renderStocksTab = async function(currentUser) {
             btn.classList.add('active');
             Object.values(panes).forEach(p => p.classList.remove('active'));
             panes[target].classList.add('active');
-            if (target === 'chart') drawChart();
             if (target === 'orderbook') renderOrderBook();
             if (target === 'orders') renderActiveSellOrders();
             if (target === 'myorders') renderMyOrders();
@@ -435,12 +446,8 @@ window.renderStocksTab = async function(currentUser) {
 
     modeField.onclick = () => refreshInputMode('field');
     modeSlider.onclick = () => refreshInputMode('slider');
+    refreshInputMode(getInputMode());
 
-    // Загружаем сохранённый режим
-    const savedMode = getInputMode();
-    refreshInputMode(savedMode);
-
-    // Кнопка создания ордера
     document.getElementById('createOrderBtn').onclick = async () => {
         let amount, price;
         if (getInputMode() === 'slider') {
@@ -462,7 +469,6 @@ window.renderStocksTab = async function(currentUser) {
                 await window.createBuyOrder(amount, price);
                 window.showToast('Заявка на покупку размещена');
             }
-            // Очистка полей
             if (getInputMode() === 'slider') {
                 if (document.getElementById('orderAmountSlider')) document.getElementById('orderAmountSlider').value = 1;
                 if (document.getElementById('orderPriceSlider')) document.getElementById('orderPriceSlider').value = 1;
@@ -488,9 +494,9 @@ window.renderStocksTab = async function(currentUser) {
         if (!isNaN(shares) && shares > 0) window.marketSell(shares).catch(e => window.showCustomModal('Ошибка', e.message));
     };
 
-    // Первоначальная отрисовка компонентов
-    drawChart();
-    renderOrderBook();
-    renderActiveSellOrders();
-    renderMyOrders();
+    // ---- Первоначальная отрисовка ----
+    drawMainChart();          // график всегда рисуется
+    renderOrderBook();       // стакан (для вкладки)
+    renderActiveSellOrders();// ордера
+    renderMyOrders();        // мои ордера
 };
