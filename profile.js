@@ -1,4 +1,4 @@
-// profile_v3.js – ближайшие достижения разных типов, с конкретными целями
+// profile_v4.js – 3 ближайших достижения + инструкция по всем достижениям
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -22,7 +22,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (разные типы) ==========
+// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (только 3, разные типы) ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
@@ -55,7 +55,7 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
         return null;
     }).filter(a => a !== null);
     
-    // Группируем по типу, оставляем по одному на тип (с минимальным needed)
+    // Группируем по типу, оставляем по одному на тип (самый маленький needed)
     const byType = new Map();
     for (const ach of withProgress) {
         const t = ach.condition_type;
@@ -63,10 +63,115 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
             byType.set(t, ach);
         }
     }
-    // Берём 5 ближайших (по needed)
     const unique = Array.from(byType.values());
     unique.sort((a,b) => a.needed - b.needed);
-    return unique.slice(0, 5);
+    return unique.slice(0, 3);
+}
+
+// ========== ПОЛНЫЙ СПИСОК ДОСТИЖЕНИЙ ДЛЯ МОДАЛКИ ==========
+async function getAllAchievementsList() {
+    const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
+    if (!all) return [];
+    const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
+    const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
+    return all.map(ach => ({
+        ...ach,
+        earned: earnedIds.has(ach.id),
+        condition_text: getConditionText(ach)
+    }));
+}
+
+function getConditionText(ach) {
+    const val = ach.condition_value;
+    switch (ach.condition_type) {
+        case 'trades_count': return `📊 Совершить ${val} сделок`;
+        case 'shares_held': return `📈 Накопить ${val/100} акций`;
+        case 'referrals_count': return `👥 Пригласить ${val} друзей`;
+        case 'total_topup': return `💰 Пополнить на ${val/100} ⭐`;
+        case 'total_spent': return `💸 Потратить ${val/100} ⭐`;
+        case 'total_earned': return `💵 Заработать ${val/100} ⭐`;
+        case 'total_volume': return `📊 Объём торгов ${val/100} ⭐`;
+        case 'stars_held': return `⭐ Иметь на балансе ${val/100} ⭐`;
+        case 'days_active': return `📅 Активен ${val} дней`;
+        default: return '';
+    }
+}
+
+async function showAchievementsGuide(currentUser, getUserStats) {
+    const achievements = await getAllAchievementsList();
+    const stats = await getUserStats();
+    const user = currentUser;
+    
+    // Функция получения текущего прогресса для невыполненных
+    function getCurrentProgress(ach) {
+        if (ach.earned) return ach.condition_value;
+        switch (ach.condition_type) {
+            case 'trades_count': return stats.totalTrades;
+            case 'shares_held': return user.shares;
+            case 'referrals_count': return user.referral_count || 0;
+            case 'total_topup': return user.total_topup || 0;
+            case 'total_spent': return user.total_spent || 0;
+            case 'total_earned': return user.total_earned || 0;
+            case 'total_volume': return user.total_volume || 0;
+            case 'stars_held': return user.stars_balance;
+            case 'days_active': return user.days_active || 0;
+            default: return 0;
+        }
+    }
+    
+    const html = achievements.map(ach => {
+        const progress = getCurrentProgress(ach);
+        const needed = ach.condition_value;
+        const percent = ach.earned ? 100 : (progress / needed) * 100;
+        let progressText = '';
+        if (!ach.earned && ach.condition_type !== 'none') {
+            let curr = progress;
+            let need = needed;
+            if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || 
+                ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' ||
+                ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
+                curr = progress / 100;
+                need = needed / 100;
+                progressText = `${curr.toFixed(2)}/${need.toFixed(2)}`;
+            } else {
+                progressText = `${curr}/${need}`;
+            }
+        }
+        return `
+            <div class="achievement-guide-item">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:32px;">${ach.icon}</span>
+                    <div style="flex:1;">
+                        <div style="font-weight:bold;">${ach.name}</div>
+                        <div class="small-text">${ach.description}</div>
+                        <div class="small-text" style="color:#0ff;">${getConditionText(ach)}</div>
+                        ${!ach.earned && ach.condition_type !== 'none' ? `
+                            <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width: ${Math.min(100,percent)}%;"></div></div>
+                            <div class="small-text">${progressText}</div>
+                        ` : ach.earned ? '<div class="small-text" style="color:#4ade80;">✅ Получено</div>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    const modalHtml = `
+        <div class="modal" id="guideModal" style="display:flex;">
+            <div class="modal-content" style="max-width:500px; max-height:80vh;">
+                <span class="close-modal" id="closeGuideModal">&times;</span>
+                <h3>📜 Справочник достижений</h3>
+                <div class="scrollable-content" style="max-height:60vh; overflow-y:auto;">
+                    ${html}
+                </div>
+                <div class="modal-buttons"><button id="closeGuideBtn">Закрыть</button></div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('guideModal');
+    document.getElementById('closeGuideModal').onclick = () => modal.remove();
+    document.getElementById('closeGuideBtn').onclick = () => modal.remove();
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
 // ========== КАСТОМИЗАЦИЯ АВАТАРА (без изменений) ==========
@@ -475,7 +580,7 @@ window.renderProfileTab = async function(
     const rank = await getUserRank();
     const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px; font-weight:bold;">#${rank}</span></div>` : '';
     
-    // БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (разные типы)
+    // БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (только 3)
     const nextAchievements = await getNextAchievementsMixed(currentUser, getUserStats);
     let nextHtml = '';
     if (nextAchievements.length) {
@@ -506,7 +611,7 @@ window.renderProfileTab = async function(
                 </div>
             `;
         }
-        nextHtml += `</div>`;
+        nextHtml += `<button id="showGuideBtn" style="margin-top:16px; background:rgba(0,255,255,0.2); border:1px solid #0ff;">ℹ️ Инструкция по достижениям</button></div>`;
     } else {
         nextHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
     }
@@ -549,6 +654,9 @@ window.renderProfileTab = async function(
     </div>`;
     
     document.getElementById('app').innerHTML = html;
+    
+    // Обработчик кнопки инструкции
+    document.getElementById('showGuideBtn')?.addEventListener('click', () => showAchievementsGuide(currentUser, getUserStats));
     
     const updateUserCallback = async (updates) => {
         await supabase.from('users').update(updates).eq('id', userId);
