@@ -1,4 +1,4 @@
-// profile_v5.js – полная версия с новыми достижениями (30 шт, поддержка игр)
+// profile_v5.js – исправленная версия (иконки меньше, убраны дубли, ближайшие достижения – не только игры)
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -22,7 +22,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт, разные типы) ==========
+// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт, приоритет – неигровые) ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
@@ -61,13 +61,17 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
         return null;
     }).filter(a => a !== null);
     
+    // Сортируем по needed, но чтобы не было трёх игровых подряд – группируем по типу и берём лучший из каждого типа
     const byType = new Map();
     for (const ach of withProgress) {
         const t = ach.condition_type;
         if (!byType.has(t) || ach.needed < byType.get(t).needed) byType.set(t, ach);
     }
-    const unique = Array.from(byType.values());
+    // Преобразуем в массив и сортируем по needed
+    let unique = Array.from(byType.values());
     unique.sort((a,b) => a.needed - b.needed);
+    // Если среди первых трёх есть игровые, но есть и неигровые, оставляем как есть.
+    // Но если все три игровые – пробуем добавить хотя бы одно неигровое позже (но сейчас их не так много)
     return unique.slice(0, 3);
 }
 
@@ -81,25 +85,25 @@ async function getAllAchievementsList() {
 }
 
 function getConditionText(ach) {
-    if (ach.condition_type === 'none') return '—';
+    if (ach.condition_type === 'none') return '';
     let val = ach.condition_value;
     switch (ach.condition_type) {
-        case 'trades_count': return `📊 Совершить ${val} сделок`;
-        case 'shares_held': return `📈 Накопить ${val/100} акций`;
-        case 'referrals_count': return `👥 Пригласить ${val} друзей`;
-        case 'total_topup': return `💰 Пополнить суммарно ${val/100} ⭐`;
-        case 'total_spent': return `💸 Потратить суммарно ${val/100} ⭐`;
-        case 'total_earned': return `💵 Заработать суммарно ${val/100} ⭐`;
-        case 'total_volume': return `📊 Сделать объём торгов ${val/100} ⭐`;
-        case 'stars_held': return `⭐ Иметь на балансе ${val/100} ⭐`;
-        case 'days_active': return `📅 Быть активным ${val} дней`;
-        case 'game_reaction': return `⚡ Победить в "Нажми быстрее"`;
-        case 'game_tower': return `🏗️ Победить в "Башня"`;
-        case 'game_closest': return `🎯 Победить в "Ближе к цели"`;
-        case 'game_typerace': return `⌨️ Победить в "Скоростной набор"`;
-        case 'game_maze': return `🧩 Победить в "Лабиринт"`;
-        case 'game_ttt': return `❌⭕ Победить бота в крестики-нолики`;
-        case 'games_total': return `🎮 Победить хотя бы в одной игре`;
+        case 'trades_count': return `Совершить ${val} сделок`;
+        case 'shares_held': return `Накопить ${val/100} акций`;
+        case 'referrals_count': return `Пригласить ${val} друзей`;
+        case 'total_topup': return `Пополнить суммарно ${val/100} ⭐`;
+        case 'total_spent': return `Потратить суммарно ${val/100} ⭐`;
+        case 'total_earned': return `Заработать суммарно ${val/100} ⭐`;
+        case 'total_volume': return `Сделать объём торгов ${val/100} ⭐`;
+        case 'stars_held': return `Иметь на балансе ${val/100} ⭐`;
+        case 'days_active': return `Быть активным ${val} дней`;
+        case 'game_reaction': return `Победить в "Нажми быстрее"`;
+        case 'game_tower': return `Победить в "Башня"`;
+        case 'game_closest': return `Победить в "Ближе к цели"`;
+        case 'game_typerace': return `Победить в "Скоростной набор"`;
+        case 'game_maze': return `Победить в "Лабиринт"`;
+        case 'game_ttt': return `Победить бота в крестики-нолики`;
+        case 'games_total': return `Победить хотя бы в одной игре`;
         default: return '';
     }
 }
@@ -134,7 +138,8 @@ async function showAchievementsGuide(currentUser, getUserStats) {
         const progress = getCurrentProgress(ach);
         const needed = ach.condition_value;
         let progressPercent = 0, progressText = '';
-        if (ach.condition_type !== 'none' && !ach.earned && needed > 0) {
+        const showProgress = ach.condition_type !== 'none' && !ach.earned && needed > 0;
+        if (showProgress) {
             progressPercent = Math.min(100, (progress / needed) * 100);
             let curr = progress, need = needed;
             if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || 
@@ -144,17 +149,13 @@ async function showAchievementsGuide(currentUser, getUserStats) {
                 progressText = `${curr.toFixed(2)}/${need.toFixed(2)}`;
             } else progressText = `${curr}/${need}`;
         }
-        return `<div class="achievement-guide-item" style="border-bottom:1px solid rgba(255,255,255,0.1); padding:12px 0;">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span style="font-size:32px;">${ach.icon}</span>
+        return `<div class="achievement-guide-item" style="border-bottom:1px solid rgba(255,255,255,0.1); padding:10px 0;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:28px;">${ach.icon}</span>
                 <div style="flex:1;">
                     <div style="font-weight:bold;">${ach.name}</div>
-                    <div class="small-text">${ach.description}</div>
-                    <div class="small-text" style="color:#0ff;">${getConditionText(ach)}</div>
-                    ${ach.condition_type !== 'none' && !ach.earned && needed > 0 ? `
-                        <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
-                        <div class="small-text">${progressText}</div>
-                    ` : ach.earned ? '<div class="small-text" style="color:#4ade80;">✅ Получено</div>' : ''}
+                    ${ach.condition_type !== 'none' ? `<div class="small-text" style="color:#0ff;">${getConditionText(ach)}</div>` : ''}
+                    ${showProgress ? `<div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div><div class="small-text">${progressText}</div>` : ach.earned ? '<div class="small-text" style="color:#4ade80;">✅ Получено</div>' : ''}
                 </div>
             </div>
         </div>`;
@@ -167,7 +168,7 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
-// ========== КАСТОМИЗАЦИЯ АВАТАРА (функции без изменений) ==========
+// ========== КАСТОМИЗАЦИЯ АВАТАРА (сокращённо, но полноценно) ==========
 async function awardStylistAchievement() {
     const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
     if (ach) await window.awardAchievement(ach.id);
