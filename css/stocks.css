@@ -1,82 +1,81 @@
-/* stocks.css – улучшенный визуал для вкладки «Акции» */
-
-/* Общие стили для контейнера */
-.stocks-content {
-    max-width: 700px;
+/* stocks.css – полностью переработанный для аккуратного вида */
+/* Общие сбросы для вкладки (не влияют на глобальные) */
+.stocks-container {
+    max-width: 800px;
     margin: 0 auto;
-    padding-bottom: 20px;
+    padding: 0 12px;
 }
 
-/* Блок баланса – три колонки с карточками */
-.balance-row {
+/* ===== Блок баланса – три карточки в ряд ===== */
+.stocks-balance-row {
     display: flex;
     gap: 12px;
     margin-bottom: 24px;
     flex-wrap: wrap;
 }
-.balance-item {
+.stocks-balance-card {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(18, 24, 38, 0.8);
     backdrop-filter: blur(8px);
-    border-radius: 28px;
-    padding: 16px 8px;
+    border-radius: 24px;
+    padding: 16px 12px;
     text-align: center;
     border: 1px solid rgba(56, 189, 248, 0.2);
     transition: transform 0.2s, border-color 0.2s;
 }
-.balance-item:hover {
+.stocks-balance-card:hover {
     transform: translateY(-2px);
     border-color: #2b6e9e;
 }
-.balance-item .label {
+.stocks-balance-label {
     font-size: 14px;
     color: #9ca3af;
     margin-bottom: 8px;
 }
-.balance-item .value {
-    font-size: 26px;
+.stocks-balance-value {
+    font-size: 28px;
     font-weight: 800;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
-.price .value {
+.stocks-balance-value.price {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
 
-/* Информационная панель (капитализация, акции, цена) */
-.info-panel {
+/* ===== Информационная панель (капитализация, всего акций, средняя цена) ===== */
+.stocks-info-panel {
     display: flex;
     gap: 12px;
-    margin: 24px 0;
+    margin: 20px 0;
 }
-.info-card {
+.stocks-info-card {
     flex: 1;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 24px;
+    backdrop-filter: blur(4px);
+    border-radius: 20px;
     padding: 12px;
     text-align: center;
-    border: 1px solid rgba(56, 189, 248, 0.15);
 }
-.info-card .small-text {
+.stocks-info-card .small-text {
     font-size: 12px;
     color: #9ca3af;
 }
-.info-card .price {
+.stocks-info-card .price {
     font-size: 20px;
     font-weight: 700;
     margin-top: 6px;
     color: #eef2ff;
 }
 
-/* Таймфреймы */
-.timeframe-buttons {
+/* ===== Кнопки таймфреймов ===== */
+.stocks-timeframe-buttons {
     display: flex;
     gap: 10px;
     margin: 20px 0;
 }
-.timeframe-btn {
+.stocks-timeframe-btn {
     flex: 1;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -86,26 +85,27 @@
     cursor: pointer;
     transition: 0.2s;
 }
-.timeframe-btn.active {
+.stocks-timeframe-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     color: white;
     border-color: transparent;
 }
-#refreshChartBtn {
+.stocks-refresh-btn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(56, 189, 248, 0.3);
     padding: 8px 16px;
     border-radius: 40px;
     cursor: pointer;
+    width: auto;
 }
 
-/* График */
-.chart-container {
+/* ===== График ===== */
+.stocks-chart-container {
     background: #0f1320;
     border-radius: 24px;
     padding: 12px;
     margin: 16px 0;
-    height: 200px;
+    height: 220px;
     position: relative;
 }
 .chart-placeholder {
@@ -116,8 +116,8 @@
     color: #9ca3af;
 }
 
-/* Тикер */
-.ticker {
+/* ===== Тикер ===== */
+.stocks-ticker {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 60px;
     padding: 8px 16px;
@@ -125,7 +125,6 @@
     white-space: nowrap;
     margin: 16px 0;
     font-size: 12px;
-    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 .ticker-content {
     display: inline-block;
@@ -135,23 +134,20 @@
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
 }
-.trade-item {
-    margin-right: 24px;
-}
 
-/* Стакан заявок */
-.orderbook {
+/* ===== Стакан заявок (две колонки) ===== */
+.stocks-orderbook {
     display: flex;
     gap: 16px;
     margin: 24px 0;
 }
-.orderbook-column {
+.stocks-orderbook-col {
     flex: 1;
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 24px;
+    border-radius: 20px;
     padding: 12px;
 }
-.orderbook-column h4 {
+.stocks-orderbook-col h4 {
     text-align: center;
     margin-bottom: 12px;
     font-size: 16px;
@@ -166,22 +162,17 @@
 .price-sell { color: #fbbf24; }
 .price-buy { color: #4ade80; }
 
-/* Формы продажи/покупки */
-.sell-form, .buy-limit-form {
+/* ===== Формы продажи/покупки ===== */
+.stocks-sell-form, .stocks-buy-form {
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 28px;
-    padding: 20px;
+    border-radius: 24px;
+    padding: 16px;
     margin: 24px 0;
 }
-.sell-form h3, .buy-limit-form h3 {
-    margin-top: 0;
-    margin-bottom: 16px;
-    font-size: 18px;
-}
-.slider-group {
+.form-group {
     margin-bottom: 16px;
 }
-.slider-group label {
+.form-group label {
     display: flex;
     justify-content: space-between;
     font-size: 14px;
@@ -203,39 +194,33 @@ input[type="range"]::-webkit-slider-thumb {
     border: 2px solid #60a5fa;
     cursor: pointer;
 }
-.form-row {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 16px;
+.stocks-input-number {
+    width: 100%;
+    padding: 10px 14px;
+    background: #111827;
+    border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 44px;
+    color: white;
 }
-.form-row label {
-    width: 80px;
-    font-size: 14px;
-}
-.form-row input {
-    flex: 1;
-    margin: 0;
-}
-.toggle-mode-btn {
+.stocks-toggle-mode {
     background: rgba(255,255,255,0.1);
     border: none;
     padding: 6px 12px;
     border-radius: 30px;
     font-size: 12px;
-    margin-top: 12px;
     cursor: pointer;
+    margin-top: 12px;
     width: auto;
 }
 
-/* Мои ордера */
-.section-header {
+/* ===== Мои ордера (секции с заголовками) ===== */
+.stocks-section-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: baseline;
     margin: 24px 0 12px;
 }
-.section-header h3 {
+.stocks-section-header h3 {
     margin: 0;
     font-size: 18px;
 }
@@ -243,14 +228,14 @@ input[type="range"]::-webkit-slider-thumb {
     background: rgba(220,38,38,0.2);
     border: 1px solid #f87171;
     padding: 4px 12px;
-    font-size: 12px;
     border-radius: 30px;
+    font-size: 12px;
     cursor: pointer;
 }
 .order-card {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 20px;
-    padding: 12px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 16px;
+    padding: 10px 12px;
     margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
@@ -262,10 +247,9 @@ input[type="range"]::-webkit-slider-thumb {
     color: #f87171;
     cursor: pointer;
     font-size: 12px;
-    padding: 4px 8px;
 }
 
-/* Таблица истории */
+/* ===== Таблица истории ордеров ===== */
 .history-table {
     width: 100%;
     border-collapse: collapse;
@@ -282,7 +266,7 @@ input[type="range"]::-webkit-slider-thumb {
 .status-completed { color: #4ade80; }
 .status-cancelled { color: #f87171; }
 
-/* Плавающие кнопки (фиксированы снизу) */
+/* ===== Фиксированные кнопки рыночных операций ===== */
 .market-buttons-fixed {
     position: fixed;
     bottom: 70px;
@@ -299,7 +283,7 @@ input[type="range"]::-webkit-slider-thumb {
 .market-buttons-fixed button {
     flex: 1;
     margin: 0;
-    padding: 10px;
+    padding: 12px;
     font-size: 14px;
     font-weight: 600;
     border-radius: 44px;
@@ -311,21 +295,21 @@ input[type="range"]::-webkit-slider-thumb {
     background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-/* Мобильная адаптация */
+/* ===== Мобильная адаптация ===== */
 @media (max-width: 560px) {
-    .balance-row {
+    .stocks-balance-row {
         flex-wrap: nowrap;
         overflow-x: auto;
         gap: 8px;
     }
-    .balance-item {
+    .stocks-balance-card {
         flex: 0 0 110px;
     }
-    .info-panel {
+    .stocks-info-panel {
         flex-direction: column;
         gap: 8px;
     }
-    .orderbook {
+    .stocks-orderbook {
         flex-direction: column;
     }
     .history-table th:nth-child(4), .history-table td:nth-child(4) {
