@@ -1,60 +1,68 @@
-/* stocks.css – окончательная, идеально выровненная версия */
-/* ===== ОСНОВНЫЕ ПЕРЕМЕННЫЕ ===== */
+/* stocks.css – финальная профессиональная версия */
+/* ===== ПЕРЕМЕННЫЕ ===== */
 :root {
-    --stocks-card-bg: rgba(18, 24, 38, 0.85);
-    --stocks-border: rgba(56, 189, 248, 0.2);
+    --stocks-bg-card: rgba(18, 24, 38, 0.85);
+    --stocks-border: rgba(56, 189, 248, 0.25);
     --stocks-accent: #2b6e9e;
-    --stocks-accent-gradient: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    --stocks-gold: linear-gradient(135deg, #fbbf24, #f59e0b);
-    --stocks-silver: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    --stocks-accent-grad: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    --stocks-gold-grad: linear-gradient(135deg, #fbbf24, #f59e0b);
+    --stocks-silver-grad: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    --stocks-radius: 28px;
+    --stocks-radius-sm: 20px;
 }
 
 /* ===== КОНТЕЙНЕР ===== */
 .stocks-container {
     max-width: 600px;
     margin: 0 auto;
-    padding: 0 16px;
+    padding: 0 16px 80px 16px;
 }
 
-/* ===== БЛОК БАЛАНСА (три карточки одинаковой ширины) ===== */
+/* ===== БЛОК БАЛАНСА ===== */
 .stocks-balance {
     display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: 14px;
+    margin-bottom: 28px;
 }
 .stocks-balance-card {
     flex: 1;
-    background: var(--stocks-card-bg);
+    background: var(--stocks-bg-card);
     backdrop-filter: blur(8px);
-    border-radius: 28px;
-    padding: 16px 8px;
+    border-radius: var(--stocks-radius);
+    padding: 18px 8px;
     text-align: center;
     border: 1px solid var(--stocks-border);
-    transition: all 0.2s ease;
+    transition: all 0.2s;
+}
+.stocks-balance-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--stocks-accent);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.2);
 }
 .stocks-balance-label {
-    font-size: 13px;
+    font-size: 14px;
     color: #9ca3af;
     margin-bottom: 8px;
+    letter-spacing: 0.5px;
 }
 .stocks-balance-value {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
-    background: var(--stocks-silver);
+    background: var(--stocks-silver-grad);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
 .stocks-balance-value.price {
-    background: var(--stocks-gold);
+    background: var(--stocks-gold-grad);
 }
 
 /* ===== ГРАФИК ===== */
 .stocks-chart {
-    background: #0f1320;
-    border-radius: 24px;
-    padding: 16px;
-    margin: 20px 0;
+    background: #0a0e16;
+    border-radius: var(--stocks-radius);
+    padding: 20px;
+    margin: 24px 0;
     height: 180px;
     display: flex;
     align-items: center;
@@ -62,18 +70,19 @@
     color: #9ca3af;
     font-size: 14px;
     border: 1px solid var(--stocks-border);
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
 }
 
-/* ===== ТРИ ПОКАЗАТЕЛЯ (ровные колонки) ===== */
+/* ===== СТАТИСТИКА (три карточки) ===== */
 .stocks-stats {
     display: flex;
-    gap: 12px;
-    margin: 20px 0;
+    gap: 14px;
+    margin: 24px 0;
 }
 .stocks-stat {
     flex: 1;
-    background: rgba(0,0,0,0.35);
-    border-radius: 24px;
+    background: rgba(0,0,0,0.4);
+    border-radius: var(--stocks-radius-sm);
     padding: 14px 8px;
     text-align: center;
     backdrop-filter: blur(4px);
@@ -83,32 +92,34 @@
     font-size: 11px;
     color: #9ca3af;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
 }
 .stocks-stat .value {
-    font-size: 18px;
-    font-weight: 700;
-    margin-top: 6px;
+    font-size: 20px;
+    font-weight: 800;
+    margin-top: 8px;
     color: #eef2ff;
 }
 
-/* ===== СЕТКА КНОПОК (ровно 2 колонки) ===== */
+/* ===== СЕТКА КНОПОК ===== */
 .stocks-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin: 24px 0;
+    gap: 14px;
+    margin: 28px 0;
 }
 .stocks-grid-btn {
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--stocks-border);
-    padding: 14px 8px;
+    padding: 16px 8px;
     border-radius: 48px;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     text-align: center;
+    backdrop-filter: blur(4px);
 }
 .stocks-grid-btn:hover {
     background: rgba(43,110,158,0.2);
@@ -119,17 +130,17 @@
     transform: scale(0.96);
 }
 
-/* ===== ФИКСИРОВАННЫЕ КНОПКИ РЫНОЧНЫХ ОПЕРАЦИЙ ===== */
+/* ===== ФИКСИРОВАННЫЕ РЫНОЧНЫЕ КНОПКИ ===== */
 .stocks-market-fixed {
     position: fixed;
     bottom: 70px;
     left: 0;
     right: 0;
     display: flex;
-    gap: 12px;
+    gap: 14px;
     padding: 12px 16px;
     background: rgba(10,14,26,0.95);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
     border-top: 1px solid var(--stocks-border);
     z-index: 99;
 }
@@ -168,7 +179,7 @@
     margin: 0 0 20px 0;
     font-size: 22px;
     text-align: center;
-    background: var(--stocks-silver);
+    background: var(--stocks-silver-grad);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -224,7 +235,7 @@
     font-size: 14px;
 }
 .stocks-modal .stocks-btn {
-    background: var(--stocks-accent-gradient);
+    background: var(--stocks-accent-grad);
     border: none;
     padding: 14px;
     border-radius: 48px;
@@ -300,10 +311,10 @@
 .price-sell { color: #fbbf24; font-weight: 600; }
 .price-buy { color: #4ade80; font-weight: 600; }
 
-/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ (телефоны) ===== */
+/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
 @media (max-width: 560px) {
     .stocks-container {
-        padding: 0 12px;
+        padding: 0 12px 70px 12px;
     }
     .stocks-balance {
         gap: 8px;
@@ -316,14 +327,14 @@
     }
     .stocks-chart {
         height: 140px;
-        padding: 12px;
+        margin: 16px 0;
     }
     .stocks-grid {
-        gap: 8px;
+        gap: 10px;
     }
     .stocks-grid-btn {
         padding: 12px 6px;
-        font-size: 13px;
+        font-size: 14px;
     }
     .stocks-market-fixed {
         bottom: 65px;
@@ -337,7 +348,7 @@
         width: 95%;
         max-height: 90vh;
     }
-    /* Таблица истории на мобильных – горизонтальный скролл */
+    /* Таблица с горизонтальным скроллом */
     .history-table {
         display: block;
         overflow-x: auto;
