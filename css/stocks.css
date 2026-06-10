@@ -1,4 +1,4 @@
-/* stocks.css – финальная исправленная версия */
+/* stocks.css – пустые сообщения выровнены по левому краю, режим ввода в строку */
 :root {
     --neon-blue: #0ff;
     --neon-gold: #ffd700;
@@ -321,7 +321,7 @@
 .price-sell { color: #ffaa44; font-weight: bold; }
 .price-buy { color: #44ffaa; font-weight: bold; }
 
-/* Секции ордеров */
+/* Секции ордеров – заголовки слева, пустые сообщения слева */
 .section-header {
     font-size: 16px;
     font-weight: 600;
@@ -366,13 +366,13 @@
     cursor: pointer;
 }
 .empty-placeholder {
-    text-align: center;
-    padding: 24px;
+    text-align: left;
+    padding: 16px 12px;
     color: #6c7a89;
     font-style: italic;
-}
-.empty-placeholder.centered {
-    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    margin: 8px 0;
 }
 
 /* Рыночные кнопки */
