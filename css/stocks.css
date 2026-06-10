@@ -1,116 +1,278 @@
-/* stocks.css – дополнение для нового интерфейса */
-.stats-row {
+/* stocks.css – полная версия для биржевой вкладки */
+:root {
+    --stocks-bg-card: rgba(18, 24, 38, 0.9);
+    --stocks-border: rgba(56, 189, 248, 0.25);
+    --stocks-accent: #2b6e9e;
+    --stocks-accent-grad: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    --stocks-gold-grad: linear-gradient(135deg, #fbbf24, #f59e0b);
+    --stocks-silver-grad: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    --stocks-radius: 28px;
+    --stocks-radius-sm: 20px;
+    --stocks-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+/* Общий контейнер */
+.stocks-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 16px 80px 16px;
+}
+
+/* ===== Верхние карточки баланса ===== */
+.balance-row {
     display: flex;
     gap: 12px;
-    margin: 16px 0;
+    margin-bottom: 20px;
 }
-.stat-card {
+.balance-card {
     flex: 1;
-    background: rgba(0,0,0,0.35);
-    border-radius: 20px;
-    padding: 12px;
+    background: var(--stocks-bg-card);
+    backdrop-filter: blur(8px);
+    border-radius: var(--stocks-radius);
+    padding: 14px 8px;
     text-align: center;
-    backdrop-filter: blur(4px);
+    border: 1px solid var(--stocks-border);
+    transition: transform 0.2s, border-color 0.2s;
 }
-.stat-number {
-    font-size: 18px;
+.balance-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--stocks-accent);
+}
+.bal-label {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-bottom: 6px;
+}
+.bal-value {
+    font-size: 26px;
     font-weight: 800;
-    margin-top: 6px;
-    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background: var(--stocks-silver-grad);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
-.create-order-panel {
-    background: rgba(18,24,38,0.6);
-    border-radius: 28px;
-    padding: 16px;
-    margin-top: 8px;
+.bal-value.price {
+    background: var(--stocks-gold-grad);
 }
-.order-type-switch {
+
+/* ===== Дополнительная статистика ===== */
+.stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.stat-item {
+    flex: 1;
+    background: rgba(0,0,0,0.35);
+    border-radius: var(--stocks-radius-sm);
+    padding: 8px 12px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+.stat-item span {
+    color: #9ca3af;
+}
+.stat-item strong {
+    font-size: 14px;
+    color: #eef2ff;
+}
+
+/* ===== Табы ===== */
+.tabs-row {
+    display: flex;
+    gap: 8px;
+    margin: 20px 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.tabs-row::-webkit-scrollbar {
+    display: none;
+}
+.tab-btn {
+    background: rgba(255,255,255,0.05);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #cbd5e1;
+    white-space: nowrap;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.tab-btn.active {
+    background: var(--stocks-accent-grad);
+    color: white;
+    box-shadow: 0 2px 8px rgba(43,110,158,0.4);
+}
+.tab-btn:not(.active):hover {
+    background: rgba(255,255,255,0.1);
+    color: #eef2ff;
+}
+
+/* ===== Панели табов ===== */
+.tab-pane {
+    display: none;
+    animation: fadeContent 0.2s ease;
+}
+.tab-pane.active {
+    display: block;
+}
+@keyframes fadeContent {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Форма лимитного ордера ===== */
+.order-form-panel {
+    background: rgba(0,0,0,0.35);
+    border-radius: var(--stocks-radius);
+    padding: 18px;
+    margin-top: 4px;
+}
+.order-form-panel h4 {
+    text-align: center;
+    margin-bottom: 16px;
+    color: #eef2ff;
+}
+.type-switch {
     display: flex;
     gap: 12px;
     margin: 12px 0;
 }
-.type-btn {
+.type-opt {
     flex: 1;
     background: rgba(255,255,255,0.05);
     border: none;
-    padding: 8px;
+    padding: 10px;
     border-radius: 40px;
     font-weight: 600;
+    color: #cbd5e1;
+    cursor: pointer;
     transition: 0.2s;
 }
-.type-btn.active {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    box-shadow: 0 2px 8px rgba(43,110,158,0.4);
+.type-opt.active {
+    background: var(--stocks-accent-grad);
+    color: white;
 }
-.order-form input {
-    margin-bottom: 12px;
+.order-form-panel input {
+    width: 100%;
+    padding: 12px 16px;
+    margin: 8px 0;
+    background: #111827;
+    border: 1px solid var(--stocks-border);
+    border-radius: 44px;
+    color: #f0f4ff;
+}
+.order-form-panel button {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--stocks-accent-grad);
 }
 .hint {
-    text-align: center;
-    margin-top: 12px;
+    font-size: 11px;
     color: #9ca3af;
+    text-align: center;
+    margin-top: 14px;
 }
-.orderbook-grid {
+
+/* ===== График ===== */
+#priceChart {
+    background: #0a0e16;
+    border-radius: var(--stocks-radius);
+    padding: 8px;
+    width: 100%;
+    height: 200px;
+    border: 1px solid var(--stocks-border);
+}
+
+/* ===== Стакан (Order Book) ===== */
+.orderbook-split {
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
 }
-.orderbook-sell, .orderbook-buy {
+.orderbook-col {
     flex: 1;
     min-width: 140px;
 }
+.orderbook-col h4 {
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
 .orderbook-list {
     background: rgba(0,0,0,0.3);
-    border-radius: 20px;
+    border-radius: var(--stocks-radius-sm);
     padding: 8px;
 }
 .orderbook-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 6px 12px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
 }
-.price-sell { color: #fbbf24; font-weight: 700; }
-.price-buy { color: #4ade80; font-weight: 700; }
-.order-card {
-    background: rgba(0,0,0,0.4);
-    border-radius: 20px;
-    padding: 12px;
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.price-sell {
+    color: #fbbf24;
+    font-weight: 700;
 }
-.order-info {
+.price-buy {
+    color: #4ade80;
+    font-weight: 700;
+}
+
+/* ===== Списки ордеров ===== */
+.orders-container {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 10px;
 }
-.order-price {
-    font-weight: 700;
-    color: #fbbf24;
-}
-.buy-from-order-btn, .cancel-sell-btn, .cancel-buy-btn {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    border: none;
-    padding: 6px 14px;
-    border-radius: 40px;
-    font-size: 13px;
-    cursor: pointer;
-}
-.my-order-card {
-    background: rgba(0,0,0,0.3);
+.order-item, .my-order-item {
+    background: rgba(0,0,0,0.35);
     border-radius: 20px;
-    padding: 12px;
-    margin-bottom: 8px;
+    padding: 12px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    transition: 0.1s;
 }
-.market-fixed-buttons {
+.order-item:hover, .my-order-item:hover {
+    background: rgba(43,110,158,0.15);
+}
+.order-seller {
+    font-size: 11px;
+    color: #9ca3af;
+}
+.buy-order-btn, .cancel-order-btn {
+    background: var(--stocks-accent-grad);
+    border: none;
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.buy-order-btn:active, .cancel-order-btn:active {
+    transform: scale(0.96);
+}
+.empty-placeholder {
+    text-align: center;
+    padding: 30px 20px;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* ===== Фиксированные рыночные кнопки ===== */
+.market-buttons {
     position: fixed;
     bottom: 70px;
     left: 0;
@@ -120,36 +282,93 @@
     padding: 12px 16px;
     background: rgba(10,14,26,0.96);
     backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(56,189,248,0.25);
+    border-top: 1px solid var(--stocks-border);
     z-index: 99;
 }
-.market-buy, .market-sell {
+.market-btn {
     flex: 1;
     padding: 14px;
     font-size: 15px;
     font-weight: 700;
     border-radius: 48px;
     border: none;
+    cursor: pointer;
+    transition: transform 0.1s;
 }
-.market-buy {
+.market-btn:active {
+    transform: scale(0.97);
+}
+.market-btn.buy {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     color: #1e1e2f;
 }
-.market-sell {
+.market-btn.sell {
     background: linear-gradient(135deg, #f97316, #ea580c);
     color: white;
 }
-.empty-msg {
-    text-align: center;
-    padding: 20px;
-    color: #9ca3af;
-    font-style: italic;
-}
+
+/* ===== Адаптация под мобильные ===== */
 @media (max-width: 560px) {
-    .stats-row { gap: 6px; }
-    .stat-card { padding: 8px; }
-    .stat-number { font-size: 14px; }
-    .orderbook-grid { flex-direction: column; }
-    .market-fixed-buttons { bottom: 65px; padding: 10px 12px; }
-    .market-buy, .market-sell { padding: 12px; font-size: 14px; }
+    .stocks-container {
+        padding: 0 12px 70px 12px;
+    }
+    .balance-row {
+        gap: 8px;
+    }
+    .balance-card {
+        padding: 10px 4px;
+    }
+    .bal-value {
+        font-size: 20px;
+    }
+    .stat-item {
+        font-size: 10px;
+        padding: 6px 10px;
+    }
+    .stat-item strong {
+        font-size: 12px;
+    }
+    .tab-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    .order-form-panel {
+        padding: 12px;
+    }
+    .orderbook-split {
+        flex-direction: column;
+        gap: 16px;
+    }
+    .order-item, .my-order-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .buy-order-btn, .cancel-order-btn {
+        width: 100%;
+        text-align: center;
+    }
+    .market-buttons {
+        bottom: 65px;
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    .market-btn {
+        padding: 12px;
+        font-size: 14px;
+    }
+}
+
+/* Для очень маленьких экранов (до 380px) */
+@media (max-width: 380px) {
+    .stats-row {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .tabs-row {
+        gap: 4px;
+    }
+    .tab-btn {
+        padding: 5px 8px;
+        font-size: 11px;
+    }
 }
