@@ -1,10 +1,5 @@
-/* stocks.css – полностью переработанный для аккуратного вида */
-/* Общие сбросы для вкладки (не влияют на глобальные) */
-.stocks-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 12px;
-}
+/* stocks.css – полностью переработанный для аккуратного вида (без глобальных конфликтов) */
+/* Все классы имеют префикс stocks- */
 
 /* ===== Блок баланса – три карточки в ряд ===== */
 .stocks-balance-row {
@@ -44,7 +39,7 @@
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
 
-/* ===== Информационная панель (капитализация, всего акций, средняя цена) ===== */
+/* ===== Информационная панель ===== */
 .stocks-info-panel {
     display: flex;
     gap: 12px;
@@ -126,16 +121,16 @@
     margin: 16px 0;
     font-size: 12px;
 }
-.ticker-content {
+.stocks-ticker-content {
     display: inline-block;
-    animation: scrollTicker 20s linear infinite;
+    animation: stocksScroll 20s linear infinite;
 }
-@keyframes scrollTicker {
+@keyframes stocksScroll {
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
 }
 
-/* ===== Стакан заявок (две колонки) ===== */
+/* ===== Стакан заявок ===== */
 .stocks-orderbook {
     display: flex;
     gap: 16px;
@@ -213,7 +208,7 @@ input[type="range"]::-webkit-slider-thumb {
     width: auto;
 }
 
-/* ===== Мои ордера (секции с заголовками) ===== */
+/* ===== Мои ордера ===== */
 .stocks-section-header {
     display: flex;
     justify-content: space-between;
@@ -250,17 +245,17 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* ===== Таблица истории ордеров ===== */
-.history-table {
+.stocks-history-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
 }
-.history-table th, .history-table td {
+.stocks-history-table th, .stocks-history-table td {
     padding: 10px 6px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
     text-align: left;
 }
-.history-table th {
+.stocks-history-table th {
     color: #a5b4fc;
 }
 .status-completed { color: #4ade80; }
@@ -312,7 +307,8 @@ input[type="range"]::-webkit-slider-thumb {
     .stocks-orderbook {
         flex-direction: column;
     }
-    .history-table th:nth-child(4), .history-table td:nth-child(4) {
+    .stocks-history-table th:nth-child(4), 
+    .stocks-history-table td:nth-child(4) {
         display: none;
     }
     .market-buttons-fixed {
