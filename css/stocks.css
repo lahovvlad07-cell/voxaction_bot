@@ -1,34 +1,29 @@
-/* stocks.css – полностью переработанный, чистый, адаптивный */
+/* stocks.css – компактный главный экран, все детали в модалках */
 /* Все классы имеют префикс stocks- */
 
-/* ===== БЛОК БАЛАНСА (4 карточки в ряд на ПК, скролл на телефонах) ===== */
-.stocks-balance-grid {
+/* ===== КОМПАКТНЫЙ БЛОК БАЛАНСА (три карточки в ряд) ===== */
+.stocks-balance {
     display: flex;
     gap: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
 }
 .stocks-balance-card {
     flex: 1;
     background: rgba(18, 24, 38, 0.8);
     backdrop-filter: blur(8px);
-    border-radius: 24px;
-    padding: 16px 12px;
+    border-radius: 20px;
+    padding: 12px 8px;
     text-align: center;
     border: 1px solid rgba(56, 189, 248, 0.2);
-    transition: all 0.2s;
-}
-.stocks-balance-card:hover {
-    transform: translateY(-2px);
-    border-color: #2b6e9e;
 }
 .stocks-balance-label {
-    font-size: 13px;
+    font-size: 12px;
     color: #9ca3af;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 .stocks-balance-value {
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 800;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
@@ -39,233 +34,63 @@
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
 
-/* ===== ИНФОРМАЦИОННАЯ ПАНЕЛЬ (3 карточки) ===== */
-.stocks-info-grid {
+/* ===== ИНФОПАНЕЛЬ (три показателя компактно) ===== */
+.stocks-info {
     display: flex;
     gap: 12px;
-    margin: 20px 0;
+    margin: 16px 0;
 }
-.stocks-info-card {
+.stocks-info-item {
     flex: 1;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(4px);
-    border-radius: 20px;
-    padding: 12px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 16px;
+    padding: 8px;
     text-align: center;
 }
-.stocks-info-card .small-text {
-    font-size: 11px;
+.stocks-info-item .small-text {
+    font-size: 10px;
     color: #9ca3af;
 }
-.stocks-info-card .price {
-    font-size: 20px;
+.stocks-info-item .value {
+    font-size: 16px;
     font-weight: 700;
-    margin-top: 6px;
-    color: #eef2ff;
+    margin-top: 4px;
 }
 
-/* ===== КНОПКИ ТАЙМФРЕЙМОВ ===== */
-.stocks-timeframe {
-    display: flex;
-    gap: 10px;
-    margin: 20px 0;
-}
-.stocks-timeframe-btn {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    padding: 8px 0;
-    border-radius: 40px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.stocks-timeframe-btn.active {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    color: white;
-    border-color: transparent;
-}
-.stocks-refresh-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    padding: 8px 16px;
-    border-radius: 40px;
-    cursor: pointer;
-    width: auto;
-}
-
-/* ===== ГРАФИК И ТИКЕР ===== */
+/* ===== ГРАФИК ===== */
 .stocks-chart {
     background: #0f1320;
-    border-radius: 24px;
-    padding: 12px;
+    border-radius: 20px;
+    padding: 8px;
     margin: 16px 0;
-    height: 220px;
+    height: 160px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #9ca3af;
+    font-size: 12px;
 }
-.stocks-ticker {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 60px;
-    padding: 8px 16px;
-    overflow: hidden;
-    white-space: nowrap;
+
+/* ===== КНОПКИ БЫСТРОГО ДОСТУПА (сетка) ===== */
+.stocks-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
     margin: 16px 0;
-    font-size: 12px;
 }
-.stocks-ticker-content {
-    display: inline-block;
-    animation: stocksScroll 20s linear infinite;
-}
-@keyframes stocksScroll {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-}
-
-/* ===== СТАКАН ЗАЯВОК (2 колонки) ===== */
-.stocks-orderbook {
-    display: flex;
-    gap: 16px;
-    margin: 24px 0;
-}
-.stocks-orderbook-col {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 20px;
-    padding: 12px;
-}
-.stocks-orderbook-col h4 {
-    text-align: center;
-    margin-bottom: 12px;
-    font-size: 16px;
-}
-.orderbook-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.price-sell { color: #fbbf24; }
-.price-buy { color: #4ade80; }
-
-/* ===== ФОРМЫ ПРОДАЖИ/ПОКУПКИ ===== */
-.stocks-form {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 24px;
-    padding: 16px;
-    margin: 24px 0;
-}
-.form-group {
-    margin-bottom: 16px;
-}
-.form-group label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    margin-bottom: 6px;
-}
-input[type="range"] {
-    width: 100%;
-    height: 4px;
-    -webkit-appearance: none;
-    background: rgba(255,255,255,0.2);
-    border-radius: 10px;
-}
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #2b6e9e;
-    border: 2px solid #60a5fa;
-    cursor: pointer;
-}
-.stocks-input {
-    width: 100%;
-    padding: 10px 14px;
-    background: #111827;
+.stocks-action-btn {
+    background: rgba(255,255,255,0.05);
     border: 1px solid rgba(56,189,248,0.3);
-    border-radius: 44px;
-    color: white;
-}
-.stocks-toggle-mode {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    padding: 6px 12px;
-    border-radius: 30px;
-    font-size: 12px;
-    cursor: pointer;
-    margin-top: 12px;
-    width: auto;
-}
-.stocks-btn {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    border: none;
-    padding: 12px;
-    border-radius: 44px;
-    font-weight: 600;
-    color: white;
-    width: 100%;
+    padding: 10px;
+    border-radius: 40px;
+    font-size: 14px;
     cursor: pointer;
     transition: 0.2s;
+    text-align: center;
 }
-.stocks-btn:active { transform: scale(0.98); }
-
-/* ===== МОИ ОРДЕРА ===== */
-.stocks-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin: 24px 0 12px;
+.stocks-action-btn:active {
+    transform: scale(0.96);
 }
-.stocks-section-header h3 {
-    margin: 0;
-    font-size: 18px;
-}
-.cancel-all-btn {
-    background: rgba(220,38,38,0.2);
-    border: 1px solid #f87171;
-    padding: 4px 12px;
-    border-radius: 30px;
-    font-size: 12px;
-    cursor: pointer;
-}
-.order-card {
-    background: rgba(0,0,0,0.3);
-    border-radius: 16px;
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.cancel-btn-small, .cancel-buy-btn {
-    background: none;
-    border: none;
-    color: #f87171;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-/* ===== ТАБЛИЦА ИСТОРИИ ===== */
-.stocks-history-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-.stocks-history-table th, .stocks-history-table td {
-    padding: 10px 6px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    text-align: left;
-}
-.stocks-history-table th {
-    color: #a5b4fc;
-}
-.status-completed { color: #4ade80; }
-.status-cancelled { color: #f87171; }
 
 /* ===== ФИКСИРОВАННЫЕ КНОПКИ РЫНОЧНЫХ ОПЕРАЦИЙ ===== */
 .stocks-market-fixed {
@@ -296,26 +121,105 @@ input[type="range"]::-webkit-slider-thumb {
     background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
+/* ===== МОДАЛЬНЫЕ ОКНА (общие стили) ===== */
+.stocks-modal .modal-content {
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.stocks-modal h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #9ca3af;
+}
+.stocks-modal .form-group {
+    margin-bottom: 16px;
+}
+.stocks-modal .form-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+.stocks-modal input[type="range"] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+}
+.stocks-modal input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #2b6e9e;
+    border: 2px solid #60a5fa;
+    cursor: pointer;
+}
+.stocks-modal .stocks-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: #111827;
+    border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 44px;
+    color: white;
+}
+.stocks-modal .stocks-btn {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border: none;
+    padding: 12px;
+    border-radius: 44px;
+    font-weight: 600;
+    color: white;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 8px;
+}
+.stocks-modal .order-card {
+    background: rgba(0,0,0,0.3);
+    border-radius: 16px;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.stocks-modal .cancel-btn-small {
+    background: none;
+    border: none;
+    color: #f87171;
+    cursor: pointer;
+}
+.stocks-modal .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.stocks-modal .history-table th,
+.stocks-modal .history-table td {
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    text-align: left;
+}
+.stocks-modal .history-table th {
+    color: #a5b4fc;
+}
+.status-cancelled { color: #f87171; }
+
+/* Мобильная адаптация модалок */
 @media (max-width: 560px) {
-    .stocks-balance-grid {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 8px;
-    }
-    .stocks-balance-card {
-        flex: 0 0 110px;
-    }
-    .stocks-info-grid {
-        flex-direction: column;
-        gap: 8px;
-    }
-    .stocks-orderbook {
-        flex-direction: column;
-    }
-    .stocks-history-table th:nth-child(4),
-    .stocks-history-table td:nth-child(4) {
-        display: none;
+    .stocks-modal .modal-content {
+        width: 95%;
+        max-height: 85vh;
     }
     .stocks-market-fixed {
         bottom: 65px;
