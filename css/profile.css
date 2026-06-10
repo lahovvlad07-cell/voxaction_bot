@@ -1,4 +1,4 @@
-/* profile.css – финальная версия (большие эмодзи, красивая модалка справочника) */
+/* profile.css – финальная версия с табовым справочником и улучшенным дизайном */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -143,7 +143,7 @@
     text-shadow: 0 0 2px black;
 }
 
-/* Иконки достижений (3 слота) */
+/* Иконки достижений */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -179,7 +179,7 @@
     .achievement-icons { gap: 16px; }
 }
 
-/* Модалка выбора достижения (слоты) */
+/* Модалка выбора достижений */
 .modal-content {
     max-width: 450px;
     width: 90%;
@@ -214,7 +214,7 @@
 .achievement-name { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
 .achievement-desc, .achievement-condition, .achievement-date { font-size: 12px; color: #cbd5e1; margin-top: 4px; }
 
-/* Блок статистики */
+/* Статистика */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -255,7 +255,7 @@
     margin-top: 12px;
 }
 
-/* Ближайшие достижения – увеличенные эмодзи */
+/* Ближайшие достижения */
 .next-achievements {
     margin-top: 12px;
     background: rgba(0, 0, 0, 0.2);
@@ -322,17 +322,51 @@
     box-shadow: 0 0 8px #0ff;
 }
 
-/* Новая модалка справочника достижений (карточки, компактно) */
+/* ========== НОВЫЙ ТАБОВЫЙ СПРАВОЧНИК ========== */
 .guide-modal-content {
-    max-width: 550px;
+    max-width: 650px;
     width: 90%;
 }
-.guide-list {
-    max-height: 65vh;
+.guide-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+    padding-bottom: 8px;
+}
+.guide-tab {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ccd6f0;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.guide-tab:hover {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: #0ff;
+}
+.guide-tab.active {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border-color: #0ff;
+    color: white;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+}
+.guide-panel {
+    display: none;
+    max-height: 55vh;
     overflow-y: auto;
     padding: 4px;
 }
-.guide-item {
+.guide-panel.active {
+    display: block;
+    animation: fadeSlide 0.2s ease;
+}
+.guide-card {
     display: flex;
     align-items: center;
     gap: 16px;
@@ -343,38 +377,45 @@
     border: 1px solid rgba(0, 255, 255, 0.2);
     transition: 0.2s;
 }
-.guide-item:hover {
+.guide-card:hover {
     background: rgba(43, 110, 158, 0.2);
     border-color: #0ff;
+    transform: translateX(4px);
 }
-.guide-icon {
+.guide-card-icon {
     font-size: 44px;
     width: 60px;
     text-align: center;
     flex-shrink: 0;
 }
-.guide-content {
+.guide-card-content {
     flex: 1;
 }
-.guide-title {
+.guide-card-title {
     font-weight: 700;
     font-size: 16px;
     margin-bottom: 4px;
 }
-.guide-condition {
+.guide-card-condition {
     font-size: 12px;
     color: #0ff;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
-.guide-progress {
-    margin-top: 4px;
+.guide-card-badge {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.15);
+    padding: 2px 10px;
+    border-radius: 30px;
+    display: inline-block;
 }
 .guide-progress-bar {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     height: 6px;
     overflow: hidden;
-    margin-bottom: 4px;
+    margin: 6px 0 4px;
 }
 .guide-progress-fill {
     background: linear-gradient(90deg, #2b6e9e, #60a5fa);
@@ -386,19 +427,16 @@
     font-size: 11px;
     color: #a5b4fc;
 }
-.guide-badge {
-    font-size: 12px;
-    font-weight: 600;
-    color: #4ade80;
-    background: rgba(74, 222, 128, 0.15);
-    padding: 2px 8px;
-    border-radius: 30px;
-    display: inline-block;
+.empty-placeholder {
+    text-align: center;
+    padding: 30px;
+    color: #6c7a89;
+    font-style: italic;
 }
-.guide-badge.completed {
-    background: rgba(74, 222, 128, 0.2);
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
