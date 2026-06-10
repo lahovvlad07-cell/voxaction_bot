@@ -1,0 +1,58 @@
+/* Стили для вкладки Кошелёк */
+.wallet-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 16px 80px 16px;
+}
+.wallet-actions {
+    display: flex;
+    gap: 14px;
+    margin: 24px 0 16px;
+    flex-wrap: wrap;
+}
+.wallet-btn {
+    flex: 1;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 48px;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.wallet-btn.primary {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.wallet-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(43,110,158,0.4);
+}
+.wallet-btn.secondary {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(0,255,255,0.3);
+    color: #0ff;
+}
+.wallet-btn.secondary:hover {
+    background: rgba(0,255,255,0.15);
+    border-color: #0ff;
+    box-shadow: 0 0 8px rgba(0,255,255,0.3);
+}
+.wallet-note {
+    text-align: center;
+    font-size: 11px;
+    color: #7e8c8f;
+    background: rgba(0,0,0,0.2);
+    border-radius: 20px;
+    padding: 8px 12px;
+}
+@media (max-width: 560px) {
+    .wallet-container {
+        padding: 0 12px 70px 12px;
+    }
+    .wallet-btn {
+        padding: 12px;
+        font-size: 14px;
+    }
+}
