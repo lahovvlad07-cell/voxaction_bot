@@ -1,11 +1,13 @@
-/* stocks.css – с улучшенным отображением на ПК и мобильных */
+/* stocks.css – финальный стиль для вкладки "Акции" */
 :root {
     --neon-blue: #0ff;
     --card-bg: rgba(12, 15, 25, 0.75);
     --border-glow: 0 0 5px rgba(0, 255, 255, 0.3);
 }
 
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 .stocks-container {
     max-width: 600px;
@@ -188,7 +190,7 @@
     box-shadow: 0 0 8px #0ff;
 }
 
-/* Переключатель режима – компактный, под кнопками */
+/* Переключатель режима – компактный, по центру */
 .input-mode-switch {
     display: flex;
     align-items: center;
@@ -414,7 +416,7 @@
     border: 1px solid rgba(0,255,255,0.3);
 }
 
-/* Адаптив для ПК (увеличенные отступы) */
+/* Адаптив для ПК */
 @media (min-width: 768px) {
     .stocks-container {
         max-width: 800px;
