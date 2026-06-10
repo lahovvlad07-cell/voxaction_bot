@@ -1,4 +1,5 @@
-/* profile.css – полная версия для вкладки Профиль */
+/* profile.css – полная версия для вкладки Профиль (финальная) */
+
 /* Аватар */
 #avatarClickWrapper {
     display: flex;
@@ -236,7 +237,7 @@
     margin-top: 4px;
 }
 
-/* Блок статистики (Stars, сделки, объём, акции) */
+/* Блок статистики */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -281,7 +282,7 @@
     margin-top: 12px;
 }
 
-/* Ближайшие достижения (прогресс-бары) */
+/* Ближайшие достижения (прогресс-бары) – улучшенная вёрстка */
 .next-achievements {
     margin-top: 12px;
     background: rgba(0, 0, 0, 0.2);
@@ -291,16 +292,38 @@
 .next-achievement-item {
     margin-bottom: 16px;
 }
-.next-achievement-item .small-text {
-    font-size: 12px;
-    color: #9ca3af;
+.next-achievement-item > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.next-achievement-icon {
+    font-size: 28px;
+    width: 36px;
+    text-align: center;
+}
+.next-achievement-text {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #eef2ff;
+}
+.next-achievement-count {
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 2px 8px;
+    border-radius: 20px;
+    color: #a5b4fc;
 }
 .next-achievement-item .progress-bar {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     height: 6px;
     overflow: hidden;
-    margin: 6px 0 4px;
+    margin-top: 6px;
 }
 .next-achievement-item .progress-fill {
     background: linear-gradient(90deg, #2b6e9e, #60a5fa);
@@ -333,12 +356,17 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 12px 0;
 }
+.guide-achievement-icon {
+    font-size: 32px;
+    width: 48px;
+    text-align: center;
+}
 .achievement-guide-item .progress-bar {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     height: 6px;
     overflow: hidden;
-    margin: 6px 0 4px;
+    margin-top: 6px;
 }
 .achievement-guide-item .progress-fill {
     background: linear-gradient(90deg, #2b6e9e, #60a5fa);
