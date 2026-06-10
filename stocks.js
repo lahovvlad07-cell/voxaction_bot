@@ -1,13 +1,12 @@
-// stocks.js – финальная версия со всеми исправлениями
+// stocks.js – полная рабочая версия
 window.renderStocksTab = async function(currentUser) {
-    // ---- Режим ввода (поля / слайдеры) ----
+    // ---- Режим ввода ----
     function getInputMode() {
         return localStorage.getItem('stock_input_mode') === 'slider' ? 'slider' : 'field';
     }
     function setInputMode(mode) {
         localStorage.setItem('stock_input_mode', mode);
     }
-
     function renderInputControls(amountContainer, priceContainer, mode, curAmount = 1, curPrice = 1) {
         if (mode === 'slider') {
             amountContainer.innerHTML = `
@@ -66,7 +65,7 @@ window.renderStocksTab = async function(currentUser) {
         };
     }
 
-    // ---- Получение заявок на покупку (если ещё нет) ----
+    // ---- Получение заявок на покупку ----
     if (!window.getActiveBuyOrders) {
         window.getActiveBuyOrders = async function() {
             const { data, error } = await window.supabase
@@ -79,7 +78,7 @@ window.renderStocksTab = async function(currentUser) {
         };
     }
 
-    // ---- Основной рендер ----
+    // ---- Загрузка данных ----
     const userShares = window.fromCents(currentUser.shares);
     const userStars = window.fromCents(currentUser.stars_balance);
     
@@ -219,7 +218,6 @@ window.renderStocksTab = async function(currentUser) {
         const h = 160;
         canvas.width = w;
         canvas.height = h;
-
         if (!priceHistory.length) {
             ctx.fillStyle = '#0f1320';
             ctx.fillRect(0, 0, w, h);
@@ -228,12 +226,10 @@ window.renderStocksTab = async function(currentUser) {
             ctx.fillText('Нет данных для графика', w/2 - 60, h/2);
             return;
         }
-
         const prices = priceHistory.map(p => p.price);
         const maxP = Math.max(...prices, 0.01);
         const minP = Math.min(...prices, 0);
         const range = maxP - minP || 1;
-
         ctx.clearRect(0, 0, w, h);
         ctx.beginPath();
         ctx.strokeStyle = '#0ff';
@@ -254,7 +250,7 @@ window.renderStocksTab = async function(currentUser) {
     setTimeout(drawMainChart, 50);
     window.addEventListener('resize', () => setTimeout(drawMainChart, 50));
 
-    // ---- СТАКАН (ТОП-5) ----
+    // ---- СТАКАН ----
     function renderOrderBook() {
         const sellMap = new Map();
         activeSellOrders.forEach(o => {
@@ -278,22 +274,22 @@ window.renderStocksTab = async function(currentUser) {
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
-        const foreignOrders = activeSellOrders.filter(o => o.seller_id !== window.userId);
-        if (!foreignOrders.length) { container.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>'; return; }
-        container.innerHTML = foreignOrders.map(order => {
+        const foreign = activeSellOrders.filter(o => o.seller_id !== window.userId);
+        if (!foreign.length) { container.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>'; return; }
+        container.innerHTML = foreign.map(order => {
             const price = order.price_per_share / 100;
             const amount = order.amount / 100;
             return `<div class="order-item" data-id="${order.id}"><div class="order-info"><span>📦 ${amount.toFixed(2)} шт.</span><span>⭐ ${price.toFixed(2)}</span><span class="order-seller">👤 продавец: ${order.seller_id}</span></div><button class="buy-order-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}">Купить</button></div>`;
         }).join('');
         document.querySelectorAll('.buy-order-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const orderId = parseInt(btn.dataset.id);
-                const maxAmount = parseFloat(btn.dataset.amount);
+                const id = parseInt(btn.dataset.id);
+                const maxAm = parseFloat(btn.dataset.amount);
                 const price = parseFloat(btn.dataset.price);
-                const amount = parseFloat(prompt(`Введите количество (макс. ${maxAmount.toFixed(2)} шт.)`, "1"));
-                if (isNaN(amount) || amount <= 0 || amount > maxAmount) { window.showCustomModal('Ошибка', 'Некорректное количество'); return; }
+                const amount = parseFloat(prompt(`Введите количество (макс. ${maxAm.toFixed(2)} шт.)`, "1"));
+                if (isNaN(amount) || amount <= 0 || amount > maxAm) { window.showCustomModal('Ошибка', 'Некорректное количество'); return; }
                 try {
-                    await window.executePartialTrade(orderId, window.toCents(amount));
+                    await window.executePartialTrade(id, window.toCents(amount));
                     window.showToast(`✅ Куплено ${amount.toFixed(2)} шт. по ${price.toFixed(2)} ⭐`, 2000);
                     window.refreshActiveTab();
                 } catch(e) { window.showCustomModal('Ошибка', e.message); }
@@ -303,15 +299,15 @@ window.renderStocksTab = async function(currentUser) {
 
     // ---- МОИ ОРДЕРА ----
     function renderMyOrders() {
-        const sellContainer = document.getElementById('mySellOrdersList');
-        if (sellContainer) {
-            if (!mySellOrders.length) sellContainer.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>';
-            else sellContainer.innerHTML = mySellOrders.map(order => `<div class="my-order-item"><span>📦 ${(order.amount/100).toFixed(2)} шт. по ${(order.price_per_share/100).toFixed(2)} ⭐</span><button class="cancel-order-btn" data-id="${order.id}" data-type="sell">Отменить</button></div>`).join('');
+        const sellC = document.getElementById('mySellOrdersList');
+        if (sellC) {
+            if (!mySellOrders.length) sellC.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>';
+            else sellC.innerHTML = mySellOrders.map(o => `<div class="my-order-item"><span>📦 ${(o.amount/100).toFixed(2)} шт. по ${(o.price_per_share/100).toFixed(2)} ⭐</span><button class="cancel-order-btn" data-id="${o.id}" data-type="sell">Отменить</button></div>`).join('');
         }
-        const buyContainer = document.getElementById('myBuyOrdersList');
-        if (buyContainer) {
-            if (!myBuyOrders.length) buyContainer.innerHTML = '<div class="empty-placeholder">Нет активных заявок</div>';
-            else buyContainer.innerHTML = myBuyOrders.map(order => `<div class="my-order-item"><span>🛒 Купить ${(order.amount/100).toFixed(2)} шт. по ${(order.price_per_share/100).toFixed(2)} ⭐</span><button class="cancel-order-btn" data-id="${order.id}" data-type="buy">Отменить</button></div>`).join('');
+        const buyC = document.getElementById('myBuyOrdersList');
+        if (buyC) {
+            if (!myBuyOrders.length) buyC.innerHTML = '<div class="empty-placeholder">Нет активных заявок</div>';
+            else buyC.innerHTML = myBuyOrders.map(o => `<div class="my-order-item"><span>🛒 Купить ${(o.amount/100).toFixed(2)} шт. по ${(o.price_per_share/100).toFixed(2)} ⭐</span><button class="cancel-order-btn" data-id="${o.id}" data-type="buy">Отменить</button></div>`).join('');
         }
         document.querySelectorAll('.cancel-order-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -327,7 +323,7 @@ window.renderStocksTab = async function(currentUser) {
         });
     }
 
-    // ---- ПЕРЕКЛЮЧЕНИЕ ТАБОВ ----
+    // ---- ТАБЫ ----
     const tabs = document.querySelectorAll('.tab-btn');
     const panes = {
         orderform: document.getElementById('tab-orderform'),
@@ -349,51 +345,57 @@ window.renderStocksTab = async function(currentUser) {
         });
     });
 
-    // ---- ЛИМИТНЫЙ ОРДЕР С ПЕРЕКЛЮЧЕНИЕМ РЕЖИМОВ ----
+    // ---- ЛИМИТНЫЙ ОРДЕР ----
     let currentOrderType = 'sell';
     document.getElementById('orderTypeSell').onclick = () => { currentOrderType = 'sell'; document.getElementById('orderTypeSell').classList.add('active'); document.getElementById('orderTypeBuy').classList.remove('active'); };
     document.getElementById('orderTypeBuy').onclick = () => { currentOrderType = 'buy'; document.getElementById('orderTypeBuy').classList.add('active'); document.getElementById('orderTypeSell').classList.remove('active'); };
 
-    const amountContainer = document.getElementById('amountControl');
-    const priceContainer = document.getElementById('priceControl');
-    const modeField = document.getElementById('modeFieldBtn');
-    const modeSlider = document.getElementById('modeSliderBtn');
+    const amountDiv = document.getElementById('amountControl');
+    const priceDiv = document.getElementById('priceControl');
+    const fieldBtn = document.getElementById('modeFieldBtn');
+    const sliderBtn = document.getElementById('modeSliderBtn');
 
-    function refreshInputMode(mode) {
+    function refreshMode(mode) {
         setInputMode(mode);
-        if (mode === 'field') { modeField.classList.add('active'); modeSlider.classList.remove('active'); }
-        else { modeSlider.classList.add('active'); modeField.classList.remove('active'); }
-        let curAmount = 1, curPriceVal = 1;
+        if (mode === 'field') { fieldBtn.classList.add('active'); sliderBtn.classList.remove('active'); }
+        else { sliderBtn.classList.add('active'); fieldBtn.classList.remove('active'); }
+        let curA = 1, curP = 1;
         if (getInputMode() === 'slider') {
-            const aS = document.getElementById('orderAmountSlider'); if (aS) curAmount = parseFloat(aS.value);
-            const pS = document.getElementById('orderPriceSlider'); if (pS) curPriceVal = parseFloat(pS.value);
+            const aS = document.getElementById('orderAmountSlider'); if (aS) curA = parseFloat(aS.value);
+            const pS = document.getElementById('orderPriceSlider'); if (pS) curP = parseFloat(pS.value);
         } else {
-            const aN = document.getElementById('orderAmount'); if (aN) curAmount = parseFloat(aN.value) || 1;
-            const pN = document.getElementById('orderPrice'); if (pN) curPriceVal = parseFloat(pN.value) || 1;
+            const aN = document.getElementById('orderAmount'); if (aN) curA = parseFloat(aN.value) || 1;
+            const pN = document.getElementById('orderPrice'); if (pN) curP = parseFloat(pN.value) || 1;
         }
-        renderInputControls(amountContainer, priceContainer, mode, curAmount, curPriceVal);
+        renderInputControls(amountDiv, priceDiv, mode, curA, curP);
     }
-    modeField.onclick = () => refreshInputMode('field');
-    modeSlider.onclick = () => refreshInputMode('slider');
-    refreshInputMode(getInputMode());
+    fieldBtn.onclick = () => refreshMode('field');
+    sliderBtn.onclick = () => refreshMode('slider');
+    refreshMode(getInputMode());
 
     document.getElementById('createOrderBtn').onclick = async () => {
         let amount, price;
-        if (getInputMode() === 'slider') { amount = parseFloat(document.getElementById('orderAmountSlider')?.value); price = parseFloat(document.getElementById('orderPriceSlider')?.value); }
-        else { amount = parseFloat(document.getElementById('orderAmount')?.value); price = parseFloat(document.getElementById('orderPrice')?.value); }
-        if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) { window.showCustomModal('Ошибка', 'Введите корректные количество и цену (минимум 1)'); return; }
-        
-        const freshUser = await window.getOrCreateUser();
-        const userSharesCents = freshUser.user.shares;
-        const userStarsCents = freshUser.user.stars_balance;
-        
-        if (currentOrderType === 'sell') {
-            const neededSharesCents = window.toCents(amount);
-            if (userSharesCents < neededSharesCents) { window.showCustomModal('Ошибка', `Недостаточно акций. Доступно: ${window.fromCents(userSharesCents)}`); return; }
+        if (getInputMode() === 'slider') {
+            amount = parseFloat(document.getElementById('orderAmountSlider')?.value);
+            price = parseFloat(document.getElementById('orderPriceSlider')?.value);
         } else {
-            const totalPriceStars = amount * price;
-            const neededStarsCents = window.toCents(totalPriceStars);
-            if (userStarsCents < neededStarsCents) { window.showCustomModal('Ошибка', `Недостаточно Stars. Доступно: ${window.fromCents(userStarsCents)} ⭐`); return; }
+            amount = parseFloat(document.getElementById('orderAmount')?.value);
+            price = parseFloat(document.getElementById('orderPrice')?.value);
+        }
+        if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
+            window.showCustomModal('Ошибка', 'Введите количество и цену (минимум 1)');
+            return;
+        }
+        const fresh = await window.getOrCreateUser();
+        const userSharesCents = fresh.user.shares;
+        const userStarsCents = fresh.user.stars_balance;
+        if (currentOrderType === 'sell') {
+            const need = window.toCents(amount);
+            if (userSharesCents < need) { window.showCustomModal('Ошибка', `Недостаточно акций. Доступно: ${window.fromCents(userSharesCents)}`); return; }
+        } else {
+            const needStars = amount * price;
+            const needCents = window.toCents(needStars);
+            if (userStarsCents < needCents) { window.showCustomModal('Ошибка', `Недостаточно Stars. Доступно: ${window.fromCents(userStarsCents)} ⭐`); return; }
         }
         try {
             if (currentOrderType === 'sell') await window.createOrder(amount, price);
@@ -422,14 +424,13 @@ window.renderStocksTab = async function(currentUser) {
         showMarketModal('sell', async (shares) => { try { await window.marketSell(shares); window.showToast(`Продано ${shares} акций по рыночной цене`, 2000); window.refreshActiveTab(); } catch(e) { window.showCustomModal('Ошибка', e.message); } });
     };
 
-    // ---- Первоначальная отрисовка ----
+    // ---- Инициализация ----
     drawMainChart();
     renderOrderBook();
     renderActiveSellOrders();
     renderMyOrders();
 };
 
-// Переопределяем window.showToast (короткое время)
 window.showToast = function(message, duration = 2000) {
     const toast = document.createElement('div');
     toast.className = 'toast';
