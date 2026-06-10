@@ -1,4 +1,4 @@
-/* profile.css – полная версия (аватар, слоты, статистика, прогресс-бары, справочник) */
+/* profile.css – финальная версия (аватар, слоты, статистика, прогресс-бары, справочник, улучшенные подсказки) */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -231,6 +231,10 @@
     border-radius: 20px;
     padding: 12px;
 }
+.next-achievements > .small-text:first-child {
+    margin-bottom: 12px;
+    display: inline-block;
+}
 .next-achievement-item {
     margin-bottom: 16px;
 }
@@ -379,18 +383,18 @@
     font-style: italic;
 }
 
-/* ========== НОВЫЕ ПРАВИЛА ДЛЯ ПОДСКАЗОК (МЕНЕЕ ЗАМЕТНЫЕ) ========== */
+/* ========== УЛУЧШЕННЫЕ ПОДСКАЗКИ (ВИДИМЫЕ, НО НЕ МЕШАЮТ) ========== */
 #avatarClickWrapper .small-text,
 .achievement-icons + .small-text {
-    font-size: 10px;
-    color: #6b7280;
-    opacity: 0.8;
+    font-size: 11px;
+    color: #8e9aaf;
+    opacity: 0.9;
 }
 @media (max-width: 560px) {
     #avatarClickWrapper .small-text,
     .achievement-icons + .small-text {
-        font-size: 8px;
-        color: #5a6570;
+        font-size: 10px;
+        color: #7a859a;
     }
 }
 
