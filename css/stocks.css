@@ -1,4 +1,4 @@
-/* stocks.css – неоновый стиль с графиком всегда вверху */
+/* stocks.css – финальная версия с улучшенным визуалом */
 :root {
     --neon-blue: #0ff;
     --neon-gold: #ffd700;
@@ -17,7 +17,7 @@
     padding: 0 16px 80px 16px;
 }
 
-/* Баланс карточки */
+/* Баланс */
 .balance-row {
     display: flex;
     gap: 12px;
@@ -28,7 +28,7 @@
     background: var(--card-bg);
     backdrop-filter: blur(12px);
     border-radius: 28px;
-    padding: 14px 8px;
+    padding: 12px 8px;
     text-align: center;
     border: 1px solid rgba(0, 255, 255, 0.2);
     box-shadow: var(--border-glow);
@@ -40,12 +40,12 @@
     transform: translateY(-3px);
 }
 .bal-label {
-    font-size: 13px;
+    font-size: 12px;
     color: #8e9aaf;
     letter-spacing: 1px;
 }
 .bal-value {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 800;
     background: linear-gradient(135deg, #fff, #a5f0ff);
     background-clip: text;
@@ -56,7 +56,22 @@
     background: linear-gradient(135deg, #ffd700, #ffb347);
 }
 
-/* Статистика – красивые карточки */
+/* График */
+.chart-container-main {
+    background: #05080f;
+    border-radius: 28px;
+    padding: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+}
+#mainPriceChart {
+    width: 100%;
+    height: 160px;
+    display: block;
+}
+
+/* Статистика под графиком */
 .stats-row {
     display: flex;
     gap: 12px;
@@ -94,26 +109,17 @@
     margin-top: 4px;
     color: #eef2ff;
 }
-
-/* Контейнер главного графика – всегда виден */
-.chart-container-main {
-    background: #05080f;
-    border-radius: 28px;
-    padding: 8px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(0, 255, 255, 0.4);
-    box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+.stat-value.positive {
+    color: #4ade80;
 }
-#mainPriceChart {
-    width: 100%;
-    height: 180px;
-    display: block;
+.stat-value.negative {
+    color: #f87171;
 }
 
 /* Табы */
 .tabs-row {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     margin: 16px 0 20px;
     overflow-x: auto;
     scrollbar-width: none;
@@ -141,7 +147,7 @@
     border-color: #0ff;
 }
 
-/* Панели табов */
+/* Панели */
 .tab-pane {
     display: none;
     animation: fadeSlide 0.25s ease;
@@ -163,19 +169,10 @@
     border: 1px solid rgba(0, 255, 255, 0.2);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
-.order-form-panel h4 {
-    text-align: center;
-    margin-bottom: 16px;
-    font-size: 18px;
-    background: linear-gradient(135deg, #fff, #0ff);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-}
 .type-switch {
     display: flex;
     gap: 12px;
-    margin: 16px 0;
+    margin-bottom: 20px;
 }
 .type-opt {
     flex: 1;
@@ -194,31 +191,41 @@
     box-shadow: 0 0 8px #0ff;
 }
 
-/* Переключатель режима ввода */
+/* Переключатель режима ввода – заметный */
 .input-mode-switch {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin: 16px 0 12px;
-    font-size: 13px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 6px 12px;
-    border-radius: 40px;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px 16px;
+    border-radius: 60px;
+    margin: 16px 0;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+}
+.mode-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0ff;
+}
+.mode-buttons {
+    display: flex;
+    gap: 10px;
 }
 .mode-btn {
-    background: none;
+    background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(0, 255, 255, 0.5);
-    padding: 4px 12px;
-    border-radius: 30px;
-    font-size: 12px;
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 13px;
     cursor: pointer;
+    transition: 0.2s;
 }
 .mode-btn.active {
     background: #0ff;
     color: #000;
     border-color: #0ff;
     font-weight: bold;
+    box-shadow: 0 0 8px #0ff;
 }
 
 .control-group {
@@ -240,9 +247,6 @@
     background: rgba(0, 255, 255, 0.2);
     border-radius: 10px;
     height: 6px;
-}
-.control-group input[type="range"]:focus {
-    outline: none;
 }
 .control-group input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -294,6 +298,7 @@
 .orderbook-col h4 {
     text-align: center;
     margin-bottom: 12px;
+    font-size: 15px;
     color: #0ff;
 }
 .orderbook-list {
@@ -311,7 +316,15 @@
 .price-sell { color: #ffaa44; font-weight: bold; }
 .price-buy { color: #44ffaa; font-weight: bold; }
 
-/* Ордера */
+/* Секции ордеров */
+.section-header {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 16px 0 12px;
+    padding-left: 8px;
+    border-left: 3px solid #0ff;
+    color: #eef2ff;
+}
 .orders-container {
     display: flex;
     flex-direction: column;
@@ -319,7 +332,7 @@
 }
 .order-item, .my-order-item {
     background: rgba(0, 0, 0, 0.5);
-    border-radius: 24px;
+    border-radius: 20px;
     padding: 12px;
     display: flex;
     justify-content: space-between;
@@ -327,6 +340,16 @@
     flex-wrap: wrap;
     gap: 8px;
     border: 1px solid rgba(0, 255, 255, 0.2);
+}
+.order-info {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+.order-seller {
+    font-size: 11px;
+    color: #8e9aaf;
 }
 .buy-order-btn, .cancel-order-btn {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
@@ -338,12 +361,15 @@
 }
 .empty-placeholder {
     text-align: center;
-    padding: 30px;
+    padding: 24px;
     color: #6c7a89;
     font-style: italic;
 }
+.empty-placeholder.centered {
+    text-align: center;
+}
 
-/* Рыночные кнопки снизу */
+/* Рыночные кнопки */
 .market-buttons {
     position: fixed;
     bottom: 70px;
@@ -379,14 +405,19 @@
 /* Адаптив */
 @media (max-width: 560px) {
     .stocks-container { padding: 0 12px 70px 12px; }
-    .balance-card { padding: 10px 4px; }
-    .bal-value { font-size: 20px; }
+    .balance-card { padding: 8px 4px; }
+    .bal-value { font-size: 18px; }
     .stat-card { padding: 6px 4px; }
     .stat-icon { font-size: 18px; }
-    .stat-value { font-size: 13px; }
+    .stat-value { font-size: 12px; }
     .tab-btn { padding: 6px 12px; font-size: 12px; }
     .order-form-panel { padding: 16px; }
+    .input-mode-switch { padding: 6px 12px; }
+    .mode-label { font-size: 12px; }
+    .mode-btn { padding: 4px 12px; font-size: 11px; }
     .market-buttons { bottom: 65px; padding: 8px 12px; }
     .market-btn { padding: 10px; font-size: 14px; }
-    .chart-container-main { margin-bottom: 16px; }
+    .order-info { gap: 6px; }
+    .order-item, .my-order-item { flex-direction: column; align-items: stretch; }
+    .buy-order-btn, .cancel-order-btn { width: 100%; text-align: center; }
 }
