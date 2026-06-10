@@ -1,7 +1,6 @@
-/* stocks.css – финальная версия */
+/* stocks.css – полный стиль для вкладки "Акции" */
 :root {
     --neon-blue: #0ff;
-    --neon-gold: #ffd700;
     --bg-dark: #0a0b10;
     --card-bg: rgba(12, 15, 25, 0.75);
     --border-glow: 0 0 5px rgba(0, 255, 255, 0.3);
@@ -44,7 +43,6 @@
     color: #8e9aaf;
     letter-spacing: 1px;
 }
-/* Стандартный градиент для акций и звёзд */
 .bal-value {
     font-size: 24px;
     font-weight: 800;
@@ -53,10 +51,9 @@
     -webkit-background-clip: text;
     color: transparent;
 }
-/* Цена: прочерк или число? */
 .bal-value.price-placeholder {
     background: none;
-    color: #eef2ff;  /* белый прочерк */
+    color: #eef2ff;
 }
 .bal-value.price-active {
     background: linear-gradient(135deg, #ffd700, #ffb347);
@@ -200,7 +197,7 @@
     box-shadow: 0 0 8px #0ff;
 }
 
-/* Переключатель режима ввода – компактно и красиво */
+/* Переключатель режима ввода – компактно */
 .input-mode-switch {
     display: flex;
     align-items: center;
@@ -328,7 +325,7 @@
 .price-sell { color: #ffaa44; font-weight: bold; }
 .price-buy { color: #44ffaa; font-weight: bold; }
 
-/* Секции ордеров */
+/* Ордера */
 .section-header {
     font-size: 16px;
     font-weight: 600;
@@ -416,7 +413,7 @@
     color: white;
 }
 
-/* Модальные окна (для рыночных сделок) */
+/* Модальные окна */
 .modal-buttons {
     display: flex;
     gap: 12px;
