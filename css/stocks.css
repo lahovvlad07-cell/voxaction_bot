@@ -1,4 +1,4 @@
-/* stocks.css – полный стиль для вкладки "Акции" */
+/* stocks.css – исправленная версия с улучшенным дизайном переключателя */
 :root {
     --neon-blue: #0ff;
     --bg-dark: #0a0b10;
@@ -197,34 +197,33 @@
     box-shadow: 0 0 8px #0ff;
 }
 
-/* Переключатель режима ввода – компактно */
+/* Переключатель режима – красивый и понятный */
 .input-mode-switch {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
+    gap: 12px;
     background: rgba(0, 0, 0, 0.3);
-    padding: 6px 12px;
-    border-radius: 40px;
+    padding: 8px 16px;
+    border-radius: 60px;
     margin: 16px 0;
     width: fit-content;
-    margin-left: auto;
 }
 .mode-label {
-    font-size: 12px;
-    font-weight: 500;
-    color: #8e9aaf;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0ff;
 }
 .mode-buttons {
     display: flex;
-    gap: 6px;
+    gap: 8px;
 }
 .mode-btn {
     background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(0, 255, 255, 0.4);
-    padding: 4px 12px;
-    border-radius: 30px;
-    font-size: 14px;
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     transition: 0.2s;
 }
@@ -232,7 +231,7 @@
     background: #0ff;
     color: #000;
     border-color: #0ff;
-    box-shadow: 0 0 6px #0ff;
+    box-shadow: 0 0 8px #0ff;
 }
 
 .control-group {
@@ -438,8 +437,8 @@
     .stat-value { font-size: 12px; }
     .tab-btn { padding: 6px 12px; font-size: 12px; }
     .order-form-panel { padding: 16px; }
-    .input-mode-switch { padding: 4px 10px; }
-    .mode-btn { padding: 3px 10px; font-size: 12px; }
+    .input-mode-switch { padding: 6px 12px; gap: 8px; }
+    .mode-btn { padding: 4px 12px; font-size: 12px; }
     .market-buttons { bottom: 65px; padding: 8px 12px; }
     .market-btn { padding: 10px; font-size: 14px; }
     .order-info { gap: 6px; }
