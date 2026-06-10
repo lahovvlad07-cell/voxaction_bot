@@ -1,4 +1,4 @@
-/* profile.css – финальная версия с компактной сеткой достижений */
+/* profile.css – исправленный (уменьшенные иконки в ближайших достижениях) */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -39,7 +39,6 @@
     .avatar-circle { width: 100px !important; height: 100px !important; }
     .avatar-circle .avatar-emoji { font-size: 60px !important; }
 }
-
 @media (min-width: 1024px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-3px) !important; }
     .avatar-emoji[style*="😀"] { transform: translateY(-2px) !important; }
@@ -66,10 +65,13 @@
     .avatar-emoji[style*="👑"] { transform: translateY(-1px) !important; }
     .avatar-emoji[style*="🎯"] { transform: translateY(-2px) !important; }
 }
-
-#stepModal .avatar-circle, #borderModal .avatar-circle { width: 80px !important; height: 80px !important; }
-#stepModal .avatar-circle .avatar-emoji, #borderModal .avatar-circle .avatar-emoji { font-size: 48px !important; }
-
+#stepModal .avatar-circle, #borderModal .avatar-circle {
+    width: 80px !important;
+    height: 80px !important;
+}
+#stepModal .avatar-circle .avatar-emoji, #borderModal .avatar-circle .avatar-emoji {
+    font-size: 48px !important;
+}
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(65px, 1fr));
@@ -104,7 +106,6 @@
     line-height: 1;
     transform: none !important;
 }
-
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -126,7 +127,6 @@
 .color-option:hover { transform: scale(1.05); }
 .color-option.selected { box-shadow: 0 0 0 3px #2b6e9e; }
 .color-check { color: white; font-size: 24px; text-shadow: 0 0 2px black; }
-
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -161,7 +161,6 @@
     .achi-icon { width: 60px !important; height: 60px !important; font-size: 34px !important; }
     .achievement-icons { gap: 16px; }
 }
-
 .modal-content { max-width: 450px; width: 90%; }
 .achievements-grid {
     display: grid;
@@ -188,7 +187,6 @@
 .achievement-card.disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.3); }
 .achievement-name { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
 .achievement-desc, .achievement-condition, .achievement-date { font-size: 12px; color: #cbd5e1; margin-top: 4px; }
-
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -218,7 +216,6 @@
     animation: gradientShift 3s ease infinite;
 }
 .stat-label { font-size: 12px; margin-top: 4px; }
-
 .rank-card {
     display: flex;
     align-items: center;
@@ -228,7 +225,6 @@
     padding: 12px;
     margin-top: 12px;
 }
-
 .next-achievements {
     margin-top: 12px;
     background: rgba(0, 0, 0, 0.2);
@@ -245,9 +241,10 @@
     gap: 8px;
     margin-bottom: 4px;
 }
+/* УМЕНЬШЕННЫЙ РАЗМЕР ЭМОДЗИ В БЛИЖАЙШИХ ДОСТИЖЕНИЯХ */
 .next-achievement-icon {
-    font-size: 32px;
-    width: 44px;
+    font-size: 24px;       /* было 32px */
+    width: 36px;           /* было 44px */
     text-align: center;
 }
 .next-achievement-text {
@@ -277,7 +274,6 @@
     width: 0%;
     border-radius: 10px;
 }
-
 .guide-button {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border: none;
@@ -294,8 +290,6 @@
     transform: scale(1.02);
     box-shadow: 0 0 12px #2b6e9e;
 }
-
-/* ========== СПРАВОЧНИК ДОСТИЖЕНИЙ – КОМПАКТНАЯ СЕТКА ========== */
 .guide-modal-content {
     max-width: 750px;
     width: 90%;
@@ -385,7 +379,6 @@
     color: #9ca3af;
     font-style: italic;
 }
-
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
