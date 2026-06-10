@@ -1,4 +1,4 @@
-// profile_v9.js – финальная версия с улучшенной модалкой и крупными иконками
+// profile_v10.js – новый профиль с табовым справочником достижений
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -71,9 +71,35 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
     return unique.slice(0, 3);
 }
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ИНСТРУКЦИИ ==========
+// ========== ПОЛУЧЕНИЕ ВСЕХ ДОСТИЖЕНИЙ С ГРУППИРОВКОЙ ==========
+async function getAllAchievementsGrouped() {
+    const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
+    if (!all) return [];
+    const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
+    const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
+    const achievements = all.map(ach => ({ ...ach, earned: earnedIds.has(ach.id) }));
+    
+    // Группировка по категориям
+    const categories = {
+        trades: { name: '📊 Сделки', icon: '📊', list: [] },
+        shares: { name: '📈 Акции', icon: '📈', list: [] },
+        referrals: { name: '👥 Рефералы', icon: '👥', list: [] },
+        finance: { name: '💰 Финансы', icon: '💰', list: [] },
+        games: { name: '🎮 Игры', icon: '🎮', list: [] }
+    };
+    
+    for (const ach of achievements) {
+        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист') continue;
+        if (ach.condition_type === 'trades_count') categories.trades.list.push(ach);
+        else if (ach.condition_type === 'shares_held') categories.shares.list.push(ach);
+        else if (ach.condition_type === 'referrals_count') categories.referrals.list.push(ach);
+        else if (['total_topup', 'total_spent', 'total_earned', 'total_volume', 'stars_held'].includes(ach.condition_type)) categories.finance.list.push(ach);
+        else if (ach.condition_type.startsWith('game_')) categories.games.list.push(ach);
+    }
+    return categories;
+}
+
 function getConditionText(ach) {
-    if (ach.condition_type === 'none') return '';
     let val = ach.condition_value;
     switch (ach.condition_type) {
         case 'trades_count': return `Совершить ${val} сделок`;
@@ -96,90 +122,71 @@ function getConditionText(ach) {
     }
 }
 
-async function getAllAchievementsList() {
-    const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
-    if (!all) return [];
-    const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
-    const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
-    return all.map(ach => ({ ...ach, earned: earnedIds.has(ach.id) }));
-}
-
-// Новая, красивая модалка справочника достижений
+// КРАСИВАЯ ТАБОВАЯ МОДАЛКА
 async function showAchievementsGuide(currentUser, getUserStats) {
-    const achievements = await getAllAchievementsList();
     const stats = await getUserStats();
     const user = currentUser;
+    const categories = await getAllAchievementsGrouped();
     
-    function getCurrentProgress(ach) {
-        if (ach.earned) return ach.condition_value;
-        if (ach.condition_type === 'none') return 1;
+    function getProgress(ach) {
+        if (ach.earned) return { percent: 100, display: '' };
+        let current = 0, needed = ach.condition_value;
         switch (ach.condition_type) {
-            case 'trades_count': return stats.totalTrades;
-            case 'shares_held': return user.shares;
-            case 'referrals_count': return user.referral_count || 0;
-            case 'total_topup': return user.total_topup || 0;
-            case 'total_spent': return user.total_spent || 0;
-            case 'total_earned': return user.total_earned || 0;
-            case 'total_volume': return user.total_volume || 0;
-            case 'stars_held': return user.stars_balance;
-            case 'days_active': return user.days_active || 0;
-            case 'game_reaction': return user.game_reaction_wins || 0;
-            case 'game_tower': return user.game_tower_wins || 0;
-            case 'game_closest': return user.game_closest_wins || 0;
-            case 'game_typerace': return user.game_typerace_wins || 0;
-            case 'game_maze': return user.game_maze_wins || 0;
-            case 'game_ttt': return user.game_ttt_wins || 0;
-            case 'games_total': return (user.game_reaction_wins||0)+(user.game_tower_wins||0)+(user.game_closest_wins||0)+(user.game_typerace_wins||0)+(user.game_maze_wins||0)+(user.game_ttt_wins||0);
-            default: return 0;
+            case 'trades_count': current = stats.totalTrades; break;
+            case 'shares_held': current = user.shares; break;
+            case 'referrals_count': current = user.referral_count || 0; break;
+            case 'total_topup': current = user.total_topup || 0; break;
+            case 'total_spent': current = user.total_spent || 0; break;
+            case 'total_earned': current = user.total_earned || 0; break;
+            case 'total_volume': current = user.total_volume || 0; break;
+            case 'stars_held': current = user.stars_balance; break;
+            case 'days_active': current = user.days_active || 0; break;
+            case 'game_reaction': current = user.game_reaction_wins || 0; break;
+            case 'game_tower': current = user.game_tower_wins || 0; break;
+            case 'game_closest': current = user.game_closest_wins || 0; break;
+            case 'game_typerace': current = user.game_typerace_wins || 0; break;
+            case 'game_maze': current = user.game_maze_wins || 0; break;
+            case 'game_ttt': current = user.game_ttt_wins || 0; break;
+            case 'games_total': current = (user.game_reaction_wins||0)+(user.game_tower_wins||0)+(user.game_closest_wins||0)+(user.game_typerace_wins||0)+(user.game_maze_wins||0)+(user.game_ttt_wins||0); break;
+            default: return { percent: 0, display: '' };
         }
+        const percent = Math.min(100, (current / needed) * 100);
+        let display = '';
+        if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' || ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
+            display = `${(current/100).toFixed(1)}/${(needed/100).toFixed(1)}`;
+        } else {
+            display = `${current}/${needed}`;
+        }
+        return { percent, display };
     }
     
-    const itemsHtml = achievements.map(ach => {
-        const isCompleted = ach.earned;
-        const conditionText = getConditionText(ach);
-        let progressPercent = 0;
-        let progressDisplay = '';
-        if (ach.condition_type !== 'none' && ach.condition_value > 0) {
-            const current = getCurrentProgress(ach);
-            const needed = ach.condition_value;
-            if (isCompleted) {
-                progressPercent = 100;
-            } else {
-                progressPercent = Math.min(100, (current / needed) * 100);
-                if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || 
-                    ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' ||
-                    ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
-                    progressDisplay = `${(current/100).toFixed(1)}/${(needed/100).toFixed(1)}`;
-                } else {
-                    progressDisplay = `${current}/${needed}`;
-                }
-            }
-        }
-        let displayIcon = ach.icon;
-        if (ach.name === '❌⭕ Стратег') displayIcon = '❌';
-        let statusHtml = '';
-        if (ach.condition_type === 'none') {
-            statusHtml = '<span class="guide-badge completed">✅ Получено</span>';
-        } else if (isCompleted) {
-            statusHtml = '<span class="guide-badge completed">✅ Получено</span>';
-        } else {
-            statusHtml = `
-                <div class="guide-progress">
-                    <div class="guide-progress-bar"><div class="guide-progress-fill" style="width: ${progressPercent}%;"></div></div>
-                    <div class="guide-progress-text">${progressDisplay}</div>
+    const tabsHtml = Object.entries(categories).map(([key, cat], idx) => {
+        const active = idx === 0 ? 'active' : '';
+        return `<button class="guide-tab ${active}" data-category="${key}">${cat.icon} ${cat.name}</button>`;
+    }).join('');
+    
+    const panelsHtml = Object.entries(categories).map(([key, cat], idx) => {
+        const active = idx === 0 ? 'active' : '';
+        const itemsHtml = cat.list.map(ach => {
+            const progress = getProgress(ach);
+            let displayIcon = ach.icon;
+            if (ach.name === '❌⭕ Стратег') displayIcon = '❌';
+            const isCompleted = ach.earned;
+            return `
+                <div class="guide-card">
+                    <div class="guide-card-icon">${displayIcon}</div>
+                    <div class="guide-card-content">
+                        <div class="guide-card-title">${ach.name}</div>
+                        <div class="guide-card-condition">${getConditionText(ach)}</div>
+                        ${isCompleted ? '<div class="guide-card-badge">✅ Получено</div>' : `
+                            <div class="guide-progress-bar"><div class="guide-progress-fill" style="width: ${progress.percent}%;"></div></div>
+                            <div class="guide-progress-text">${progress.display}</div>
+                        `}
+                    </div>
                 </div>
             `;
-        }
-        return `
-            <div class="guide-item">
-                <div class="guide-icon">${displayIcon}</div>
-                <div class="guide-content">
-                    <div class="guide-title">${ach.name}</div>
-                    ${conditionText ? `<div class="guide-condition">${conditionText}</div>` : ''}
-                    ${statusHtml}
-                </div>
-            </div>
-        `;
+        }).join('');
+        return `<div class="guide-panel ${active}" data-category="${key}">${itemsHtml || '<div class="empty-placeholder">Нет достижений в этой категории</div>'}</div>`;
     }).join('');
     
     const modalHtml = `
@@ -187,7 +194,8 @@ async function showAchievementsGuide(currentUser, getUserStats) {
             <div class="modal-content guide-modal-content">
                 <span class="close-modal" id="closeGuideModal">&times;</span>
                 <h3>🏆 Справочник достижений</h3>
-                <div class="guide-list">${itemsHtml}</div>
+                <div class="guide-tabs">${tabsHtml}</div>
+                <div class="guide-panels">${panelsHtml}</div>
                 <div class="modal-buttons"><button id="closeGuideBtn">Закрыть</button></div>
             </div>
         </div>
@@ -197,6 +205,17 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     document.getElementById('closeGuideModal').onclick = () => modal.remove();
     document.getElementById('closeGuideBtn').onclick = () => modal.remove();
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    
+    // Переключение вкладок
+    document.querySelectorAll('.guide-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const cat = tab.dataset.category;
+            document.querySelectorAll('.guide-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.guide-panel').forEach(panel => panel.classList.remove('active'));
+            document.querySelector(`.guide-panel[data-category="${cat}"]`).classList.add('active');
+        });
+    });
 }
 
 // ========== КАСТОМИЗАЦИЯ АВАТАРА (сокращённо, без изменений) ==========
@@ -410,7 +429,7 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
                 </div>
             `;
         }
-        nextHtml += `<button id="showGuideBtn" style="margin-top:16px; background:rgba(0,255,255,0.2); border:1px solid #0ff;">ℹ️ Инструкция по достижениям</button></div>`;
+        nextHtml += `<button id="showGuideBtn" style="margin-top:16px; background:rgba(0,255,255,0.2); border:1px solid #0ff;">ℹ️ Справочник достижений</button></div>`;
     } else {
         nextHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
     }
