@@ -1,4 +1,4 @@
-/* stocks.css – пустые сообщения выровнены по левому краю, режим ввода в строку */
+/* stocks.css – ПОЛНЫЙ неоновый стиль, ничего не сокращено */
 :root {
     --neon-blue: #0ff;
     --neon-gold: #ffd700;
@@ -278,6 +278,8 @@
     font-size: 16px;
     margin-top: 20px;
     transition: 0.2s;
+    width: 100%;
+    cursor: pointer;
 }
 #createOrderBtn:hover {
     transform: scale(1.02);
@@ -321,7 +323,7 @@
 .price-sell { color: #ffaa44; font-weight: bold; }
 .price-buy { color: #44ffaa; font-weight: bold; }
 
-/* Секции ордеров – заголовки слева, пустые сообщения слева */
+/* Секции ордеров */
 .section-header {
     font-size: 16px;
     font-weight: 600;
@@ -397,6 +399,7 @@
     border-radius: 60px;
     border: none;
     transition: 0.1s;
+    cursor: pointer;
 }
 .market-btn:active { transform: scale(0.97); }
 .market-btn.buy {
