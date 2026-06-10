@@ -1,4 +1,4 @@
-// profile_v10.js – финальная версия с вкладками в справочнике достижений
+// profile.js – полная версия с красивым справочником достижений (список без вкладок)
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -71,7 +71,7 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
     return unique.slice(0, 3);
 }
 
-// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА (С ВКЛАДКАМИ) ==========
+// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА (КРАСИВЫЙ СПИСОК) ==========
 function getConditionText(ach) {
     if (ach.condition_type === 'none') return '';
     let val = ach.condition_value;
@@ -96,16 +96,16 @@ function getConditionText(ach) {
     }
 }
 
-function getCategoryIcon(conditionType) {
+function getCategoryIcon(category) {
     const icons = {
-        trades_count: '📊',
-        shares_held: '📈',
-        referrals_count: '👥',
-        total_topup: '💰', total_spent: '💸', total_earned: '💵', total_volume: '🌊', stars_held: '⭐',
-        days_active: '📅',
-        game_reaction: '⚡', game_tower: '🏗️', game_closest: '🎯', game_typerace: '⌨️', game_maze: '🧩', game_ttt: '❌', games_total: '🎮'
+        'Сделки': '📊',
+        'Акции': '📈',
+        'Рефералы': '👥',
+        'Финансы': '💰',
+        'Игры': '🎮',
+        'Дни': '📅'
     };
-    return icons[conditionType] || '🏆';
+    return icons[category] || '🏆';
 }
 
 async function getAllAchievementsByCategory() {
@@ -164,26 +164,26 @@ async function showAchievementsGuide(currentUser, getUserStats) {
         }
     }
     
-    const tabs = ['Сделки', 'Акции', 'Рефералы', 'Финансы', 'Игры', 'Дни'];
-    let activeTab = 'Сделки';
-    
-    function renderTabContent(category) {
-        const items = groups[category] || [];
-        if (items.length === 0) return '<div class="guide-empty">Нет достижений в этой категории</div>';
-        return items.map(ach => {
+    const categoryOrder = ['Сделки', 'Акции', 'Рефералы', 'Финансы', 'Игры', 'Дни'];
+    let allCategoriesHtml = '';
+    for (const cat of categoryOrder) {
+        const items = groups[cat] || [];
+        if (items.length === 0) continue;
+        const itemsHtml = items.map(ach => {
             const isCompleted = ach.earned;
             const needed = ach.condition_value;
             const current = getCurrentProgress(ach);
             let progressPercent = 0;
             let progressDisplay = '';
-            if (ach.condition_type !== 'none' && needed > 0) {
-                if (isCompleted) progressPercent = 100;
-                else progressPercent = Math.min(100, (current / needed) * 100);
+            if (!isCompleted && needed > 0) {
+                progressPercent = Math.min(100, (current / needed) * 100);
                 if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' || ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
                     progressDisplay = `${(current/100).toFixed(1)}/${(needed/100).toFixed(1)}`;
                 } else {
                     progressDisplay = `${current}/${needed}`;
                 }
+            } else if (isCompleted) {
+                progressPercent = 100;
             }
             let displayIcon = ach.icon;
             if (ach.name === '❌⭕ Стратег') displayIcon = '❌';
@@ -201,6 +201,21 @@ async function showAchievementsGuide(currentUser, getUserStats) {
                 </div>
             `;
         }).join('');
+        allCategoriesHtml += `
+            <div class="guide-category">
+                <div class="guide-category-header">
+                    <span class="guide-category-icon">${getCategoryIcon(cat)}</span>
+                    <span class="guide-category-title">${cat}</span>
+                </div>
+                <div class="guide-category-items">
+                    ${itemsHtml}
+                </div>
+            </div>
+        `;
+    }
+    
+    if (!allCategoriesHtml) {
+        allCategoriesHtml = '<div class="guide-empty">Нет достижений</div>';
     }
     
     const modalHtml = `
@@ -208,11 +223,8 @@ async function showAchievementsGuide(currentUser, getUserStats) {
             <div class="modal-content guide-modal-content">
                 <span class="close-modal" id="closeGuideModal">&times;</span>
                 <h3>🏆 Справочник достижений</h3>
-                <div class="guide-tabs">
-                    ${tabs.map(tab => `<button class="guide-tab ${tab === activeTab ? 'active' : ''}" data-tab="${tab}">${tab}</button>`).join('')}
-                </div>
-                <div class="guide-tab-content" id="guideTabContent">
-                    ${renderTabContent(activeTab)}
+                <div class="guide-list">
+                    ${allCategoriesHtml}
                 </div>
                 <div class="modal-buttons"><button id="closeGuideBtn">Закрыть</button></div>
             </div>
@@ -223,18 +235,9 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     document.getElementById('closeGuideModal').onclick = () => modal.remove();
     document.getElementById('closeGuideBtn').onclick = () => modal.remove();
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-    document.querySelectorAll('.guide-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tab = btn.dataset.tab;
-            document.querySelectorAll('.guide-tab').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const contentDiv = document.getElementById('guideTabContent');
-            if (contentDiv) contentDiv.innerHTML = renderTabContent(tab);
-        });
-    });
 }
 
-// ========== КАСТОМИЗАЦИЯ АВАТАРА (сокращённо, без изменений) ==========
+// ========== КАСТОМИЗАЦИЯ АВАТАРА (все функции остаются без изменений) ==========
 async function awardStylistAchievement() {
     const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
     if (ach) await window.awardAchievement(ach.id);
