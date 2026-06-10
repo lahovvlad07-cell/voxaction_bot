@@ -1,13 +1,11 @@
-/* stocks.css – стабильная версия с правильными отступами */
+/* stocks.css – финальная версия с красивым отображением */
 :root {
     --neon-blue: #0ff;
     --card-bg: rgba(12, 15, 25, 0.75);
     --border-glow: 0 0 5px rgba(0, 255, 255, 0.3);
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 .stocks-container {
     max-width: 600px;
@@ -114,12 +112,8 @@
     margin-top: 4px;
     color: #eef2ff;
 }
-.stat-value.positive {
-    color: #4ade80;
-}
-.stat-value.negative {
-    color: #f87171;
-}
+.stat-value.positive { color: #4ade80; }
+.stat-value.negative { color: #f87171; }
 
 /* Табы */
 .tabs-row {
@@ -157,18 +151,10 @@
     display: none;
     animation: fadeSlide 0.25s ease;
 }
-.tab-pane.active {
-    display: block;
-}
+.tab-pane.active { display: block; }
 @keyframes fadeSlide {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Форма ордера */
@@ -202,34 +188,34 @@
     box-shadow: 0 0 8px #0ff;
 }
 
-/* Переключатель режима */
+/* Переключатель режима – аккуратный, выровнен по правому краю */
 .input-mode-switch {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 12px;
     background: rgba(0, 0, 0, 0.3);
-    padding: 6px 12px;
-    border-radius: 40px;
+    padding: 6px 16px;
+    border-radius: 60px;
     margin: 16px 0;
     width: fit-content;
     margin-left: auto;
 }
 .mode-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: #8e9aaf;
 }
 .mode-buttons {
     display: flex;
-    gap: 6px;
+    gap: 8px;
 }
 .mode-btn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(0, 255, 255, 0.4);
-    padding: 4px 12px;
-    border-radius: 30px;
-    font-size: 14px;
+    padding: 4px 14px;
+    border-radius: 40px;
+    font-size: 13px;
     cursor: pointer;
     transition: 0.2s;
 }
@@ -240,9 +226,8 @@
     box-shadow: 0 0 6px #0ff;
 }
 
-.control-group {
-    margin: 12px 0;
-}
+/* Контролы */
+.control-group { margin: 12px 0; }
 .control-group input[type="number"] {
     width: 100%;
     padding: 12px 16px;
@@ -298,7 +283,7 @@
     color: #7e8c8f;
 }
 
-/* Стакан */
+/* Стакан – заголовки в две строки */
 .orderbook-split {
     display: flex;
     gap: 20px;
@@ -307,11 +292,18 @@
 .orderbook-col {
     flex: 1;
     min-width: 140px;
-}
-.orderbook-col h4 {
     text-align: center;
-    margin-bottom: 12px;
+}
+.orderbook-title {
+    font-size: 18px;
+    font-weight: 700;
     color: #0ff;
+    margin-bottom: 2px;
+}
+.orderbook-subtitle {
+    font-size: 11px;
+    color: #8e9aaf;
+    margin-bottom: 12px;
 }
 .orderbook-list {
     background: rgba(0, 0, 0, 0.5);
@@ -325,14 +317,8 @@
     border-bottom: 1px solid rgba(0, 255, 255, 0.1);
     font-size: 14px;
 }
-.price-sell {
-    color: #ffaa44;
-    font-weight: bold;
-}
-.price-buy {
-    color: #44ffaa;
-    font-weight: bold;
-}
+.price-sell { color: #ffaa44; font-weight: bold; }
+.price-buy { color: #44ffaa; font-weight: bold; }
 
 /* Ордера */
 .section-header {
@@ -411,9 +397,7 @@
     border: none;
     cursor: pointer;
 }
-.market-btn:active {
-    transform: scale(0.97);
-}
+.market-btn:active { transform: scale(0.97); }
 .market-btn.buy {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     color: #1e1e2f;
@@ -434,61 +418,32 @@
     margin: 0;
 }
 .secondary {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(0,255,255,0.3);
 }
 
-/* Адаптив */
+/* Адаптив для ПК */
+@media (min-width: 768px) {
+    .stocks-container { max-width: 800px; padding: 0 24px 80px 24px; }
+    .balance-card { padding: 16px 12px; }
+    .bal-value { font-size: 28px; }
+    .order-form-panel { padding: 24px; }
+    .market-buttons { bottom: 80px; padding: 16px 24px; gap: 20px; }
+    .market-btn { padding: 16px; font-size: 16px; }
+}
 @media (max-width: 560px) {
-    .stocks-container {
-        padding: 0 12px 70px 12px;
-    }
-    .balance-card {
-        padding: 8px 4px;
-    }
-    .bal-value {
-        font-size: 18px;
-    }
-    .stat-card {
-        padding: 6px 4px;
-    }
-    .stat-icon {
-        font-size: 18px;
-    }
-    .stat-value {
-        font-size: 12px;
-    }
-    .tab-btn {
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-    .order-form-panel {
-        padding: 16px;
-    }
-    .input-mode-switch {
-        padding: 4px 10px;
-    }
-    .mode-btn {
-        padding: 3px 10px;
-        font-size: 12px;
-    }
-    .market-buttons {
-        bottom: 65px;
-        padding: 8px 12px;
-    }
-    .market-btn {
-        padding: 10px;
-        font-size: 14px;
-    }
-    .order-info {
-        gap: 6px;
-    }
-    .order-item, .my-order-item {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .buy-order-btn, .cancel-order-btn {
-        width: 100%;
-        text-align: center;
-    }
+    .stocks-container { padding: 0 12px 70px 12px; }
+    .balance-card { padding: 8px 4px; }
+    .bal-value { font-size: 18px; }
+    .stat-card { padding: 6px 4px; }
+    .stat-icon { font-size: 18px; }
+    .stat-value { font-size: 12px; }
+    .tab-btn { padding: 6px 12px; font-size: 12px; }
+    .order-form-panel { padding: 16px; }
+    .input-mode-switch { padding: 4px 12px; gap: 8px; }
+    .mode-btn { padding: 3px 10px; font-size: 12px; }
+    .market-buttons { bottom: 65px; padding: 8px 12px; }
+    .market-btn { padding: 10px; font-size: 14px; }
+    .order-item, .my-order-item { flex-direction: column; align-items: stretch; }
+    .buy-order-btn, .cancel-order-btn { width: 100%; text-align: center; }
 }
