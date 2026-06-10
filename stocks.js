@@ -106,7 +106,6 @@ window.renderStocksTab = async function(currentUser) {
             <button class="stocks-toggle-mode" id="toggleSellModeStub">✍️ Поля ввода</button>
         `;
         showModal('Продать акции', content);
-        // Обработчики слайдеров (только для демонстрации)
         const sellSlider = document.getElementById('sellAmountSlider');
         const sellVal = document.getElementById('sellAmountVal');
         if (sellSlider) sellSlider.addEventListener('input', () => sellVal.innerText = sellSlider.value);
