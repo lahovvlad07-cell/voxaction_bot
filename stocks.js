@@ -1,6 +1,6 @@
-// stocks.js – окончательная версия с чистыми модалками
+// stocks.js – финальная версия с профессиональным интерфейсом (заглушки)
 window.renderStocksTab = async function(currentUser) {
-    // Демо-данные (позже заменятся реальными)
+    // Демо-данные (заглушки)
     const userShares = currentUser?.shares ? window.fromCents(currentUser.shares) : '136.59';
     const userStars = currentUser?.stars_balance ? window.fromCents(currentUser.stars_balance) : '2.37';
     const currentPrice = '1.00';
@@ -28,9 +28,9 @@ window.renderStocksTab = async function(currentUser) {
                 📈 График появится после первых сделок
             </div>
             <div class="stocks-stats">
-                <div class="stocks-stat"><div class="label">Капитализация</div><div class="value">${marketCap} ⭐</div></div>
-                <div class="stocks-stat"><div class="label">Всего акций</div><div class="value">${totalShares}</div></div>
-                <div class="stocks-stat"><div class="label">Ср. цена 24ч</div><div class="value">${avgPrice24h} ⭐</div></div>
+                <div class="stocks-stat"><div class="label">🏦 КАПИТАЛИЗАЦИЯ</div><div class="value">${marketCap} ⭐</div></div>
+                <div class="stocks-stat"><div class="label">📦 ВСЕГО АКЦИЙ</div><div class="value">${totalShares}</div></div>
+                <div class="stocks-stat"><div class="label">📈 СР. ЦЕНА 24Ч</div><div class="value">${avgPrice24h} ⭐</div></div>
             </div>
             <div class="stocks-grid">
                 <button class="stocks-grid-btn" id="openOrderbookBtn">📖 Стакан</button>
