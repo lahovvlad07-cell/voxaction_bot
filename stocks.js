@@ -1,5 +1,8 @@
-// stocks.js – полностью переработанная биржевая вкладка
-// График всегда вверху, статистика под графиком, переключатель полей/слайдеров заметный
+// stocks.js – финальная исправленная версия
+// - цена акции отображается корректно
+// - режим ввода в одну строку
+// - текст подсказки изменён
+// - заголовки секций слева, сообщения о пустоте по центру
 
 // ---- Режим ввода (поля / слайдеры) ----
 function getInputMode() {
@@ -42,7 +45,7 @@ function renderInputControls(amountContainer, priceContainer, mode, currentAmoun
     }
 }
 
-// ---- Получение заявок на покупку (если ещё нет) ----
+// ---- Получение заявок на покупку ----
 if (!window.getActiveBuyOrders) {
     window.getActiveBuyOrders = async function() {
         const { data, error } = await window.supabase
@@ -57,7 +60,7 @@ if (!window.getActiveBuyOrders) {
 
 // ---- ГЛАВНЫЙ РЕНДЕР ----
 window.renderStocksTab = async function(currentUser) {
-    // 1. Загрузка всех данных
+    // Загрузка данных
     const [
         userSharesCents,
         userStarsCents,
@@ -109,22 +112,24 @@ window.renderStocksTab = async function(currentUser) {
 
     const userShares = window.fromCents(userSharesCents);
     const userStars = window.fromCents(userStarsCents);
-    const currentPrice = (currentPriceCents / 100).toFixed(2);
+    // Корректное отображение цены: если нет данных – показываем "—"
+    const currentPrice = (currentPriceCents && currentPriceCents > 0) ? (currentPriceCents / 100).toFixed(2) : '—';
     const marketCap = marketCapData.marketCap.toFixed(2);
     const totalShares = (marketCapData.totalShares / 100).toFixed(2);
     
     // Средняя цена за 24ч в процентах
-    let avgPricePercent = 0;
+    let avgPercentText = '—';
+    let avgPercentClass = '';
     if (avgPrice24hCents > 0 && currentPriceCents > 0) {
-        avgPricePercent = ((currentPriceCents - avgPrice24hCents) / avgPrice24hCents) * 100;
+        const percent = ((currentPriceCents - avgPrice24hCents) / avgPrice24hCents) * 100;
+        avgPercentText = (percent >= 0 ? `+${percent.toFixed(2)}%` : `${percent.toFixed(2)}%`);
+        avgPercentClass = percent >= 0 ? 'positive' : 'negative';
     }
-    const avgPercentText = avgPricePercent >= 0 ? `+${avgPricePercent.toFixed(2)}%` : `${avgPricePercent.toFixed(2)}%`;
-    const avgPercentClass = avgPricePercent >= 0 ? 'positive' : 'negative';
 
-    // 2. HTML-структура
+    // HTML
     const html = `
         <div class="stocks-container">
-            <!-- Верхняя строка баланса -->
+            <!-- Баланс -->
             <div class="balance-row">
                 <div class="balance-card">
                     <div class="bal-label">📊 Акции</div>
@@ -140,12 +145,12 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
             </div>
 
-            <!-- ГРАФИК – всегда виден -->
+            <!-- График -->
             <div class="chart-container-main">
                 <canvas id="mainPriceChart" width="600" height="160" style="width:100%; height:160px;"></canvas>
             </div>
 
-            <!-- Статистика (3 карточки) под графиком -->
+            <!-- Статистика под графиком -->
             <div class="stats-row">
                 <div class="stat-card">
                     <div class="stat-icon">🏦</div>
@@ -172,7 +177,7 @@ window.renderStocksTab = async function(currentUser) {
                 <button class="tab-btn" data-tab="myorders">📌 Мои ордера</button>
             </div>
 
-            <!-- Панель создания ордера (бывший "Обзор") -->
+            <!-- Новый ордер -->
             <div id="tab-orderform" class="tab-pane active">
                 <div class="order-form-panel">
                     <div class="type-switch">
@@ -180,7 +185,7 @@ window.renderStocksTab = async function(currentUser) {
                         <button id="orderTypeBuy" class="type-opt">📈 Купить акции</button>
                     </div>
                     
-                    <!-- Переключатель режима ввода (заметный) -->
+                    <!-- Переключатель режима ввода (в одну строку) -->
                     <div class="input-mode-switch">
                         <span class="mode-label">🎛️ Режим ввода:</span>
                         <div class="mode-buttons">
@@ -192,11 +197,11 @@ window.renderStocksTab = async function(currentUser) {
                     <div id="amountControl" class="control-group"></div>
                     <div id="priceControl" class="control-group"></div>
                     <button id="createOrderBtn">✅ Разместить ордер</button>
-                    <div class="hint">После размещения ордер появится в стакане.</div>
+                    <div class="hint">Лучшие предложения появятся в стакане после размещения ордера.</div>
                 </div>
             </div>
 
-            <!-- Стакан -->
+            <!-- Стакан (ТОП-5) -->
             <div id="tab-orderbook" class="tab-pane">
                 <div class="orderbook-split">
                     <div class="orderbook-col">
@@ -229,7 +234,7 @@ window.renderStocksTab = async function(currentUser) {
             </div>
         </div>
 
-        <!-- Фиксированные рыночные кнопки -->
+        <!-- Рыночные кнопки -->
         <div class="market-buttons">
             <button id="marketBuyBtn" class="market-btn buy">🚀 Рыночная покупка</button>
             <button id="marketSellBtn" class="market-btn sell">📉 Рыночная продажа</button>
@@ -238,7 +243,7 @@ window.renderStocksTab = async function(currentUser) {
 
     document.getElementById('app').innerHTML = html;
 
-    // ---- Функция отрисовки графика ----
+    // ---- График ----
     function drawMainChart() {
         const canvas = document.getElementById('mainPriceChart');
         if (!canvas) return;
@@ -280,7 +285,7 @@ window.renderStocksTab = async function(currentUser) {
         ctx.fill();
     }
 
-    // ---- Стакан (только 5 лучших) ----
+    // ---- Стакан (ТОП-5) ----
     function renderOrderBook() {
         const sellMap = new Map();
         activeSellOrders.forEach(o => {
@@ -430,7 +435,7 @@ window.renderStocksTab = async function(currentUser) {
         });
     });
 
-    // ---- Лимитный ордер с переключением режимов ----
+    // ---- Лимитный ордер ----
     let currentOrderType = 'sell';
     document.getElementById('orderTypeSell').onclick = () => {
         currentOrderType = 'sell';
