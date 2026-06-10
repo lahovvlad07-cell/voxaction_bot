@@ -72,6 +72,8 @@
         }
         
         window.showCustomModal = function(title, message) {
+            const existingModal = document.getElementById('customMessageModal');
+            if (existingModal) existingModal.remove();
             const modalHtml = `
                 <div class="modal" id="customMessageModal" style="display:flex;">
                     <div class="modal-content">
@@ -115,10 +117,118 @@
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
+        // ========== НАСТРОЙКИ (ЛИМИТЫ ДЛЯ ИГР) ==========
+        async function loadGameLimits() {
+            const { data, error } = await window.supabase
+                .from('user_game_limits')
+                .select('game_limits')
+                .eq('user_id', window.userId)
+                .single();
+            if (error || !data) return {};
+            return data.game_limits || {};
+        }
+        
+        async function updateGameLimit(game, newValue) {
+            const limits = await loadGameLimits();
+            if (newValue > (limits[game] || 100)) {
+                throw new Error('Нельзя повысить лимит, только понизить');
+            }
+            const newLimits = { ...limits, [game]: newValue };
+            await window.supabase
+                .from('user_game_limits')
+                .upsert({ user_id: window.userId, game_limits: newLimits });
+        }
+        
         async function renderSettingsTab() {
-            // ... (можно оставить как в вашем предыдущем коде, он рабочий)
-            // Для краткости, но вы можете скопировать свою рабочую версию настроек
-            document.getElementById('app').innerHTML = '<div class="card"><h2>Настройки</h2><p>В разработке</p></div>';
+            const limits = await loadGameLimits();
+            const games = [
+                { id: 'reaction', name: '⚡ Нажми быстрее', default: 100 },
+                { id: 'tower', name: '🏗️ Башня', default: 100 },
+                { id: 'closest', name: '🎯 Ближе к цели', default: 100 },
+                { id: 'typerace', name: '⌨️ Скоростной набор', default: 100 },
+                { id: 'maze', name: '🧩 Лабиринт', default: 100 },
+                { id: 'memory', name: '🧠 Memory Match', default: 100 },
+                { id: 'ttt', name: '❌⭕ Крестики-нолики', default: 100 }
+            ];
+            
+            let html = `
+                <div class="card">
+                    <h2>⚙️ Настройки</h2>
+                    <div style="margin-bottom: 20px;">
+                        <div class="small-text">Часовые лимиты чистого выигрыша/проигрыша (⭐). Можно только понижать.</div>
+                        ${games.map(game => {
+                            const current = limits[game.id] !== undefined ? limits[game.id] : game.default;
+                            return `
+                                <div style="margin: 12px 0;">
+                                    <div class="small-text" style="margin-bottom: 4px;">${game.name}</div>
+                                    <input type="range" id="limit_${game.id}" min="10" max="100" step="5" value="${current}" style="width: 100%;">
+                                    <span id="val_${game.id}" class="small-text">${current} ⭐</span>
+                                    <button id="save_${game.id}" class="secondary" style="margin-top: 6px; padding: 4px 12px; width: auto;">Сохранить</button>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <hr>
+                    <div>
+                        <div class="small-text">Общие настройки</div>
+                        <label><input type="checkbox" id="hideRatingCheckbox" ${window.currentUser.hide_rating ? 'checked' : ''}> Скрыть из рейтинга</label><br>
+                        <label><input type="checkbox" id="useSlidersCheckbox" ${window.getUseSliders ? (window.getUseSliders() ? 'checked' : '') : 'checked'}> Использовать слайдеры в формах продажи/покупки</label><br><br>
+                        <div><strong>Уведомления:</strong></div>
+                        <label><input type="checkbox" id="notifyTradesCheckbox" ${window.currentUser.notify_trades ? 'checked' : ''}> О сделках</label><br>
+                        <label><input type="checkbox" id="notifyTopupCheckbox" ${window.currentUser.notify_topup ? 'checked' : ''}> О пополнении</label><br>
+                        <label><input type="checkbox" id="notifyReferralCheckbox" ${window.currentUser.notify_referral ? 'checked' : ''}> О рефералах</label><br>
+                    </div>
+                    <button id="saveCommonSettings" style="margin-top: 20px;">Сохранить общие настройки</button>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+            
+            // Обновление отображения значений слайдеров
+            games.forEach(game => {
+                const slider = document.getElementById(`limit_${game.id}`);
+                const span = document.getElementById(`val_${game.id}`);
+                if (slider && span) {
+                    slider.oninput = () => { span.innerText = slider.value + ' ⭐'; };
+                    const btn = document.getElementById(`save_${game.id}`);
+                    if (btn) {
+                        btn.onclick = async () => {
+                            const newVal = parseInt(slider.value);
+                            const oldVal = limits[game.id] !== undefined ? limits[game.id] : game.default;
+                            if (newVal > oldVal) {
+                                window.showCustomModal('Ошибка', 'Нельзя повысить лимит, только понизить');
+                                return;
+                            }
+                            try {
+                                await updateGameLimit(game.id, newVal);
+                                window.showCustomModal('Успех', `Лимит для "${game.name}" установлен на ${newVal} ⭐`);
+                                await renderSettingsTab(); // обновить интерфейс
+                            } catch(e) {
+                                window.showCustomModal('Ошибка', e.message);
+                            }
+                        };
+                    }
+                }
+            });
+            
+            document.getElementById('saveCommonSettings').onclick = async () => {
+                const hideRating = document.getElementById('hideRatingCheckbox').checked;
+                const useSliders = document.getElementById('useSlidersCheckbox').checked;
+                const notifyTrades = document.getElementById('notifyTradesCheckbox').checked;
+                const notifyTopup = document.getElementById('notifyTopupCheckbox').checked;
+                const notifyReferral = document.getElementById('notifyReferralCheckbox').checked;
+                if (window.setUseSliders) window.setUseSliders(useSliders);
+                await window.supabase.from('users').update({
+                    hide_rating: hideRating,
+                    notify_trades: notifyTrades,
+                    notify_topup: notifyTopup,
+                    notify_referral: notifyReferral
+                }).eq('id', window.userId);
+                window.currentUser.hide_rating = hideRating;
+                window.currentUser.notify_trades = notifyTrades;
+                window.currentUser.notify_topup = notifyTopup;
+                window.currentUser.notify_referral = notifyReferral;
+                window.showCustomModal('Успех', 'Общие настройки сохранены');
+            };
         }
         
         try {
@@ -165,20 +275,15 @@
             });
         });
         
-        // Drag to scroll
+        // Простой скролл табов (нативный)
         (function() {
             const wrapper = document.querySelector('.tabs-wrapper');
             if (!wrapper) return;
             let isDown = false, startX, scrollLeft;
-            const onStart = (x) => { isDown = true; startX = x - wrapper.offsetLeft; scrollLeft = wrapper.scrollLeft; wrapper.style.cursor = 'grabbing'; };
-            const onMove = (x) => { if (!isDown) return; const walk = (x - wrapper.offsetLeft - startX) * 1.5; wrapper.scrollLeft = scrollLeft - walk; };
-            const onEnd = () => { isDown = false; wrapper.style.cursor = 'grab'; };
-            wrapper.addEventListener('mousedown', (e) => onStart(e.pageX));
-            window.addEventListener('mousemove', (e) => onMove(e.pageX));
-            window.addEventListener('mouseup', onEnd);
-            wrapper.addEventListener('touchstart', (e) => onStart(e.touches[0].pageX));
-            window.addEventListener('touchmove', (e) => onMove(e.touches[0].pageX));
-            window.addEventListener('touchend', onEnd);
+            wrapper.addEventListener('mousedown', (e) => { isDown = true; startX = e.pageX - wrapper.offsetLeft; scrollLeft = wrapper.scrollLeft; wrapper.style.cursor = 'grabbing'; });
+            window.addEventListener('mouseup', () => { isDown = false; wrapper.style.cursor = 'grab'; });
+            window.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - wrapper.offsetLeft; const walk = (x - startX) * 1.5; wrapper.scrollLeft = scrollLeft - walk; });
+            wrapper.addEventListener('dragstart', (e) => e.preventDefault());
         })();
     })();
 </script>
