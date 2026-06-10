@@ -1,6 +1,6 @@
-// stocks.js – финальная версия с профессиональным интерфейсом (заглушки)
+// stocks.js – профессиональный интерфейс, модалки с анимацией
 window.renderStocksTab = async function(currentUser) {
-    // Демо-данные (заглушки)
+    // Демо-данные
     const userShares = currentUser?.shares ? window.fromCents(currentUser.shares) : '136.59';
     const userStars = currentUser?.stars_balance ? window.fromCents(currentUser.stars_balance) : '2.37';
     const currentPrice = '1.00';
@@ -47,12 +47,12 @@ window.renderStocksTab = async function(currentUser) {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // Заглушка для всех активных кнопок (пока нет логики)
+    // Заглушка для всех активных кнопок (пока без логики)
     const stubMsg = () => window.showCustomModal('В разработке', 'Функционал временно отключён для настройки визуала. Скоро всё заработает!');
     document.getElementById('marketBuyBtnStub').onclick = stubMsg;
     document.getElementById('marketSellBtnStub').onclick = stubMsg;
 
-    // Универсальная функция открытия модалки
+    // Функция открытия модалки с анимацией
     function showModal(title, contentHtml) {
         const modalHtml = `
             <div class="modal stocks-modal" id="stocksModal" style="display:flex;">
@@ -75,16 +75,16 @@ window.renderStocksTab = async function(currentUser) {
     // Стакан заявок
     document.getElementById('openOrderbookBtn').onclick = () => {
         const content = `
-            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div style="display:flex; gap:24px; flex-wrap:wrap;">
                 <div style="flex:1;">
-                    <h4 style="text-align:center; margin-bottom:16px;">💰 Продажа</h4>
+                    <h4 style="text-align:center; margin-bottom:16px; color:#fbbf24;">💰 Продажа</h4>
                     <div class="orderbook-row"><span>—</span><span class="price-sell">—</span><span class="small-text">—</span></div>
-                    <div class="small-text" style="text-align:center; margin-top:16px;">Нет заявок на продажу</div>
+                    <div class="small-text" style="text-align:center; margin-top:20px; color:#9ca3af;">Нет заявок на продажу</div>
                 </div>
                 <div style="flex:1;">
-                    <h4 style="text-align:center; margin-bottom:16px;">🏦 Покупка</h4>
+                    <h4 style="text-align:center; margin-bottom:16px; color:#4ade80;">🏦 Покупка</h4>
                     <div class="orderbook-row"><span>—</span><span class="price-buy">—</span><span class="small-text">—</span></div>
-                    <div class="small-text" style="text-align:center; margin-top:16px;">Нет заявок на покупку</div>
+                    <div class="small-text" style="text-align:center; margin-top:20px; color:#9ca3af;">Нет заявок на покупку</div>
                 </div>
             </div>
         `;
@@ -144,13 +144,13 @@ window.renderStocksTab = async function(currentUser) {
     // Мои ордера
     document.getElementById('openMyOrdersBtn').onclick = () => {
         const content = `
-            <div style="margin-bottom:24px;">
-                <h4 style="margin-bottom:12px;">📌 Мои ордера на продажу</h4>
+            <div style="margin-bottom:28px;">
+                <h4 style="margin-bottom:12px; font-size:18px;">📌 Мои ордера на продажу</h4>
                 <div class="order-card" style="justify-content:center;">Нет активных ордеров</div>
                 <button class="cancel-all-btn" id="cancelAllSellsStub">Отменить все</button>
             </div>
             <div>
-                <h4 style="margin-bottom:12px;">🛒 Мои заявки на покупку</h4>
+                <h4 style="margin-bottom:12px; font-size:18px;">🛒 Мои заявки на покупку</h4>
                 <div class="order-card" style="justify-content:center;">Нет активных заявок</div>
                 <button class="cancel-all-btn" id="cancelAllBuysStub">Отменить все</button>
             </div>
