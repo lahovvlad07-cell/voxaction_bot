@@ -1,7 +1,6 @@
-/* stocks.css – неоновый современный дизайн с переключателями */
+/* stocks.css – неоновый стиль с графиком всегда вверху */
 :root {
     --neon-blue: #0ff;
-    --neon-pink: #f0f;
     --neon-gold: #ffd700;
     --bg-dark: #0a0b10;
     --card-bg: rgba(12, 15, 25, 0.75);
@@ -22,14 +21,14 @@
 .balance-row {
     display: flex;
     gap: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 .balance-card {
     flex: 1;
     background: var(--card-bg);
     backdrop-filter: blur(12px);
-    border-radius: 32px;
-    padding: 16px 8px;
+    border-radius: 28px;
+    padding: 14px 8px;
     text-align: center;
     border: 1px solid rgba(0, 255, 255, 0.2);
     box-shadow: var(--border-glow);
@@ -46,7 +45,7 @@
     letter-spacing: 1px;
 }
 .bal-value {
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 800;
     background: linear-gradient(135deg, #fff, #a5f0ff);
     background-clip: text;
@@ -57,32 +56,65 @@
     background: linear-gradient(135deg, #ffd700, #ffb347);
 }
 
-/* Статистика */
+/* Статистика – красивые карточки */
 .stats-row {
     display: flex;
     gap: 12px;
     margin-bottom: 24px;
     flex-wrap: wrap;
 }
-.stat-item {
+.stat-card {
     flex: 1;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(20, 25, 40, 0.7);
+    backdrop-filter: blur(8px);
     border-radius: 24px;
-    padding: 8px 12px;
-    font-size: 12px;
-    display: flex;
-    justify-content: space-between;
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 10px 8px;
+    text-align: center;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    transition: all 0.2s;
 }
-.stat-item span { color: #9aa4bf; }
-.stat-item strong { font-size: 14px; color: #fff; }
+.stat-card:hover {
+    border-color: #0ff;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+.stat-icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+.stat-label {
+    font-size: 10px;
+    color: #8e9aaf;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 4px;
+    color: #eef2ff;
+}
+
+/* Контейнер главного графика – всегда виден */
+.chart-container-main {
+    background: #05080f;
+    border-radius: 28px;
+    padding: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+}
+#mainPriceChart {
+    width: 100%;
+    height: 180px;
+    display: block;
+}
 
 /* Табы */
 .tabs-row {
     display: flex;
     gap: 10px;
-    margin: 20px 0;
+    margin: 16px 0 20px;
     overflow-x: auto;
     scrollbar-width: none;
 }
@@ -109,18 +141,20 @@
     border-color: #0ff;
 }
 
-/* Контент табов */
+/* Панели табов */
 .tab-pane {
     display: none;
     animation: fadeSlide 0.25s ease;
 }
-.tab-pane.active { display: block; }
+.tab-pane.active {
+    display: block;
+}
 @keyframes fadeSlide {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Панель ордера */
+/* Форма ордера */
 .order-form-panel {
     background: rgba(10, 15, 25, 0.7);
     backdrop-filter: blur(16px);
@@ -187,7 +221,6 @@
     font-weight: bold;
 }
 
-/* Контролы (поля или слайдеры) */
 .control-group {
     margin: 12px 0;
 }
@@ -227,7 +260,6 @@
     margin-top: 4px;
 }
 
-/* Кнопка размещения */
 #createOrderBtn {
     background: linear-gradient(135deg, #00c6ff, #0072ff);
     border: none;
@@ -249,15 +281,6 @@
     color: #7e8c8f;
 }
 
-/* График */
-#priceChart {
-    background: #05080f;
-    border-radius: 28px;
-    padding: 8px;
-    border: 1px solid #0ff;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
-}
-
 /* Стакан */
 .orderbook-split {
     display: flex;
@@ -266,6 +289,7 @@
 }
 .orderbook-col {
     flex: 1;
+    min-width: 140px;
 }
 .orderbook-col h4 {
     text-align: center;
@@ -288,11 +312,15 @@
 .price-buy { color: #44ffaa; font-weight: bold; }
 
 /* Ордера */
+.orders-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 .order-item, .my-order-item {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 24px;
     padding: 12px;
-    margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -350,9 +378,15 @@
 
 /* Адаптив */
 @media (max-width: 560px) {
+    .stocks-container { padding: 0 12px 70px 12px; }
     .balance-card { padding: 10px 4px; }
     .bal-value { font-size: 20px; }
+    .stat-card { padding: 6px 4px; }
+    .stat-icon { font-size: 18px; }
+    .stat-value { font-size: 13px; }
     .tab-btn { padding: 6px 12px; font-size: 12px; }
     .order-form-panel { padding: 16px; }
     .market-buttons { bottom: 65px; padding: 8px 12px; }
+    .market-btn { padding: 10px; font-size: 14px; }
+    .chart-container-main { margin-bottom: 16px; }
 }
