@@ -1,4 +1,4 @@
-// profile_v5.js – исправленная версия (иконки меньше, убраны дубли, ближайшие достижения – не только игры)
+// profile_v6.js – исправленный, чистый, без дублирования текста
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -22,7 +22,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт, приоритет – неигровые) ==========
+// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт) ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
@@ -61,29 +61,17 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
         return null;
     }).filter(a => a !== null);
     
-    // Сортируем по needed, но чтобы не было трёх игровых подряд – группируем по типу и берём лучший из каждого типа
     const byType = new Map();
     for (const ach of withProgress) {
         const t = ach.condition_type;
         if (!byType.has(t) || ach.needed < byType.get(t).needed) byType.set(t, ach);
     }
-    // Преобразуем в массив и сортируем по needed
-    let unique = Array.from(byType.values());
+    const unique = Array.from(byType.values());
     unique.sort((a,b) => a.needed - b.needed);
-    // Если среди первых трёх есть игровые, но есть и неигровые, оставляем как есть.
-    // Но если все три игровые – пробуем добавить хотя бы одно неигровое позже (но сейчас их не так много)
     return unique.slice(0, 3);
 }
 
-// ========== ПОЛНЫЙ СПИСОК ДЛЯ ИНСТРУКЦИИ ==========
-async function getAllAchievementsList() {
-    const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
-    if (!all) return [];
-    const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
-    const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
-    return all.map(ach => ({ ...ach, earned: earnedIds.has(ach.id), condition_text: getConditionText(ach) }));
-}
-
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ИНСТРУКЦИИ ==========
 function getConditionText(ach) {
     if (ach.condition_type === 'none') return '';
     let val = ach.condition_value;
@@ -94,18 +82,26 @@ function getConditionText(ach) {
         case 'total_topup': return `Пополнить суммарно ${val/100} ⭐`;
         case 'total_spent': return `Потратить суммарно ${val/100} ⭐`;
         case 'total_earned': return `Заработать суммарно ${val/100} ⭐`;
-        case 'total_volume': return `Сделать объём торгов ${val/100} ⭐`;
+        case 'total_volume': return `Объём торгов ${val/100} ⭐`;
         case 'stars_held': return `Иметь на балансе ${val/100} ⭐`;
-        case 'days_active': return `Быть активным ${val} дней`;
+        case 'days_active': return `Активен ${val} дней`;
         case 'game_reaction': return `Победить в "Нажми быстрее"`;
         case 'game_tower': return `Победить в "Башня"`;
         case 'game_closest': return `Победить в "Ближе к цели"`;
         case 'game_typerace': return `Победить в "Скоростной набор"`;
         case 'game_maze': return `Победить в "Лабиринт"`;
         case 'game_ttt': return `Победить бота в крестики-нолики`;
-        case 'games_total': return `Победить хотя бы в одной игре`;
+        case 'games_total': return `Победить в любой игре`;
         default: return '';
     }
+}
+
+async function getAllAchievementsList() {
+    const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
+    if (!all) return [];
+    const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
+    const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
+    return all.map(ach => ({ ...ach, earned: earnedIds.has(ach.id) }));
 }
 
 async function showAchievementsGuide(currentUser, getUserStats) {
@@ -113,7 +109,8 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     const stats = await getUserStats();
     const user = currentUser;
     function getCurrentProgress(ach) {
-        if (ach.earned || ach.condition_type === 'none') return ach.condition_value;
+        if (ach.earned) return ach.condition_value;
+        if (ach.condition_type === 'none') return 1;
         switch (ach.condition_type) {
             case 'trades_count': return stats.totalTrades;
             case 'shares_held': return user.shares;
@@ -135,27 +132,39 @@ async function showAchievementsGuide(currentUser, getUserStats) {
         }
     }
     const html = achievements.map(ach => {
-        const progress = getCurrentProgress(ach);
-        const needed = ach.condition_value;
-        let progressPercent = 0, progressText = '';
-        const showProgress = ach.condition_type !== 'none' && !ach.earned && needed > 0;
-        if (showProgress) {
-            progressPercent = Math.min(100, (progress / needed) * 100);
-            let curr = progress, need = needed;
-            if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || 
-                ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' ||
-                ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
-                curr = progress / 100; need = needed / 100;
-                progressText = `${curr.toFixed(2)}/${need.toFixed(2)}`;
-            } else progressText = `${curr}/${need}`;
+        const conditionText = getConditionText(ach);
+        const isCompleted = ach.earned;
+        let progressPercent = 0;
+        let progressText = '';
+        if (ach.condition_type !== 'none') {
+            const current = getCurrentProgress(ach);
+            const needed = ach.condition_value;
+            if (isCompleted) {
+                progressPercent = 100;
+            } else if (needed > 0) {
+                progressPercent = Math.min(100, (current / needed) * 100);
+                let curr = current, need = needed;
+                if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || 
+                    ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' ||
+                    ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
+                    curr = current / 100; need = needed / 100;
+                    progressText = `${curr.toFixed(2)}/${need.toFixed(2)}`;
+                } else progressText = `${curr}/${need}`;
+            }
         }
-        return `<div class="achievement-guide-item" style="border-bottom:1px solid rgba(255,255,255,0.1); padding:10px 0;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:28px;">${ach.icon}</span>
+        let displayIcon = ach.icon;
+        if (ach.name === '❌⭕ Стратег') displayIcon = '❌';
+        return `<div style="border-bottom:1px solid rgba(255,255,255,0.1); padding:12px 0;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-size:32px;">${displayIcon}</span>
                 <div style="flex:1;">
                     <div style="font-weight:bold;">${ach.name}</div>
-                    ${ach.condition_type !== 'none' ? `<div class="small-text" style="color:#0ff;">${getConditionText(ach)}</div>` : ''}
-                    ${showProgress ? `<div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div><div class="small-text">${progressText}</div>` : ach.earned ? '<div class="small-text" style="color:#4ade80;">✅ Получено</div>' : ''}
+                    ${conditionText ? `<div class="small-text" style="color:#0ff;">${conditionText}</div>` : ''}
+                    ${ach.condition_type !== 'none' ? `
+                        <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
+                        ${!isCompleted && progressText ? `<div class="small-text">${progressText}</div>` : ''}
+                        ${isCompleted ? '<div class="small-text" style="color:#4ade80;">✅ Получено</div>' : ''}
+                    ` : (ach.condition_type === 'none' ? '<div class="small-text" style="color:#4ade80;">✅ Получено</div>' : '')}
                 </div>
             </div>
         </div>`;
@@ -168,7 +177,7 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
-// ========== КАСТОМИЗАЦИЯ АВАТАРА (сокращённо, но полноценно) ==========
+// ========== КАСТОМИЗАЦИЯ АВАТАРА (стандартные функции) ==========
 async function awardStylistAchievement() {
     const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
     if (ach) await window.awardAchievement(ach.id);
@@ -358,22 +367,16 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     if (nextAchievements.length) {
         nextHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px;">📋 Ближайшие достижения:</div>`;
         for (const ach of nextAchievements) {
-            let conditionStr = '';
-            let currentVal = ach.current, neededVal = ach.needed;
-            switch (ach.condition_type) {
-                case 'trades_count': conditionStr = `${currentVal}/${neededVal} сделок`; break;
-                case 'shares_held': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} акций`; break;
-                case 'referrals_count': conditionStr = `${currentVal}/${neededVal} приглашений`; break;
-                case 'total_topup': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ пополнено`; break;
-                case 'total_spent': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ потрачено`; break;
-                case 'total_earned': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ заработано`; break;
-                case 'total_volume': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ объём`; break;
-                case 'stars_held': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ на балансе`; break;
-                case 'days_active': conditionStr = `${currentVal}/${neededVal} дней`; break;
-                default: conditionStr = getConditionText(ach); break;
-            }
+            let conditionStr = getConditionText(ach);
+            if (!conditionStr) continue;
             const percent = (ach.current / ach.needed) * 100;
-            nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:22px;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div></div>`;
+            let progressDisplay = '';
+            if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' || ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
+                progressDisplay = `${(ach.current/100).toFixed(2)}/${(ach.needed/100).toFixed(2)}`;
+            } else {
+                progressDisplay = `${ach.current}/${ach.needed}`;
+            }
+            nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:22px;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div><div class="small-text">${progressDisplay}</div></div>`;
         }
         nextHtml += `<button id="showGuideBtn" style="margin-top:16px; background:rgba(0,255,255,0.2); border:1px solid #0ff;">ℹ️ Инструкция по достижениям</button></div>`;
     } else {
