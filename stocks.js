@@ -1,4 +1,4 @@
-// stocks.js – компактный главный экран, все функции в модалках (заглушки)
+// stocks.js – окончательная версия с чистыми модалками
 window.renderStocksTab = async function(currentUser) {
     // Демо-данные (позже заменятся реальными)
     const userShares = currentUser?.shares ? window.fromCents(currentUser.shares) : '136.59';
