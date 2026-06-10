@@ -1,6 +1,6 @@
-// stocks.js – финальная версия с линией вкладок (График, Стакан, Ордера, Мои ордера)
+// stocks.js – финальная версия с линией вкладок и демо-данными (только визуал)
 window.renderStocksTab = async function(currentUser) {
-    // Демо-данные
+    // Демо-данные (заглушки)
     const userShares = currentUser?.shares ? window.fromCents(currentUser.shares) : '136.59';
     const userStars = currentUser?.stars_balance ? window.fromCents(currentUser.stars_balance) : '2.37';
     const currentPrice = '1.00';
@@ -8,18 +8,18 @@ window.renderStocksTab = async function(currentUser) {
     const totalShares = '225.46';
     const avgPrice24h = '0.00';
 
-    // Мок-ордера для отображения
+    // Мок-ордера
     const allOrders = [
         { id: 1, amount: 50, price: 1.15, seller: "user123" },
         { id: 2, amount: 30, price: 1.12, seller: "crypto_fan" },
         { id: 3, amount: 100, price: 1.08, seller: "investor" }
     ];
     const mySellOrders = [
-        { id: 101, amount: 20, price: 1.20, type: "sell" },
-        { id: 102, amount: 15, price: 1.18, type: "sell" }
+        { id: 101, amount: 20, price: 1.20 },
+        { id: 102, amount: 15, price: 1.18 }
     ];
     const myBuyOrders = [
-        { id: 201, amount: 40, price: 1.10, type: "buy" }
+        { id: 201, amount: 40, price: 1.10 }
     ];
 
     const html = `
@@ -50,9 +50,7 @@ window.renderStocksTab = async function(currentUser) {
                 <div class="stocks-tab" data-tab="myorders">📌 Мои ордера</div>
             </div>
             <div id="stocks-tab-chart" class="stocks-tab-content active">
-                <div class="stocks-chart" id="stocksChartPlaceholder">
-                    📈 График появится после первых сделок
-                </div>
+                <div class="stocks-chart">📈 График появится после первых сделок</div>
             </div>
             <div id="stocks-tab-orderbook" class="stocks-tab-content">
                 <div style="display:flex; gap:20px; flex-wrap:wrap;">
@@ -118,7 +116,7 @@ window.renderStocksTab = async function(currentUser) {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // Заглушка для рыночных кнопок (позже заменим на реальные)
+    // Заглушка для всех активных кнопок (пока без логики)
     const stubMsg = () => window.showCustomModal('В разработке', 'Функционал временно отключён для настройки визуала. Скоро всё заработает!');
     document.getElementById('marketBuyBtn').onclick = stubMsg;
     document.getElementById('marketSellBtn').onclick = stubMsg;
