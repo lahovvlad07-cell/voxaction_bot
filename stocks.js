@@ -1,8 +1,8 @@
-// stocks.js – финальная исправленная версия
-// - цена акции отображается корректно
-// - режим ввода в одну строку
-// - текст подсказки изменён
-// - заголовки секций слева, сообщения о пустоте по центру
+// stocks.js – финальная версия с корректной ценой (минимум 1.00)
+// - цена акции всегда показывает число (1.00, если нет сделок)
+// - средняя цена за 24ч в процентах (0%, если нет данных)
+// - режим ввода в строку (flex)
+// - пустые сообщения в ордерах выровнены по левому краю
 
 // ---- Режим ввода (поля / слайдеры) ----
 function getInputMode() {
@@ -112,15 +112,20 @@ window.renderStocksTab = async function(currentUser) {
 
     const userShares = window.fromCents(userSharesCents);
     const userStars = window.fromCents(userStarsCents);
-    // Корректное отображение цены: если нет данных – показываем "—"
-    const currentPrice = (currentPriceCents && currentPriceCents > 0) ? (currentPriceCents / 100).toFixed(2) : '—';
+    // Цена акции: минимум 1.00, если нет сделок
+    let currentPrice = 1.00;
+    if (currentPriceCents && currentPriceCents >= 100) {
+        currentPrice = currentPriceCents / 100;
+    }
+    const currentPriceFormatted = currentPrice.toFixed(2);
+    
     const marketCap = marketCapData.marketCap.toFixed(2);
     const totalShares = (marketCapData.totalShares / 100).toFixed(2);
     
     // Средняя цена за 24ч в процентах
-    let avgPercentText = '—';
+    let avgPercentText = '0%';
     let avgPercentClass = '';
-    if (avgPrice24hCents > 0 && currentPriceCents > 0) {
+    if (avgPrice24hCents >= 100 && currentPriceCents >= 100) {
         const percent = ((currentPriceCents - avgPrice24hCents) / avgPrice24hCents) * 100;
         avgPercentText = (percent >= 0 ? `+${percent.toFixed(2)}%` : `${percent.toFixed(2)}%`);
         avgPercentClass = percent >= 0 ? 'positive' : 'negative';
@@ -141,7 +146,7 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
                 <div class="balance-card">
                     <div class="bal-label">💰 Цена акции</div>
-                    <div class="bal-value price">${currentPrice}</div>
+                    <div class="bal-value price">${currentPriceFormatted}</div>
                 </div>
             </div>
 
@@ -185,7 +190,6 @@ window.renderStocksTab = async function(currentUser) {
                         <button id="orderTypeBuy" class="type-opt">📈 Купить акции</button>
                     </div>
                     
-                    <!-- Переключатель режима ввода (в одну строку) -->
                     <div class="input-mode-switch">
                         <span class="mode-label">🎛️ Режим ввода:</span>
                         <div class="mode-buttons">
@@ -201,7 +205,7 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
             </div>
 
-            <!-- Стакан (ТОП-5) -->
+            <!-- Стакан -->
             <div id="tab-orderbook" class="tab-pane">
                 <div class="orderbook-split">
                     <div class="orderbook-col">
@@ -215,7 +219,7 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
             </div>
 
-            <!-- Активные ордера на продажу -->
+            <!-- Активные ордера -->
             <div id="tab-orders" class="tab-pane">
                 <div class="section-header">📋 Активные ордера на продажу</div>
                 <div id="activeSellOrdersList" class="orders-container"></div>
@@ -322,16 +326,16 @@ window.renderStocksTab = async function(currentUser) {
             </div>
         `).join('');
 
-        document.getElementById('sellBookList').innerHTML = sellHtml || '<div class="empty-placeholder centered">Нет ордеров</div>';
-        document.getElementById('buyBookList').innerHTML = buyHtml || '<div class="empty-placeholder centered">Нет заявок</div>';
+        document.getElementById('sellBookList').innerHTML = sellHtml || '<div class="empty-placeholder">Нет ордеров</div>';
+        document.getElementById('buyBookList').innerHTML = buyHtml || '<div class="empty-placeholder">Нет заявок</div>';
     }
 
-    // ---- Активные ордера (чужие) ----
+    // ---- Активные ордера ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
         if (!activeSellOrders.length) {
-            container.innerHTML = '<div class="empty-placeholder centered">Нет активных ордеров</div>';
+            container.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>';
             return;
         }
         const html = activeSellOrders.map(order => {
@@ -375,7 +379,7 @@ window.renderStocksTab = async function(currentUser) {
         const sellContainer = document.getElementById('mySellOrdersList');
         if (sellContainer) {
             if (!mySellOrders.length) {
-                sellContainer.innerHTML = '<div class="empty-placeholder centered">Нет активных ордеров</div>';
+                sellContainer.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>';
             } else {
                 sellContainer.innerHTML = mySellOrders.map(order => `
                     <div class="my-order-item">
@@ -388,7 +392,7 @@ window.renderStocksTab = async function(currentUser) {
         const buyContainer = document.getElementById('myBuyOrdersList');
         if (buyContainer) {
             if (!myBuyOrders.length) {
-                buyContainer.innerHTML = '<div class="empty-placeholder centered">Нет активных заявок</div>';
+                buyContainer.innerHTML = '<div class="empty-placeholder">Нет активных заявок</div>';
             } else {
                 buyContainer.innerHTML = myBuyOrders.map(order => `
                     <div class="my-order-item">
@@ -527,7 +531,6 @@ window.renderStocksTab = async function(currentUser) {
         if (!isNaN(shares) && shares > 0) window.marketSell(shares).catch(e => window.showCustomModal('Ошибка', e.message));
     };
 
-    // ---- Отрисовка ----
     drawMainChart();
     renderOrderBook();
     renderActiveSellOrders();
