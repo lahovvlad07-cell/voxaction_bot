@@ -1,5 +1,4 @@
-/* profile.css – полная версия для вкладки Профиль */
-/* Аватар */
+/* profile.css – финальная версия с работающей прокруткой справочника */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -349,16 +348,33 @@
     box-shadow: 0 0 12px #2b6e9e;
 }
 
-/* Справочник достижений – единый список с категориями */
+/* ========== СПРАВОЧНИК ДОСТИЖЕНИЙ – ИСПРАВЛЕННАЯ ПРОКРУТКА ========== */
 .guide-modal-content {
     max-width: 650px;
     width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
 }
 .guide-list {
-    max-height: 65vh;
-    overflow-y: auto;
-    padding: 8px 4px;
+    flex: 1;
+    overflow-y: auto !important;
+    padding: 8px 8px 16px 8px;
+    max-height: 55vh;
+    scrollbar-width: thin;
 }
+.guide-list::-webkit-scrollbar {
+    width: 4px;
+}
+.guide-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+.guide-list::-webkit-scrollbar-thumb {
+    background: #2b6e9e;
+    border-radius: 4px;
+}
+
 .guide-category {
     margin-bottom: 24px;
 }
