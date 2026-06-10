@@ -1,5 +1,6 @@
-// stocks.js – простая версия с модалками (заглушки)
+// stocks.js – финальная версия с табами и списком ордеров (заглушки)
 window.renderStocksTab = async function(currentUser) {
+    // Демо-данные (позже заменятся реальными)
     const userShares = currentUser?.shares ? window.fromCents(currentUser.shares) : '136.59';
     const userStars = currentUser?.stars_balance ? window.fromCents(currentUser.stars_balance) : '2.37';
     const currentPrice = '1.00';
@@ -7,26 +8,115 @@ window.renderStocksTab = async function(currentUser) {
     const totalShares = '225.46';
     const avgPrice24h = '0.00';
 
+    // Мок-ордера для отображения
+    const allOrders = [
+        { id: 1, amount: 50, price: 1.15, seller: "user123" },
+        { id: 2, amount: 30, price: 1.12, seller: "crypto_fan" },
+        { id: 3, amount: 100, price: 1.08, seller: "investor" }
+    ];
+    const mySellOrders = [
+        { id: 101, amount: 20, price: 1.20, type: "sell" },
+        { id: 102, amount: 15, price: 1.18, type: "sell" }
+    ];
+    const myBuyOrders = [
+        { id: 201, amount: 40, price: 1.10, type: "buy" }
+    ];
+
     const html = `
         <div class="stocks-container">
+            <!-- Баланс -->
             <div class="stocks-balance">
-                <div class="stocks-balance-card"><div class="stocks-balance-label">📊 Акций</div><div class="stocks-balance-value">${userShares}</div></div>
-                <div class="stocks-balance-card"><div class="stocks-balance-label">⭐ Stars</div><div class="stocks-balance-value">${userStars}</div></div>
-                <div class="stocks-balance-card"><div class="stocks-balance-label">💰 Цена</div><div class="stocks-balance-value price">${currentPrice}</div></div>
+                <div class="stocks-balance-card">
+                    <div class="stocks-balance-label">📊 Акций</div>
+                    <div class="stocks-balance-value">${userShares}</div>
+                </div>
+                <div class="stocks-balance-card">
+                    <div class="stocks-balance-label">⭐ Stars</div>
+                    <div class="stocks-balance-value">${userStars}</div>
+                </div>
+                <div class="stocks-balance-card">
+                    <div class="stocks-balance-label">💰 Цена</div>
+                    <div class="stocks-balance-value price">${currentPrice}</div>
+                </div>
             </div>
+            <!-- Три показателя -->
             <div class="stocks-stats">
-                <div class="stocks-stat"><div class="label">🏦 Капитализация</div><div class="value">${marketCap} ⭐</div></div>
-                <div class="stocks-stat"><div class="label">📦 Всего акций</div><div class="value">${totalShares}</div></div>
-                <div class="stocks-stat"><div class="label">📈 Ср. цена 24ч</div><div class="value">${avgPrice24h} ⭐</div></div>
+                <div class="stocks-stat"><div class="label">🏦 КАПИТАЛИЗАЦИЯ</div><div class="value">${marketCap} ⭐</div></div>
+                <div class="stocks-stat"><div class="label">📦 ВСЕГО АКЦИЙ</div><div class="value">${totalShares}</div></div>
+                <div class="stocks-stat"><div class="label">📈 СР. ЦЕНА 24Ч</div><div class="value">${avgPrice24h} ⭐</div></div>
             </div>
-            <div class="stocks-chart" id="stocksChartPlaceholder">📈 График появится после первых сделок</div>
-            <div class="stocks-actions">
-                <button class="stocks-action-btn" id="openOrderbookBtn">📖 Стакан</button>
-                <button class="stocks-action-btn" id="openSellFormBtn">📈 Продать</button>
-                <button class="stocks-action-btn" id="openBuyFormBtn">🛒 Купить</button>
-                <button class="stocks-action-btn" id="openMyOrdersBtn">📌 Мои ордера</button>
+            <!-- Табы -->
+            <div class="stocks-tabs">
+                <div class="stocks-tab active" data-tab="chart">📈 График</div>
+                <div class="stocks-tab" data-tab="orderbook">📖 Стакан</div>
+                <div class="stocks-tab" data-tab="orders">📋 Ордера</div>
+                <div class="stocks-tab" data-tab="myorders">📌 Мои ордера</div>
+            </div>
+            <!-- Таб: График -->
+            <div id="stocks-tab-chart" class="stocks-tab-content active">
+                <div class="stocks-chart">📈 График появится после первых сделок</div>
+            </div>
+            <!-- Таб: Стакан -->
+            <div id="stocks-tab-orderbook" class="stocks-tab-content">
+                <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <div style="flex:1;">
+                        <h4 style="text-align:center; margin-bottom:16px; color:#fbbf24;">💰 Продажа</h4>
+                        <div class="orderbook-row"><span>—</span><span class="price-sell">—</span><span class="small-text">—</span></div>
+                        <div class="small-text" style="text-align:center; margin-top:20px; color:#9ca3af;">Нет заявок на продажу</div>
+                    </div>
+                    <div style="flex:1;">
+                        <h4 style="text-align:center; margin-bottom:16px; color:#4ade80;">🏦 Покупка</h4>
+                        <div class="orderbook-row"><span>—</span><span class="price-buy">—</span><span class="small-text">—</span></div>
+                        <div class="small-text" style="text-align:center; margin-top:20px; color:#9ca3af;">Нет заявок на покупку</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Таб: Ордера (чужие) -->
+            <div id="stocks-tab-orders" class="stocks-tab-content">
+                <div class="orders-list">
+                    ${allOrders.map(order => `
+                        <div class="order-card" data-order-id="${order.id}">
+                            <div class="order-info">
+                                <span class="order-amount">📦 ${order.amount} шт.</span>
+                                <span class="order-price">⭐ ${order.price.toFixed(2)}</span>
+                                <span class="order-seller">👤 продавец: ${order.seller}</span>
+                            </div>
+                            <button class="buy-order-btn" data-id="${order.id}">Купить</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <!-- Таб: Мои ордера -->
+            <div id="stocks-tab-myorders" class="stocks-tab-content">
+                <div class="my-orders-section">
+                    <h4>📌 Мои ордера на продажу</h4>
+                    ${mySellOrders.length ? mySellOrders.map(order => `
+                        <div class="my-order-card" data-id="${order.id}">
+                            <div class="my-order-info">
+                                <span>📦 ${order.amount} шт.</span>
+                                <span class="my-order-price">⭐ ${order.price.toFixed(2)}</span>
+                            </div>
+                            <button class="cancel-order-btn" data-id="${order.id}">Отменить</button>
+                        </div>
+                    `).join('') : '<div class="empty-msg">Нет активных ордеров на продажу</div>'}
+                    ${mySellOrders.length ? '<button class="cancel-all-btn" id="cancelAllSellsBtn">Отменить все продажи</button>' : ''}
+                </div>
+                <div class="my-orders-section">
+                    <h4>🛒 Мои заявки на покупку</h4>
+                    ${myBuyOrders.length ? myBuyOrders.map(order => `
+                        <div class="my-order-card" data-id="${order.id}">
+                            <div class="my-order-info">
+                                <span>📦 Купить ${order.amount} шт.</span>
+                                <span class="my-order-price">⭐ ${order.price.toFixed(2)}</span>
+                            </div>
+                            <button class="cancel-order-btn" data-id="${order.id}">Отменить</button>
+                        </div>
+                    `).join('') : '<div class="empty-msg">Нет активных заявок на покупку</div>'}
+                    ${myBuyOrders.length ? '<button class="cancel-all-btn" id="cancelAllBuysBtn">Отменить все покупки</button>' : ''}
+                </div>
             </div>
         </div>
+        <!-- Фиксированные рыночные кнопки -->
         <div class="stocks-market-fixed">
             <button class="stocks-market-buy" id="marketBuyBtn">🚀 Рыночная покупка</button>
             <button class="stocks-market-sell" id="marketSellBtn">📉 Рыночная продажа</button>
@@ -34,67 +124,43 @@ window.renderStocksTab = async function(currentUser) {
     `;
     document.getElementById('app').innerHTML = html;
 
+    // Заглушка для всех активных кнопок (пока без логики)
     const stubMsg = () => window.showCustomModal('В разработке', 'Функционал временно отключён для настройки визуала. Скоро всё заработает!');
     document.getElementById('marketBuyBtn').onclick = stubMsg;
     document.getElementById('marketSellBtn').onclick = stubMsg;
 
-    function showModal(title, contentHtml) {
-        const modalHtml = `
-            <div class="modal stocks-modal" id="stocksModal" style="display:flex;">
-                <div class="modal-content">
-                    <span class="modal-close" id="closeModal">&times;</span>
-                    <h3>${title}</h3>
-                    <div class="modal-body">${contentHtml}</div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        const modal = document.getElementById('stocksModal');
-        document.getElementById('closeModal').onclick = () => modal.remove();
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-    }
+    // Переключение вкладок
+    const tabs = document.querySelectorAll('.stocks-tab');
+    const contents = {
+        chart: document.getElementById('stocks-tab-chart'),
+        orderbook: document.getElementById('stocks-tab-orderbook'),
+        orders: document.getElementById('stocks-tab-orders'),
+        myorders: document.getElementById('stocks-tab-myorders')
+    };
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            Object.values(contents).forEach(content => content.classList.remove('active'));
+            if (contents[target]) contents[target].classList.add('active');
+        });
+    });
 
-    document.getElementById('openOrderbookBtn').onclick = () => {
-        showModal('Стакан заявок', `
-            <div style="display:flex; gap:20px; flex-wrap:wrap;">
-                <div style="flex:1;"><h4 style="text-align:center;">💰 Продажа</h4><div class="small-text" style="text-align:center;">Нет заявок</div></div>
-                <div style="flex:1;"><h4 style="text-align:center;">🏦 Покупка</h4><div class="small-text" style="text-align:center;">Нет заявок</div></div>
-            </div>
-        `);
-    };
-    document.getElementById('openSellFormBtn').onclick = () => {
-        showModal('Продать акции', `
-            <div class="form-group"><label>📦 Количество: <span id="sellAmountVal">0.01</span></label><input type="range" id="sellAmountSlider" min="0.01" max="1000" step="0.01" value="0.01"></div>
-            <div class="form-group"><label>⭐ Цена: <span id="sellPriceVal">1</span></label><input type="range" id="sellPriceSlider" min="1" max="100" step="0.1" value="1"></div>
-            <button class="stocks-btn" id="sellBtnStub">Продать</button>
-            <button class="stocks-toggle-mode" id="toggleSellModeStub">✍️ Поля ввода</button>
-        `);
-        const sellSlider = document.getElementById('sellAmountSlider');
-        if (sellSlider) sellSlider.oninput = () => document.getElementById('sellAmountVal').innerText = sellSlider.value;
-        const sellPriceSlider = document.getElementById('sellPriceSlider');
-        if (sellPriceSlider) sellPriceSlider.oninput = () => document.getElementById('sellPriceVal').innerText = sellPriceSlider.value;
-        document.getElementById('sellBtnStub').onclick = stubMsg;
-        document.getElementById('toggleSellModeStub').onclick = stubMsg;
-    };
-    document.getElementById('openBuyFormBtn').onclick = () => {
-        showModal('Купить (лимитная заявка)', `
-            <div class="form-group"><label>📦 Количество: <span id="buyAmountVal">0.01</span></label><input type="range" id="buyAmountSlider" min="0.01" max="1000" step="0.01" value="0.01"></div>
-            <div class="form-group"><label>⭐ Цена: <span id="buyPriceVal">1</span></label><input type="range" id="buyPriceSlider" min="1" max="100" step="0.1" value="1"></div>
-            <button class="stocks-btn" id="buyLimitBtnStub">Купить</button>
-            <button class="stocks-toggle-mode" id="toggleBuyModeStub">✍️ Поля ввода</button>
-        `);
-        const buySlider = document.getElementById('buyAmountSlider');
-        if (buySlider) buySlider.oninput = () => document.getElementById('buyAmountVal').innerText = buySlider.value;
-        const buyPriceSlider = document.getElementById('buyPriceSlider');
-        if (buyPriceSlider) buyPriceSlider.oninput = () => document.getElementById('buyPriceVal').innerText = buyPriceSlider.value;
-        document.getElementById('buyLimitBtnStub').onclick = stubMsg;
-        document.getElementById('toggleBuyModeStub').onclick = stubMsg;
-    };
-    document.getElementById('openMyOrdersBtn').onclick = () => {
-        showModal('Мои ордера', `
-            <div style="margin-bottom:16px;"><h4>📌 Мои ордера на продажу</h4><div class="order-card" style="justify-content:center;">Нет активных ордеров</div><button class="cancel-all-btn">Отменить все</button></div>
-            <div><h4>🛒 Мои заявки на покупку</h4><div class="order-card" style="justify-content:center;">Нет активных заявок</div><button class="cancel-all-btn">Отменить все</button></div>
-        `);
-        document.querySelectorAll('.cancel-all-btn').forEach(btn => btn.onclick = stubMsg);
-    };
+    // Кнопки "Купить" в ордерах (заглушки)
+    document.querySelectorAll('.buy-order-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            stubMsg();
+        });
+    });
+    // Кнопки отмены ордеров (заглушки)
+    document.querySelectorAll('.cancel-order-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            stubMsg();
+        });
+    });
+    document.getElementById('cancelAllSellsBtn')?.addEventListener('click', stubMsg);
+    document.getElementById('cancelAllBuysBtn')?.addEventListener('click', stubMsg);
 };
