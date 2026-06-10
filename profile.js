@@ -1,4 +1,4 @@
-// profile.js – полная версия с кастомизацией аватара, достижениями, золотым свечением
+// profile.js – исправленная версия (разнообразные ближайшие достижения, правильный баланс)
 
 const avatarEmojis = [
     '👤', '😀', '😎', '👍', '🐱', '🐶', '🦊', '🐼',
@@ -40,13 +40,16 @@ function getAvatarStyle(emoji) {
     return `font-size: ${fontSize};`;
 }
 
+// ===== ИСПРАВЛЕННАЯ ФУНКЦИЯ: разные типы достижений =====
 async function getNextAchievementsProgress(currentUser, getUserStats, getAllAchievements, getEarnedAchievements) {
     const allAchievements = await getAllAchievements();
     const earned = await getEarnedAchievements();
     const earnedIds = new Set(earned.map(a => a.id));
     const ignoreNames = ['🌟 Первый шаг', '🎨 Стилист'];
+    
     const notEarned = allAchievements.filter(a => !earnedIds.has(a.id) && !ignoreNames.includes(a.name));
     if (notEarned.length === 0) return [];
+    
     const stats = await getUserStats();
     const tradesCount = stats.totalTrades;
     const sharesCents = currentUser.shares;
@@ -57,8 +60,8 @@ async function getNextAchievementsProgress(currentUser, getUserStats, getAllAchi
     const totalVolumeCents = currentUser.total_volume || 0;
     const starsBalanceCents = currentUser.stars_balance;
     const daysActive = currentUser.days_active || 0;
-    const nextAchievements = [];
-    for (let ach of notEarned) {
+    
+    const achievementsWithProgress = notEarned.map(ach => {
         let current = 0, needed = ach.condition_value;
         switch (ach.condition_type) {
             case 'trades_count': current = tradesCount; break;
@@ -70,16 +73,37 @@ async function getNextAchievementsProgress(currentUser, getUserStats, getAllAchi
             case 'total_volume': current = totalVolumeCents; break;
             case 'stars_held': current = starsBalanceCents; break;
             case 'days_active': current = daysActive; break;
-            default: continue;
+            default: return null;
         }
         if (current < needed) {
-            nextAchievements.push({ ...ach, current, needed, progress: Math.min(100, (current / needed) * 100) });
+            return {
+                ...ach,
+                current,
+                needed,
+                progress: Math.min(100, (current / needed) * 100)
+            };
         }
-        if (nextAchievements.length >= 3) break;
+        return null;
+    }).filter(a => a !== null);
+    
+    // Группируем по типу условия, оставляя только одно достижение на тип (с максимальным прогрессом)
+    const byType = new Map();
+    for (const ach of achievementsWithProgress) {
+        const t = ach.condition_type;
+        if (!byType.has(t) || ach.progress > byType.get(t).progress) {
+            byType.set(t, ach);
+        }
     }
-    return nextAchievements;
+    
+    // Преобразуем в массив и сортируем по прогрессу (чем ближе к завершению, тем выше)
+    const unique = Array.from(byType.values());
+    unique.sort((a, b) => b.progress - a.progress);
+    
+    // Возвращаем первые 3 (или меньше)
+    return unique.slice(0, 3);
 }
 
+// ===== ОСТАЛЬНЫЕ ФУНКЦИИ (без изменений) =====
 async function awardStylistAchievement() {
     const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
     if (achData) await window.awardAchievement(achData.id);
@@ -484,16 +508,18 @@ window.renderProfileTab = async function(
         nextHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px;">📋 Ближайшие достижения:</div>`;
         for (let ach of nextAchs) {
             let conditionStr = '';
+            let currentVal = ach.current;
+            let neededVal = ach.needed;
             switch (ach.condition_type) {
-                case 'trades_count': conditionStr = `${ach.current}/${ach.needed} сделок`; break;
-                case 'shares_held': conditionStr = `${ach.current/100}/${ach.needed/100} акций`; break;
-                case 'referrals_count': conditionStr = `${ach.current}/${ach.needed} приглашений`; break;
-                case 'total_topup': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ пополнено`; break;
-                case 'total_spent': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ потрачено`; break;
-                case 'total_earned': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ заработано`; break;
-                case 'total_volume': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ объём`; break;
-                case 'stars_held': conditionStr = `${ach.current/100}/${ach.needed/100} ⭐ на балансе`; break;
-                case 'days_active': conditionStr = `${ach.current}/${ach.needed} дней`; break;
+                case 'trades_count': conditionStr = `${currentVal}/${neededVal} сделок`; break;
+                case 'shares_held': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} акций`; break;
+                case 'referrals_count': conditionStr = `${currentVal}/${neededVal} приглашений`; break;
+                case 'total_topup': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ пополнено`; break;
+                case 'total_spent': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ потрачено`; break;
+                case 'total_earned': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ заработано`; break;
+                case 'total_volume': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ объём`; break;
+                case 'stars_held': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ на балансе`; break;
+                case 'days_active': conditionStr = `${currentVal}/${neededVal} дней`; break;
             }
             nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:22px;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${ach.progress}%;"></div></div></div>`;
         }
@@ -510,6 +536,11 @@ window.renderProfileTab = async function(
     const emojiStyle = getAvatarStyle(avatarUrl);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
     
+    // Используем fromCents для отображения баланса и объёма
+    const starsDisplay = fromCents(currentUser.stars_balance);
+    const volumeDisplay = stats.totalVolume.toFixed(2);
+    const sharesDisplay = fromCents(currentUser.shares);
+    
     const html = `<div class="card" style="text-align: center; overflow: visible !important;">
         <div id="avatarClickWrapper">
             <div class="avatar-circle" style="background: ${avatarBg}; border: 3px solid ${avatarBorder};">
@@ -524,12 +555,12 @@ window.renderProfileTab = async function(
         <div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div>
         <div class="stats-container">
             <div class="stats-row">
-                <div class="stat-card"><div class="stat-value">${fromCents(currentUser.stars_balance)}</div><div class="stat-label">Stars</div></div>
-                <div class="stat-card"><div class="stat-value">${fromCents(currentUser.shares)}</div><div class="stat-label">Акций</div></div>
+                <div class="stat-card"><div class="stat-value">${starsDisplay}</div><div class="stat-label">Stars</div></div>
+                <div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div>
             </div>
             <div class="stats-row">
-                <div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div>
-                <div class="stat-card"><div class="stat-value">${stats.totalVolume.toFixed(2)}</div><div class="stat-label">Объём (⭐)</div></div>
+                <div class="stat-card"><div class="stat-value">${volumeDisplay}</div><div class="stat-label">Объём (⭐)</div></div>
+                <div class="stat-card"><div class="stat-value">${sharesDisplay}</div><div class="stat-label">Акций</div></div>
             </div>
         </div>
         ${rankHtml}
