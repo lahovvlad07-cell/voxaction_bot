@@ -1,4 +1,4 @@
-/* stocks.css – ПОЛНЫЙ неоновый стиль, ничего не сокращено */
+/* stocks.css – полный неоновый стиль, цена без градиента */
 :root {
     --neon-blue: #0ff;
     --neon-gold: #ffd700;
@@ -52,8 +52,16 @@
     -webkit-background-clip: text;
     color: transparent;
 }
+/* Цена акции – без градиента, обычный белый цвет */
 .bal-value.price {
-    background: linear-gradient(135deg, #ffd700, #ffb347);
+    background: none;
+    color: #eef2ff;
+    text-shadow: none;
+}
+/* Прочерк – бледно-серый */
+.bal-value.price-unknown {
+    background: none;
+    color: #9ca3af;
 }
 
 /* График */
