@@ -1,198 +1,264 @@
-/* stocks.css – полная версия для биржевой вкладки */
+/* stocks.css – неоновый современный дизайн с переключателями */
 :root {
-    --stocks-bg-card: rgba(18, 24, 38, 0.9);
-    --stocks-border: rgba(56, 189, 248, 0.25);
-    --stocks-accent: #2b6e9e;
-    --stocks-accent-grad: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    --stocks-gold-grad: linear-gradient(135deg, #fbbf24, #f59e0b);
-    --stocks-silver-grad: linear-gradient(135deg, #eef2ff, #a5b4fc);
-    --stocks-radius: 28px;
-    --stocks-radius-sm: 20px;
-    --stocks-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    --neon-blue: #0ff;
+    --neon-pink: #f0f;
+    --neon-gold: #ffd700;
+    --bg-dark: #0a0b10;
+    --card-bg: rgba(12, 15, 25, 0.75);
+    --border-glow: 0 0 5px rgba(0, 255, 255, 0.3);
 }
 
-/* Общий контейнер */
+* {
+    box-sizing: border-box;
+}
+
 .stocks-container {
     max-width: 600px;
     margin: 0 auto;
     padding: 0 16px 80px 16px;
 }
 
-/* ===== Верхние карточки баланса ===== */
+/* Баланс карточки */
 .balance-row {
     display: flex;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 .balance-card {
     flex: 1;
-    background: var(--stocks-bg-card);
-    backdrop-filter: blur(8px);
-    border-radius: var(--stocks-radius);
-    padding: 14px 8px;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border-radius: 32px;
+    padding: 16px 8px;
     text-align: center;
-    border: 1px solid var(--stocks-border);
-    transition: transform 0.2s, border-color 0.2s;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    box-shadow: var(--border-glow);
+    transition: all 0.2s;
 }
 .balance-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--stocks-accent);
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+    transform: translateY(-3px);
 }
 .bal-label {
     font-size: 13px;
-    color: #9ca3af;
-    margin-bottom: 6px;
+    color: #8e9aaf;
+    letter-spacing: 1px;
 }
 .bal-value {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
-    background: var(--stocks-silver-grad);
+    background: linear-gradient(135deg, #fff, #a5f0ff);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
 }
 .bal-value.price {
-    background: var(--stocks-gold-grad);
+    background: linear-gradient(135deg, #ffd700, #ffb347);
 }
 
-/* ===== Дополнительная статистика ===== */
+/* Статистика */
 .stats-row {
     display: flex;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     flex-wrap: wrap;
 }
 .stat-item {
     flex: 1;
-    background: rgba(0,0,0,0.35);
-    border-radius: var(--stocks-radius-sm);
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 24px;
     padding: 8px 12px;
     font-size: 12px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
     backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
-.stat-item span {
-    color: #9ca3af;
-}
-.stat-item strong {
-    font-size: 14px;
-    color: #eef2ff;
-}
+.stat-item span { color: #9aa4bf; }
+.stat-item strong { font-size: 14px; color: #fff; }
 
-/* ===== Табы ===== */
+/* Табы */
 .tabs-row {
     display: flex;
-    gap: 8px;
-    margin: 20px 0 16px;
+    gap: 10px;
+    margin: 20px 0;
     overflow-x: auto;
     scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-.tabs-row::-webkit-scrollbar {
-    display: none;
 }
 .tab-btn {
-    background: rgba(255,255,255,0.05);
-    border: none;
-    padding: 8px 16px;
-    border-radius: 40px;
+    background: rgba(20, 25, 40, 0.8);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    padding: 8px 18px;
+    border-radius: 60px;
     font-size: 14px;
     font-weight: 600;
-    color: #cbd5e1;
-    white-space: nowrap;
-    transition: all 0.2s;
+    color: #ccd6f0;
     cursor: pointer;
+    transition: 0.2s;
+    white-space: nowrap;
 }
 .tab-btn.active {
-    background: var(--stocks-accent-grad);
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    border-color: #0ff;
     color: white;
-    box-shadow: 0 2px 8px rgba(43,110,158,0.4);
+    box-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
 }
-.tab-btn:not(.active):hover {
-    background: rgba(255,255,255,0.1);
-    color: #eef2ff;
+.tab-btn:hover:not(.active) {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: #0ff;
 }
 
-/* ===== Панели табов ===== */
+/* Контент табов */
 .tab-pane {
     display: none;
-    animation: fadeContent 0.2s ease;
+    animation: fadeSlide 0.25s ease;
 }
-.tab-pane.active {
-    display: block;
-}
-@keyframes fadeContent {
-    from { opacity: 0; transform: translateY(5px); }
+.tab-pane.active { display: block; }
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== Форма лимитного ордера ===== */
+/* Панель ордера */
 .order-form-panel {
-    background: rgba(0,0,0,0.35);
-    border-radius: var(--stocks-radius);
-    padding: 18px;
-    margin-top: 4px;
+    background: rgba(10, 15, 25, 0.7);
+    backdrop-filter: blur(16px);
+    border-radius: 32px;
+    padding: 20px;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 .order-form-panel h4 {
     text-align: center;
     margin-bottom: 16px;
-    color: #eef2ff;
+    font-size: 18px;
+    background: linear-gradient(135deg, #fff, #0ff);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
 }
 .type-switch {
     display: flex;
     gap: 12px;
-    margin: 12px 0;
+    margin: 16px 0;
 }
 .type-opt {
     flex: 1;
-    background: rgba(255,255,255,0.05);
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
     padding: 10px;
-    border-radius: 40px;
+    border-radius: 60px;
     font-weight: 600;
-    color: #cbd5e1;
     cursor: pointer;
     transition: 0.2s;
 }
 .type-opt.active {
-    background: var(--stocks-accent-grad);
+    background: linear-gradient(135deg, #0072ff, #00c6ff);
+    border-color: #0ff;
     color: white;
+    box-shadow: 0 0 8px #0ff;
 }
-.order-form-panel input {
+
+/* Переключатель режима ввода */
+.input-mode-switch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 16px 0 12px;
+    font-size: 13px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 12px;
+    border-radius: 40px;
+}
+.mode-btn {
+    background: none;
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.mode-btn.active {
+    background: #0ff;
+    color: #000;
+    border-color: #0ff;
+    font-weight: bold;
+}
+
+/* Контролы (поля или слайдеры) */
+.control-group {
+    margin: 12px 0;
+}
+.control-group input[type="number"] {
     width: 100%;
     padding: 12px 16px;
-    margin: 8px 0;
-    background: #111827;
-    border: 1px solid var(--stocks-border);
-    border-radius: 44px;
-    color: #f0f4ff;
+    background: #0a0f1a;
+    border: 1px solid #0ff;
+    border-radius: 40px;
+    color: #fff;
+    font-size: 16px;
 }
-.order-form-panel button {
+.control-group input[type="range"] {
     width: 100%;
-    margin-top: 16px;
-    padding: 12px;
-    background: var(--stocks-accent-grad);
+    margin: 8px 0;
+    -webkit-appearance: none;
+    background: rgba(0, 255, 255, 0.2);
+    border-radius: 10px;
+    height: 6px;
+}
+.control-group input[type="range"]:focus {
+    outline: none;
+}
+.control-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #0ff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px #0ff;
+}
+.slider-value {
+    text-align: center;
+    font-size: 13px;
+    color: #0ff;
+    margin-top: 4px;
+}
+
+/* Кнопка размещения */
+#createOrderBtn {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    border: none;
+    padding: 14px;
+    border-radius: 60px;
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 20px;
+    transition: 0.2s;
+}
+#createOrderBtn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 16px #0ff;
 }
 .hint {
     font-size: 11px;
-    color: #9ca3af;
     text-align: center;
     margin-top: 14px;
+    color: #7e8c8f;
 }
 
-/* ===== График ===== */
+/* График */
 #priceChart {
-    background: #0a0e16;
-    border-radius: var(--stocks-radius);
+    background: #05080f;
+    border-radius: 28px;
     padding: 8px;
-    width: 100%;
-    height: 200px;
-    border: 1px solid var(--stocks-border);
+    border: 1px solid #0ff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
 }
 
-/* ===== Стакан (Order Book) ===== */
+/* Стакан */
 .orderbook-split {
     display: flex;
     gap: 20px;
@@ -200,78 +266,56 @@
 }
 .orderbook-col {
     flex: 1;
-    min-width: 140px;
 }
 .orderbook-col h4 {
     text-align: center;
     margin-bottom: 12px;
-    font-size: 16px;
+    color: #0ff;
 }
 .orderbook-list {
-    background: rgba(0,0,0,0.3);
-    border-radius: var(--stocks-radius-sm);
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
     padding: 8px;
 }
 .orderbook-row {
     display: flex;
     justify-content: space-between;
-    padding: 6px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    font-size: 13px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+    font-size: 14px;
 }
-.price-sell {
-    color: #fbbf24;
-    font-weight: 700;
-}
-.price-buy {
-    color: #4ade80;
-    font-weight: 700;
-}
+.price-sell { color: #ffaa44; font-weight: bold; }
+.price-buy { color: #44ffaa; font-weight: bold; }
 
-/* ===== Списки ордеров ===== */
-.orders-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
+/* Ордера */
 .order-item, .my-order-item {
-    background: rgba(0,0,0,0.35);
-    border-radius: 20px;
-    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
+    padding: 12px;
+    margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    transition: 0.1s;
-}
-.order-item:hover, .my-order-item:hover {
-    background: rgba(43,110,158,0.15);
-}
-.order-seller {
-    font-size: 11px;
-    color: #9ca3af;
+    border: 1px solid rgba(0, 255, 255, 0.2);
 }
 .buy-order-btn, .cancel-order-btn {
-    background: var(--stocks-accent-grad);
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border: none;
     padding: 6px 16px;
-    border-radius: 40px;
-    font-size: 12px;
-    font-weight: 600;
+    border-radius: 60px;
+    font-weight: bold;
     cursor: pointer;
-}
-.buy-order-btn:active, .cancel-order-btn:active {
-    transform: scale(0.96);
 }
 .empty-placeholder {
     text-align: center;
-    padding: 30px 20px;
-    color: #9ca3af;
+    padding: 30px;
+    color: #6c7a89;
     font-style: italic;
 }
 
-/* ===== Фиксированные рыночные кнопки ===== */
+/* Рыночные кнопки снизу */
 .market-buttons {
     position: fixed;
     bottom: 70px;
@@ -280,24 +324,21 @@
     display: flex;
     gap: 14px;
     padding: 12px 16px;
-    background: rgba(10,14,26,0.96);
+    background: rgba(8, 10, 18, 0.95);
     backdrop-filter: blur(20px);
-    border-top: 1px solid var(--stocks-border);
+    border-top: 1px solid #0ff;
     z-index: 99;
 }
 .market-btn {
     flex: 1;
     padding: 14px;
     font-size: 15px;
-    font-weight: 700;
-    border-radius: 48px;
+    font-weight: bold;
+    border-radius: 60px;
     border: none;
-    cursor: pointer;
-    transition: transform 0.1s;
+    transition: 0.1s;
 }
-.market-btn:active {
-    transform: scale(0.97);
-}
+.market-btn:active { transform: scale(0.97); }
 .market-btn.buy {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     color: #1e1e2f;
@@ -307,68 +348,11 @@
     color: white;
 }
 
-/* ===== Адаптация под мобильные ===== */
+/* Адаптив */
 @media (max-width: 560px) {
-    .stocks-container {
-        padding: 0 12px 70px 12px;
-    }
-    .balance-row {
-        gap: 8px;
-    }
-    .balance-card {
-        padding: 10px 4px;
-    }
-    .bal-value {
-        font-size: 20px;
-    }
-    .stat-item {
-        font-size: 10px;
-        padding: 6px 10px;
-    }
-    .stat-item strong {
-        font-size: 12px;
-    }
-    .tab-btn {
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-    .order-form-panel {
-        padding: 12px;
-    }
-    .orderbook-split {
-        flex-direction: column;
-        gap: 16px;
-    }
-    .order-item, .my-order-item {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .buy-order-btn, .cancel-order-btn {
-        width: 100%;
-        text-align: center;
-    }
-    .market-buttons {
-        bottom: 65px;
-        padding: 10px 12px;
-        gap: 10px;
-    }
-    .market-btn {
-        padding: 12px;
-        font-size: 14px;
-    }
-}
-
-/* Для очень маленьких экранов (до 380px) */
-@media (max-width: 380px) {
-    .stats-row {
-        flex-direction: column;
-        gap: 6px;
-    }
-    .tabs-row {
-        gap: 4px;
-    }
-    .tab-btn {
-        padding: 5px 8px;
-        font-size: 11px;
-    }
+    .balance-card { padding: 10px 4px; }
+    .bal-value { font-size: 20px; }
+    .tab-btn { padding: 6px 12px; font-size: 12px; }
+    .order-form-panel { padding: 16px; }
+    .market-buttons { bottom: 65px; padding: 8px 12px; }
 }
