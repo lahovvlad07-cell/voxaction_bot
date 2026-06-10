@@ -1,29 +1,38 @@
 /* stocks.css – компактный главный экран, все детали в модалках */
-/* Все классы имеют префикс stocks- */
+/* ===== ОСНОВНЫЕ КОМПОНЕНТЫ ===== */
+.stocks-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 12px;
+}
 
-/* ===== КОМПАКТНЫЙ БЛОК БАЛАНСА (три карточки в ряд) ===== */
+/* Блок баланса */
 .stocks-balance {
     display: flex;
     gap: 12px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
+    margin-bottom: 20px;
 }
 .stocks-balance-card {
     flex: 1;
     background: rgba(18, 24, 38, 0.8);
     backdrop-filter: blur(8px);
-    border-radius: 20px;
-    padding: 12px 8px;
+    border-radius: 24px;
+    padding: 14px 8px;
     text-align: center;
     border: 1px solid rgba(56, 189, 248, 0.2);
+    transition: transform 0.2s;
+}
+.stocks-balance-card:hover {
+    transform: translateY(-2px);
+    border-color: #2b6e9e;
 }
 .stocks-balance-label {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 .stocks-balance-value {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
@@ -34,65 +43,67 @@
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
 
-/* ===== ИНФОПАНЕЛЬ (три показателя компактно) ===== */
-.stocks-info {
-    display: flex;
-    gap: 12px;
-    margin: 16px 0;
-}
-.stocks-info-item {
-    flex: 1;
-    background: rgba(0,0,0,0.3);
-    border-radius: 16px;
-    padding: 8px;
-    text-align: center;
-}
-.stocks-info-item .small-text {
-    font-size: 10px;
-    color: #9ca3af;
-}
-.stocks-info-item .value {
-    font-size: 16px;
-    font-weight: 700;
-    margin-top: 4px;
-}
-
-/* ===== ГРАФИК ===== */
+/* График */
 .stocks-chart {
     background: #0f1320;
     border-radius: 20px;
-    padding: 8px;
+    padding: 12px;
     margin: 16px 0;
     height: 160px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #9ca3af;
-    font-size: 12px;
+    font-size: 13px;
+    border: 1px solid rgba(56,189,248,0.2);
 }
 
-/* ===== КНОПКИ БЫСТРОГО ДОСТУПА (сетка) ===== */
-.stocks-actions {
+/* Три показателя */
+.stocks-stats {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+}
+.stocks-stat {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border-radius: 20px;
+    padding: 10px;
+    text-align: center;
+}
+.stocks-stat .label {
+    font-size: 11px;
+    color: #9ca3af;
+}
+.stocks-stat .value {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 4px;
+    color: #eef2ff;
+}
+
+/* Сетка кнопок */
+.stocks-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
-    margin: 16px 0;
+    margin: 20px 0;
 }
-.stocks-action-btn {
+.stocks-grid-btn {
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(56,189,248,0.3);
-    padding: 10px;
-    border-radius: 40px;
+    padding: 12px;
+    border-radius: 44px;
     font-size: 14px;
     cursor: pointer;
     transition: 0.2s;
     text-align: center;
 }
-.stocks-action-btn:active {
+.stocks-grid-btn:active {
     transform: scale(0.96);
 }
 
-/* ===== ФИКСИРОВАННЫЕ КНОПКИ РЫНОЧНЫХ ОПЕРАЦИЙ ===== */
+/* Фиксированные рыночные кнопки */
 .stocks-market-fixed {
     position: fixed;
     bottom: 70px;
@@ -121,22 +132,24 @@
     background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-/* ===== МОДАЛЬНЫЕ ОКНА (общие стили) ===== */
+/* ===== МОДАЛЬНЫЕ ОКНА ===== */
 .stocks-modal .modal-content {
     max-width: 500px;
     width: 90%;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow-y: auto;
+    border-radius: 28px;
 }
 .stocks-modal h3 {
-    margin-top: 0;
-    margin-bottom: 16px;
+    margin: 0 0 16px 0;
+    font-size: 20px;
+    text-align: center;
 }
 .modal-close {
     position: absolute;
     top: 12px;
     right: 16px;
-    font-size: 24px;
+    font-size: 26px;
     cursor: pointer;
     color: #9ca3af;
 }
@@ -215,14 +228,30 @@
 }
 .status-cancelled { color: #f87171; }
 
-/* Мобильная адаптация модалок */
+/* Мобильная адаптация */
 @media (max-width: 560px) {
-    .stocks-modal .modal-content {
-        width: 95%;
-        max-height: 85vh;
+    .stocks-balance {
+        gap: 8px;
+    }
+    .stocks-balance-card {
+        padding: 10px 4px;
+    }
+    .stocks-balance-value {
+        font-size: 20px;
+    }
+    .stocks-grid {
+        gap: 8px;
+    }
+    .stocks-grid-btn {
+        padding: 10px;
+        font-size: 13px;
     }
     .stocks-market-fixed {
         bottom: 65px;
         padding: 8px 12px;
+    }
+    .stocks-modal .modal-content {
+        width: 95%;
+        max-height: 90vh;
     }
 }
