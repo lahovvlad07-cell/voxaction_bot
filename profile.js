@@ -1,4 +1,4 @@
-// profile_v8.js – полностью исправленная версия
+// profile_v9.js – финальная версия с улучшенной модалкой и крупными иконками
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -104,10 +104,12 @@ async function getAllAchievementsList() {
     return all.map(ach => ({ ...ach, earned: earnedIds.has(ach.id) }));
 }
 
+// Новая, красивая модалка справочника достижений
 async function showAchievementsGuide(currentUser, getUserStats) {
     const achievements = await getAllAchievementsList();
     const stats = await getUserStats();
     const user = currentUser;
+    
     function getCurrentProgress(ach) {
         if (ach.earned) return ach.condition_value;
         if (ach.condition_type === 'none') return 1;
@@ -131,26 +133,25 @@ async function showAchievementsGuide(currentUser, getUserStats) {
             default: return 0;
         }
     }
-    const html = achievements.map(ach => {
-        const conditionText = getConditionText(ach);
+    
+    const itemsHtml = achievements.map(ach => {
         const isCompleted = ach.earned;
+        const conditionText = getConditionText(ach);
         let progressPercent = 0;
         let progressDisplay = '';
-        if (ach.condition_type !== 'none') {
+        if (ach.condition_type !== 'none' && ach.condition_value > 0) {
             const current = getCurrentProgress(ach);
             const needed = ach.condition_value;
             if (isCompleted) {
                 progressPercent = 100;
-            } else if (needed > 0) {
+            } else {
                 progressPercent = Math.min(100, (current / needed) * 100);
-                let curr = current, need = needed;
                 if (ach.condition_type === 'shares_held' || ach.condition_type === 'total_topup' || 
                     ach.condition_type === 'total_spent' || ach.condition_type === 'total_earned' ||
                     ach.condition_type === 'total_volume' || ach.condition_type === 'stars_held') {
-                    curr = current / 100; need = needed / 100;
-                    progressDisplay = `${curr.toFixed(2)}/${need.toFixed(2)}`;
+                    progressDisplay = `${(current/100).toFixed(1)}/${(needed/100).toFixed(1)}`;
                 } else {
-                    progressDisplay = `${curr}/${need}`;
+                    progressDisplay = `${current}/${needed}`;
                 }
             }
         }
@@ -158,30 +159,39 @@ async function showAchievementsGuide(currentUser, getUserStats) {
         if (ach.name === '❌⭕ Стратег') displayIcon = '❌';
         let statusHtml = '';
         if (ach.condition_type === 'none') {
-            statusHtml = '<div class="small-text" style="color:#4ade80;">✅ Получено</div>';
+            statusHtml = '<span class="guide-badge completed">✅ Получено</span>';
         } else if (isCompleted) {
-            statusHtml = '<div class="small-text" style="color:#4ade80;">✅ Получено</div>';
+            statusHtml = '<span class="guide-badge completed">✅ Получено</span>';
         } else {
             statusHtml = `
-                <div style="display:flex; justify-content:space-between; margin-top:6px;">
-                    <span class="small-text">Прогресс</span>
-                    <span class="small-text">${progressDisplay}</span>
+                <div class="guide-progress">
+                    <div class="guide-progress-bar"><div class="guide-progress-fill" style="width: ${progressPercent}%;"></div></div>
+                    <div class="guide-progress-text">${progressDisplay}</div>
                 </div>
-                <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
             `;
         }
-        return `<div class="achievement-guide-item">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span class="guide-achievement-icon">${displayIcon}</span>
-                <div style="flex:1;">
-                    <div style="font-weight:bold;">${ach.name}</div>
-                    ${conditionText ? `<div class="small-text" style="color:#0ff;">${conditionText}</div>` : ''}
+        return `
+            <div class="guide-item">
+                <div class="guide-icon">${displayIcon}</div>
+                <div class="guide-content">
+                    <div class="guide-title">${ach.name}</div>
+                    ${conditionText ? `<div class="guide-condition">${conditionText}</div>` : ''}
                     ${statusHtml}
                 </div>
             </div>
-        </div>`;
+        `;
     }).join('');
-    const modalHtml = `<div class="modal" id="guideModal" style="display:flex;"><div class="modal-content" style="max-width:500px; max-height:80vh;"><span class="close-modal" id="closeGuideModal">&times;</span><h3>📜 Справочник достижений</h3><div class="scrollable-content" style="max-height:60vh; overflow-y:auto;">${html}</div><div class="modal-buttons"><button id="closeGuideBtn">Закрыть</button></div></div></div>`;
+    
+    const modalHtml = `
+        <div class="modal" id="guideModal" style="display:flex;">
+            <div class="modal-content guide-modal-content">
+                <span class="close-modal" id="closeGuideModal">&times;</span>
+                <h3>🏆 Справочник достижений</h3>
+                <div class="guide-list">${itemsHtml}</div>
+                <div class="modal-buttons"><button id="closeGuideBtn">Закрыть</button></div>
+            </div>
+        </div>
+    `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modal = document.getElementById('guideModal');
     document.getElementById('closeGuideModal').onclick = () => modal.remove();
@@ -189,7 +199,7 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
-// ========== КАСТОМИЗАЦИЯ АВАТАРА (стандартные функции) ==========
+// ========== КАСТОМИЗАЦИЯ АВАТАРА (сокращённо, без изменений) ==========
 async function awardStylistAchievement() {
     const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
     if (ach) await window.awardAchievement(ach.id);
