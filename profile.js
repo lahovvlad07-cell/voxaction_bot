@@ -1,95 +1,63 @@
-// profile.js – финальная версия с группировкой достижений
-const avatarEmojis = [
-    '👤', '😀', '😎', '👍', '🐱', '🐶', '🦊', '🐼',
-    '🍕', '🍔', '🍩', '☕', '💎', '💰', '🎲', '🏆',
-    '🎁', '🌟', '🔥', '❤️', '🚀', '🍀', '👑', '🎯'
-];
-
+// profile.js – финальная версия с группировкой достижений в 3 набора
+const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
-    { name: 'Синий', value: '#2b6e9e' },
-    { name: 'Фиолетовый', value: '#9b59b6' },
-    { name: 'Оранжевый', value: '#e67e22' },
-    { name: 'Зелёный', value: '#27ae60' },
-    { name: 'Жёлтый', value: '#f1c40f' },
-    { name: 'Красный', value: '#e74c3c' },
-    { name: 'Бирюзовый', value: '#1abc9c' },
-    { name: 'Лазурный', value: '#3498db' },
-    { name: 'Тёмный', value: '#2c3e50' },
-    { name: 'Розовый', value: '#ff9a9e' },
+    { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
+    { name: 'Оранжевый', value: '#e67e22' }, { name: 'Зелёный', value: '#27ae60' },
+    { name: 'Жёлтый', value: '#f1c40f' }, { name: 'Красный', value: '#e74c3c' },
+    { name: 'Бирюзовый', value: '#1abc9c' }, { name: 'Лазурный', value: '#3498db' },
+    { name: 'Тёмный', value: '#2c3e50' }, { name: 'Розовый', value: '#ff9a9e' },
     { name: 'Лаванда', value: '#a18cd1' }
 ];
-
 const borderColors = [
-    { name: 'Белый', value: '#ffffff' },
-    { name: 'Чёрный', value: '#000000' },
-    { name: 'Красный', value: '#ff0000' },
-    { name: 'Зелёный', value: '#00ff00' },
-    { name: 'Синий', value: '#0000ff' },
-    { name: 'Жёлтый', value: '#ffff00' },
-    { name: 'Фиолетовый', value: '#9b30ff' },
-    { name: 'Оранжевый', value: '#ff8c00' },
-    { name: 'Голубой', value: '#00ffff' },
-    { name: 'Розовый', value: '#ff69b4' },
+    { name: 'Белый', value: '#ffffff' }, { name: 'Чёрный', value: '#000000' },
+    { name: 'Красный', value: '#ff0000' }, { name: 'Зелёный', value: '#00ff00' },
+    { name: 'Синий', value: '#0000ff' }, { name: 'Жёлтый', value: '#ffff00' },
+    { name: 'Фиолетовый', value: '#9b30ff' }, { name: 'Оранжевый', value: '#ff8c00' },
+    { name: 'Голубой', value: '#00ffff' }, { name: 'Розовый', value: '#ff69b4' },
     { name: 'Серый', value: '#808080' }
 ];
 
 function getAvatarStyle(emoji) {
-    const specialSizes = { '🌟':'56px','🔥':'56px','💎':'56px','🎲':'56px','🎁':'56px' };
-    const fontSize = specialSizes[emoji] || '48px';
-    return `font-size: ${fontSize};`;
+    const special = { '🌟':'56px','🔥':'56px','💎':'56px','🎲':'56px','🎁':'56px' };
+    return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== ГРУППИРОВКА ДОСТИЖЕНИЙ ==========
-async function getGroupedAchievementsProgress(currentUser) {
-    // Получаем все достижения
-    const { data: allAchievements, error } = await window.supabase
-        .from('achievements')
-        .select('*')
-        .order('condition_value', { ascending: true });
-    if (error || !allAchievements) return [];
-    
-    // Получаем ID полученных достижений пользователя
-    const { data: earned, error: earnErr } = await window.supabase
-        .from('user_achievements')
-        .select('achievement_id')
-        .eq('user_id', window.userId);
+// ========== ГРУППИРОВКА ДОСТИЖЕНИЙ (3 НАБОРА) ==========
+async function getGroupedAchievementsProgress() {
+    const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
+    if (!all) return [];
+    const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
     const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
-    
-    // Исключаем специальные достижения, которые не должны влиять на прогресс-бары
-    const excludeNames = ['🌟 Первый шаг', '🎨 Стилист'];
-    const filtered = allAchievements.filter(a => !excludeNames.includes(a.name));
-    
+    const exclude = ['🌟 Первый шаг', '🎨 Стилист'];
+    const filtered = all.filter(a => !exclude.includes(a.name));
     const total = filtered.length;
-    const groupSize = Math.ceil(total / 3);
+    const size = Math.ceil(total / 3);
     const groups = [
-        filtered.slice(0, groupSize),
-        filtered.slice(groupSize, groupSize * 2),
-        filtered.slice(groupSize * 2)
+        filtered.slice(0, size),
+        filtered.slice(size, size*2),
+        filtered.slice(size*2)
     ];
-    
-    const groupNames = ['🏅 Новичок', '⚡ Опытный', '👑 Мастер'];
-    return groups.map((group, idx) => {
-        const earnedCount = group.filter(ach => earnedIds.has(ach.id)).length;
-        const totalCount = group.length;
-        const progressPercent = (earnedCount / totalCount) * 100;
-        const isCompleted = earnedCount === totalCount;
+    const names = ['🏅 Новичок', '⚡ Опытный', '👑 Мастер'];
+    return groups.map((g, i) => {
+        const earnedCount = g.filter(ach => earnedIds.has(ach.id)).length;
+        const totalCount = g.length;
         return {
-            name: groupNames[idx] || 'Достижения',
+            name: names[i],
             earnedCount,
             totalCount,
-            progressPercent,
-            isCompleted
+            percent: (earnedCount / totalCount) * 100,
+            completed: earnedCount === totalCount
         };
     });
 }
 
-// ========== КАСТОМИЗАЦИЯ АВАТАРА ==========
+// ========== КАСТОМИЗАЦИЯ АВАТАРА (без изменений) ==========
 async function awardStylistAchievement() {
-    const { data: achData } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
-    if (achData) await window.awardAchievement(achData.id);
+    const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
+    if (ach) await window.awardAchievement(ach.id);
 }
 
-async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal, supabase, userId) {
+async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal) {
     const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
     const isSlotOccupied = currentSlotAchievementId !== null;
     const gridHtml = earnedAchievements.map(ach => {
@@ -152,7 +120,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         let newSelectedIds = [...currentSelectedIds];
         if (selectedCard) {
             const selectedId = parseInt(selectedCard.dataset.achId);
-            // Проверяем, не выбран ли уже этот ID в другом слоте
             if (newSelectedIds.includes(selectedId)) {
                 showCustomModal('Ошибка', 'Это достижение уже используется в другом слоте');
                 return;
@@ -160,7 +127,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
             newSelectedIds[slot] = selectedId;
         }
         newSelectedIds = newSelectedIds.filter(id => id !== null);
-        // Убираем возможные дубликаты
         newSelectedIds = [...new Set(newSelectedIds)];
         await updateUserCallback({ selected_achievements: newSelectedIds });
         currentUser.selected_achievements = newSelectedIds;
@@ -470,7 +436,7 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await renderProfileTab();
 }
 
-// ========== ГЛАВНЫЙ РЕНДЕР ПРОФИЛЯ ==========
+// ========== ГЛАВНЫЙ РЕНДЕР ==========
 window.renderProfileTab = async function(
     currentUser, supabase, userId, fromCents, showCustomModal,
     getUserStats, getUserRank, getEarnedAchievements, getAllAchievements,
@@ -480,44 +446,38 @@ window.renderProfileTab = async function(
     
     const stats = await getUserStats();
     const earnedAchievements = await getEarnedAchievements();
-    const selectedIds = currentUser.selected_achievements || [];
-    // Убираем возможные дубликаты в selected_achievements
-    const uniqueSelected = [...new Set(selectedIds)];
-    if (uniqueSelected.length !== selectedIds.length) {
-        await window.supabase.from('users').update({ selected_achievements: uniqueSelected }).eq('id', userId);
-        currentUser.selected_achievements = uniqueSelected;
-    }
+    let selectedIds = currentUser.selected_achievements || [];
+    selectedIds = [...new Set(selectedIds)]; // убираем дубликаты
     
     const iconsHtml = [];
     for (let i = 0; i < 3; i++) {
-        const achId = uniqueSelected[i];
-        const ach = earnedAchievements.find(a => a.id === achId);
+        const ach = earnedAchievements.find(a => a.id === selectedIds[i]);
         iconsHtml.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
     }
     const rank = await getUserRank();
     const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px; font-weight:bold;">#${rank}</span></div>` : '';
     
-    // Группировка достижений (прогресс-бары)
-    const groups = await getGroupedAchievementsProgress(currentUser);
-    let nextHtml = '';
+    // Группировка достижений (три прогресс-бара)
+    const groups = await getGroupedAchievementsProgress();
+    let groupsHtml = '';
     if (groups.length) {
-        nextHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px;">📋 Прогресс по наборам достижений:</div>`;
-        for (let group of groups) {
-            const percent = group.progressPercent.toFixed(1);
-            const completedMark = group.isCompleted ? ' ✅' : '';
-            nextHtml += `
+        groupsHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px;">📋 Прогресс по наборам достижений:</div>`;
+        for (const g of groups) {
+            const percent = g.percent.toFixed(1);
+            const check = g.completed ? ' ✅' : '';
+            groupsHtml += `
                 <div class="next-achievement-item">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:18px; font-weight:600;">${group.name}</span>
-                        <span class="small-text">${group.earnedCount}/${group.totalCount}${completedMark}</span>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="font-size:18px; font-weight:600;">${g.name}</span>
+                        <span class="small-text">${g.earnedCount}/${g.totalCount}${check}</span>
                     </div>
                     <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
                 </div>
             `;
         }
-        nextHtml += `</div>`;
+        groupsHtml += `</div>`;
     } else {
-        nextHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
+        groupsHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
     }
     
     const avatarUrl = currentUser.avatar_url || '👤';
@@ -527,7 +487,6 @@ window.renderProfileTab = async function(
     const avatarBorder = currentUser.avatar_border || '#ffffff';
     const emojiStyle = getAvatarStyle(avatarUrl);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
-    
     const starsDisplay = fromCents(currentUser.stars_balance);
     const volumeDisplay = stats.totalVolume.toFixed(2);
     const sharesDisplay = fromCents(currentUser.shares);
@@ -555,7 +514,7 @@ window.renderProfileTab = async function(
             </div>
         </div>
         ${rankHtml}
-        ${nextHtml}
+        ${groupsHtml}
     </div>`;
     
     document.getElementById('app').innerHTML = html;
@@ -579,9 +538,9 @@ window.renderProfileTab = async function(
             const slot = parseInt(icon.dataset.slot);
             const currentAchId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null;
             await openAchievementSelectorForSlot(
-                slot, earnedAchievements, uniqueSelected, currentAchId,
+                slot, earnedAchievements, selectedIds, currentAchId,
                 updateUserCallback, currentUser, renderProfileTabBound,
-                showCustomModal, supabase, userId
+                showCustomModal
             );
         });
     });
