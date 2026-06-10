@@ -1,4 +1,4 @@
-/* profile.css – исправленный (уменьшенные иконки в ближайших достижениях) */
+/* profile.css – полная версия (аватар, слоты, статистика, прогресс-бары, справочник) */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -241,10 +241,9 @@
     gap: 8px;
     margin-bottom: 4px;
 }
-/* УМЕНЬШЕННЫЙ РАЗМЕР ЭМОДЗИ В БЛИЖАЙШИХ ДОСТИЖЕНИЯХ */
 .next-achievement-icon {
-    font-size: 24px;       /* было 32px */
-    width: 36px;           /* было 44px */
+    font-size: 24px;
+    width: 36px;
     text-align: center;
 }
 .next-achievement-text {
@@ -379,6 +378,22 @@
     color: #9ca3af;
     font-style: italic;
 }
+
+/* ========== НОВЫЕ ПРАВИЛА ДЛЯ ПОДСКАЗОК (МЕНЕЕ ЗАМЕТНЫЕ) ========== */
+#avatarClickWrapper .small-text,
+.achievement-icons + .small-text {
+    font-size: 10px;
+    color: #6b7280;
+    opacity: 0.8;
+}
+@media (max-width: 560px) {
+    #avatarClickWrapper .small-text,
+    .achievement-icons + .small-text {
+        font-size: 8px;
+        color: #5a6570;
+    }
+}
+
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
