@@ -1,7 +1,7 @@
-/* stocks.css – финальная профессиональная версия */
+/* stocks.css – профессиональный дизайн, анимации, тени, адаптив */
 /* ===== ПЕРЕМЕННЫЕ ===== */
 :root {
-    --stocks-bg-card: rgba(18, 24, 38, 0.85);
+    --stocks-bg-card: rgba(18, 24, 38, 0.9);
     --stocks-border: rgba(56, 189, 248, 0.25);
     --stocks-accent: #2b6e9e;
     --stocks-accent-grad: linear-gradient(135deg, #2b6e9e, #1a4c6e);
@@ -18,7 +18,7 @@
     padding: 0 16px 80px 16px;
 }
 
-/* ===== БЛОК БАЛАНСА ===== */
+/* ===== БЛОК БАЛАНСА (три карточки) ===== */
 .stocks-balance {
     display: flex;
     gap: 14px;
@@ -32,12 +32,13 @@
     padding: 18px 8px;
     text-align: center;
     border: 1px solid var(--stocks-border);
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    cursor: default;
 }
 .stocks-balance-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
     border-color: var(--stocks-accent);
-    box-shadow: 0 12px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 16px 24px rgba(0,0,0,0.3);
 }
 .stocks-balance-label {
     font-size: 14px;
@@ -70,7 +71,7 @@
     color: #9ca3af;
     font-size: 14px;
     border: 1px solid var(--stocks-border);
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.4);
 }
 
 /* ===== СТАТИСТИКА (три карточки) ===== */
@@ -81,12 +82,16 @@
 }
 .stocks-stat {
     flex: 1;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.45);
     border-radius: var(--stocks-radius-sm);
     padding: 14px 8px;
     text-align: center;
     backdrop-filter: blur(4px);
     border: 1px solid rgba(56,189,248,0.15);
+    transition: transform 0.2s;
+}
+.stocks-stat:hover {
+    transform: translateY(-2px);
 }
 .stocks-stat .label {
     font-size: 11px;
@@ -122,7 +127,7 @@
     backdrop-filter: blur(4px);
 }
 .stocks-grid-btn:hover {
-    background: rgba(43,110,158,0.2);
+    background: rgba(43,110,158,0.25);
     border-color: var(--stocks-accent);
     transform: translateY(-2px);
 }
@@ -139,7 +144,7 @@
     display: flex;
     gap: 14px;
     padding: 12px 16px;
-    background: rgba(10,14,26,0.95);
+    background: rgba(10,14,26,0.96);
     backdrop-filter: blur(20px);
     border-top: 1px solid var(--stocks-border);
     z-index: 99;
@@ -164,25 +169,38 @@
     background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-/* ===== МОДАЛЬНЫЕ ОКНА (единый стиль) ===== */
+/* ===== МОДАЛЬНЫЕ ОКНА (полностью переделаны) ===== */
+.stocks-modal {
+    animation: fadeInModal 0.2s ease-out;
+}
+@keyframes fadeInModal {
+    from { opacity: 0; backdrop-filter: blur(0); }
+    to { opacity: 1; backdrop-filter: blur(12px); }
+}
 .stocks-modal .modal-content {
     max-width: 520px;
     width: 90%;
     max-height: 85vh;
     overflow-y: auto;
-    border-radius: 32px;
+    border-radius: 36px;
     background: #121826;
     border: 1px solid var(--stocks-border);
-    box-shadow: 0 25px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 30px 45px rgba(0,0,0,0.6);
+    animation: slideUpModal 0.25s ease-out;
+}
+@keyframes slideUpModal {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 .stocks-modal h3 {
     margin: 0 0 20px 0;
-    font-size: 22px;
+    font-size: 24px;
     text-align: center;
     background: var(--stocks-silver-grad);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
+    font-weight: 800;
 }
 .modal-close {
     position: absolute;
@@ -191,22 +209,24 @@
     font-size: 28px;
     cursor: pointer;
     color: #9ca3af;
-    transition: color 0.2s;
+    transition: color 0.2s, transform 0.2s;
 }
 .modal-close:hover {
     color: #eef2ff;
+    transform: scale(1.1);
 }
 
 /* ===== ФОРМЫ В МОДАЛКАХ ===== */
 .stocks-modal .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 .stocks-modal .form-group label {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
-    margin-bottom: 8px;
+    font-size: 15px;
+    margin-bottom: 10px;
     color: #cbd5e1;
+    font-weight: 500;
 }
 .stocks-modal input[type="range"] {
     width: 100%;
@@ -218,12 +238,13 @@
 }
 .stocks-modal input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: var(--stocks-accent);
     border: 2px solid #60a5fa;
     cursor: pointer;
+    box-shadow: 0 0 6px rgba(43,110,158,0.8);
 }
 .stocks-modal .stocks-input {
     width: 100%;
@@ -232,7 +253,12 @@
     border: 1px solid var(--stocks-border);
     border-radius: 48px;
     color: white;
-    font-size: 14px;
+    font-size: 15px;
+    transition: border 0.2s;
+}
+.stocks-modal .stocks-input:focus {
+    border-color: var(--stocks-accent);
+    outline: none;
 }
 .stocks-modal .stocks-btn {
     background: var(--stocks-accent-grad);
@@ -243,27 +269,39 @@
     color: white;
     width: 100%;
     cursor: pointer;
-    margin-top: 16px;
+    margin-top: 20px;
+    font-size: 16px;
+    transition: transform 0.1s, box-shadow 0.2s;
+}
+.stocks-modal .stocks-btn:active {
+    transform: scale(0.97);
 }
 .stocks-modal .stocks-toggle-mode {
     background: rgba(255,255,255,0.08);
     border: 1px solid var(--stocks-border);
-    padding: 8px 16px;
+    padding: 8px 18px;
     border-radius: 40px;
     font-size: 13px;
     cursor: pointer;
-    margin-top: 12px;
+    margin-top: 14px;
     width: auto;
     display: inline-block;
+    transition: background 0.2s;
 }
+.stocks-modal .stocks-toggle-mode:hover {
+    background: rgba(43,110,158,0.3);
+}
+
+/* ===== КАРТОЧКИ ОРДЕРОВ ===== */
 .stocks-modal .order-card {
-    background: rgba(0,0,0,0.35);
+    background: rgba(0,0,0,0.4);
     border-radius: 20px;
-    padding: 12px;
+    padding: 12px 14px;
     margin-bottom: 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 1px solid rgba(255,255,255,0.05);
 }
 .stocks-modal .cancel-btn-small {
     background: none;
@@ -271,7 +309,12 @@
     color: #f87171;
     cursor: pointer;
     font-size: 13px;
-    padding: 4px 12px;
+    padding: 6px 12px;
+    border-radius: 30px;
+    transition: background 0.2s;
+}
+.stocks-modal .cancel-btn-small:hover {
+    background: rgba(248,113,113,0.2);
 }
 .stocks-modal .cancel-all-btn {
     background: rgba(220,38,38,0.2);
@@ -282,34 +325,45 @@
     cursor: pointer;
     margin-top: 8px;
     width: auto;
+    transition: background 0.2s;
 }
+.stocks-modal .cancel-all-btn:hover {
+    background: rgba(220,38,38,0.4);
+}
+
+/* ===== ТАБЛИЦА ИСТОРИИ ===== */
 .stocks-modal .history-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 13px;
 }
 .stocks-modal .history-table th,
 .stocks-modal .history-table td {
-    padding: 10px 6px;
+    padding: 10px 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
     text-align: left;
 }
 .stocks-modal .history-table th {
     color: #a5b4fc;
-    font-weight: 600;
+    font-weight: 700;
+    background: rgba(0,0,0,0.2);
 }
-.status-cancelled { color: #f87171; }
+.stocks-modal .history-table tr:hover {
+    background: rgba(255,255,255,0.03);
+}
+.status-cancelled { color: #f87171; font-weight: 600; }
 
 /* ===== СТАКАН ЗАЯВОК ===== */
 .orderbook-row {
     display: flex;
     justify-content: space-between;
     font-size: 14px;
-    padding: 8px 0;
+    padding: 10px 0;
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.price-sell { color: #fbbf24; font-weight: 600; }
-.price-buy { color: #4ade80; font-weight: 600; }
+.price-sell { color: #fbbf24; font-weight: 700; }
+.price-buy { color: #4ade80; font-weight: 700; }
 
 /* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
 @media (max-width: 560px) {
@@ -347,6 +401,10 @@
     .stocks-modal .modal-content {
         width: 95%;
         max-height: 90vh;
+        border-radius: 28px;
+    }
+    .stocks-modal h3 {
+        font-size: 20px;
     }
     /* Таблица с горизонтальным скроллом */
     .history-table {
