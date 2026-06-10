@@ -1,4 +1,4 @@
-// stocks.js – финальная версия со всеми исправлениями
+// stocks.js – финальная версия с исправлениями
 window.renderStocksTab = async function(currentUser) {
     // ---- Режим ввода ----
     function getInputMode() {
@@ -7,6 +7,7 @@ window.renderStocksTab = async function(currentUser) {
     function setInputMode(mode) {
         localStorage.setItem('stock_input_mode', mode);
     }
+
     function renderInputControls(amountContainer, priceContainer, mode, curAmount = 1, curPrice = 1) {
         if (mode === 'slider') {
             amountContainer.innerHTML = `
@@ -79,6 +80,7 @@ window.renderStocksTab = async function(currentUser) {
     }
 
     // ---- Основной рендер ----
+    // ПРАВИЛЬНОЕ ОТОБРАЖЕНИЕ БАЛАНСА (делим на 100)
     const userShares = window.fromCents(currentUser.shares);
     const userStars = window.fromCents(currentUser.stars_balance);
     
@@ -218,6 +220,7 @@ window.renderStocksTab = async function(currentUser) {
         const h = 160;
         canvas.width = w;
         canvas.height = h;
+
         if (!priceHistory.length) {
             ctx.fillStyle = '#0f1320';
             ctx.fillRect(0, 0, w, h);
@@ -226,10 +229,12 @@ window.renderStocksTab = async function(currentUser) {
             ctx.fillText('Нет данных для графика', w/2 - 60, h/2);
             return;
         }
+
         const prices = priceHistory.map(p => p.price);
         const maxP = Math.max(...prices, 0.01);
         const minP = Math.min(...prices, 0);
         const range = maxP - minP || 1;
+
         ctx.clearRect(0, 0, w, h);
         ctx.beginPath();
         ctx.strokeStyle = '#0ff';
@@ -254,7 +259,6 @@ window.renderStocksTab = async function(currentUser) {
     function renderOrderBook() {
         const sellMap = new Map();
         activeSellOrders.forEach(o => {
-            if (o.seller_id === window.userId) return;
             const price = o.price_per_share / 100;
             const amount = o.amount / 100;
             sellMap.set(price, (sellMap.get(price) || 0) + amount);
@@ -262,7 +266,6 @@ window.renderStocksTab = async function(currentUser) {
         const sellBook = Array.from(sellMap.entries()).map(([p,a])=>({price:p,amount:a})).sort((a,b)=>a.price-b.price).slice(0,5);
         const buyMap = new Map();
         activeBuyOrders.forEach(o => {
-            if (o.buyer_id === window.userId) return;
             const price = o.price_per_share / 100;
             const amount = o.amount / 100;
             buyMap.set(price, (buyMap.get(price) || 0) + amount);
@@ -380,9 +383,11 @@ window.renderStocksTab = async function(currentUser) {
         if (getInputMode() === 'slider') { amount = parseFloat(document.getElementById('orderAmountSlider')?.value); price = parseFloat(document.getElementById('orderPriceSlider')?.value); }
         else { amount = parseFloat(document.getElementById('orderAmount')?.value); price = parseFloat(document.getElementById('orderPrice')?.value); }
         if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) { window.showCustomModal('Ошибка', 'Введите корректные количество и цену (минимум 1)'); return; }
+        
         const freshUser = await window.getOrCreateUser();
         const userSharesCents = freshUser.user.shares;
         const userStarsCents = freshUser.user.stars_balance;
+        
         if (currentOrderType === 'sell') {
             const neededSharesCents = window.toCents(amount);
             if (userSharesCents < neededSharesCents) { window.showCustomModal('Ошибка', `Недостаточно акций. Доступно: ${window.fromCents(userSharesCents)}`); return; }
@@ -410,8 +415,8 @@ window.renderStocksTab = async function(currentUser) {
 
     // ---- РЫНОЧНЫЕ СДЕЛКИ ----
     document.getElementById('marketBuyBtn').onclick = () => {
-        const foreignSellOrders = activeSellOrders.filter(o => o.seller_id !== window.userId);
-        if (!foreignSellOrders.length) { window.showCustomModal('Рыночная покупка', 'Нет доступных сделок для покупки'); return; }
+        const foreignOrders = activeSellOrders.filter(o => o.seller_id !== window.userId);
+        if (!foreignOrders.length) { window.showCustomModal('Рыночная покупка', 'Нет доступных сделок для покупки'); return; }
         showMarketModal('buy', async (stars) => { try { await window.marketBuy(stars); window.showToast(`Рыночная покупка на ${stars} ⭐ выполнена`, 2000); window.refreshActiveTab(); } catch(e) { window.showCustomModal('Ошибка', e.message); } });
     };
     document.getElementById('marketSellBtn').onclick = () => {
