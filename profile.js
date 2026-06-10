@@ -1,4 +1,4 @@
-// profile.js – финальная версия с группировкой достижений в 3 набора
+// profile_v3.js – ближайшие достижения разных типов, с конкретными целями
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -22,33 +22,51 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== ГРУППИРОВКА ДОСТИЖЕНИЙ (3 НАБОРА) ==========
-async function getGroupedAchievementsProgress() {
+// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (разные типы) ==========
+async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
     const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
     const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
     const exclude = ['🌟 Первый шаг', '🎨 Стилист'];
-    const filtered = all.filter(a => !exclude.includes(a.name));
-    const total = filtered.length;
-    const size = Math.ceil(total / 3);
-    const groups = [
-        filtered.slice(0, size),
-        filtered.slice(size, size*2),
-        filtered.slice(size*2)
-    ];
-    const names = ['🏅 Новичок', '⚡ Опытный', '👑 Мастер'];
-    return groups.map((g, i) => {
-        const earnedCount = g.filter(ach => earnedIds.has(ach.id)).length;
-        const totalCount = g.length;
-        return {
-            name: names[i],
-            earnedCount,
-            totalCount,
-            percent: (earnedCount / totalCount) * 100,
-            completed: earnedCount === totalCount
-        };
-    });
+    const notEarned = all.filter(a => !earnedIds.has(a.id) && !exclude.includes(a.name));
+    if (notEarned.length === 0) return [];
+    
+    const stats = await getUserStats();
+    const user = currentUser;
+    
+    const withProgress = notEarned.map(ach => {
+        let current = 0, needed = ach.condition_value;
+        switch (ach.condition_type) {
+            case 'trades_count': current = stats.totalTrades; break;
+            case 'shares_held': current = user.shares; break;
+            case 'referrals_count': current = user.referral_count || 0; break;
+            case 'total_topup': current = user.total_topup || 0; break;
+            case 'total_spent': current = user.total_spent || 0; break;
+            case 'total_earned': current = user.total_earned || 0; break;
+            case 'total_volume': current = user.total_volume || 0; break;
+            case 'stars_held': current = user.stars_balance; break;
+            case 'days_active': current = user.days_active || 0; break;
+            default: return null;
+        }
+        if (current < needed) {
+            return { ...ach, current, needed, progress: (current / needed) * 100 };
+        }
+        return null;
+    }).filter(a => a !== null);
+    
+    // Группируем по типу, оставляем по одному на тип (с минимальным needed)
+    const byType = new Map();
+    for (const ach of withProgress) {
+        const t = ach.condition_type;
+        if (!byType.has(t) || ach.needed < byType.get(t).needed) {
+            byType.set(t, ach);
+        }
+    }
+    // Берём 5 ближайших (по needed)
+    const unique = Array.from(byType.values());
+    unique.sort((a,b) => a.needed - b.needed);
+    return unique.slice(0, 5);
 }
 
 // ========== КАСТОМИЗАЦИЯ АВАТАРА (без изменений) ==========
@@ -447,7 +465,7 @@ window.renderProfileTab = async function(
     const stats = await getUserStats();
     const earnedAchievements = await getEarnedAchievements();
     let selectedIds = currentUser.selected_achievements || [];
-    selectedIds = [...new Set(selectedIds)]; // убираем дубликаты
+    selectedIds = [...new Set(selectedIds)];
     
     const iconsHtml = [];
     for (let i = 0; i < 3; i++) {
@@ -457,27 +475,40 @@ window.renderProfileTab = async function(
     const rank = await getUserRank();
     const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px; font-weight:bold;">#${rank}</span></div>` : '';
     
-    // Группировка достижений (три прогресс-бара)
-    const groups = await getGroupedAchievementsProgress();
-    let groupsHtml = '';
-    if (groups.length) {
-        groupsHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px;">📋 Прогресс по наборам достижений:</div>`;
-        for (const g of groups) {
-            const percent = g.percent.toFixed(1);
-            const check = g.completed ? ' ✅' : '';
-            groupsHtml += `
+    // БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (разные типы)
+    const nextAchievements = await getNextAchievementsMixed(currentUser, getUserStats);
+    let nextHtml = '';
+    if (nextAchievements.length) {
+        nextHtml = `<div class="next-achievements"><div class="small-text" style="margin-bottom:8px;">📋 Ближайшие достижения:</div>`;
+        for (const ach of nextAchievements) {
+            let conditionStr = '';
+            let currentVal = ach.current;
+            let neededVal = ach.needed;
+            switch (ach.condition_type) {
+                case 'trades_count': conditionStr = `${currentVal}/${neededVal} сделок`; break;
+                case 'shares_held': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} акций`; break;
+                case 'referrals_count': conditionStr = `${currentVal}/${neededVal} приглашений`; break;
+                case 'total_topup': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ пополнено`; break;
+                case 'total_spent': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ потрачено`; break;
+                case 'total_earned': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ заработано`; break;
+                case 'total_volume': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ объём`; break;
+                case 'stars_held': conditionStr = `${fromCents(currentVal)}/${fromCents(neededVal)} ⭐ на балансе`; break;
+                case 'days_active': conditionStr = `${currentVal}/${neededVal} дней`; break;
+            }
+            const percent = (ach.current / ach.needed) * 100;
+            nextHtml += `
                 <div class="next-achievement-item">
-                    <div style="display:flex; justify-content:space-between;">
-                        <span style="font-size:18px; font-weight:600;">${g.name}</span>
-                        <span class="small-text">${g.earnedCount}/${g.totalCount}${check}</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:22px;">${ach.icon}</span>
+                        <span class="small-text">${conditionStr}</span>
                     </div>
                     <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
                 </div>
             `;
         }
-        groupsHtml += `</div>`;
+        nextHtml += `</div>`;
     } else {
-        groupsHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
+        nextHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
     }
     
     const avatarUrl = currentUser.avatar_url || '👤';
@@ -514,7 +545,7 @@ window.renderProfileTab = async function(
             </div>
         </div>
         ${rankHtml}
-        ${groupsHtml}
+        ${nextHtml}
     </div>`;
     
     document.getElementById('app').innerHTML = html;
