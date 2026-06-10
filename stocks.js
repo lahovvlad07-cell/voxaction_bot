@@ -1,14 +1,10 @@
-// stocks.js – финальная версия с корректной ценой (минимум 1.00)
-// - цена акции всегда показывает число (1.00, если нет сделок)
-// - средняя цена за 24ч в процентах (0%, если нет данных)
-// - режим ввода в строку (flex)
-// - пустые сообщения в ордерах выровнены по левому краю
+// stocks.js – ПОЛНАЯ версия с графиком, стаканом, ордерами, переключением полей/слайдеров
+// Все пожелания учтены: цена акции минимум 1.00, проценты, режим ввода в строку, пустые сообщения слева
 
 // ---- Режим ввода (поля / слайдеры) ----
 function getInputMode() {
     return localStorage.getItem('stock_input_mode') === 'slider' ? 'slider' : 'field';
 }
-
 function setInputMode(mode) {
     localStorage.setItem('stock_input_mode', mode);
 }
@@ -45,7 +41,7 @@ function renderInputControls(amountContainer, priceContainer, mode, currentAmoun
     }
 }
 
-// ---- Получение заявок на покупку ----
+// ---- Получение заявок на покупку (если ещё нет) ----
 if (!window.getActiveBuyOrders) {
     window.getActiveBuyOrders = async function() {
         const { data, error } = await window.supabase
@@ -60,7 +56,7 @@ if (!window.getActiveBuyOrders) {
 
 // ---- ГЛАВНЫЙ РЕНДЕР ----
 window.renderStocksTab = async function(currentUser) {
-    // Загрузка данных
+    // 1. Загрузка всех данных параллельно
     const [
         userSharesCents,
         userStarsCents,
@@ -112,7 +108,7 @@ window.renderStocksTab = async function(currentUser) {
 
     const userShares = window.fromCents(userSharesCents);
     const userStars = window.fromCents(userStarsCents);
-    // Цена акции: минимум 1.00, если нет сделок
+    // Цена акции: минимум 1.00, если нет данных
     let currentPrice = 1.00;
     if (currentPriceCents && currentPriceCents >= 100) {
         currentPrice = currentPriceCents / 100;
@@ -131,7 +127,7 @@ window.renderStocksTab = async function(currentUser) {
         avgPercentClass = percent >= 0 ? 'positive' : 'negative';
     }
 
-    // HTML
+    // 2. HTML-структура (ПОЛНАЯ)
     const html = `
         <div class="stocks-container">
             <!-- Баланс -->
@@ -150,7 +146,7 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
             </div>
 
-            <!-- График -->
+            <!-- ГРАФИК – всегда виден -->
             <div class="chart-container-main">
                 <canvas id="mainPriceChart" width="600" height="160" style="width:100%; height:160px;"></canvas>
             </div>
@@ -182,7 +178,7 @@ window.renderStocksTab = async function(currentUser) {
                 <button class="tab-btn" data-tab="myorders">📌 Мои ордера</button>
             </div>
 
-            <!-- Новый ордер -->
+            <!-- Панель создания ордера -->
             <div id="tab-orderform" class="tab-pane active">
                 <div class="order-form-panel">
                     <div class="type-switch">
@@ -190,6 +186,7 @@ window.renderStocksTab = async function(currentUser) {
                         <button id="orderTypeBuy" class="type-opt">📈 Купить акции</button>
                     </div>
                     
+                    <!-- Переключатель режима ввода (в одну строку) -->
                     <div class="input-mode-switch">
                         <span class="mode-label">🎛️ Режим ввода:</span>
                         <div class="mode-buttons">
@@ -219,7 +216,7 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
             </div>
 
-            <!-- Активные ордера -->
+            <!-- Активные ордера на продажу -->
             <div id="tab-orders" class="tab-pane">
                 <div class="section-header">📋 Активные ордера на продажу</div>
                 <div id="activeSellOrdersList" class="orders-container"></div>
@@ -238,7 +235,7 @@ window.renderStocksTab = async function(currentUser) {
             </div>
         </div>
 
-        <!-- Рыночные кнопки -->
+        <!-- Фиксированные рыночные кнопки -->
         <div class="market-buttons">
             <button id="marketBuyBtn" class="market-btn buy">🚀 Рыночная покупка</button>
             <button id="marketSellBtn" class="market-btn sell">📉 Рыночная продажа</button>
@@ -247,7 +244,7 @@ window.renderStocksTab = async function(currentUser) {
 
     document.getElementById('app').innerHTML = html;
 
-    // ---- График ----
+    // ---- Функция отрисовки графика ----
     function drawMainChart() {
         const canvas = document.getElementById('mainPriceChart');
         if (!canvas) return;
@@ -330,7 +327,7 @@ window.renderStocksTab = async function(currentUser) {
         document.getElementById('buyBookList').innerHTML = buyHtml || '<div class="empty-placeholder">Нет заявок</div>';
     }
 
-    // ---- Активные ордера ----
+    // ---- Активные ордера (чужие) ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
@@ -346,7 +343,7 @@ window.renderStocksTab = async function(currentUser) {
                     <div class="order-info">
                         <span>📦 ${amount.toFixed(2)} шт.</span>
                         <span>⭐ ${price.toFixed(2)}</span>
-                        <span class="order-seller">👤 ${order.seller_id}</span>
+                        <span class="order-seller">👤 продавец: ${order.seller_id}</span>
                     </div>
                     <button class="buy-order-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}">Купить</button>
                 </div>
@@ -439,7 +436,7 @@ window.renderStocksTab = async function(currentUser) {
         });
     });
 
-    // ---- Лимитный ордер ----
+    // ---- Логика лимитного ордера с переключением режимов ----
     let currentOrderType = 'sell';
     document.getElementById('orderTypeSell').onclick = () => {
         currentOrderType = 'sell';
@@ -466,19 +463,19 @@ window.renderStocksTab = async function(currentUser) {
             modeSlider.classList.add('active');
             modeField.classList.remove('active');
         }
-        let currentAmount = 1, currentPrice = 1;
+        let currentAmount = 1, currentPriceVal = 1;
         if (getInputMode() === 'slider') {
             const existingSlider = document.getElementById('orderAmountSlider');
             if (existingSlider) currentAmount = parseFloat(existingSlider.value);
             const existingPriceSlider = document.getElementById('orderPriceSlider');
-            if (existingPriceSlider) currentPrice = parseFloat(existingPriceSlider.value);
+            if (existingPriceSlider) currentPriceVal = parseFloat(existingPriceSlider.value);
         } else {
             const existingAmount = document.getElementById('orderAmount');
             if (existingAmount) currentAmount = parseFloat(existingAmount.value) || 1;
             const existingPrice = document.getElementById('orderPrice');
-            if (existingPrice) currentPrice = parseFloat(existingPrice.value) || 1;
+            if (existingPrice) currentPriceVal = parseFloat(existingPrice.value) || 1;
         }
-        renderInputControls(amountContainer, priceContainer, mode, currentAmount, currentPrice);
+        renderInputControls(amountContainer, priceContainer, mode, currentAmount, currentPriceVal);
     }
 
     modeField.onclick = () => refreshInputMode('field');
@@ -531,6 +528,7 @@ window.renderStocksTab = async function(currentUser) {
         if (!isNaN(shares) && shares > 0) window.marketSell(shares).catch(e => window.showCustomModal('Ошибка', e.message));
     };
 
+    // ---- Отрисовка начальных данных ----
     drawMainChart();
     renderOrderBook();
     renderActiveSellOrders();
