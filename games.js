@@ -1,8 +1,8 @@
-// games.js – финальная версия с 8 честными играми, раздельными лимитами, мин. ставкой 10⭐
+// games.js – финальная версия с 6 играми, удалён Memory Match
 const GAME_COMMISSION = 0.10;
 const MIN_BET = 10;
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+// ---- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (лимиты, баланс) ----
 async function getUserGameLimit(userId, game) {
     const { data, error } = await window.supabase
         .from('user_game_limits')
@@ -30,7 +30,6 @@ async function updateUserGameLimit(userId, game, newLimit) {
 }
 
 async function checkHourlyLimit(userId, game, deltaStars) {
-    // Получаем текущий net change и время последнего сброса для этой игры
     const column = `hourly_net_change_${game}`;
     const timeColumn = `last_hour_${game}`;
     const { data: user, error } = await window.supabase
@@ -61,20 +60,89 @@ async function updateUserBalance(deltaStarsCents, reason) {
     console.log(`${reason}: изменение ${deltaStarsCents/100} ⭐, новый баланс ${newBalance/100}`);
 }
 
-// ========== ИГРА 1: НАЖМИ БЫСТРЕЕ ==========
+// ---- ГЛАВНОЕ МЕНЮ (красивые карточки) ----
+window.renderGamesTab = async function() {
+    const currentUser = window.currentUser;
+    const balance = window.fromCents(currentUser.stars_balance);
+    
+    const games = [
+        { id: 'reaction', name: 'Нажми быстрее', icon: '⚡', desc: 'Проверь свою реакцию', color: '#fbbf24' },
+        { id: 'tower', name: 'Башня', icon: '🏗️', desc: 'Строй и забирай выигрыш', color: '#60a5fa' },
+        { id: 'closest', name: 'Ближе к цели', icon: '🎯', desc: 'Угадай число', color: '#4ade80' },
+        { id: 'typerace', name: 'Скоростной набор', icon: '⌨️', desc: 'Печатай быстрее бота', color: '#f472b6' },
+        { id: 'maze', name: 'Лабиринт', icon: '🧩', desc: 'Найди выход', color: '#a78bfa' },
+        { id: 'ttt', name: 'Крестики-нолики', icon: '❌', desc: 'Сразись с ботом', color: '#f97316' }
+    ];
+    
+    const html = `
+        <div class="games-container">
+            <div class="games-header">
+                <div class="games-balance">
+                    <span class="games-balance-label">💰 Баланс</span>
+                    <span class="games-balance-value">${balance} ⭐</span>
+                </div>
+                <div class="games-info">🎲 Честные игры против бота. Комиссия 10%. Мин. ставка 10⭐.</div>
+            </div>
+            <div class="games-grid">
+                ${games.map(game => `
+                    <div class="game-card" data-game="${game.id}">
+                        <div class="game-card-icon" style="background: ${game.color}20; border-color: ${game.color};">${game.icon}</div>
+                        <div class="game-card-title">${game.name}</div>
+                        <div class="game-card-desc">${game.desc}</div>
+                        <button class="game-card-btn">Играть →</button>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="games-rules">
+                <div class="rules-title">📜 Правила</div>
+                <div class="rules-list">
+                    <div>• Каждая игра имеет минимальную ставку <strong>10 ⭐</strong></div>
+                    <div>• Комиссия платформы — <strong>10%</strong> от выигрыша</div>
+                    <div>• Часовой лимит чистого выигрыша/проигрыша — настраивается в <strong>Настройках</strong></div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('app').innerHTML = html;
+    
+    document.querySelectorAll('.game-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.classList.contains('game-card-btn') || e.target.closest('.game-card-btn')) {
+                const gameId = card.dataset.game;
+                switch(gameId) {
+                    case 'reaction': renderReactionGame(); break;
+                    case 'tower': renderTowerGame(); break;
+                    case 'closest': renderClosestGame(); break;
+                    case 'typerace': renderTypeRace(); break;
+                    case 'maze': renderMaze(); break;
+                    case 'ttt': renderTicTacToe(); break;
+                }
+            }
+        });
+    });
+};
+
+// ========== ИГРА 1: РЕАКЦИЯ ==========
 function renderReactionGame() {
     const html = `
-        <div class="card" style="text-align: center;">
-            <h3>⚡ Нажми быстрее</h3>
-            <p>Ставка: <span id="reactionBetVal">10</span> ⭐ (мин 10)</p>
-            <input type="range" id="reactionBetSlider" min="10" max="100" step="5" value="10">
-            <div id="reactionGameArea" style="margin: 20px 0;">
-                <button id="reactionStartBtn" class="game-action-btn">▶ Начать игру</button>
+        <div class="game-play-container">
+            <div class="game-play-header">
+                <button class="game-back-btn" id="gameBackBtn">← Назад</button>
+                <h2>⚡ Нажми быстрее</h2>
             </div>
-            <div class="small-text">Комиссия 10%. Чем выше ставка, тем меньше времени на реакцию. Лимит 100⭐/час (можно понизить в настройках).</div>
+            <div class="game-play-card">
+                <p>Ставка: <span id="reactionBetVal">10</span> ⭐ (мин 10)</p>
+                <input type="range" id="reactionBetSlider" min="10" max="100" step="5" value="10">
+                <div id="reactionGameArea" style="margin: 20px 0;">
+                    <button id="reactionStartBtn" class="game-action-btn">▶ Начать игру</button>
+                </div>
+                <div class="small-text">Комиссия 10%. Чем выше ставка, тем меньше времени на реакцию. Лимит 100⭐/час (можно понизить в настройках).</div>
+            </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
+    document.getElementById('gameBackBtn').onclick = () => window.renderGamesTab();
     document.getElementById('reactionBetSlider').oninput = (e) => {
         document.getElementById('reactionBetVal').innerText = e.target.value;
     };
@@ -173,24 +241,30 @@ async function finishReactionGame(betStars, timeLimit, timeout = false) {
     window.refreshActiveTab();
 }
 
-// ========== ИГРА 2: БАШНЯ (детерминированная) ==========
+// ========== ИГРА 2: БАШНЯ ==========
 let towerGameActive = false;
 let towerHeight = 0;
 let towerBetStars = 0;
 
 function renderTowerGame() {
     const html = `
-        <div class="card" style="text-align: center;">
-            <h3>🏗️ Башня</h3>
-            <p>Ставка: <span id="towerBetVal">10</span> ⭐ (мин 10)</p>
-            <input type="range" id="towerBetSlider" min="10" max="100" step="5" value="10">
-            <div id="towerGameArea" style="margin: 20px 0;">
-                <button id="towerStartBtn" class="game-action-btn">Построить башню</button>
+        <div class="game-play-container">
+            <div class="game-play-header">
+                <button class="game-back-btn" id="gameBackBtn">← Назад</button>
+                <h2>🏗️ Башня</h2>
             </div>
-            <div class="small-text">Чем выше башня, тем больше множитель. Вы сами решаете, когда остановиться. Без случайности.</div>
+            <div class="game-play-card">
+                <p>Ставка: <span id="towerBetVal">10</span> ⭐ (мин 10)</p>
+                <input type="range" id="towerBetSlider" min="10" max="100" step="5" value="10">
+                <div id="towerGameArea" style="margin: 20px 0;">
+                    <button id="towerStartBtn" class="game-action-btn">Построить башню</button>
+                </div>
+                <div class="small-text">Чем выше башня, тем больше множитель. Вы сами решаете, когда остановиться. Без случайности.</div>
+            </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
+    document.getElementById('gameBackBtn').onclick = () => window.renderGamesTab();
     document.getElementById('towerBetSlider').oninput = (e) => {
         document.getElementById('towerBetVal').innerText = e.target.value;
     };
@@ -265,20 +339,26 @@ async function cashoutTower() {
     window.refreshActiveTab();
 }
 
-// ========== ИГРА 3: БЛИЖЕ К ЦЕЛИ (прогрессивный выигрыш) ==========
+// ========== ИГРА 3: БЛИЖЕ К ЦЕЛИ ==========
 function renderClosestGame() {
     const html = `
-        <div class="card" style="text-align: center;">
-            <h3>🎯 Ближе к цели</h3>
-            <p>Ставка: <span id="closestBetVal">10</span> ⭐ (мин 10)</p>
-            <input type="range" id="closestBetSlider" min="10" max="100" step="5" value="10">
-            <div id="closestGameArea" style="margin: 20px 0;">
-                <button id="closestStartBtn" class="game-action-btn">Начать</button>
+        <div class="game-play-container">
+            <div class="game-play-header">
+                <button class="game-back-btn" id="gameBackBtn">← Назад</button>
+                <h2>🎯 Ближе к цели</h2>
             </div>
-            <div class="small-text">Бот загадает число. Назовите своё. Чем ближе, тем выше выигрыш. При точном попадании – x2 (до комиссии).</div>
+            <div class="game-play-card">
+                <p>Ставка: <span id="closestBetVal">10</span> ⭐ (мин 10)</p>
+                <input type="range" id="closestBetSlider" min="10" max="100" step="5" value="10">
+                <div id="closestGameArea" style="margin: 20px 0;">
+                    <button id="closestStartBtn" class="game-action-btn">Начать</button>
+                </div>
+                <div class="small-text">Бот загадает число. Назовите своё. Чем ближе, тем выше выигрыш. При точном попадании – x2 (до комиссии).</div>
+            </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
+    document.getElementById('gameBackBtn').onclick = () => window.renderGamesTab();
     document.getElementById('closestBetSlider').oninput = (e) => {
         document.getElementById('closestBetVal').innerText = e.target.value;
     };
@@ -296,7 +376,6 @@ async function startClosestGame() {
         window.showCustomModal('Ошибка', `Недостаточно средств`);
         return;
     }
-    // Генерируем число от 1 до 100
     const secret = Math.floor(Math.random() * 100) + 1;
     const guess = parseInt(prompt(`Бот загадал число от 1 до 100. Ваше число:`));
     if (isNaN(guess) || guess < 1 || guess > 100) {
@@ -310,7 +389,7 @@ async function startClosestGame() {
     else if (diff <= 10) multiplier = 1.5;
     else if (diff <= 20) multiplier = 1.2;
     else if (diff <= 30) multiplier = 1.0;
-    else multiplier = 0.5; // проигрыш части ставки
+    else multiplier = 0.5;
     const grossWin = betStars * multiplier;
     const commission = Math.floor(grossWin * GAME_COMMISSION);
     const netWin = grossWin - commission;
@@ -330,7 +409,7 @@ async function startClosestGame() {
     window.renderGamesTab();
 }
 
-// ========== ИГРА 4: СКОРОСТНОЙ НАБОР (Type Race против ИИ) ==========
+// ========== ИГРА 4: СКОРОСТНОЙ НАБОР ==========
 let raceActive = false;
 let raceTimer = null;
 let raceText = '';
@@ -339,17 +418,23 @@ let botProgress = 0;
 
 function renderTypeRace() {
     const html = `
-        <div class="card" style="text-align: center;">
-            <h3>⌨️ Скоростной набор</h3>
-            <p>Ставка: <span id="raceBetVal">10</span> ⭐ (мин 10)</p>
-            <input type="range" id="raceBetSlider" min="10" max="100" step="5" value="10">
-            <div id="raceGameArea" style="margin: 20px 0;">
-                <button id="raceStartBtn" class="game-action-btn">Начать гонку</button>
+        <div class="game-play-container">
+            <div class="game-play-header">
+                <button class="game-back-btn" id="gameBackBtn">← Назад</button>
+                <h2>⌨️ Скоростной набор</h2>
             </div>
-            <div class="small-text">Соревнуйтесь с ботом в скорости печати. У каждого 3 ошибки. Чем выше ставка, тем быстрее ИИ.</div>
+            <div class="game-play-card">
+                <p>Ставка: <span id="raceBetVal">10</span> ⭐ (мин 10)</p>
+                <input type="range" id="raceBetSlider" min="10" max="100" step="5" value="10">
+                <div id="raceGameArea" style="margin: 20px 0;">
+                    <button id="raceStartBtn" class="game-action-btn">Начать гонку</button>
+                </div>
+                <div class="small-text">Соревнуйтесь с ботом в скорости печати. У каждого 3 ошибки. Чем выше ставка, тем быстрее ИИ.</div>
+            </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
+    document.getElementById('gameBackBtn').onclick = () => window.renderGamesTab();
     document.getElementById('raceBetSlider').oninput = (e) => {
         document.getElementById('raceBetVal').innerText = e.target.value;
     };
@@ -367,7 +452,6 @@ async function startTypeRace() {
         window.showCustomModal('Ошибка', `Недостаточно средств`);
         return;
     }
-    // Выбираем текст (короткий)
     const texts = ['telegram', 'биржа', 'акции', 'бот', 'честность', 'скорость'];
     raceText = texts[Math.floor(Math.random() * texts.length)];
     playerProgress = 0;
@@ -375,8 +459,7 @@ async function startTypeRace() {
     let playerErrors = 0;
     let botErrors = 0;
     raceActive = true;
-    // ИИ печатает со скоростью, зависящей от ставки (чем выше ставка, тем быстрее)
-    const botDelay = Math.max(200, 800 - Math.floor(betStars / 2)); // от 200 до 800 мс
+    const botDelay = Math.max(200, 800 - Math.floor(betStars / 2));
     const gameArea = document.getElementById('raceGameArea');
     gameArea.innerHTML = `
         <div>Напечатайте слово: <strong>${raceText}</strong></div>
@@ -389,24 +472,22 @@ async function startTypeRace() {
     `;
     const raceInput = document.getElementById('raceInput');
     const submitBtn = document.getElementById('raceSubmit');
-    // Бот печатает по таймеру
     const botInterval = setInterval(() => {
         if (!raceActive) return;
         if (botProgress < raceText.length && botErrors < 3) {
-            // бот может ошибиться с вероятностью 10% (честно)
             if (Math.random() < 0.1) {
                 botErrors++;
                 document.getElementById('botErrors').innerText = botErrors;
                 if (botErrors >= 3) {
                     clearInterval(botInterval);
-                    finishRace(betStars, true); // игрок победил
+                    finishRace(betStars, true);
                 }
             } else {
                 botProgress++;
                 document.getElementById('botProg').innerText = botProgress;
                 if (botProgress >= raceText.length) {
                     clearInterval(botInterval);
-                    finishRace(betStars, false); // бот победил
+                    finishRace(betStars, false);
                 }
             }
         }
@@ -454,24 +535,31 @@ async function startTypeRace() {
     }
 }
 
-// ========== ИГРА 5: ЛАБИРИНТ (ограниченное число ходов) ==========
+// ========== ИГРА 5: ЛАБИРИНТ ==========
 let mazeActive = false;
 let mazeGrid = [];
 let mazeX, mazeY;
 let mazeStepsLeft = 0;
+
 function renderMaze() {
     const html = `
-        <div class="card" style="text-align: center;">
-            <h3>🧩 Лабиринт</h3>
-            <p>Ставка: <span id="mazeBetVal">10</span> ⭐ (мин 10)</p>
-            <input type="range" id="mazeBetSlider" min="10" max="100" step="5" value="10">
-            <div id="mazeGameArea" style="margin: 20px 0;">
-                <button id="mazeStartBtn" class="game-action-btn">Начать</button>
+        <div class="game-play-container">
+            <div class="game-play-header">
+                <button class="game-back-btn" id="gameBackBtn">← Назад</button>
+                <h2>🧩 Лабиринт</h2>
             </div>
-            <div class="small-text">Найдите выход за ограниченное число шагов. Сложность зависит от ставки.</div>
+            <div class="game-play-card">
+                <p>Ставка: <span id="mazeBetVal">10</span> ⭐ (мин 10)</p>
+                <input type="range" id="mazeBetSlider" min="10" max="100" step="5" value="10">
+                <div id="mazeGameArea" style="margin: 20px 0;">
+                    <button id="mazeStartBtn" class="game-action-btn">Начать</button>
+                </div>
+                <div class="small-text">Найдите выход за ограниченное число шагов. Сложность зависит от ставки.</div>
+            </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
+    document.getElementById('gameBackBtn').onclick = () => window.renderGamesTab();
     document.getElementById('mazeBetSlider').oninput = (e) => {
         document.getElementById('mazeBetVal').innerText = e.target.value;
     };
@@ -489,17 +577,14 @@ async function startMaze() {
         window.showCustomModal('Ошибка', `Недостаточно средств`);
         return;
     }
-    // Генерация лабиринта (размер зависит от ставки)
     const size = betStars < 30 ? 5 : betStars < 70 ? 7 : 9;
     mazeGrid = Array(size).fill().map(() => Array(size).fill('⬜'));
-    // Простой лабиринт: вход (0,0), выход (size-1, size-1)
     mazeX = 0; mazeY = 0;
     mazeGrid[0][0] = '🟢';
     const exitX = size-1, exitY = size-1;
     mazeGrid[exitX][exitY] = '🏁';
-    // Минимальное число шагов для решения = (size-1)*2 (для простоты)
     const minSteps = (size-1)*2;
-    const extraSteps = Math.floor(betStars / 20); // запас ходов
+    const extraSteps = Math.floor(betStars / 20);
     mazeStepsLeft = minSteps + extraSteps;
     mazeActive = true;
     updateMazeUI(betStars, size, exitX, exitY);
@@ -576,160 +661,32 @@ async function moveMaze(dx, dy, betStars, size, exitX, exitY) {
     updateMazeUI(betStars, size, exitX, exitY);
 }
 
-// ========== ИГРА 6: MEMORY MATCH (Пазл на память) ==========
-let memoryCards = [];
-let memoryFlipped = [];
-let memoryLock = false;
-let memoryFirstIndex = null;
-let memoryMatches = 0;
-let memoryAttempts = 0;
-let memoryGameActive = false;
-let memoryBetStars = 0;
-
-function renderMemoryGame() {
-    const html = `
-        <div class="card" style="text-align: center;">
-            <h3>🧠 Memory Match</h3>
-            <p>Ставка: <span id="memoryBetVal">10</span> ⭐ (мин 10)</p>
-            <input type="range" id="memoryBetSlider" min="10" max="100" step="5" value="10">
-            <div id="memoryGameArea" style="margin: 20px 0;">
-                <button id="memoryStartBtn" class="game-action-btn">Начать игру</button>
-            </div>
-            <div class="small-text">Найдите все пары. Чем выше ставка, тем больше карточек. Ошибки = проигрыш.</div>
-        </div>
-    `;
-    document.getElementById('app').innerHTML = html;
-    document.getElementById('memoryBetSlider').oninput = (e) => {
-        document.getElementById('memoryBetVal').innerText = e.target.value;
-    };
-    document.getElementById('memoryStartBtn').onclick = startMemoryGame;
-}
-
-async function startMemoryGame() {
-    memoryBetStars = parseFloat(document.getElementById('memoryBetSlider').value);
-    if (isNaN(memoryBetStars) || memoryBetStars < MIN_BET) {
-        window.showCustomModal('Ошибка', `Минимальная ставка ${MIN_BET} ⭐`);
-        return;
-    }
-    const { user } = await window.getOrCreateUser();
-    if (user.stars_balance < window.toCents(memoryBetStars)) {
-        window.showCustomModal('Ошибка', `Недостаточно средств`);
-        return;
-    }
-    const size = memoryBetStars < 30 ? 4 : memoryBetStars < 70 ? 6 : 8;
-    const totalCards = size * size;
-    const pairs = totalCards / 2;
-    let symbols = [];
-    for (let i = 0; i < pairs; i++) symbols.push(i, i);
-    for (let i = symbols.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [symbols[i], symbols[j]] = [symbols[j], symbols[i]];
-    }
-    memoryCards = symbols;
-    memoryFlipped = Array(totalCards).fill(false);
-    memoryMatches = 0;
-    memoryAttempts = 0;
-    memoryGameActive = true;
-    memoryFirstIndex = null;
-    memoryLock = false;
-    renderMemoryBoard(size);
-}
-
-function renderMemoryBoard(size) {
-    const gameArea = document.getElementById('memoryGameArea');
-    let html = `<div style="display: grid; grid-template-columns: repeat(${size}, 1fr); gap: 8px; margin-bottom: 16px;">`;
-    for (let i = 0; i < memoryCards.length; i++) {
-        let display = '❓';
-        if (memoryFlipped[i] || (memoryFirstIndex === i && !memoryLock)) {
-            display = memoryCards[i].toString();
-        }
-        html += `<button class="memory-card" data-idx="${i}" style="padding: 12px; font-size: 20px;">${display}</button>`;
-    }
-    html += `</div><div>Пар найдено: ${memoryMatches} / ${memoryCards.length/2}</div><div>Ошибки: ${memoryAttempts}</div>`;
-    gameArea.innerHTML = html;
-    document.querySelectorAll('.memory-card').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            if (!memoryGameActive || memoryLock) return;
-            const idx = parseInt(btn.dataset.idx);
-            if (memoryFlipped[idx]) return;
-            if (memoryFirstIndex === null) {
-                memoryFirstIndex = idx;
-                renderMemoryBoard(size);
-                return;
-            }
-            // второй клик
-            const val1 = memoryCards[memoryFirstIndex];
-            const val2 = memoryCards[idx];
-            if (val1 === val2) {
-                memoryFlipped[memoryFirstIndex] = true;
-                memoryFlipped[idx] = true;
-                memoryMatches++;
-                memoryFirstIndex = null;
-                if (memoryMatches === memoryCards.length / 2) {
-                    memoryGameActive = false;
-                    const grossWin = memoryBetStars * 1.8;
-                    const commission = Math.floor(grossWin * GAME_COMMISSION);
-                    const netWin = grossWin - commission;
-                    const deltaStars = netWin - memoryBetStars;
-                    const limitOk = await checkHourlyLimit(window.userId, 'memory', deltaStars);
-                    if (!limitOk) {
-                        window.showCustomModal('Лимит', 'Часовой лимит превышен');
-                        window.renderGamesTab();
-                        return;
-                    }
-                    await updateUserBalance(window.toCents(deltaStars), 'Memory');
-                    window.showCustomModal('Победа', `Вы нашли все пары! Выигрыш: ${netWin.toFixed(2)} ⭐`);
-                    window.renderGamesTab();
-                    return;
-                }
-                renderMemoryBoard(size);
-            } else {
-                memoryAttempts++;
-                if (memoryAttempts >= 3) {
-                    memoryGameActive = false;
-                    const deltaStars = -memoryBetStars;
-                    const limitOk = await checkHourlyLimit(window.userId, 'memory', deltaStars);
-                    if (!limitOk) {
-                        window.showCustomModal('Лимит', 'Часовой лимит превышен');
-                        window.renderGamesTab();
-                        return;
-                    }
-                    await updateUserBalance(window.toCents(deltaStars), 'Memory');
-                    window.showCustomModal('Поражение', `Вы совершили 3 ошибки. Вы проиграли ${memoryBetStars} ⭐`);
-                    window.renderGamesTab();
-                    return;
-                }
-                memoryLock = true;
-                renderMemoryBoard(size);
-                setTimeout(() => {
-                    memoryLock = false;
-                    memoryFirstIndex = null;
-                    renderMemoryBoard(size);
-                }, 1000);
-            }
-        });
-    });
-}
-
-// ========== ИГРА 7: КРЕСТИКИ-НОЛИКИ 3x3 с адаптивной сложностью ==========
+// ========== ИГРА 6: КРЕСТИКИ-НОЛИКИ ==========
 let tttGameActive = false;
 let tttBoard = [];
 let tttPlayer = 'X';
 let tttBot = 'O';
 let tttBetStars = 0;
+
 function renderTicTacToe() {
     const html = `
-        <div class="card" style="text-align: center;">
-            <h3>❌⭕ Крестики-нолики</h3>
-            <p>Ставка: <span id="tttBetVal">10</span> ⭐ (мин 10)</p>
-            <input type="range" id="tttBetSlider" min="10" max="100" step="5" value="10">
-            <div id="tttGameArea" style="margin: 20px 0;">
-                <button id="tttStartBtn" class="game-action-btn">Начать игру</button>
+        <div class="game-play-container">
+            <div class="game-play-header">
+                <button class="game-back-btn" id="gameBackBtn">← Назад</button>
+                <h2>❌⭕ Крестики-нолики</h2>
             </div>
-            <div class="small-text">Играйте с ботом. Чем выше ставка, тем умнее бот (глубже просчёт).</div>
+            <div class="game-play-card">
+                <p>Ставка: <span id="tttBetVal">10</span> ⭐ (мин 10)</p>
+                <input type="range" id="tttBetSlider" min="10" max="100" step="5" value="10">
+                <div id="tttGameArea" style="margin: 20px 0;">
+                    <button id="tttStartBtn" class="game-action-btn">Начать игру</button>
+                </div>
+                <div class="small-text">Играйте с ботом. Чем выше ставка, тем умнее бот (глубже просчёт).</div>
+            </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
+    document.getElementById('gameBackBtn').onclick = () => window.renderGamesTab();
     document.getElementById('tttBetSlider').oninput = (e) => {
         document.getElementById('tttBetVal').innerText = e.target.value;
     };
@@ -747,13 +704,8 @@ async function startTicTacToe() {
         window.showCustomModal('Ошибка', `Недостаточно средств`);
         return;
     }
-    tttBoard = [
-        ['', '', ''],
-        ['', '', ''],
-        ['', '', '']
-    ];
+    tttBoard = [['','',''],['','',''],['','','']];
     tttGameActive = true;
-    // Игрок ходит первым
     renderTicTacToeBoard();
 }
 
@@ -785,7 +737,6 @@ function renderTicTacToeBoard() {
                 await finishTicTacToe(null);
                 return;
             }
-            // ход бота (сложность зависит от ставки)
             const difficulty = tttBetStars < 30 ? 1 : tttBetStars < 70 ? 2 : 3;
             const botMove = getBestMove(tttBoard, tttBot, difficulty);
             if (botMove) {
@@ -807,7 +758,6 @@ function renderTicTacToeBoard() {
 }
 
 function checkWin(board, player) {
-    // проверка строк, столбцов, диагоналей
     for (let i = 0; i < 3; i++) {
         if (board[i][0] === player && board[i][1] === player && board[i][2] === player) return true;
         if (board[0][i] === player && board[1][i] === player && board[2][i] === player) return true;
@@ -820,7 +770,6 @@ function isDraw(board) {
     return board.every(row => row.every(cell => cell !== ''));
 }
 function getBestMove(board, player, depth) {
-    // упрощённый минимакс на глубину depth
     let bestScore = -Infinity;
     let bestMove = null;
     for (let i = 0; i < 3; i++) {
@@ -879,7 +828,6 @@ async function finishTicTacToe(playerWon) {
     } else if (playerWon === false) {
         deltaStars = -tttBetStars;
     } else {
-        // ничья – возврат ставки минус комиссия
         const netWin = tttBetStars * 0.9;
         deltaStars = netWin - tttBetStars;
     }
@@ -897,37 +845,3 @@ async function finishTicTacToe(playerWon) {
     window.showCustomModal('Результат', msg);
     window.renderGamesTab();
 }
-
-// ========== ГЛАВНЫЙ РЕНДЕР ВКЛАДКИ (меню выбора игр) ==========
-window.renderGamesTab = async function() {
-    const currentUser = window.currentUser;
-    const html = `
-        <div class="card">
-            <h2 style="text-align:center;">🎮 Мини-игры</h2>
-            <p style="text-align:center; font-size:13px; color:#9ca3af;">Честные игры против бота. Комиссия 10%. Мин. ставка 10⭐.</p>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0;">
-                <button id="gameReactionBtn" class="game-select-btn">⚡ Нажми быстрее</button>
-                <button id="gameTowerBtn" class="game-select-btn">🏗️ Башня</button>
-                <button id="gameClosestBtn" class="game-select-btn">🎯 Ближе к цели</button>
-                <button id="gameTypeRaceBtn" class="game-select-btn">⌨️ Скоростной набор</button>
-                <button id="gameMazeBtn" class="game-select-btn">🧩 Лабиринт</button>
-                <button id="gameMemoryBtn" class="game-select-btn">🧠 Memory Match</button>
-                <button id="gameTicTacToeBtn" class="game-select-btn">❌⭕ Крестики-нолики</button>
-            </div>
-            <div style="background: rgba(0,0,0,0.2); border-radius: 20px; padding: 12px; margin-top: 16px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>💰 Ваш баланс:</span>
-                    <span><strong>${window.fromCents(currentUser.stars_balance)} ⭐</strong></span>
-                </div>
-            </div>
-        </div>
-    `;
-    document.getElementById('app').innerHTML = html;
-    document.getElementById('gameReactionBtn').onclick = () => renderReactionGame();
-    document.getElementById('gameTowerBtn').onclick = () => renderTowerGame();
-    document.getElementById('gameClosestBtn').onclick = () => renderClosestGame();
-    document.getElementById('gameTypeRaceBtn').onclick = () => renderTypeRace();
-    document.getElementById('gameMazeBtn').onclick = () => renderMaze();
-    document.getElementById('gameMemoryBtn').onclick = () => renderMemoryGame();
-    document.getElementById('gameTicTacToeBtn').onclick = () => renderTicTacToe();
-};
