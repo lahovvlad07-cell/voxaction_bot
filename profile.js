@@ -1,4 +1,4 @@
-// profile_v6.js – исправленный, чистый, без дублирования текста
+// profile_v7.js – финальный, с зелёными галочками и ровным отображением
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -22,7 +22,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт) ==========
+// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
@@ -154,17 +154,22 @@ async function showAchievementsGuide(currentUser, getUserStats) {
         }
         let displayIcon = ach.icon;
         if (ach.name === '❌⭕ Стратег') displayIcon = '❌';
+        let statusHtml = '';
+        if (ach.condition_type === 'none') {
+            statusHtml = '<div class="small-text" style="color:#4ade80;">✅ Получено</div>';
+        } else if (isCompleted) {
+            statusHtml = '<div class="small-text" style="color:#4ade80;">✅ Получено</div>';
+        } else {
+            statusHtml = `<div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
+                          <div class="small-text">${progressText}</div>`;
+        }
         return `<div style="border-bottom:1px solid rgba(255,255,255,0.1); padding:12px 0;">
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="font-size:32px;">${displayIcon}</span>
                 <div style="flex:1;">
                     <div style="font-weight:bold;">${ach.name}</div>
                     ${conditionText ? `<div class="small-text" style="color:#0ff;">${conditionText}</div>` : ''}
-                    ${ach.condition_type !== 'none' ? `
-                        <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
-                        ${!isCompleted && progressText ? `<div class="small-text">${progressText}</div>` : ''}
-                        ${isCompleted ? '<div class="small-text" style="color:#4ade80;">✅ Получено</div>' : ''}
-                    ` : (ach.condition_type === 'none' ? '<div class="small-text" style="color:#4ade80;">✅ Получено</div>' : '')}
+                    ${statusHtml}
                 </div>
             </div>
         </div>`;
@@ -376,7 +381,14 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
             } else {
                 progressDisplay = `${ach.current}/${ach.needed}`;
             }
-            nextHtml += `<div class="next-achievement-item"><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:22px;">${ach.icon}</span><span class="small-text">${conditionStr}</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div><div class="small-text">${progressDisplay}</div></div>`;
+            nextHtml += `<div class="next-achievement-item">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:22px;">${ach.icon}</span>
+                    <span class="small-text">${conditionStr}</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                <div class="small-text">${progressDisplay}</div>
+            </div>`;
         }
         nextHtml += `<button id="showGuideBtn" style="margin-top:16px; background:rgba(0,255,255,0.2); border:1px solid #0ff;">ℹ️ Инструкция по достижениям</button></div>`;
     } else {
