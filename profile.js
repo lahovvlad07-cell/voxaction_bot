@@ -1,4 +1,4 @@
-// profile.js – полная версия с красивым справочником достижений (список без вкладок)
+// profile.js – полная версия (кастомизация аватара, слоты достижений, ближайшие достижения, справочник с сеткой)
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -71,7 +71,7 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
     return unique.slice(0, 3);
 }
 
-// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА (КРАСИВЫЙ СПИСОК) ==========
+// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА (КОМПАКТНАЯ СЕТКА) ==========
 function getConditionText(ach) {
     if (ach.condition_type === 'none') return '';
     let val = ach.condition_value;
@@ -94,18 +94,6 @@ function getConditionText(ach) {
         case 'games_total': return `Победить в любой игре`;
         default: return '';
     }
-}
-
-function getCategoryIcon(category) {
-    const icons = {
-        'Сделки': '📊',
-        'Акции': '📈',
-        'Рефералы': '👥',
-        'Финансы': '💰',
-        'Игры': '🎮',
-        'Дни': '📅'
-    };
-    return icons[category] || '🏆';
 }
 
 async function getAllAchievementsByCategory() {
@@ -190,12 +178,12 @@ async function showAchievementsGuide(currentUser, getUserStats) {
             return `
                 <div class="guide-card">
                     <div class="guide-card-icon">${displayIcon}</div>
-                    <div class="guide-card-content">
+                    <div class="guide-card-info">
                         <div class="guide-card-title">${ach.name}</div>
                         <div class="guide-card-condition">${getConditionText(ach)}</div>
                         ${!isCompleted ? `
-                            <div class="progress-bar guide-progress"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
-                            <div class="guide-card-progress">${progressDisplay}</div>
+                            <div class="guide-card-progress-bar"><div class="guide-card-progress-fill" style="width: ${progressPercent}%;"></div></div>
+                            <div class="guide-card-progress-text">${progressDisplay}</div>
                         ` : '<div class="guide-card-completed">✅ Получено</div>'}
                     </div>
                 </div>
@@ -203,13 +191,8 @@ async function showAchievementsGuide(currentUser, getUserStats) {
         }).join('');
         allCategoriesHtml += `
             <div class="guide-category">
-                <div class="guide-category-header">
-                    <span class="guide-category-icon">${getCategoryIcon(cat)}</span>
-                    <span class="guide-category-title">${cat}</span>
-                </div>
-                <div class="guide-category-items">
-                    ${itemsHtml}
-                </div>
+                <div class="guide-category-header">${cat}</div>
+                <div class="guide-category-grid">${itemsHtml}</div>
             </div>
         `;
     }
@@ -223,9 +206,7 @@ async function showAchievementsGuide(currentUser, getUserStats) {
             <div class="modal-content guide-modal-content">
                 <span class="close-modal" id="closeGuideModal">&times;</span>
                 <h3>🏆 Справочник достижений</h3>
-                <div class="guide-list">
-                    ${allCategoriesHtml}
-                </div>
+                <div class="guide-list">${allCategoriesHtml}</div>
                 <div class="modal-buttons"><button id="closeGuideBtn">Закрыть</button></div>
             </div>
         </div>
@@ -237,7 +218,7 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
-// ========== КАСТОМИЗАЦИЯ АВАТАРА (все функции остаются без изменений) ==========
+// ========== КАСТОМИЗАЦИЯ АВАТАРА И ВЫБОР ДОСТИЖЕНИЙ ==========
 async function awardStylistAchievement() {
     const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
     if (ach) await window.awardAchievement(ach.id);
