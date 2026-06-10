@@ -1,4 +1,4 @@
-/* stocks.css – финальная версия с линией вкладок и ордерами */
+/* stocks.css – полностью переработанный, в стиле лучших вкладок */
 /* ===== ПЕРЕМЕННЫЕ ===== */
 :root {
     --stocks-bg-card: rgba(18, 24, 38, 0.9);
@@ -59,7 +59,7 @@
     background: var(--stocks-gold-grad);
 }
 
-/* ===== ТРИ ПОКАЗАТЕЛЯ ===== */
+/* ===== СТАТИСТИКА ===== */
 .stocks-stats {
     display: flex;
     gap: 14px;
@@ -160,7 +160,7 @@
 .price-sell { color: #fbbf24; font-weight: 700; }
 .price-buy { color: #4ade80; font-weight: 700; }
 
-/* ===== ВКЛАДКА ОРДЕРА (список чужих ордеров) ===== */
+/* ===== ВКЛАДКА ОРДЕРА (чужие) ===== */
 .orders-list {
     display: flex;
     flex-direction: column;
@@ -264,7 +264,6 @@
     cursor: pointer;
     margin-top: 8px;
     width: auto;
-    transition: background 0.2s;
 }
 .cancel-all-btn:hover {
     background: rgba(220,38,38,0.4);
@@ -310,7 +309,7 @@
     background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-/* ===== АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ ===== */
+/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
 @media (max-width: 560px) {
     .stocks-container {
         padding: 0 12px 70px 12px;
