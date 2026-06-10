@@ -1,4 +1,5 @@
-/* profile.css – финальная версия: аватар на ПК 90x90, эмодзи крупнее */
+/* profile.css – полная версия для вкладки Профиль */
+/* Аватар */
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -8,7 +9,6 @@
     margin: 0 auto;
 }
 
-/* Базовые стили аватара (запасные) */
 .avatar-circle {
     border-radius: 50%;
     display: flex !important;
@@ -26,52 +26,25 @@
     line-height: 1;
 }
 
-/* ПК (ширина экрана 1024px и больше) – аватар 90x90, эмодзи 56px */
+/* Размеры аватара */
 @media (min-width: 1024px) {
-    .avatar-circle {
-        width: 90px !important;
-        height: 90px !important;
-    }
-    .avatar-circle .avatar-emoji {
-        font-size: 56px !important;
-        line-height: 1 !important;
-    }
+    .avatar-circle { width: 90px !important; height: 90px !important; }
+    .avatar-circle .avatar-emoji { font-size: 56px !important; line-height: 1 !important; }
 }
-
-/* Планшеты (768px – 1023px) – аватар 100x100, эмодзи 60px */
 @media (min-width: 768px) and (max-width: 1023px) {
-    .avatar-circle {
-        width: 100px !important;
-        height: 100px !important;
-    }
-    .avatar-circle .avatar-emoji {
-        font-size: 60px !important;
-    }
+    .avatar-circle { width: 100px !important; height: 100px !important; }
+    .avatar-circle .avatar-emoji { font-size: 60px !important; }
 }
-
-/* Телефоны (до 767px) – аватар 110x110, эмодзи 66px */
 @media (max-width: 767px) {
-    .avatar-circle {
-        width: 110px !important;
-        height: 110px !important;
-    }
-    .avatar-circle .avatar-emoji {
-        font-size: 66px !important;
-    }
+    .avatar-circle { width: 110px !important; height: 110px !important; }
+    .avatar-circle .avatar-emoji { font-size: 66px !important; }
 }
-
-/* Очень маленькие телефоны (до 480px) – чуть меньше */
 @media (max-width: 480px) {
-    .avatar-circle {
-        width: 100px !important;
-        height: 100px !important;
-    }
-    .avatar-circle .avatar-emoji {
-        font-size: 60px !important;
-    }
+    .avatar-circle { width: 100px !important; height: 100px !important; }
+    .avatar-circle .avatar-emoji { font-size: 60px !important; }
 }
 
-/* Смещение эмодзи внутри аватарки (только для ПК) */
+/* Смещение эмодзи для ПК */
 @media (min-width: 1024px) {
     .avatar-emoji[style*="👤"] { transform: translateY(-3px) !important; }
     .avatar-emoji[style*="😀"] { transform: translateY(-2px) !important; }
@@ -99,7 +72,7 @@
     .avatar-emoji[style*="🎯"] { transform: translateY(-2px) !important; }
 }
 
-/* Для модалок предпросмотра аватара – размер 80x80 */
+/* Модалки предпросмотра аватара */
 #stepModal .avatar-circle,
 #borderModal .avatar-circle {
     width: 80px !important;
@@ -110,11 +83,7 @@
     font-size: 48px !important;
 }
 
-/* ===== ОСТАЛЬНЫЕ СТИЛИ (сетки, достижения, статистика) – без изменений ===== */
-.small-text {
-    font-size: 12px;
-    color: #9ca3af;
-}
+/* Сетки выбора аватара, фона, обводки */
 .avatars-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(65px, 1fr));
@@ -149,6 +118,7 @@
     line-height: 1;
     transform: none !important;
 }
+
 .colors-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -178,6 +148,8 @@
     font-size: 24px;
     text-shadow: 0 0 2px black;
 }
+
+/* Иконки достижений (3 слота) */
 .achievement-icons {
     display: flex;
     justify-content: center;
@@ -218,6 +190,8 @@
         gap: 16px;
     }
 }
+
+/* Модальное окно выбора достижения (слоты) */
 .modal-content {
     max-width: 450px;
     width: 90%;
@@ -261,6 +235,8 @@
     color: #cbd5e1;
     margin-top: 4px;
 }
+
+/* Блок статистики (Stars, сделки, объём, акции) */
 .stats-container {
     display: flex;
     flex-direction: column;
@@ -293,28 +269,8 @@
     font-size: 12px;
     margin-top: 4px;
 }
-.progress-bar {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    height: 6px;
-    overflow: hidden;
-    margin: 6px 0;
-}
-.progress-fill {
-    background: linear-gradient(90deg, #2b6e9e, #60a5fa);
-    height: 100%;
-    width: 0%;
-    border-radius: 10px;
-}
-.next-achievements {
-    margin-top: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 20px;
-    padding: 12px;
-}
-.next-achievement-item {
-    margin-bottom: 12px;
-}
+
+/* Рейтинг */
 .rank-card {
     display: flex;
     align-items: center;
@@ -324,6 +280,78 @@
     padding: 12px;
     margin-top: 12px;
 }
+
+/* Ближайшие достижения (прогресс-бары) */
+.next-achievements {
+    margin-top: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    padding: 12px;
+}
+.next-achievement-item {
+    margin-bottom: 16px;
+}
+.next-achievement-item .small-text {
+    font-size: 12px;
+    color: #9ca3af;
+}
+.next-achievement-item .progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 6px;
+    overflow: hidden;
+    margin: 6px 0 4px;
+}
+.next-achievement-item .progress-fill {
+    background: linear-gradient(90deg, #2b6e9e, #60a5fa);
+    height: 100%;
+    width: 0%;
+    border-radius: 10px;
+}
+
+/* Кнопка инструкции */
+#showGuideBtn {
+    background: rgba(0, 255, 255, 0.2);
+    border: 1px solid #0ff;
+    border-radius: 40px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0ff;
+    cursor: pointer;
+    transition: 0.2s;
+    width: auto;
+    margin-top: 16px;
+}
+#showGuideBtn:hover {
+    background: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 8px #0ff;
+}
+
+/* Справочник достижений (модалка) */
+.achievement-guide-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 0;
+}
+.achievement-guide-item .progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 6px;
+    overflow: hidden;
+    margin: 6px 0 4px;
+}
+.achievement-guide-item .progress-fill {
+    background: linear-gradient(90deg, #2b6e9e, #60a5fa);
+    height: 100%;
+    width: 0%;
+    border-radius: 10px;
+}
+.achievement-guide-item .small-text {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+/* Анимация градиента */
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
