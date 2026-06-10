@@ -6,15 +6,20 @@
     <title>Акции – биржа | VoxAction</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Стили -->
     <link rel="stylesheet" href="css/core.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/tabs.css">
     <link rel="stylesheet" href="css/profile.css">
     <link rel="stylesheet" href="css/stocks.css">
-    <link rel="stylesheet" href="css/referral.css">
+    <link rel="stylesheet" href="css/analytics.css">
     <link rel="stylesheet" href="css/rating.css">
+    <link rel="stylesheet" href="css/referral.css">
     <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/wallet.css">
 </head>
 <body>
 <div class="app-header">
@@ -34,6 +39,7 @@
         <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
         <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
         <div class="tab" data-tab="games"><div class="tab-icon">🎮</div><div class="tab-label">Игры</div></div>
+        <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
 </div>
@@ -52,6 +58,7 @@
     </div>
 </div>
 
+<!-- Скрипты -->
 <script src="api.js"></script>
 <script src="notifications.js"></script>
 <script src="topup.js"></script>
@@ -63,6 +70,7 @@
 <script src="referral.js"></script>
 <script src="games.js"></script>
 <script src="admin.js"></script>
+<script src="settings.js"></script>
 
 <script>
     (async () => {
@@ -117,120 +125,6 @@
         window.currentUser = null;
         window.BACKEND_URL = 'https://voxaction-bot-main.onrender.com';
         
-        // ========== НАСТРОЙКИ (ЛИМИТЫ ДЛЯ ИГР) ==========
-        async function loadGameLimits() {
-            const { data, error } = await window.supabase
-                .from('user_game_limits')
-                .select('game_limits')
-                .eq('user_id', window.userId)
-                .single();
-            if (error || !data) return {};
-            return data.game_limits || {};
-        }
-        
-        async function updateGameLimit(game, newValue) {
-            const limits = await loadGameLimits();
-            if (newValue > (limits[game] || 100)) {
-                throw new Error('Нельзя повысить лимит, только понизить');
-            }
-            const newLimits = { ...limits, [game]: newValue };
-            await window.supabase
-                .from('user_game_limits')
-                .upsert({ user_id: window.userId, game_limits: newLimits });
-        }
-        
-        async function renderSettingsTab() {
-            const limits = await loadGameLimits();
-            const games = [
-                { id: 'reaction', name: '⚡ Нажми быстрее', default: 100 },
-                { id: 'tower', name: '🏗️ Башня', default: 100 },
-                { id: 'closest', name: '🎯 Ближе к цели', default: 100 },
-                { id: 'typerace', name: '⌨️ Скоростной набор', default: 100 },
-                { id: 'maze', name: '🧩 Лабиринт', default: 100 },
-                { id: 'memory', name: '🧠 Memory Match', default: 100 },
-                { id: 'ttt', name: '❌⭕ Крестики-нолики', default: 100 }
-            ];
-            
-            let html = `
-                <div class="card">
-                    <h2>⚙️ Настройки</h2>
-                    <div style="margin-bottom: 20px;">
-                        <div class="small-text">Часовые лимиты чистого выигрыша/проигрыша (⭐). Можно только понижать.</div>
-                        ${games.map(game => {
-                            const current = limits[game.id] !== undefined ? limits[game.id] : game.default;
-                            return `
-                                <div style="margin: 12px 0;">
-                                    <div class="small-text" style="margin-bottom: 4px;">${game.name}</div>
-                                    <input type="range" id="limit_${game.id}" min="10" max="100" step="5" value="${current}" style="width: 100%;">
-                                    <span id="val_${game.id}" class="small-text">${current} ⭐</span>
-                                    <button id="save_${game.id}" class="secondary" style="margin-top: 6px; padding: 4px 12px; width: auto;">Сохранить</button>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    <hr>
-                    <div>
-                        <div class="small-text">Общие настройки</div>
-                        <label><input type="checkbox" id="hideRatingCheckbox" ${window.currentUser.hide_rating ? 'checked' : ''}> Скрыть из рейтинга</label><br>
-                        <label><input type="checkbox" id="useSlidersCheckbox" ${window.getUseSliders ? (window.getUseSliders() ? 'checked' : '') : 'checked'}> Использовать слайдеры в формах продажи/покупки</label><br><br>
-                        <div><strong>Уведомления:</strong></div>
-                        <label><input type="checkbox" id="notifyTradesCheckbox" ${window.currentUser.notify_trades ? 'checked' : ''}> О сделках</label><br>
-                        <label><input type="checkbox" id="notifyTopupCheckbox" ${window.currentUser.notify_topup ? 'checked' : ''}> О пополнении</label><br>
-                        <label><input type="checkbox" id="notifyReferralCheckbox" ${window.currentUser.notify_referral ? 'checked' : ''}> О рефералах</label><br>
-                    </div>
-                    <button id="saveCommonSettings" style="margin-top: 20px;">Сохранить общие настройки</button>
-                </div>
-            `;
-            document.getElementById('app').innerHTML = html;
-            
-            // Обновление отображения значений слайдеров
-            games.forEach(game => {
-                const slider = document.getElementById(`limit_${game.id}`);
-                const span = document.getElementById(`val_${game.id}`);
-                if (slider && span) {
-                    slider.oninput = () => { span.innerText = slider.value + ' ⭐'; };
-                    const btn = document.getElementById(`save_${game.id}`);
-                    if (btn) {
-                        btn.onclick = async () => {
-                            const newVal = parseInt(slider.value);
-                            const oldVal = limits[game.id] !== undefined ? limits[game.id] : game.default;
-                            if (newVal > oldVal) {
-                                window.showCustomModal('Ошибка', 'Нельзя повысить лимит, только понизить');
-                                return;
-                            }
-                            try {
-                                await updateGameLimit(game.id, newVal);
-                                window.showCustomModal('Успех', `Лимит для "${game.name}" установлен на ${newVal} ⭐`);
-                                await renderSettingsTab(); // обновить интерфейс
-                            } catch(e) {
-                                window.showCustomModal('Ошибка', e.message);
-                            }
-                        };
-                    }
-                }
-            });
-            
-            document.getElementById('saveCommonSettings').onclick = async () => {
-                const hideRating = document.getElementById('hideRatingCheckbox').checked;
-                const useSliders = document.getElementById('useSlidersCheckbox').checked;
-                const notifyTrades = document.getElementById('notifyTradesCheckbox').checked;
-                const notifyTopup = document.getElementById('notifyTopupCheckbox').checked;
-                const notifyReferral = document.getElementById('notifyReferralCheckbox').checked;
-                if (window.setUseSliders) window.setUseSliders(useSliders);
-                await window.supabase.from('users').update({
-                    hide_rating: hideRating,
-                    notify_trades: notifyTrades,
-                    notify_topup: notifyTopup,
-                    notify_referral: notifyReferral
-                }).eq('id', window.userId);
-                window.currentUser.hide_rating = hideRating;
-                window.currentUser.notify_trades = notifyTrades;
-                window.currentUser.notify_topup = notifyTopup;
-                window.currentUser.notify_referral = notifyReferral;
-                window.showCustomModal('Успех', 'Общие настройки сохранены');
-            };
-        }
-        
         try {
             const { user, isNew } = await window.getOrCreateUser();
             window.currentUser = user;
@@ -255,7 +149,7 @@
         }
         
         document.getElementById('headerNotificationBell')?.addEventListener('click', () => { if (window.showNotificationsModal) window.showNotificationsModal(); });
-        document.getElementById('headerSettingsGear')?.addEventListener('click', () => renderSettingsTab());
+        document.getElementById('headerSettingsGear')?.addEventListener('click', () => { if (window.renderSettingsTab) window.renderSettingsTab(); });
         
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', async () => {
@@ -270,6 +164,7 @@
                     case 'wallet': await window.renderWalletTab(); break;
                     case 'referral': await window.renderReferralTab(); break;
                     case 'games': await window.renderGamesTab(); break;
+                    case 'settings': if (window.renderSettingsTab) await window.renderSettingsTab(); break;
                     case 'admin': await window.renderAdminTab(); break;
                 }
             });
