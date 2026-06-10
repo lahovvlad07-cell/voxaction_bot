@@ -1,5 +1,4 @@
-// stocks.js – ВЕСЬ функционал вкладки "Акции"
-// Режим ввода, лимитные ордера, рыночные сделки, стакан, график, мои ордера, отмена
+// stocks.js – полностью исправленная версия со всеми фиксами
 
 // ---- Режим ввода ----
 function getInputMode() {
@@ -12,28 +11,28 @@ function setInputMode(mode) {
 function renderInputControls(amountContainer, priceContainer, mode, curAmount = 1, curPrice = 1) {
     if (mode === 'slider') {
         amountContainer.innerHTML = `
-            <input type="range" id="orderAmountSlider" min="0.1" max="1000" step="0.1" value="${curAmount}">
-            <div class="slider-value">${curAmount.toFixed(2)} шт.</div>
+            <input type="range" id="orderAmountSlider" min="1" max="1000" step="1" value="${curAmount}">
+            <div class="slider-value">${curAmount} шт.</div>
         `;
         priceContainer.innerHTML = `
-            <input type="range" id="orderPriceSlider" min="0.1" max="10" step="0.01" value="${curPrice}">
-            <div class="slider-value">${curPrice.toFixed(2)} ⭐</div>
+            <input type="range" id="orderPriceSlider" min="1" max="10" step="0.1" value="${curPrice}">
+            <div class="slider-value">${curPrice.toFixed(1)} ⭐</div>
         `;
         const aS = document.getElementById('orderAmountSlider');
         const pS = document.getElementById('orderPriceSlider');
         if (aS) aS.oninput = () => {
-            const v = parseFloat(aS.value);
-            aS.nextElementSibling.innerText = v.toFixed(2) + ' шт.';
+            const v = parseInt(aS.value);
+            aS.nextElementSibling.innerText = v + ' шт.';
             if (document.getElementById('orderAmount')) document.getElementById('orderAmount').value = v;
         };
         if (pS) pS.oninput = () => {
-            const v = parseFloat(pS.value);
-            pS.nextElementSibling.innerText = v.toFixed(2) + ' ⭐';
+            const v = parseFloat(pS.value).toFixed(1);
+            pS.nextElementSibling.innerText = v + ' ⭐';
             if (document.getElementById('orderPrice')) document.getElementById('orderPrice').value = v;
         };
     } else {
-        amountContainer.innerHTML = `<input type="number" id="orderAmount" placeholder="Количество (шт.)" step="0.01" min="0.01" value="${curAmount}">`;
-        priceContainer.innerHTML = `<input type="number" id="orderPrice" placeholder="Цена за 1 шт. (⭐)" step="0.01" min="0.01" value="${curPrice}">`;
+        amountContainer.innerHTML = `<input type="number" id="orderAmount" placeholder="Количество (шт.)" step="1" min="1" value="${curAmount}">`;
+        priceContainer.innerHTML = `<input type="number" id="orderPrice" placeholder="Цена за 1 шт. (⭐)" step="0.1" min="1" value="${curPrice}">`;
     }
 }
 
@@ -57,7 +56,7 @@ function showMarketModal(type, callback) {
             <div class="modal-content" style="max-width: 300px;">
                 <span class="close-modal" id="closeMarketModal">&times;</span>
                 <h3>${type === 'buy' ? '🚀 Рыночная покупка' : '📉 Рыночная продажа'}</h3>
-                <input type="number" id="marketAmount" placeholder="${type === 'buy' ? 'Сумма в Stars' : 'Количество акций'}" step="${type === 'buy' ? '1' : '0.01'}" min="${type === 'buy' ? '1' : '0.01'}" style="margin: 16px 0;">
+                <input type="number" id="marketAmount" placeholder="${type === 'buy' ? 'Сумма в Stars' : 'Количество акций'}" step="${type === 'buy' ? '1' : '1'}" min="1" style="margin: 16px 0;">
                 <div class="modal-buttons">
                     <button id="marketCancelBtn" class="secondary">Отмена</button>
                     <button id="marketConfirmBtn">${type === 'buy' ? 'Купить' : 'Продать'}</button>
@@ -71,11 +70,11 @@ function showMarketModal(type, callback) {
     document.getElementById('marketCancelBtn').onclick = () => modal.remove();
     document.getElementById('marketConfirmBtn').onclick = () => {
         const val = parseFloat(document.getElementById('marketAmount').value);
-        if (!isNaN(val) && val > 0) {
+        if (!isNaN(val) && val >= 1) {
             modal.remove();
             callback(val);
         } else {
-            window.showCustomModal('Ошибка', 'Введите корректное значение');
+            window.showCustomModal('Ошибка', 'Введите корректное значение (минимум 1)');
         }
     };
 }
@@ -214,8 +213,8 @@ window.renderStocksTab = async function(currentUser) {
                     <div class="input-mode-switch">
                         <span class="mode-label">🎛️ Режим:</span>
                         <div class="mode-buttons">
-                            <button id="modeFieldBtn" class="mode-btn active">📝</button>
-                            <button id="modeSliderBtn" class="mode-btn">🎚️</button>
+                            <button id="modeFieldBtn" class="mode-btn active">📝 Поля</button>
+                            <button id="modeSliderBtn" class="mode-btn">🎚️ Слайдеры</button>
                         </div>
                     </div>
                     <div id="amountControl" class="control-group"></div>
@@ -263,7 +262,7 @@ window.renderStocksTab = async function(currentUser) {
 
     document.getElementById('app').innerHTML = html;
 
-    // ---- ГРАФИК ----
+    // ---- ГРАФИК с корректной отрисовкой ----
     function drawMainChart() {
         const canvas = document.getElementById('mainPriceChart');
         if (!canvas) return;
@@ -304,6 +303,9 @@ window.renderStocksTab = async function(currentUser) {
         ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
         ctx.fill();
     }
+    // Принудительная перерисовка после загрузки и при изменении размера
+    setTimeout(drawMainChart, 50);
+    window.addEventListener('resize', () => setTimeout(drawMainChart, 50));
 
     // ---- СТАКАН (ТОП‑5) ----
     function renderOrderBook() {
@@ -346,15 +348,16 @@ window.renderStocksTab = async function(currentUser) {
         document.getElementById('buyBookList').innerHTML = buyHtml || '<div class="empty-placeholder">Нет заявок</div>';
     }
 
-    // ---- АКТИВНЫЕ ОРДЕРА (чужие продажи) ----
+    // ---- АКТИВНЫЕ ОРДЕРА (чужие, исключая свои) ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
-        if (!activeSellOrders.length) {
+        const foreignOrders = activeSellOrders.filter(o => o.seller_id !== window.userId);
+        if (!foreignOrders.length) {
             container.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>';
             return;
         }
-        const html = activeSellOrders.map(order => {
+        const html = foreignOrders.map(order => {
             const price = order.price_per_share / 100;
             const amount = order.amount / 100;
             return `
@@ -381,7 +384,7 @@ window.renderStocksTab = async function(currentUser) {
                 }
                 try {
                     await window.executePartialTrade(orderId, window.toCents(amount));
-                    window.showToast(`✅ Куплено ${amount.toFixed(2)} шт. по ${price.toFixed(2)} ⭐`);
+                    window.showToast(`✅ Куплено ${amount.toFixed(2)} шт. по ${price.toFixed(2)} ⭐`, 2000);
                     window.refreshActiveTab();
                 } catch(e) {
                     window.showCustomModal('Ошибка', e.message);
@@ -423,9 +426,12 @@ window.renderStocksTab = async function(currentUser) {
                 const id = parseInt(btn.dataset.id);
                 const type = btn.dataset.type;
                 try {
-                    if (type === 'sell') await window.cancelOrder(id);
-                    else await window.cancelBuyOrder(id);
-                    window.showToast('Ордер отменён');
+                    if (type === 'sell') {
+                        await window.cancelOrder(id);
+                    } else {
+                        await window.cancelBuyOrder(id);
+                    }
+                    window.showToast('Ордер отменён', 2000);
                     window.refreshActiveTab();
                 } catch(e) {
                     window.showCustomModal('Ошибка', e.message);
@@ -452,10 +458,11 @@ window.renderStocksTab = async function(currentUser) {
             if (target === 'orderbook') renderOrderBook();
             if (target === 'orders') renderActiveSellOrders();
             if (target === 'myorders') renderMyOrders();
+            if (target === 'orderform') drawMainChart(); // перерисовать график при возврате
         });
     });
 
-    // ---- ЛИМИТНЫЙ ОРДЕР (продажа/покупка) с переключением полей/слайдеров ----
+    // ---- ЛИМИТНЫЙ ОРДЕР с проверкой баланса ----
     let currentOrderType = 'sell';
     document.getElementById('orderTypeSell').onclick = () => {
         currentOrderType = 'sell';
@@ -510,24 +517,45 @@ window.renderStocksTab = async function(currentUser) {
             amount = parseFloat(document.getElementById('orderAmount')?.value);
             price = parseFloat(document.getElementById('orderPrice')?.value);
         }
-        if (isNaN(amount) || amount <= 0 || isNaN(price) || price <= 0) {
-            window.showCustomModal('Ошибка', 'Введите корректные количество и цену');
+        if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
+            window.showCustomModal('Ошибка', 'Введите корректные количество и цену (минимум 1)');
             return;
         }
+        
+        // Проверка баланса
+        const freshUser = await window.getOrCreateUser();
+        const userSharesCents = freshUser.user.shares;
+        const userStarsCents = freshUser.user.stars_balance;
+        
+        if (currentOrderType === 'sell') {
+            const neededSharesCents = window.toCents(amount);
+            if (userSharesCents < neededSharesCents) {
+                window.showCustomModal('Ошибка', `Недостаточно акций. Доступно: ${window.fromCents(userSharesCents)}`);
+                return;
+            }
+        } else { // buy
+            const totalPriceStars = amount * price;
+            const neededStarsCents = window.toCents(totalPriceStars);
+            if (userStarsCents < neededStarsCents) {
+                window.showCustomModal('Ошибка', `Недостаточно Stars. Доступно: ${window.fromCents(userStarsCents)} ⭐`);
+                return;
+            }
+        }
+        
         try {
             if (currentOrderType === 'sell') {
                 await window.createOrder(amount, price);
-                window.showToast('Ордер на продажу размещён');
+                window.showToast('Ордер на продажу размещён', 2000);
             } else {
                 await window.createBuyOrder(amount, price);
-                window.showToast('Заявка на покупку размещена');
+                window.showToast('Заявка на покупку размещена', 2000);
             }
             // Очистка полей
             if (getInputMode() === 'slider') {
                 if (document.getElementById('orderAmountSlider')) document.getElementById('orderAmountSlider').value = 1;
                 if (document.getElementById('orderPriceSlider')) document.getElementById('orderPriceSlider').value = 1;
-                if (document.querySelector('#amountControl .slider-value')) document.querySelector('#amountControl .slider-value').innerText = '1.00 шт.';
-                if (document.querySelector('#priceControl .slider-value')) document.querySelector('#priceControl .slider-value').innerText = '1.00 ⭐';
+                if (document.querySelector('#amountControl .slider-value')) document.querySelector('#amountControl .slider-value').innerText = '1 шт.';
+                if (document.querySelector('#priceControl .slider-value')) document.querySelector('#priceControl .slider-value').innerText = '1.0 ⭐';
             } else {
                 if (document.getElementById('orderAmount')) document.getElementById('orderAmount').value = '';
                 if (document.getElementById('orderPrice')) document.getElementById('orderPrice').value = '';
@@ -547,7 +575,7 @@ window.renderStocksTab = async function(currentUser) {
         showMarketModal('buy', async (stars) => {
             try {
                 await window.marketBuy(stars);
-                window.showToast(`Рыночная покупка на ${stars} ⭐ выполнена`);
+                window.showToast(`Рыночная покупка на ${stars} ⭐ выполнена`, 2000);
                 window.refreshActiveTab();
             } catch(e) {
                 window.showCustomModal('Ошибка', e.message);
@@ -562,7 +590,7 @@ window.renderStocksTab = async function(currentUser) {
         showMarketModal('sell', async (shares) => {
             try {
                 await window.marketSell(shares);
-                window.showToast(`Продано ${shares} акций по рыночной цене`);
+                window.showToast(`Продано ${shares} акций по рыночной цене`, 2000);
                 window.refreshActiveTab();
             } catch(e) {
                 window.showCustomModal('Ошибка', e.message);
@@ -575,4 +603,24 @@ window.renderStocksTab = async function(currentUser) {
     renderOrderBook();
     renderActiveSellOrders();
     renderMyOrders();
+};
+
+// Переопределяем window.showToast для короткого времени (2 секунды)
+const originalShowToast = window.showToast;
+window.showToast = function(message, duration = 2000) {
+    if (originalShowToast) {
+        // Если оригинальная функция уже есть, используем её, но с задержкой
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), duration);
+    } else {
+        // fallback
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), duration);
+    }
 };
