@@ -1,5 +1,5 @@
-// stocks.js – полная версия с графиком ВСЕГДА вверху
-// График отображается постоянно, табы переключают только дополнительный контент
+// stocks.js – полностью переработанная биржевая вкладка
+// График всегда вверху, статистика под графиком, переключатель полей/слайдеров заметный
 
 // ---- Режим ввода (поля / слайдеры) ----
 function getInputMode() {
@@ -57,7 +57,7 @@ if (!window.getActiveBuyOrders) {
 
 // ---- ГЛАВНЫЙ РЕНДЕР ----
 window.renderStocksTab = async function(currentUser) {
-    // 1. Загрузка всех данных параллельно
+    // 1. Загрузка всех данных
     const [
         userSharesCents,
         userStarsCents,
@@ -112,18 +112,40 @@ window.renderStocksTab = async function(currentUser) {
     const currentPrice = (currentPriceCents / 100).toFixed(2);
     const marketCap = marketCapData.marketCap.toFixed(2);
     const totalShares = (marketCapData.totalShares / 100).toFixed(2);
-    const avgPrice24h = (avgPrice24hCents / 100).toFixed(2);
+    
+    // Средняя цена за 24ч в процентах
+    let avgPricePercent = 0;
+    if (avgPrice24hCents > 0 && currentPriceCents > 0) {
+        avgPricePercent = ((currentPriceCents - avgPrice24hCents) / avgPrice24hCents) * 100;
+    }
+    const avgPercentText = avgPricePercent >= 0 ? `+${avgPricePercent.toFixed(2)}%` : `${avgPricePercent.toFixed(2)}%`;
+    const avgPercentClass = avgPricePercent >= 0 ? 'positive' : 'negative';
 
-    // 2. HTML-структура (график вверху, табы ниже)
+    // 2. HTML-структура
     const html = `
         <div class="stocks-container">
-            <!-- Баланс + статистика в одну строку -->
+            <!-- Верхняя строка баланса -->
             <div class="balance-row">
-                <div class="balance-card"><div class="bal-label">📊 Акции</div><div class="bal-value">${userShares}</div></div>
-                <div class="balance-card"><div class="bal-label">⭐ Stars</div><div class="bal-value">${userStars}</div></div>
-                <div class="balance-card"><div class="bal-label">💰 Цена</div><div class="bal-value price">${currentPrice}</div></div>
+                <div class="balance-card">
+                    <div class="bal-label">📊 Акции</div>
+                    <div class="bal-value">${userShares}</div>
+                </div>
+                <div class="balance-card">
+                    <div class="bal-label">⭐ Stars</div>
+                    <div class="bal-value">${userStars}</div>
+                </div>
+                <div class="balance-card">
+                    <div class="bal-label">💰 Цена акции</div>
+                    <div class="bal-value price">${currentPrice}</div>
+                </div>
             </div>
 
+            <!-- ГРАФИК – всегда виден -->
+            <div class="chart-container-main">
+                <canvas id="mainPriceChart" width="600" height="160" style="width:100%; height:160px;"></canvas>
+            </div>
+
+            <!-- Статистика (3 карточки) под графиком -->
             <div class="stats-row">
                 <div class="stat-card">
                     <div class="stat-icon">🏦</div>
@@ -137,37 +159,36 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">📈</div>
-                    <div class="stat-label">Средняя цена (24ч)</div>
-                    <div class="stat-value">${avgPrice24h} ⭐</div>
+                    <div class="stat-label">Ср. цена (24ч)</div>
+                    <div class="stat-value ${avgPercentClass}">${avgPercentText}</div>
                 </div>
-            </div>
-
-            <!-- ГРАФИК – всегда виден -->
-            <div class="chart-container-main">
-                <canvas id="mainPriceChart" width="600" height="180" style="width:100%; height:180px;"></canvas>
             </div>
 
             <!-- Табы -->
             <div class="tabs-row">
-                <button class="tab-btn active" data-tab="overview">📊 Обзор</button>
+                <button class="tab-btn active" data-tab="orderform">✍️ Новый ордер</button>
                 <button class="tab-btn" data-tab="orderbook">📖 Стакан</button>
                 <button class="tab-btn" data-tab="orders">📋 Ордера</button>
                 <button class="tab-btn" data-tab="myorders">📌 Мои ордера</button>
             </div>
 
-            <!-- Контент табов -->
-            <div id="tab-overview" class="tab-pane active">
+            <!-- Панель создания ордера (бывший "Обзор") -->
+            <div id="tab-orderform" class="tab-pane active">
                 <div class="order-form-panel">
-                    <h4>✍️ Создать лимитный ордер</h4>
                     <div class="type-switch">
                         <button id="orderTypeSell" class="type-opt active">📉 Продать акции</button>
                         <button id="orderTypeBuy" class="type-opt">📈 Купить акции</button>
                     </div>
+                    
+                    <!-- Переключатель режима ввода (заметный) -->
                     <div class="input-mode-switch">
-                        <span>📝 Режим ввода:</span>
-                        <button id="modeFieldBtn" class="mode-btn active">Поля</button>
-                        <button id="modeSliderBtn" class="mode-btn">Слайдеры</button>
+                        <span class="mode-label">🎛️ Режим ввода:</span>
+                        <div class="mode-buttons">
+                            <button id="modeFieldBtn" class="mode-btn active">📝 Поля</button>
+                            <button id="modeSliderBtn" class="mode-btn">🎚️ Слайдеры</button>
+                        </div>
                     </div>
+                    
                     <div id="amountControl" class="control-group"></div>
                     <div id="priceControl" class="control-group"></div>
                     <button id="createOrderBtn">✅ Разместить ордер</button>
@@ -175,31 +196,34 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
             </div>
 
+            <!-- Стакан -->
             <div id="tab-orderbook" class="tab-pane">
                 <div class="orderbook-split">
                     <div class="orderbook-col">
-                        <h4>💰 Продажа</h4>
+                        <h4>💰 Продажа (лучшие цены)</h4>
                         <div id="sellBookList" class="orderbook-list"></div>
                     </div>
                     <div class="orderbook-col">
-                        <h4>🏦 Покупка</h4>
+                        <h4>🏦 Покупка (лучшие цены)</h4>
                         <div id="buyBookList" class="orderbook-list"></div>
                     </div>
                 </div>
             </div>
 
+            <!-- Активные ордера на продажу -->
             <div id="tab-orders" class="tab-pane">
-                <h4>📋 Активные ордера на продажу</h4>
+                <div class="section-header">📋 Активные ордера на продажу</div>
                 <div id="activeSellOrdersList" class="orders-container"></div>
             </div>
 
+            <!-- Мои ордера -->
             <div id="tab-myorders" class="tab-pane">
                 <div class="my-orders-block">
-                    <h4>📌 Мои ордера на продажу</h4>
+                    <div class="section-header">📌 Мои ордера на продажу</div>
                     <div id="mySellOrdersList" class="orders-container"></div>
                 </div>
                 <div class="my-orders-block">
-                    <h4>🛒 Мои заявки на покупку</h4>
+                    <div class="section-header">🛒 Мои заявки на покупку</div>
                     <div id="myBuyOrdersList" class="orders-container"></div>
                 </div>
             </div>
@@ -214,14 +238,13 @@ window.renderStocksTab = async function(currentUser) {
 
     document.getElementById('app').innerHTML = html;
 
-    // ---- Дальше будут функции отрисовки и обработчики (продолжение во 2й части) ----
-        // ---- Функция отрисовки ГЛАВНОГО графика (всегда виден) ----
+    // ---- Функция отрисовки графика ----
     function drawMainChart() {
         const canvas = document.getElementById('mainPriceChart');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         const w = canvas.clientWidth;
-        const h = 180;
+        const h = 160;
         canvas.width = w;
         canvas.height = h;
 
@@ -246,18 +269,18 @@ window.renderStocksTab = async function(currentUser) {
         const step = w / (prices.length - 1);
         prices.forEach((price, i) => {
             const x = i * step;
-            const y = h - 15 - ((price - minP) / range) * (h - 30);
+            const y = h - 12 - ((price - minP) / range) * (h - 24);
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         });
         ctx.stroke();
-        ctx.lineTo(w, h - 15);
-        ctx.lineTo(0, h - 15);
+        ctx.lineTo(w, h - 12);
+        ctx.lineTo(0, h - 12);
         ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
         ctx.fill();
     }
 
-    // ---- Функции для стакана, ордеров ----
+    // ---- Стакан (только 5 лучших) ----
     function renderOrderBook() {
         const sellMap = new Map();
         activeSellOrders.forEach(o => {
@@ -268,7 +291,7 @@ window.renderStocksTab = async function(currentUser) {
         const sellBook = Array.from(sellMap.entries())
             .map(([p, a]) => ({ price: p, amount: a }))
             .sort((a,b) => a.price - b.price)
-            .slice(0, 8);
+            .slice(0, 5);
 
         const buyMap = new Map();
         activeBuyOrders.forEach(o => {
@@ -279,7 +302,7 @@ window.renderStocksTab = async function(currentUser) {
         const buyBook = Array.from(buyMap.entries())
             .map(([p, a]) => ({ price: p, amount: a }))
             .sort((a,b) => b.price - a.price)
-            .slice(0, 8);
+            .slice(0, 5);
 
         const sellHtml = sellBook.map(b => `
             <div class="orderbook-row">
@@ -294,15 +317,16 @@ window.renderStocksTab = async function(currentUser) {
             </div>
         `).join('');
 
-        document.getElementById('sellBookList').innerHTML = sellHtml || '<div class="empty-placeholder">Нет ордеров</div>';
-        document.getElementById('buyBookList').innerHTML = buyHtml || '<div class="empty-placeholder">Нет заявок</div>';
+        document.getElementById('sellBookList').innerHTML = sellHtml || '<div class="empty-placeholder centered">Нет ордеров</div>';
+        document.getElementById('buyBookList').innerHTML = buyHtml || '<div class="empty-placeholder centered">Нет заявок</div>';
     }
 
+    // ---- Активные ордера (чужие) ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
         if (!activeSellOrders.length) {
-            container.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>';
+            container.innerHTML = '<div class="empty-placeholder centered">Нет активных ордеров</div>';
             return;
         }
         const html = activeSellOrders.map(order => {
@@ -310,8 +334,11 @@ window.renderStocksTab = async function(currentUser) {
             const amount = order.amount / 100;
             return `
                 <div class="order-item" data-id="${order.id}">
-                    <div>📦 ${amount.toFixed(2)} шт. по ${price.toFixed(2)} ⭐</div>
-                    <div class="order-seller">👤 продавец: ${order.seller_id}</div>
+                    <div class="order-info">
+                        <span>📦 ${amount.toFixed(2)} шт.</span>
+                        <span>⭐ ${price.toFixed(2)}</span>
+                        <span class="order-seller">👤 ${order.seller_id}</span>
+                    </div>
                     <button class="buy-order-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}">Купить</button>
                 </div>
             `;
@@ -338,11 +365,12 @@ window.renderStocksTab = async function(currentUser) {
         });
     }
 
+    // ---- Мои ордера ----
     function renderMyOrders() {
         const sellContainer = document.getElementById('mySellOrdersList');
         if (sellContainer) {
             if (!mySellOrders.length) {
-                sellContainer.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>';
+                sellContainer.innerHTML = '<div class="empty-placeholder centered">Нет активных ордеров</div>';
             } else {
                 sellContainer.innerHTML = mySellOrders.map(order => `
                     <div class="my-order-item">
@@ -355,7 +383,7 @@ window.renderStocksTab = async function(currentUser) {
         const buyContainer = document.getElementById('myBuyOrdersList');
         if (buyContainer) {
             if (!myBuyOrders.length) {
-                buyContainer.innerHTML = '<div class="empty-placeholder">Нет активных заявок</div>';
+                buyContainer.innerHTML = '<div class="empty-placeholder centered">Нет активных заявок</div>';
             } else {
                 buyContainer.innerHTML = myBuyOrders.map(order => `
                     <div class="my-order-item">
@@ -381,10 +409,10 @@ window.renderStocksTab = async function(currentUser) {
         });
     }
 
-    // ---- Переключение табов (без вкладки "График", он всегда виден) ----
+    // ---- Переключение табов ----
     const tabs = document.querySelectorAll('.tab-btn');
     const panes = {
-        overview: document.getElementById('tab-overview'),
+        orderform: document.getElementById('tab-orderform'),
         orderbook: document.getElementById('tab-orderbook'),
         orders: document.getElementById('tab-orders'),
         myorders: document.getElementById('tab-myorders')
@@ -402,7 +430,7 @@ window.renderStocksTab = async function(currentUser) {
         });
     });
 
-    // ---- Логика лимитного ордера с переключением режимов ----
+    // ---- Лимитный ордер с переключением режимов ----
     let currentOrderType = 'sell';
     document.getElementById('orderTypeSell').onclick = () => {
         currentOrderType = 'sell';
@@ -494,9 +522,9 @@ window.renderStocksTab = async function(currentUser) {
         if (!isNaN(shares) && shares > 0) window.marketSell(shares).catch(e => window.showCustomModal('Ошибка', e.message));
     };
 
-    // ---- Первоначальная отрисовка ----
-    drawMainChart();          // график всегда рисуется
-    renderOrderBook();       // стакан (для вкладки)
-    renderActiveSellOrders();// ордера
-    renderMyOrders();        // мои ордера
+    // ---- Отрисовка ----
+    drawMainChart();
+    renderOrderBook();
+    renderActiveSellOrders();
+    renderMyOrders();
 };
