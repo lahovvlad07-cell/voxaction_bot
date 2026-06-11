@@ -1,29 +1,53 @@
-// topup.js – полная версия (модалка пополнения, комиссия, инвойс)
-
-let selectedAmount = null;
-
-window.updateTopupFee = function(amount) {
-    const fee = Math.floor(amount * 0.05);
-    const receive = amount - fee;
-    const feeInfo = document.getElementById('topupFeeInfo');
-    if (feeInfo) {
-        feeInfo.innerHTML = `💸 Вы платите: ${amount} ⭐<br>📉 Комиссия (5%): ${fee} ⭐<br>✅ Получите: ${receive} ⭐`;
-    }
-};
-
-function initTopupModal() {
-    const modal = document.getElementById('topupModal');
-    if (!modal) return;
+// topup.js – модалка пополнения с ограничением 500 ⭐ за 12 часов
+window.showTopupModal = function() {
+    const modalHtml = `
+        <div class="modal" id="topupModalNew" style="display:flex;">
+            <div class="modal-content topup-modal">
+                <span class="close-modal" id="closeTopupModalNew">&times;</span>
+                <h3>💸 Пополнение Stars</h3>
+                <div class="topup-amount-buttons">
+                    <button class="amount-preset" data-amount="100">100 ⭐</button>
+                    <button class="amount-preset" data-amount="200">200 ⭐</button>
+                    <button class="amount-preset" data-amount="300">300 ⭐</button>
+                    <button class="amount-preset" data-amount="400">400 ⭐</button>
+                    <button class="amount-preset" data-amount="500">500 ⭐</button>
+                </div>
+                <div class="custom-amount">
+                    <input type="number" id="customTopupAmount" placeholder="Своя сумма (100–500)" min="100" max="500" step="1">
+                </div>
+                <div id="topupFeeInfo" class="topup-fee"></div>
+                <div class="topup-limit-info">⚠️ Максимум 500 ⭐ за 12 часов. Комиссия 5%.</div>
+                <button id="confirmTopupBtnNew" class="topup-confirm-btn">Пополнить</button>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
     
-    const amountBtns = document.querySelectorAll('#topupModal .amount-btn');
-    amountBtns.forEach(btn => {
+    const modal = document.getElementById('topupModalNew');
+    let selectedAmount = null;
+    
+    const updateFee = (amount) => {
+        if (!amount || amount < 100) {
+            document.getElementById('topupFeeInfo').innerHTML = '';
+            return;
+        }
+        const fee = Math.floor(amount * 0.05);
+        const receive = amount - fee;
+        document.getElementById('topupFeeInfo').innerHTML = `
+            <div class="fee-row">💰 Сумма: ${amount} ⭐</div>
+            <div class="fee-row">📉 Комиссия (5%): ${fee} ⭐</div>
+            <div class="fee-row highlight">✅ Вы получите: ${receive} ⭐</div>
+        `;
+    };
+    
+    document.querySelectorAll('.amount-preset').forEach(btn => {
         btn.addEventListener('click', () => {
-            amountBtns.forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             selectedAmount = parseInt(btn.dataset.amount);
             const customInput = document.getElementById('customTopupAmount');
             if (customInput) customInput.value = selectedAmount;
-            window.updateTopupFee(selectedAmount);
+            updateFee(selectedAmount);
         });
     });
     
@@ -31,47 +55,46 @@ function initTopupModal() {
     if (customInput) {
         customInput.addEventListener('input', () => {
             let val = parseInt(customInput.value);
-            if (!isNaN(val) && val >= 1) {
+            if (!isNaN(val) && val >= 100 && val <= 500) {
                 selectedAmount = val;
-                amountBtns.forEach(b => b.classList.remove('selected'));
-                window.updateTopupFee(selectedAmount);
+                document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
+                updateFee(selectedAmount);
             } else {
-                const feeInfo = document.getElementById('topupFeeInfo');
-                if (feeInfo) feeInfo.innerHTML = '';
+                document.getElementById('topupFeeInfo').innerHTML = '<div class="fee-row error">Сумма должна быть от 100 до 500 ⭐</div>';
+                selectedAmount = null;
             }
         });
     }
     
-    const confirmBtn = document.getElementById('confirmTopupBtn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', async () => {
-            if (!selectedAmount || selectedAmount < 1) {
-                window.showCustomModal('Ошибка', 'Выберите сумму');
-                return;
-            }
-            modal.style.display = 'none';
-            try {
-                const res = await window.createInvoice(selectedAmount);
-                if (res.ok && res.invoice_link) {
-                    window.tg.openInvoice(res.invoice_link, (status) => {
-                        if (status === 'paid') {
-                            window.showCustomModal('Успех', 'Баланс пополнен');
-                            if (window.refreshAll) window.refreshAll();
-                        }
-                    });
-                } else {
-                    window.showCustomModal('Ошибка', res.error || 'Не удалось создать счёт');
-                }
-            } catch(e) {
-                window.showCustomModal('Ошибка', 'Соединение');
-            }
-        });
-    }
+    const closeModal = () => modal.remove();
+    document.getElementById('closeTopupModalNew').onclick = closeModal;
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     
-    const closeBtn = document.getElementById('closeTopupModal');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-    }
+    document.getElementById('confirmTopupBtnNew').onclick = async () => {
+        if (!selectedAmount || selectedAmount < 100 || selectedAmount > 500) {
+            window.showCustomModal('Ошибка', 'Введите сумму от 100 до 500 ⭐');
+            return;
+        }
+        closeModal();
+        try {
+            const res = await window.createInvoice(selectedAmount);
+            if (res.ok && res.invoice_link) {
+                window.tg.openInvoice(res.invoice_link, (status) => {
+                    if (status === 'paid') {
+                        window.showCustomModal('Успех', 'Баланс пополнен!');
+                        if (window.refreshActiveTab) window.refreshActiveTab();
+                    }
+                });
+            } else {
+                window.showCustomModal('Ошибка', res.error || 'Не удалось создать счёт');
+            }
+        } catch(e) {
+            window.showCustomModal('Ошибка', 'Соединение не удалось');
+        }
+    };
+};
+
+// Инициализация старой модалки (если нужна совместимость) – можно оставить пустую
+function initTopupModal() {
+    // Новая модалка вызывается через window.showTopupModal, старая не используется
 }
