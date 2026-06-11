@@ -1,8 +1,74 @@
-/* Стили для вкладки Кошелёк */
+/* wallet.css – стили для вкладки Кошелёк */
 .wallet-container {
     max-width: 600px;
     margin: 0 auto;
     padding: 0 16px 80px 16px;
+}
+.wallet-stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.wallet-balance-card {
+    flex: 1;
+    background: rgba(18, 24, 38, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 28px;
+    padding: 20px 12px;
+    text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.wallet-balance-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+.wallet-balance-value {
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.wallet-balance-label {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+.stat-card {
+    flex: 1;
+    background: rgba(18, 24, 38, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 24px;
+    padding: 16px 12px;
+    text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.stat-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+.stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.stat-value.positive-text {
+    background: none;
+    color: #4ade80;
+}
+.stat-value.negative-text {
+    background: none;
+    color: #f87171;
+}
+.stat-label {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
 }
 .wallet-actions {
     display: flex;
@@ -50,6 +116,9 @@
 @media (max-width: 560px) {
     .wallet-container {
         padding: 0 12px 70px 12px;
+    }
+    .wallet-balance-value {
+        font-size: 26px;
     }
     .wallet-btn {
         padding: 12px;
