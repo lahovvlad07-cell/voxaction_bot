@@ -1,9 +1,7 @@
-// analytics.js – профессиональная аналитика с фильтрами и анимацией
+// analytics.js – профессиональная аналитика (профит – цветной текст)
 let currentPeriod = 30;
-let chartData = { volumes: [], prices: [] };
 
 async function loadAnalyticsData() {
-    // Показываем скелетон
     document.getElementById('app').innerHTML = `
         <div class="analytics-container">
             <div class="analytics-stats">
@@ -18,83 +16,78 @@ async function loadAnalyticsData() {
     `;
     
     try {
-        // Запрашиваем данные через RPC (если есть) или напрямую
+        // Объёмы за период
         let volumeData = [];
-        let priceData = [];
         try {
             const { data: vol } = await window.supabase.rpc('get_volume_history', { days_limit: currentPeriod });
             volumeData = vol || [];
         } catch(e) {
-            console.warn('RPC get_volume_history не найден, используем прямой запрос');
-            const { data: trades } = await window.supabase
-                .from('trades')
-                .select('total_stars, created_at')
-                .gte('created_at', new Date(Date.now() - currentPeriod*86400000).toISOString());
-            if (trades) {
-                const days = {};
-                trades.forEach(t => {
-                    const day = t.created_at.slice(0,10);
-                    days[day] = (days[day] || 0) + t.total_stars;
-                });
-                volumeData = Object.entries(days).map(([day, total]) => ({ day, total_amount: total }));
-            }
+            console.warn('RPC get_volume_history не найден');
         }
         
-        // Загружаем сделки пользователя для цены и статистики
-        const { data: userTrades } = await window.supabase
+        // Все сделки пользователя (без ограничений по дате, для топ-5 за всё время)
+        const { data: allTrades } = await window.supabase
             .from('trades')
             .select('*')
             .or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`)
             .order('created_at', { ascending: false });
         
-        // Группировка цены по дням
-        if (userTrades && userTrades.length) {
+        // Сделки за период для графиков и статистики
+        const periodDate = new Date();
+        periodDate.setDate(periodDate.getDate() - currentPeriod);
+        const tradesInPeriod = (allTrades || []).filter(t => new Date(t.created_at) >= periodDate);
+        
+        // Данные для графика цены (за период)
+        let priceData = [];
+        if (tradesInPeriod.length) {
             const days = {};
-            userTrades.forEach(t => {
+            tradesInPeriod.forEach(t => {
                 const day = t.created_at.slice(0,10);
                 if (!days[day]) days[day] = { sum: 0, count: 0 };
                 days[day].sum += t.price_per_share;
                 days[day].count++;
             });
-            const lastDays = Object.entries(days).slice(-currentPeriod);
-            priceData = lastDays.map(([date, { sum, count }]) => ({
+            priceData = Object.entries(days).map(([date, { sum, count }]) => ({
                 date,
                 price: sum / count / 100
             }));
         }
         
-        chartData = { volumes: volumeData, prices: priceData };
-        renderAnalytics(volumeData, priceData, userTrades || []);
+        renderAnalytics(volumeData, priceData, allTrades || [], tradesInPeriod);
     } catch(e) {
         console.error(e);
         document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки данных</div>';
     }
 }
 
-function renderAnalytics(volumeData, priceData, trades) {
-    // Статистика
-    const totalTrades = trades.length;
-    const totalVolumeStars = trades.reduce((sum, t) => sum + t.total_stars / 100, 0);
-    const avgPrice = trades.length ? (trades.reduce((sum, t) => sum + t.price_per_share / 100, 0) / trades.length) : 0;
-    const spent = trades.filter(t => t.buyer_id === window.userId).reduce((s, t) => s + t.total_stars / 100, 0);
-    const earned = trades.filter(t => t.seller_id === window.userId).reduce((s, t) => s + t.total_stars / 100, 0);
+function renderAnalytics(volumeData, priceData, allTrades, tradesInPeriod) {
+    const totalTrades = allTrades.length;
+    const totalVolumeStars = allTrades.reduce((sum, t) => sum + t.total_stars / 100, 0);
+    const avgPrice = allTrades.length ? (allTrades.reduce((sum, t) => sum + t.price_per_share / 100, 0) / allTrades.length) : 0;
+    const spent = allTrades.filter(t => t.buyer_id === window.userId).reduce((s, t) => s + t.total_stars / 100, 0);
+    const earned = allTrades.filter(t => t.seller_id === window.userId).reduce((s, t) => s + t.total_stars / 100, 0);
     const profit = earned - spent;
     
-    // Топ-5 сделок
-    const topTrades = [...trades].sort((a,b) => b.total_stars - a.total_stars).slice(0,5);
+    // Топ-5 крупнейших сделок за всё время (по total_stars)
+    const topTrades = [...allTrades].sort((a,b) => b.total_stars - a.total_stars).slice(0,5);
     
-    // Дни недели
+    // Последние 20 сделок
+    const recentTrades = allTrades.slice(0,20);
+    
+    // Активность по дням недели (за всё время)
     const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     const weekdayCount = [0,0,0,0,0,0,0];
-    trades.forEach(t => {
+    allTrades.forEach(t => {
         const wd = new Date(t.created_at).getDay();
         weekdayCount[wd]++;
     });
     const maxCount = Math.max(...weekdayCount, 1);
     
+    const profitClass = profit >= 0 ? 'positive-text' : 'negative-text';
+    const profitSign = profit >= 0 ? '+' : '';
+    
     const html = `
         <div class="analytics-container">
-            <!-- Карточки метрик -->
             <div class="analytics-stats">
                 <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">${totalTrades}</div><div class="stat-label">Сделок</div></div>
                 <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value">${totalVolumeStars.toFixed(2)}</div><div class="stat-label">Объём</div></div>
@@ -103,30 +96,28 @@ function renderAnalytics(volumeData, priceData, trades) {
             <div class="analytics-stats">
                 <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-value">${spent.toFixed(2)}</div><div class="stat-label">Потрачено</div></div>
                 <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${earned.toFixed(2)}</div><div class="stat-label">Заработано</div></div>
-                <div class="stat-card"><div class="stat-icon ${profit >= 0 ? 'positive' : 'negative'}">⚖️</div><div class="stat-value ${profit >= 0 ? 'positive' : 'negative'}">${profit.toFixed(2)}</div><div class="stat-label">Профит</div></div>
+                <div class="stat-card"><div class="stat-icon">⚖️</div><div class="stat-value ${profitClass}">${profitSign}${profit.toFixed(2)}</div><div class="stat-label">Профит</div></div>
             </div>
             
-            <!-- Переключатель периода -->
             <div class="period-switch">
                 <button class="period-btn ${currentPeriod === 7 ? 'active' : ''}" data-period="7">7 дней</button>
                 <button class="period-btn ${currentPeriod === 30 ? 'active' : ''}" data-period="30">30 дней</button>
                 <button class="period-btn ${currentPeriod === 90 ? 'active' : ''}" data-period="90">90 дней</button>
             </div>
             
-            <!-- График объёмов -->
             <div class="chart-card">
                 <h3>📊 Объёмы торгов</h3>
                 <div class="chart-wrapper"><canvas id="volumeCanvas" width="600" height="200" style="width:100%; height:200px;"></canvas></div>
                 <div class="chart-note">⭐ за день</div>
             </div>
             
-            <!-- График цены + SMA -->
+            ${priceData.length ? `
             <div class="chart-card">
                 <h3>📈 Динамика цены (линия) и SMA 7</h3>
                 <div class="chart-wrapper"><canvas id="priceCanvas" width="600" height="200" style="width:100%; height:200px;"></canvas></div>
             </div>
+            ` : ''}
             
-            <!-- Активность по дням недели -->
             <div class="info-card">
                 <h3>📅 Активность по дням</h3>
                 <div class="weekday-stats">
@@ -140,9 +131,8 @@ function renderAnalytics(volumeData, priceData, trades) {
                 </div>
             </div>
             
-            <!-- Топ сделок -->
             <div class="info-card">
-                <h3>🏆 Крупнейшие сделки</h3>
+                <h3>🏆 Крупнейшие сделки (топ-5 за всё время)</h3>
                 <div class="top-trades-list">
                     ${topTrades.map(t => {
                         const isBuy = t.buyer_id === window.userId;
@@ -158,18 +148,17 @@ function renderAnalytics(volumeData, priceData, trades) {
                 ${!topTrades.length ? '<div class="empty-history">Нет сделок</div>' : ''}
             </div>
             
-            <!-- Последние сделки -->
             <div class="history-card">
-                <h3>📜 Последние сделки</h3>
+                <h3>📜 Последние сделки (20 шт.)</h3>
                 <div class="history-list">
-                    ${trades.slice(0,15).map(t => `
+                    ${recentTrades.map(t => `
                         <div class="history-item">
                             <div class="history-type ${t.buyer_id === window.userId ? 'buy' : 'sell'}">${t.buyer_id === window.userId ? '🟢 Покупка' : '🔴 Продажа'}</div>
                             <div class="history-details">${window.fromCents(t.amount)} шт. по ${window.fromCents(t.price_per_share)} ⭐</div>
                             <div class="history-date">${new Date(t.created_at).toLocaleString()}</div>
                         </div>
                     `).join('')}
-                    ${!trades.length ? '<div class="empty-history">Нет сделок</div>' : ''}
+                    ${!recentTrades.length ? '<div class="empty-history">Нет сделок</div>' : ''}
                 </div>
             </div>
         </div>
@@ -177,11 +166,9 @@ function renderAnalytics(volumeData, priceData, trades) {
     
     document.getElementById('app').innerHTML = html;
     
-    // Отрисовка графиков
     drawVolumeChart(volumeData);
-    drawPriceChart(priceData);
+    if (priceData.length) drawPriceChart(priceData);
     
-    // Обработчики периода
     document.querySelectorAll('.period-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             currentPeriod = parseInt(btn.dataset.period);
@@ -237,21 +224,13 @@ function drawPriceChart(priceData) {
     canvas.width = w;
     canvas.height = h;
     
-    if (!priceData.length) {
-        ctx.fillStyle = '#0f1320';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#9ca3af';
-        ctx.font = '12px sans-serif';
-        ctx.fillText('Нет данных', w/2 - 40, h/2);
-        return;
-    }
+    if (!priceData.length) return;
     
     const prices = priceData.map(p => p.price);
     const maxP = Math.max(...prices, 0.01);
     const minP = Math.min(...prices, 0);
     const range = maxP - minP || 1;
     
-    // Рисуем линию цены
     ctx.clearRect(0, 0, w, h);
     ctx.beginPath();
     ctx.strokeStyle = '#0ff';
@@ -265,7 +244,7 @@ function drawPriceChart(priceData) {
     });
     ctx.stroke();
     
-    // Рисуем SMA 7
+    // SMA 7
     if (prices.length >= 7) {
         const sma = [];
         for (let i = 6; i < prices.length; i++) {
