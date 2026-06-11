@@ -1,4 +1,4 @@
-/* analytics.css – профессиональный дашборд */
+/* analytics.css – профессиональный дашборд (профит – цветной текст) */
 .analytics-container {
     max-width: 700px;
     margin: 0 auto;
@@ -23,7 +23,7 @@
 .stat-card:hover {
     transform: translateY(-2px);
     border-color: #0ff;
-    box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
 }
 .stat-icon {
     font-size: 28px;
@@ -37,8 +37,15 @@
     -webkit-background-clip: text;
     color: transparent;
 }
-.stat-value.positive { background: linear-gradient(135deg, #4ade80, #22c55e); }
-.stat-value.negative { background: linear-gradient(135deg, #f87171, #ef4444); }
+/* Профит – только цвет текста, без фона */
+.stat-value.positive-text {
+    background: none;
+    color: #4ade80;
+}
+.stat-value.negative-text {
+    background: none;
+    color: #f87171;
+}
 .stat-label {
     font-size: 11px;
     color: #9ca3af;
@@ -155,7 +162,6 @@
 .history-details { display: flex; gap: 12px; font-size: 14px; color: #eef2ff; }
 .history-date { font-size: 11px; color: #9ca3af; }
 .empty-history { text-align: center; padding: 30px; color: #9ca3af; font-style: italic; }
-/* Скелетон */
 .skeleton-line { height: 20px; background: linear-gradient(90deg, #2a2f3f 25%, #3a4055 50%, #2a2f3f 75%); background-size: 200% 100%; border-radius: 8px; animation: shimmer 1.5s infinite; }
 .skeleton-chart { height: 160px; background: linear-gradient(90deg, #2a2f3f 25%, #3a4055 50%, #2a2f3f 75%); background-size: 200% 100%; border-radius: 20px; animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
