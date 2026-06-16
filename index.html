@@ -24,6 +24,11 @@
 <body>
 <div class="app-header">
     <div class="header-logo">VoxAction</div>
+    <!-- Онлайн-индикатор -->
+    <div class="header-online">
+        <span class="online-dot"></span>
+        <span class="online-count" id="onlineCount">0</span>
+    </div>
     <div class="header-icons">
         <div class="header-icon" id="headerNotificationBell">🔔<span class="notification-badge" id="headerNotificationBadge" style="display:none;">0</span></div>
         <div class="header-icon" id="headerSettingsGear">⚙️</div>
@@ -126,6 +131,18 @@
         try {
             const { user, isNew } = await window.getOrCreateUser();
             window.currentUser = user;
+            
+            // ---- ОНЛАЙН-СТАТУС ----
+            async function updateOnlineStatus() {
+                if (!window.userId) return;
+                await window.updateLastSeen();
+                const count = await window.getOnlineCount();
+                const el = document.getElementById('onlineCount');
+                if (el) el.textContent = count;
+            }
+            await updateOnlineStatus();
+            setInterval(updateOnlineStatus, 15000);
+            
             await window.renderStocksTab(window.currentUser);
             if (isNew) setTimeout(() => window.renderProfileTab(
                 window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
