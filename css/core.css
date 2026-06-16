@@ -166,7 +166,7 @@ input:focus {
     background-size: auto !important;
 }
 
-/* Дополнительные стили для модалки пополнения (из topup.js) */
+/* ========== СТИЛИ ДЛЯ МОДАЛКИ ПОПОЛНЕНИЯ ========== */
 .topup-modal {
     max-width: 380px;
     width: 90%;
