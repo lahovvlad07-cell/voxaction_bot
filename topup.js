@@ -1,5 +1,5 @@
-// topup.js – модалка пополнения с ограничением 500 ⭐ за 12 часов
-window.showTopupModal = function() {
+// topup.js – модалка пополнения с callback после оплаты
+window.showTopupModal = function(onSuccess) {
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
             <div class="modal-content topup-modal">
@@ -82,6 +82,7 @@ window.showTopupModal = function() {
                 window.tg.openInvoice(res.invoice_link, (status) => {
                     if (status === 'paid') {
                         window.showCustomModal('Успех', 'Баланс пополнен!');
+                        if (typeof onSuccess === 'function') onSuccess();
                         if (window.refreshActiveTab) window.refreshActiveTab();
                     }
                 });
@@ -95,5 +96,5 @@ window.showTopupModal = function() {
 };
 
 function initTopupModal() {
-    // Новая модалка вызывается через window.showTopupModal, старая не используется
+    // Новая модалка вызывается через window.showTopupModal
 }
