@@ -94,7 +94,6 @@ window.showTopupModal = function() {
     };
 };
 
-// Инициализация старой модалки (если нужна совместимость) – можно оставить пустую
 function initTopupModal() {
     // Новая модалка вызывается через window.showTopupModal, старая не используется
 }
