@@ -1,4 +1,4 @@
-// topup.js – модалка пополнения (работает с полем ввода)
+// topup.js – модалка пополнения (гарантированно рабочий)
 window.showTopupModal = function(onSuccess) {
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
@@ -23,18 +23,18 @@ window.showTopupModal = function(onSuccess) {
         </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
+
     const modal = document.getElementById('topupModalNew');
     const customInput = document.getElementById('customTopupAmount');
     const feeInfo = document.getElementById('topupFeeInfo');
     const confirmBtn = document.getElementById('confirmTopupBtnNew');
-    
-    // Функция обновления комиссии и активации кнопки
+
+    // === ФУНКЦИЯ ОБНОВЛЕНИЯ ===
     function updateFeeAndButton(amount) {
         if (!amount || amount < 10 || amount > 500) {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
-            return false;
+            return;
         }
         const fee = Math.floor(amount * 0.05);
         const receive = amount - fee;
@@ -49,46 +49,41 @@ window.showTopupModal = function(onSuccess) {
             </div>
         `;
         confirmBtn.disabled = false;
-        return true;
     }
-    
-    // Обработчик ввода в поле
-    function handleInput() {
-        const val = parseInt(customInput.value);
+
+    // === ОБРАБОТЧИК ПОЛЯ ===
+    customInput.addEventListener('input', function(e) {
+        const val = parseInt(this.value);
         if (!isNaN(val) && val >= 10 && val <= 500) {
             updateFeeAndButton(val);
         } else {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
         }
-    }
-    
-    customInput.addEventListener('input', handleInput);
-    
-    // Обработчики кнопок шаблонов
+    });
+
+    // === ОБРАБОТЧИКИ ШАБЛОНОВ ===
     document.querySelectorAll('.amount-preset').forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Снимаем выделение со всех кнопок
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Снимаем выделение со всех
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
             this.classList.add('selected');
-            
             const amount = parseInt(this.dataset.amount);
+            // Заполняем поле
             customInput.value = amount;
-            
-            // Кнопка НЕ АКТИВИРУЕТСЯ, комиссия НЕ ПОКАЗЫВАЕТСЯ
-            feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
-            confirmBtn.disabled = true;
+            // ВРУЧНУЮ ЗАПУСКАЕМ СОБЫТИЕ input, чтобы активировать кнопку и комиссию
+            customInput.dispatchEvent(new Event('input'));
         });
     });
-    
-    // Закрытие модалки
+
+    // === ЗАКРЫТИЕ МОДАЛКИ ===
     const closeModal = () => modal.remove();
     document.getElementById('closeTopupModalNew').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    
-    // Кнопка "Пополнить"
+
+    // === КНОПКА ПОПОЛНИТЬ ===
     confirmBtn.addEventListener('click', function() {
-        // Берём сумму напрямую из поля
         const amount = parseInt(customInput.value);
         if (!amount || amount < 10 || amount > 500) {
             window.showCustomModal('Ошибка', 'Введите сумму от 10 до 500 ⭐');
@@ -96,7 +91,7 @@ window.showTopupModal = function(onSuccess) {
         }
         const fee = Math.floor(amount * 0.05);
         const receive = amount - fee;
-        
+
         const confirmHtml = `
             <div class="modal" id="confirmModal" style="display:flex;">
                 <div class="modal-content confirm-modal">
@@ -124,13 +119,13 @@ window.showTopupModal = function(onSuccess) {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', confirmHtml);
-        
+
         const confirmModal = document.getElementById('confirmModal');
         const closeConfirm = () => confirmModal.remove();
         document.getElementById('closeConfirmModal').onclick = closeConfirm;
         confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) closeConfirm(); });
         document.getElementById('confirmCancelBtn').onclick = closeConfirm;
-        
+
         document.getElementById('confirmOkBtn').onclick = async () => {
             closeConfirm();
             closeModal();
