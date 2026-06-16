@@ -72,3 +72,52 @@
     justify-content: center;
     font-weight: bold;
 }
+
+/* ========== ОНЛАЙН-ИНДИКАТОР ========== */
+.header-online {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4ade80;
+    cursor: default;
+    flex-shrink: 0;
+}
+.online-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #4ade80;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+.online-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: #eef2ff;
+    background: rgba(74, 222, 128, 0.15);
+    padding: 0 6px;
+    border-radius: 12px;
+    min-width: 20px;
+    text-align: center;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 480px) {
+    .header-online {
+        margin-left: 6px;
+        gap: 4px;
+    }
+    .online-count {
+        font-size: 11px;
+        min-width: 16px;
+        padding: 0 4px;
+    }
+}
