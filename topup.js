@@ -30,7 +30,7 @@ window.showTopupModal = function(onSuccess) {
     const confirmBtn = document.getElementById('confirmTopupBtnNew');
     let selectedAmount = null;
     
-    // Функция обновления комиссии
+    // Функция обновления комиссии и состояния кнопки
     function updateFee(amount) {
         if (!amount || amount < 10 || amount > 500) {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
@@ -56,6 +56,8 @@ window.showTopupModal = function(onSuccess) {
     
     // Обработчик ввода своей суммы
     function handleInput() {
+        // Снимаем выделение с шаблонов
+        document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
         const val = parseInt(customInput.value);
         if (!isNaN(val) && val >= 10 && val <= 500) {
             updateFee(val);
@@ -75,7 +77,7 @@ window.showTopupModal = function(onSuccess) {
             this.classList.add('selected');
             const amount = parseInt(this.dataset.amount);
             customInput.value = amount;
-            // Вызываем обработчик вручную, чтобы обновить комиссию
+            // Вызываем handleInput, чтобы обновить комиссию и активировать кнопку
             handleInput();
         });
     });
