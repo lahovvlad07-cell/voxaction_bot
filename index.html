@@ -44,7 +44,6 @@
         <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
         <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
         <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
-        <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
 </div>
@@ -183,8 +182,8 @@
                     case 'rating': await window.renderRatingTab(); break;
                     case 'wallet': await window.renderWalletTab(); break;
                     case 'referral': await window.renderReferralTab(); break;
-                    case 'settings': if (window.renderSettingsTab) await window.renderSettingsTab(); break;
                     case 'admin': await window.renderAdminTab(); break;
+                    // case 'settings' – УДАЛЁН
                 }
             });
         });
