@@ -9,7 +9,7 @@ window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
 };
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ (исправлено) ==========
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ (ИСПРАВЛЕНО) ==========
 window.awardAchievement = async function(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -26,10 +26,10 @@ window.awardAchievement = async function(achievementId) {
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
         if (window.showCustomModal) {
-            // Заголовок: трофей + иконка достижения + название
-            window.showCustomModal(`🏆 ${ach.icon} ${ach.name}`, ach.description);
+            // Заголовок – только "Достижение получено!", иконка и название – в теле
+            window.showCustomModal('🏆 Достижение получено!', `${ach.icon} ${ach.name}\n\n${ach.description}`);
         } else {
-            alert(`🏆 Достижение: ${ach.icon} ${ach.name}`);
+            alert(`🏆 Достижение: ${ach.icon} ${ach.name}\n\n${ach.description}`);
         }
         if (window.renderProfileTab) window.renderProfileTab();
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
