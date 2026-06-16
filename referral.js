@@ -1,3 +1,4 @@
+// referral.js – улучшенная версия (фиксы, анимации, единый стиль)
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     let referralCount = currentUser.referral_count || 0;
@@ -150,7 +151,7 @@ window.renderReferralTab = async function() {
                 </div>
                 <div class="stat-circle">
                     <div class="value">${totalEarnedStars}</div>
-                    <div class="label">заработано</div>
+                    <div class="label">⭐ заработано</div>
                 </div>
             </div>
     `;
@@ -161,19 +162,24 @@ window.renderReferralTab = async function() {
         html += `
             <div class="progress-block">
                 <div class="progress-label">🎯 До следующей награды <strong>${rewardStars} ⭐</strong> осталось пригласить <strong>${remaining}</strong> друга(ей)</div>
-                <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%;"></div></div>
+                <div class="progress-bar"><div class="progress-fill" id="progressFillReferral" style="width: ${progressPercent}%;"></div></div>
                 <div class="progress-stats">${referralCount} / ${target}</div>
                 ${canClaim ? `<button class="claim-btn" data-friends="${target}" data-stars="${rewardStars}">🎁 Получить ${rewardStars} ⭐</button>` : ''}
             </div>
         `;
+        // Анимация прогресс-бара
+        setTimeout(() => {
+            const fill = document.getElementById('progressFillReferral');
+            if (fill) fill.style.transition = 'width 0.8s ease';
+        }, 100);
     }
 
     html += `
             <div class="invite-section">
-                <div class="invite-link" id="refLinkText">${inviteLink || 'Установите свой код'}</div>
+                <div class="invite-link" id="refLinkText" style="cursor:pointer;">${inviteLink || 'Установите свой код'}</div>
                 <div class="custom-code-section">
                     <input type="text" id="customCodeInput" placeholder="Ваш уникальный код" value="${escapeHtml(customCode)}" maxlength="32">
-                    <button id="saveCustomCodeBtn">Сохранить код</button>
+                    <button id="saveCustomCodeBtn">${customCode ? 'Изменить код' : 'Сохранить код'}</button>
                 </div>
                 <div class="invite-buttons">
                     <button class="copy-btn" id="copyRefLinkBtn">📋 Копировать ссылку</button>
@@ -204,7 +210,7 @@ window.renderReferralTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // --- Обработчики ---
+    // --- Обработчики с обратной связью ---
     const fullLinkSpan = document.getElementById('refLinkText');
     const copyBtn = document.getElementById('copyRefLinkBtn');
     const shareBtn = document.getElementById('shareRefLinkBtn');
@@ -221,9 +227,19 @@ window.renderReferralTab = async function() {
         fullLinkSpan.innerText = `https://t.me/VoxAction_Bot?start=${code}`;
         fullLinkSpan.style.opacity = '1';
     }
-
     customInput.addEventListener('input', updateLink);
     updateLink();
+
+    // Клик по ссылке – копирование
+    fullLinkSpan.addEventListener('click', () => {
+        const linkText = fullLinkSpan.innerText;
+        if (linkText && !linkText.includes('Сначала установите код')) {
+            navigator.clipboard.writeText(linkText);
+            const original = fullLinkSpan.innerText;
+            fullLinkSpan.innerText = '✅ Скопировано!';
+            setTimeout(() => { fullLinkSpan.innerText = original; }, 2000);
+        }
+    });
 
     saveCodeBtn.addEventListener('click', async () => {
         let newCode = customInput.value.trim().toLowerCase();
@@ -244,9 +260,9 @@ window.renderReferralTab = async function() {
         if (data.ok) {
             window.currentUser.custom_ref_code = newCode;
             window.showCustomModal('Успех', 'Реферальный код сохранён!');
+            saveCodeBtn.textContent = 'Изменить код';
             updateLink();
         } else {
-            // Исправленное сообщение: если ошибка содержит "уже занят" – показываем специфичную фразу
             if (data.error && (data.error.includes('уже занят') || data.error.includes('already'))) {
                 window.showCustomModal('Ошибка', 'Этот код уже занят');
             } else {
@@ -259,7 +275,9 @@ window.renderReferralTab = async function() {
         const linkText = fullLinkSpan.innerText;
         if (linkText && !linkText.includes('Сначала установите код')) {
             navigator.clipboard.writeText(linkText);
-            window.showCustomModal('Скопировано', 'Ссылка скопирована');
+            const original = copyBtn.innerText;
+            copyBtn.innerText = '✅ Скопировано!';
+            setTimeout(() => { copyBtn.innerText = original; }, 2000);
         } else {
             window.showCustomModal('Ошибка', 'Установите код сначала');
         }
