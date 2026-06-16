@@ -1,3 +1,4 @@
+/* core.css – базовые стили для всего приложения */
 * {
     margin: 0;
     padding: 0;
@@ -6,7 +7,9 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
-*::-webkit-scrollbar { display: none; }
+*::-webkit-scrollbar {
+    display: none;
+}
 
 body {
     background: #0a0e1a;
@@ -23,7 +26,7 @@ body {
     padding: 20px;
     margin: 12px 16px;
     border: 1px solid rgba(56, 189, 248, 0.2);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 button {
@@ -39,7 +42,10 @@ button {
     cursor: pointer;
     transition: 0.2s;
 }
-button:active { transform: scale(0.96); opacity: 0.9; }
+button:active {
+    transform: scale(0.96);
+    opacity: 0.9;
+}
 
 input {
     width: 100%;
@@ -51,8 +57,11 @@ input {
     color: #f0f4ff;
     outline: none;
 }
-input:focus { border-color: #2b6e9e; }
+input:focus {
+    border-color: #2b6e9e;
+}
 
+/* Модалки */
 .modal {
     display: none;
     position: fixed;
@@ -60,7 +69,7 @@ input:focus { border-color: #2b6e9e; }
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(12px);
     z-index: 1000;
     align-items: center;
@@ -78,7 +87,10 @@ input:focus { border-color: #2b6e9e; }
     border: 1px solid #2b6e9e;
     position: relative;
 }
-.modal-content h3 { text-align: center; margin: 16px 0 0; }
+.modal-content h3 {
+    text-align: center;
+    margin: 16px 0 0;
+}
 .close-modal {
     position: absolute;
     top: 12px;
@@ -87,22 +99,29 @@ input:focus { border-color: #2b6e9e; }
     cursor: pointer;
     color: #9ca3af;
 }
-.scrollable-content { flex: 1; overflow-y: auto; padding: 0 20px; }
+.scrollable-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px;
+}
 .modal-buttons {
     background: #121826;
     padding: 16px 20px;
-    border-top: 1px solid rgba(56,189,248,0.2);
+    border-top: 1px solid rgba(56, 189, 248, 0.2);
     display: flex;
     gap: 12px;
 }
-.modal-buttons button { margin-top: 0; }
+.modal-buttons button {
+    margin-top: 0;
+}
 
+/* Тост */
 .toast {
     position: fixed;
     top: 80px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.85);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(12px);
     color: white;
     padding: 12px 20px;
@@ -121,12 +140,28 @@ input:focus { border-color: #2b6e9e; }
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
+/* Достижения */
 .achi-icon.earned:hover {
     transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(251,191,36,0.9);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.9);
 }
 .achievement-card.selected {
     border: 2px solid #fbbf24 !important;
-    background: rgba(251,191,36,0.2) !important;
-    box-shadow: 0 0 12px rgba(251,191,36,0.6) !important;
+    background: rgba(251, 191, 36, 0.2) !important;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.6) !important;
+}
+
+/* Отключение анимаций (для экономии трафика/батареи) */
+.animations-off *,
+.animations-off .header-logo,
+.animations-off .stat-value,
+.animations-off .price,
+.animations-off .stat-number,
+.animations-off .referral-title,
+.animations-off .referral-stat-value,
+.animations-off #headerSettingsGear,
+.animations-off #headerNotificationBell {
+    animation: none !important;
+    transition: none !important;
+    background-size: auto !important;
 }
