@@ -1,14 +1,15 @@
-/* wallet.css – стили для вкладки Кошелёк */
+/* wallet.css – улучшенный кошелёк (современный стиль) */
 .wallet-container {
     max-width: 600px;
     margin: 0 auto;
     padding: 0 16px 80px 16px;
 }
-.wallet-stats {
+
+/* Карточки баланса */
+.wallet-balance-grid {
     display: flex;
     gap: 12px;
     margin-bottom: 20px;
-    flex-wrap: wrap;
 }
 .wallet-balance-card {
     flex: 1;
@@ -18,6 +19,36 @@
     padding: 20px 12px;
     text-align: center;
     border: 1px solid rgba(56, 189, 248, 0.2);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.wallet-balance-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(0,255,255,0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+.wallet-balance-card:hover {
+    transform: translateY(-4px);
+    border-color: #0ff;
+    box-shadow: 0 8px 20px rgba(0, 255, 255, 0.15);
+}
+.wallet-balance-card.stars .wallet-balance-value {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.wallet-balance-card.shares .wallet-balance-value {
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
 }
 .wallet-balance-icon {
     font-size: 32px;
@@ -26,55 +57,66 @@
 .wallet-balance-value {
     font-size: 32px;
     font-weight: 800;
-    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
+    line-height: 1.2;
 }
 .wallet-balance-label {
-    font-size: 12px;
+    font-size: 14px;
     color: #9ca3af;
     margin-top: 4px;
 }
-.stat-card {
-    flex: 1;
-    background: rgba(18, 24, 38, 0.7);
-    backdrop-filter: blur(8px);
-    border-radius: 24px;
-    padding: 16px 12px;
-    text-align: center;
-    border: 1px solid rgba(56, 189, 248, 0.2);
+.wallet-balance-sub {
+    font-size: 10px;
+    color: #6b7280;
+    margin-top: 4px;
 }
-.stat-icon {
-    font-size: 28px;
+
+/* Статистика */
+.wallet-stats-grid {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.wallet-stat-card {
+    flex: 1;
+    background: rgba(18, 24, 38, 0.6);
+    backdrop-filter: blur(4px);
+    border-radius: 20px;
+    padding: 14px 8px;
+    text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.1);
+    transition: 0.2s;
+}
+.wallet-stat-card:hover {
+    border-color: rgba(0, 255, 255, 0.3);
+}
+.wallet-stat-icon {
+    font-size: 22px;
     margin-bottom: 6px;
 }
-.stat-value {
-    font-size: 24px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
+.wallet-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #eef2ff;
 }
-.stat-value.positive-text {
-    background: none;
+.wallet-stat-value.positive-text {
     color: #4ade80;
 }
-.stat-value.negative-text {
-    background: none;
+.wallet-stat-value.negative-text {
     color: #f87171;
 }
-.stat-label {
-    font-size: 11px;
+.wallet-stat-label {
+    font-size: 10px;
     color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     margin-top: 4px;
 }
+
+/* Кнопки */
 .wallet-actions {
     display: flex;
     gap: 14px;
-    margin: 24px 0 16px;
-    flex-wrap: wrap;
+    margin-bottom: 20px;
 }
 .wallet-btn {
     flex: 1;
@@ -96,29 +138,64 @@
     box-shadow: 0 4px 12px rgba(43,110,158,0.4);
 }
 .wallet-btn.secondary {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
     border: 1px solid rgba(0,255,255,0.3);
     color: #0ff;
 }
 .wallet-btn.secondary:hover {
-    background: rgba(0,255,255,0.15);
+    background: rgba(0,255,255,0.12);
     border-color: #0ff;
-    box-shadow: 0 0 8px rgba(0,255,255,0.3);
+    box-shadow: 0 0 12px rgba(0,255,255,0.2);
 }
-.wallet-note {
-    text-align: center;
-    font-size: 11px;
-    color: #7e8c8f;
-    background: rgba(0,0,0,0.2);
+
+/* Информационный блок */
+.wallet-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.25);
     border-radius: 20px;
-    padding: 8px 12px;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
+.wallet-info-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+.wallet-info-text {
+    font-size: 12px;
+    color: #9ca3af;
+    line-height: 1.4;
+}
+.wallet-info-text strong {
+    color: #eef2ff;
+}
+
+/* Адаптив */
 @media (max-width: 560px) {
     .wallet-container {
         padding: 0 12px 70px 12px;
     }
+    .wallet-balance-grid {
+        flex-direction: column;
+        gap: 10px;
+    }
     .wallet-balance-value {
-        font-size: 26px;
+        font-size: 28px;
+    }
+    .wallet-stats-grid {
+        flex-wrap: wrap;
+    }
+    .wallet-stat-card {
+        min-width: calc(33.33% - 8px);
+        padding: 10px 4px;
+    }
+    .wallet-stat-value {
+        font-size: 16px;
+    }
+    .wallet-actions {
+        flex-direction: column;
+        gap: 10px;
     }
     .wallet-btn {
         padding: 12px;
