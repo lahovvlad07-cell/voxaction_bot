@@ -46,20 +46,8 @@
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
 </div>
-<div id="topupModal" class="modal">
-    <div class="modal-content">
-        <span class="close-modal" id="closeTopupModal">&times;</span>
-        <h3>💸 Пополнение Stars</h3>
-        <div class="topup-amounts">
-            <div class="amount-btn" data-amount="200">200 ⭐</div>
-            <div class="amount-btn" data-amount="500">500 ⭐</div>
-            <div class="amount-btn" data-amount="1000">1000 ⭐</div>
-        </div>
-        <div class="custom-amount"><input type="number" id="customTopupAmount" placeholder="Своя сумма (1-10000)" min="1" step="1"></div>
-        <div id="topupFeeInfo" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 20px; text-align: center; margin-bottom: 16px;"></div>
-        <button id="confirmTopupBtn">Пополнить</button>
-    </div>
-</div>
+
+<!-- СТАРАЯ МОДАЛКА ПОПОЛНЕНИЯ УДАЛЕНА – теперь используется новая из topup.js -->
 
 <script src="api.js"></script>
 <script src="notifications.js"></script>
@@ -152,6 +140,8 @@
             ), 500);
             if (typeof setupRealtimeNotifications === 'function') setupRealtimeNotifications();
             if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
+            
+            // Инициализация модалки пополнения (теперь ничего не делает, т.к. всё в showTopupModal)
             if (typeof initTopupModal === 'function') initTopupModal();
             
             window.supabase.channel('global-updates')
