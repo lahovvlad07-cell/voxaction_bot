@@ -14,6 +14,7 @@
     justify-content: space-between;
     align-items: center;
 }
+
 .header-logo {
     font-weight: 700;
     font-size: 18px;
@@ -23,25 +24,32 @@
     background-clip: text;
     color: transparent;
     animation: gradientShift 3s ease infinite;
+    margin-right: 12px;
 }
+
 .header-icons {
     display: flex;
     gap: 20px;
     align-items: center;
+    margin-left: auto;
 }
+
 .header-icon {
     font-size: 24px;
     cursor: pointer;
     transition: 0.2s;
     position: relative;
 }
+
 .header-icon:active {
     transform: scale(0.94);
 }
+
 #headerNotificationBell {
     animation: bellShake 2.5s ease-in-out infinite;
     transform-origin: top center;
 }
+
 @keyframes bellShake {
     0%, 100% { transform: rotate(0deg); }
     15% { transform: rotate(8deg); }
@@ -50,13 +58,16 @@
     60% { transform: rotate(-2deg); }
     75% { transform: rotate(1deg); }
 }
+
 #headerSettingsGear {
     animation: gearSpin 4s linear infinite;
 }
+
 @keyframes gearSpin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
 .notification-badge {
     position: absolute;
     top: -8px;
@@ -73,47 +84,65 @@
     font-weight: bold;
 }
 
-/* ========== ОНЛАЙН-ИНДИКАТОР ========== */
+/* ========== ОНЛАЙН-ИНДИКАТОР (улучшенный) ========== */
 .header-online {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-left: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #4ade80;
+    gap: 8px;
+    padding: 4px 12px;
+    background: rgba(74, 222, 128, 0.12);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    border-radius: 40px;
     cursor: default;
+    transition: 0.2s;
     flex-shrink: 0;
 }
+
+.header-online:hover {
+    background: rgba(74, 222, 128, 0.2);
+    border-color: #4ade80;
+}
+
 .online-dot {
     display: inline-block;
     width: 10px;
     height: 10px;
     background: #4ade80;
     border-radius: 50%;
-    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
     animation: pulse-dot 2s ease-in-out infinite;
 }
+
+.online-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4ade80;
+}
+
 .online-count {
     font-size: 13px;
     font-weight: 700;
     color: #eef2ff;
     background: rgba(74, 222, 128, 0.15);
-    padding: 0 6px;
+    padding: 0 8px;
     border-radius: 12px;
     min-width: 20px;
     text-align: center;
 }
+
 @keyframes pulse-dot {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.5; transform: scale(0.85); }
 }
 
-/* Адаптив для мобильных */
+/* Адаптив для мобильных (скрываем текст, оставляем точку + число) */
 @media (max-width: 480px) {
     .header-online {
-        margin-left: 6px;
+        padding: 4px 8px;
         gap: 4px;
+    }
+    .online-text {
+        display: none;
     }
     .online-count {
         font-size: 11px;
