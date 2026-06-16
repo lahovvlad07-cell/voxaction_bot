@@ -9,7 +9,7 @@ window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
 };
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ (ИСПРАВЛЕНО – ОБРЕЗКА ИКОНКИ) ==========
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ ==========
 window.awardAchievement = async function(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -25,14 +25,12 @@ window.awardAchievement = async function(achievementId) {
             earned_at: new Date().toISOString()
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
-        // Принудительно обрезаем иконку до 1 символа
-        let icon = ach.icon ? ach.icon.trim() : '🏆';
-        icon = icon.charAt(0); // Берём только первый символ
-        const description = ach.description || '';
+        // Обрезаем иконку до 1 символа (на случай дублей)
+        const icon = ach.icon ? ach.icon.charAt(0) : '🏆';
         if (window.showCustomModal) {
-            window.showCustomModal('🏆 Достижение получено!', `${icon} ${ach.name}\n\n${description}`);
+            window.showCustomModal('🏆 Достижение получено!', `${icon} ${ach.name}\n\n${ach.description}`);
         } else {
-            alert(`🏆 Достижение: ${icon} ${ach.name}\n\n${description}`);
+            alert(`🏆 Достижение: ${icon} ${ach.name}\n\n${ach.description}`);
         }
         if (window.renderProfileTab) window.renderProfileTab();
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
@@ -554,4 +552,31 @@ window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52
     else if (size === '36px') fontSize = '22px';
     else fontSize = `calc(${size} * 0.6)`;
     return `<div class="mini-avatar" style="width:${size}; height:${size}; background:${bgColor}; border:2px solid ${borderColor}; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:${fontSize}; box-shadow:0 2px 6px rgba(0,0,0,0.3); flex-shrink:0;"><span>${emoji}</span></div>`;
+};
+
+// ========== ОНЛАЙН-СТАТУС ==========
+window.updateLastSeen = async function() {
+    try {
+        await window.supabase
+            .from('users')
+            .update({ last_seen: new Date().toISOString() })
+            .eq('id', window.userId);
+    } catch(e) {
+        console.warn('Ошибка обновления last_seen', e);
+    }
+};
+
+window.getOnlineCount = async function() {
+    try {
+        const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
+        const { count, error } = await window.supabase
+            .from('users')
+            .select('*', { count: 'exact', head: true })
+            .gte('last_seen', thirtySecondsAgo);
+        if (error) throw error;
+        return count || 0;
+    } catch(e) {
+        console.warn('Ошибка получения онлайн-статистики', e);
+        return 0;
+    }
 };
