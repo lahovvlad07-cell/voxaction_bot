@@ -1,4 +1,3 @@
-// api.js – полная версия (игры удалены)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -10,7 +9,7 @@ window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
 };
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ ==========
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ (исправлено) ==========
 window.awardAchievement = async function(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -27,7 +26,8 @@ window.awardAchievement = async function(achievementId) {
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
         if (window.showCustomModal) {
-            window.showCustomModal(`🏆 Новое достижение!`, `${ach.icon} ${ach.name}\n\n${ach.description}`);
+            // Теперь заголовок содержит иконку + название, описание – только условие
+            window.showCustomModal(`🏆 ${ach.icon} ${ach.name}`, ach.description);
         } else {
             alert(`🏆 Достижение: ${ach.icon} ${ach.name}`);
         }
