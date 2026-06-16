@@ -1,11 +1,11 @@
-/* wallet.css – уникальный неоновый дизайн с анимациями */
+/* wallet.css – кошелёк с историей-аккордеоном */
 .wallet-container {
     max-width: 600px;
     margin: 0 auto;
     padding: 0 16px 80px 16px;
 }
 
-/* Карточки баланса */
+/* Баланс */
 .wallet-balance-grid {
     display: flex;
     gap: 12px;
@@ -76,7 +76,7 @@
     margin-top: 4px;
 }
 
-/* Лимит пополнения */
+/* Лимит */
 .wallet-limit-card {
     background: rgba(18, 24, 38, 0.6);
     backdrop-filter: blur(8px);
@@ -197,7 +197,7 @@
     box-shadow: 0 0 16px rgba(0,255,255,0.2);
 }
 
-/* История */
+/* История (аккордеон) */
 .wallet-history {
     background: rgba(18, 24, 38, 0.5);
     backdrop-filter: blur(4px);
@@ -206,11 +206,31 @@
     margin-bottom: 20px;
     border: 1px solid rgba(56, 189, 248, 0.08);
 }
-.wallet-history-title {
+.wallet-history-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
     font-size: 14px;
     font-weight: 600;
     color: #9ca3af;
-    margin-bottom: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.wallet-history-toggle:hover {
+    color: #eef2ff;
+}
+.wallet-history-arrow {
+    font-size: 16px;
+    transition: transform 0.2s;
+}
+.wallet-history-content {
+    margin-top: 12px;
+    display: none;
 }
 .wallet-history-list {
     display: flex;
@@ -250,7 +270,7 @@
     font-style: italic;
 }
 
-/* Информационный блок */
+/* Информация */
 .wallet-info {
     display: flex;
     align-items: center;
