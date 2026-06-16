@@ -25,15 +25,17 @@ window.showTopupModal = function(onSuccess) {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
     const modal = document.getElementById('topupModalNew');
-    let selectedAmount = null;
+    const customInput = document.getElementById('customTopupAmount');
     const feeInfo = document.getElementById('topupFeeInfo');
     const confirmBtn = document.getElementById('confirmTopupBtnNew');
-    const customInput = document.getElementById('customTopupAmount');
+    let selectedAmount = null;
     
+    // Функция обновления комиссии
     function updateFee(amount) {
         if (!amount || amount < 10 || amount > 500) {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
+            selectedAmount = null;
             return;
         }
         const fee = Math.floor(amount * 0.05);
@@ -49,60 +51,43 @@ window.showTopupModal = function(onSuccess) {
             </div>
         `;
         confirmBtn.disabled = false;
+        selectedAmount = amount;
     }
     
-    // Функция синхронизации selectedAmount с полем
-    function syncAmountFromInput() {
-        if (!customInput) return;
-        let val = parseInt(customInput.value);
+    // Обработчик ввода своей суммы
+    function handleInput() {
+        const val = parseInt(customInput.value);
         if (!isNaN(val) && val >= 10 && val <= 500) {
-            selectedAmount = val;
-            updateFee(selectedAmount);
+            updateFee(val);
         } else {
-            selectedAmount = null;
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
+            selectedAmount = null;
         }
     }
     
-    // Обработчики кнопок выбора суммы
+    customInput.addEventListener('input', handleInput);
+    
+    // Обработчик кнопок выбора суммы
     document.querySelectorAll('.amount-preset').forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Снимаем выделение со всех кнопок
+        btn.addEventListener('click', function() {
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            
-            const amount = parseInt(btn.dataset.amount);
-            // Заполняем поле ввода
-            if (customInput) customInput.value = amount;
-            // Синхронизируем selectedAmount
-            selectedAmount = amount;
-            updateFee(selectedAmount);
-            // Дополнительно вызываем событие input для надёжности
-            if (customInput) customInput.dispatchEvent(new Event('input'));
+            this.classList.add('selected');
+            const amount = parseInt(this.dataset.amount);
+            customInput.value = amount;
+            // Вызываем обработчик вручную, чтобы обновить комиссию
+            handleInput();
         });
     });
     
-    // Обработчик ввода своей суммы
-    if (customInput) {
-        customInput.addEventListener('input', () => {
-            // Снимаем выделение с кнопок
-            document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
-            syncAmountFromInput();
-        });
-        // Также синхронизируем при потере фокуса
-        customInput.addEventListener('blur', syncAmountFromInput);
-    }
-    
+    // Закрытие модалки
     const closeModal = () => modal.remove();
     document.getElementById('closeTopupModalNew').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     
     // Кнопка пополнить с подтверждением
-    document.getElementById('confirmTopupBtnNew').onclick = () => {
-        // Перед подтверждением ещё раз синхронизируем
-        syncAmountFromInput();
-        if (!selectedAmount || selectedAmount < 10 || selectedAmount > 500) {
+    confirmBtn.addEventListener('click', function() {
+        if (!selectedAmount) {
             window.showCustomModal('Ошибка', 'Введите сумму от 10 до 500 ⭐');
             return;
         }
@@ -145,7 +130,7 @@ window.showTopupModal = function(onSuccess) {
         
         document.getElementById('confirmOkBtn').onclick = async () => {
             closeConfirm();
-            closeModal(); // закрываем основную модалку
+            closeModal();
             try {
                 const res = await window.createInvoice(selectedAmount);
                 if (res.ok && res.invoice_link) {
@@ -163,7 +148,7 @@ window.showTopupModal = function(onSuccess) {
                 window.showCustomModal('Ошибка', 'Соединение не удалось');
             }
         };
-    };
+    });
 };
 
 function initTopupModal() {
