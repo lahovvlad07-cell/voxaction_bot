@@ -1,10 +1,9 @@
-// topup.js – полностью переработанная модалка с уникальными id
+// topup.js – модалка пополнения с дробной комиссией (5% точно)
 
 window.showTopupModal = function(onSuccess) {
     // Удаляем все старые модалки пополнения
     document.querySelectorAll('#topupModal, #topupModalNew, #confirmModal').forEach(el => el.remove());
 
-    // Создаём модалку с уникальными id
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
             <div class="modal-content topup-modal">
@@ -42,7 +41,7 @@ window.showTopupModal = function(onSuccess) {
         return value.replace(/\D/g, '');
     }
 
-    // === Обновление интерфейса ===
+    // === Обновление интерфейса (комиссия с дробной частью) ===
     function updateUI(rawValue) {
         const digits = sanitize(rawValue);
         if (!digits || digits === '0') {
@@ -58,13 +57,15 @@ window.showTopupModal = function(onSuccess) {
             return;
         }
 
-        const fee = Math.floor(amount * 0.05);
+        // Точный расчёт комиссии (без округления вниз)
+        const fee = amount * 0.05;
         const receive = amount - fee;
+
         feeDisplay.innerHTML = `
             <div class="fee-row">
                 <span>💰 <strong>${amount} ⭐</strong></span>
-                <span style="margin-left:16px;">📉 <strong>${fee} ⭐</strong></span>
-                <span style="margin-left:16px;">✅ <strong style="color:#4ade80;">${receive} ⭐</strong></span>
+                <span style="margin-left:16px;">📉 <strong>${fee.toFixed(2)} ⭐</strong></span>
+                <span style="margin-left:16px;">✅ <strong style="color:#4ade80;">${receive.toFixed(2)} ⭐</strong></span>
             </div>
             <div class="fee-row" style="font-size:11px; color:#6b7280; margin-top:2px;">
                 комиссия 5%
@@ -77,7 +78,6 @@ window.showTopupModal = function(onSuccess) {
     input.addEventListener('input', function() {
         const cleaned = sanitize(this.value);
         if (this.value !== cleaned) this.value = cleaned;
-        // Снимаем выделение с пресетов
         document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
         updateUI(cleaned);
     });
@@ -109,10 +109,10 @@ window.showTopupModal = function(onSuccess) {
             return;
         }
 
-        const fee = Math.floor(amount * 0.05);
+        const fee = amount * 0.05;
         const receive = amount - fee;
 
-        // Окно подтверждения
+        // Окно подтверждения с дробными значениями
         const confirmHtml = `
             <div class="modal" id="confirmModal" style="display:flex;">
                 <div class="modal-content confirm-modal">
@@ -125,11 +125,11 @@ window.showTopupModal = function(onSuccess) {
                         </div>
                         <div class="confirm-row">
                             <span>📉 Комиссия (5%)</span>
-                            <strong>${fee} ⭐</strong>
+                            <strong>${fee.toFixed(2)} ⭐</strong>
                         </div>
                         <div class="confirm-row highlight">
                             <span>✅ Вы получите</span>
-                            <strong>${receive} ⭐</strong>
+                            <strong>${receive.toFixed(2)} ⭐</strong>
                         </div>
                     </div>
                     <div class="modal-buttons">
