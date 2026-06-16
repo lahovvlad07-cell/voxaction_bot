@@ -24,9 +24,9 @@
 <body>
 <div class="app-header">
     <div class="header-logo">VoxAction</div>
-    <!-- Онлайн-индикатор -->
     <div class="header-online">
         <span class="online-dot"></span>
+        <span class="online-text">Онлайн</span>
         <span class="online-count" id="onlineCount">0</span>
     </div>
     <div class="header-icons">
@@ -132,13 +132,17 @@
             const { user, isNew } = await window.getOrCreateUser();
             window.currentUser = user;
             
-            // ---- ОНЛАЙН-СТАТУС ----
+            // ---- ОНЛАЙН-СТАТУС (исправленный вызов) ----
             async function updateOnlineStatus() {
                 if (!window.userId) return;
-                await window.updateLastSeen();
-                const count = await window.getOnlineCount();
-                const el = document.getElementById('onlineCount');
-                if (el) el.textContent = count;
+                try {
+                    await window.updateLastSeen();
+                    const count = await window.getOnlineCount();
+                    const el = document.getElementById('onlineCount');
+                    if (el) el.textContent = count;
+                } catch(e) {
+                    console.warn('Ошибка обновления онлайна', e);
+                }
             }
             await updateOnlineStatus();
             setInterval(updateOnlineStatus, 15000);
