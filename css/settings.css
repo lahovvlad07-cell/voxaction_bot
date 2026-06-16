@@ -64,58 +64,22 @@
     font-size: 14px;
     color: #eef2ff;
 }
-.settings-action-btn {
-    padding: 8px 16px;
+.save-settings-btn {
+    width: 100%;
+    padding: 10px;
     border-radius: 40px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: 0.2s;
-    width: 100%;
-    margin-bottom: 8px;
-    border: none;
-    text-align: center;
-}
-.settings-action-btn.export {
-    background: rgba(43, 110, 158, 0.2);
-    border: 1px solid rgba(43, 110, 158, 0.4);
-    color: #60a5fa;
-}
-.settings-action-btn.export:hover {
-    background: rgba(43, 110, 158, 0.3);
-}
-.settings-action-btn.danger {
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #f87171;
-}
-.settings-action-btn.danger:hover {
-    background: rgba(239, 68, 68, 0.25);
-}
-.settings-action-btn {
-    background: rgba(255,255,255,0.05);
+    margin-top: 12px;
     border: 1px solid rgba(255,255,255,0.1);
-    color: #eef2ff;
-}
-.settings-action-btn:hover {
-    background: rgba(255,255,255,0.1);
-}
-.save-settings-btn {
-    background: linear-gradient(135deg, #00c6ff, #0072ff);
-    border: none;
-    padding: 14px;
-    border-radius: 60px;
-    font-weight: bold;
-    font-size: 16px;
-    color: white;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 8px;
-    transition: 0.2s;
+    background: rgba(255,255,255,0.03);
+    color: #9ca3af;
 }
 .save-settings-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 0 16px #0ff;
+    background: rgba(255,255,255,0.08);
+    color: #eef2ff;
 }
 @media (max-width: 560px) {
     .settings-modal {
