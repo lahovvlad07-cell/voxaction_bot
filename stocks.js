@@ -1,4 +1,5 @@
 // stocks.js – финальная версия с правильным отображением баланса и улучшенным визуалом
+// Переключатель «Поля / Слайдеры» удалён – управление через настройки (по умолчанию поля)
 window.renderStocksTab = async function(currentUser) {
     // ---- Режим ввода (поля / слайдеры) ----
     function getInputMode() {
@@ -80,7 +81,6 @@ window.renderStocksTab = async function(currentUser) {
     }
 
     // ---- Основной рендер ----
-    // ВАЖНО: применяем fromCents для отображения
     const userShares = window.fromCents(currentUser.shares);
     const userStars = window.fromCents(currentUser.stars_balance);
     
@@ -150,7 +150,7 @@ window.renderStocksTab = async function(currentUser) {
         avgPercentClass = percent >= 0 ? 'positive' : 'negative';
     }
 
-    // HTML с улучшенными заголовками стакана (две строки)
+    // HTML (без переключателя режима ввода)
     const html = `
         <div class="stocks-container">
             <div class="balance-row">
@@ -176,13 +176,7 @@ window.renderStocksTab = async function(currentUser) {
                         <button id="orderTypeSell" class="type-opt active">📉 Продать акции</button>
                         <button id="orderTypeBuy" class="type-opt">📈 Купить акции</button>
                     </div>
-                    <div class="input-mode-switch">
-                        <span class="mode-label">🎛️ Режим ввода</span>
-                        <div class="mode-buttons">
-                            <button id="modeFieldBtn" class="mode-btn active">📝 Поля</button>
-                            <button id="modeSliderBtn" class="mode-btn">🎚️ Слайдеры</button>
-                        </div>
-                    </div>
+                    <!-- Переключатель режима ввода УДАЛЁН -->
                     <div id="amountControl" class="control-group"></div>
                     <div id="priceControl" class="control-group"></div>
                     <button id="createOrderBtn">✅ Разместить ордер</button>
@@ -366,32 +360,41 @@ window.renderStocksTab = async function(currentUser) {
 
     const amountContainer = document.getElementById('amountControl');
     const priceContainer = document.getElementById('priceControl');
-    const modeField = document.getElementById('modeFieldBtn');
-    const modeSlider = document.getElementById('modeSliderBtn');
 
+    // ---- ОТСУТСТВУЮТ modeField и modeSlider ----
     function refreshInputMode(mode) {
-        setInputMode(mode);
-        if (mode === 'field') { modeField.classList.add('active'); modeSlider.classList.remove('active'); }
-        else { modeSlider.classList.add('active'); modeField.classList.remove('active'); }
+        // setInputMode вызывается только из настроек, здесь мы просто применяем текущий режим
         let curAmount = 1, curPriceVal = 1;
-        if (getInputMode() === 'slider') {
-            const aS = document.getElementById('orderAmountSlider'); if (aS) curAmount = parseFloat(aS.value);
-            const pS = document.getElementById('orderPriceSlider'); if (pS) curPriceVal = parseFloat(pS.value);
+        if (mode === 'slider') {
+            const aS = document.getElementById('orderAmountSlider');
+            if (aS) curAmount = parseFloat(aS.value);
+            const pS = document.getElementById('orderPriceSlider');
+            if (pS) curPriceVal = parseFloat(pS.value);
         } else {
-            const aN = document.getElementById('orderAmount'); if (aN) curAmount = parseFloat(aN.value) || 1;
-            const pN = document.getElementById('orderPrice'); if (pN) curPriceVal = parseFloat(pN.value) || 1;
+            const aN = document.getElementById('orderAmount');
+            if (aN) curAmount = parseFloat(aN.value) || 1;
+            const pN = document.getElementById('orderPrice');
+            if (pN) curPriceVal = parseFloat(pN.value) || 1;
         }
         renderInputControls(amountContainer, priceContainer, mode, curAmount, curPriceVal);
     }
-    modeField.onclick = () => refreshInputMode('field');
-    modeSlider.onclick = () => refreshInputMode('slider');
+
+    // Применяем сохранённый режим (по умолчанию field)
     refreshInputMode(getInputMode());
 
     document.getElementById('createOrderBtn').onclick = async () => {
         let amount, price;
-        if (getInputMode() === 'slider') { amount = parseFloat(document.getElementById('orderAmountSlider')?.value); price = parseFloat(document.getElementById('orderPriceSlider')?.value); }
-        else { amount = parseFloat(document.getElementById('orderAmount')?.value); price = parseFloat(document.getElementById('orderPrice')?.value); }
-        if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) { window.showCustomModal('Ошибка', 'Введите корректные количество и цену (минимум 1)'); return; }
+        if (getInputMode() === 'slider') {
+            amount = parseFloat(document.getElementById('orderAmountSlider')?.value);
+            price = parseFloat(document.getElementById('orderPriceSlider')?.value);
+        } else {
+            amount = parseFloat(document.getElementById('orderAmount')?.value);
+            price = parseFloat(document.getElementById('orderPrice')?.value);
+        }
+        if (isNaN(amount) || amount < 1 || isNaN(price) || price < 1) {
+            window.showCustomModal('Ошибка', 'Введите корректные количество и цену (минимум 1)');
+            return;
+        }
         
         const freshUser = await window.getOrCreateUser();
         const userSharesCents = freshUser.user.shares;
@@ -399,16 +402,27 @@ window.renderStocksTab = async function(currentUser) {
         
         if (currentOrderType === 'sell') {
             const neededSharesCents = window.toCents(amount);
-            if (userSharesCents < neededSharesCents) { window.showCustomModal('Ошибка', `Недостаточно акций. Доступно: ${window.fromCents(userSharesCents)}`); return; }
+            if (userSharesCents < neededSharesCents) {
+                window.showCustomModal('Ошибка', `Недостаточно акций. Доступно: ${window.fromCents(userSharesCents)}`);
+                return;
+            }
         } else {
             const totalPriceStars = amount * price;
             const neededStarsCents = window.toCents(totalPriceStars);
-            if (userStarsCents < neededStarsCents) { window.showCustomModal('Ошибка', `Недостаточно Stars. Доступно: ${window.fromCents(userStarsCents)} ⭐`); return; }
+            if (userStarsCents < neededStarsCents) {
+                window.showCustomModal('Ошибка', `Недостаточно Stars. Доступно: ${window.fromCents(userStarsCents)} ⭐`);
+                return;
+            }
         }
         try {
-            if (currentOrderType === 'sell') await window.createOrder(amount, price);
-            else await window.createBuyOrder(amount, price);
-            window.showToast(currentOrderType === 'sell' ? 'Ордер на продажу размещён' : 'Заявка на покупку размещена', 2000);
+            if (currentOrderType === 'sell') {
+                await window.createOrder(amount, price);
+                window.showToast('Ордер на продажу размещён', 2000);
+            } else {
+                await window.createBuyOrder(amount, price);
+                window.showToast('Заявка на покупку размещена', 2000);
+            }
+            // Очистка полей (оставляем как есть)
             if (getInputMode() === 'slider') {
                 if (document.getElementById('orderAmountSlider')) document.getElementById('orderAmountSlider').value = 1;
                 if (document.getElementById('orderPriceSlider')) document.getElementById('orderPriceSlider').value = 1;
@@ -419,19 +433,43 @@ window.renderStocksTab = async function(currentUser) {
                 if (document.getElementById('orderPrice')) document.getElementById('orderPrice').value = '';
             }
             window.refreshActiveTab();
-        } catch(e) { window.showCustomModal('Ошибка', e.message); }
+        } catch(e) {
+            window.showCustomModal('Ошибка', e.message);
+        }
     };
 
     // ---- РЫНОЧНЫЕ СДЕЛКИ ----
     document.getElementById('marketBuyBtn').onclick = () => {
         const foreignOrders = activeSellOrders.filter(o => o.seller_id !== window.userId);
-        if (!foreignOrders.length) { window.showCustomModal('Рыночная покупка', 'Нет доступных сделок для покупки'); return; }
-        showMarketModal('buy', async (stars) => { try { await window.marketBuy(stars); window.showToast(`Рыночная покупка на ${stars} ⭐ выполнена`, 2000); window.refreshActiveTab(); } catch(e) { window.showCustomModal('Ошибка', e.message); } });
+        if (!foreignOrders.length) {
+            window.showCustomModal('Рыночная покупка', 'Нет доступных сделок для покупки');
+            return;
+        }
+        showMarketModal('buy', async (stars) => {
+            try {
+                await window.marketBuy(stars);
+                window.showToast(`Рыночная покупка на ${stars} ⭐ выполнена`, 2000);
+                window.refreshActiveTab();
+            } catch(e) {
+                window.showCustomModal('Ошибка', e.message);
+            }
+        });
     };
     document.getElementById('marketSellBtn').onclick = () => {
         const foreignBuyOrders = activeBuyOrders.filter(o => o.buyer_id !== window.userId);
-        if (!foreignBuyOrders.length) { window.showCustomModal('Рыночная продажа', 'Нет подходящих ордеров на покупку'); return; }
-        showMarketModal('sell', async (shares) => { try { await window.marketSell(shares); window.showToast(`Продано ${shares} акций по рыночной цене`, 2000); window.refreshActiveTab(); } catch(e) { window.showCustomModal('Ошибка', e.message); } });
+        if (!foreignBuyOrders.length) {
+            window.showCustomModal('Рыночная продажа', 'Нет подходящих ордеров на покупку');
+            return;
+        }
+        showMarketModal('sell', async (shares) => {
+            try {
+                await window.marketSell(shares);
+                window.showToast(`Продано ${shares} акций по рыночной цене`, 2000);
+                window.refreshActiveTab();
+            } catch(e) {
+                window.showCustomModal('Ошибка', e.message);
+            }
+        });
     };
 
     drawMainChart();
