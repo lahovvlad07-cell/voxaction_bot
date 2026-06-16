@@ -1,4 +1,4 @@
-// profile.js – полная версия (кастомизация аватара, слоты достижений, ближайшие достижения, справочник с сеткой)
+// profile.js – полная версия (без игр, с поддержкой новых достижений)
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -22,7 +22,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 штуки) ==========
+// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт) ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
@@ -48,13 +48,6 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
             case 'total_volume': current = user.total_volume || 0; break;
             case 'stars_held': current = user.stars_balance; break;
             case 'days_active': current = user.days_active || 0; break;
-            case 'game_reaction': current = user.game_reaction_wins || 0; break;
-            case 'game_tower': current = user.game_tower_wins || 0; break;
-            case 'game_closest': current = user.game_closest_wins || 0; break;
-            case 'game_typerace': current = user.game_typerace_wins || 0; break;
-            case 'game_maze': current = user.game_maze_wins || 0; break;
-            case 'game_ttt': current = user.game_ttt_wins || 0; break;
-            case 'games_total': current = (user.game_reaction_wins||0)+(user.game_tower_wins||0)+(user.game_closest_wins||0)+(user.game_typerace_wins||0)+(user.game_maze_wins||0)+(user.game_ttt_wins||0); break;
             default: return null;
         }
         if (current < needed) return { ...ach, current, needed, progress: (current / needed) * 100 };
@@ -71,7 +64,7 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
     return unique.slice(0, 3);
 }
 
-// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА (КОМПАКТНАЯ СЕТКА) ==========
+// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА ==========
 function getConditionText(ach) {
     if (ach.condition_type === 'none') return '';
     let val = ach.condition_value;
@@ -85,13 +78,6 @@ function getConditionText(ach) {
         case 'total_volume': return `${val/100} ⭐ объём`;
         case 'stars_held': return `${val/100} ⭐ на балансе`;
         case 'days_active': return `${val} дней`;
-        case 'game_reaction': return `Победить в "Нажми быстрее"`;
-        case 'game_tower': return `Победить в "Башня"`;
-        case 'game_closest': return `Победить в "Ближе к цели"`;
-        case 'game_typerace': return `Победить в "Скоростной набор"`;
-        case 'game_maze': return `Победить в "Лабиринт"`;
-        case 'game_ttt': return `Победить бота в крестики-нолики`;
-        case 'games_total': return `Победить в любой игре`;
         default: return '';
     }
 }
@@ -106,7 +92,6 @@ async function getAllAchievementsByCategory() {
         'Акции': [],
         'Рефералы': [],
         'Финансы': [],
-        'Игры': [],
         'Дни': []
     };
     for (const ach of all) {
@@ -116,7 +101,6 @@ async function getAllAchievementsByCategory() {
         else if (ach.condition_type === 'shares_held') category = 'Акции';
         else if (ach.condition_type === 'referrals_count') category = 'Рефералы';
         else if (['total_topup', 'total_spent', 'total_earned', 'total_volume', 'stars_held'].includes(ach.condition_type)) category = 'Финансы';
-        else if (ach.condition_type.startsWith('game_') || ach.condition_type === 'games_total') category = 'Игры';
         else if (ach.condition_type === 'days_active') category = 'Дни';
         else continue;
         groups[category].push({ ...ach, earned: earnedIds.has(ach.id) });
@@ -141,18 +125,11 @@ async function showAchievementsGuide(currentUser, getUserStats) {
             case 'total_volume': return user.total_volume || 0;
             case 'stars_held': return user.stars_balance;
             case 'days_active': return user.days_active || 0;
-            case 'game_reaction': return user.game_reaction_wins || 0;
-            case 'game_tower': return user.game_tower_wins || 0;
-            case 'game_closest': return user.game_closest_wins || 0;
-            case 'game_typerace': return user.game_typerace_wins || 0;
-            case 'game_maze': return user.game_maze_wins || 0;
-            case 'game_ttt': return user.game_ttt_wins || 0;
-            case 'games_total': return (user.game_reaction_wins||0)+(user.game_tower_wins||0)+(user.game_closest_wins||0)+(user.game_typerace_wins||0)+(user.game_maze_wins||0)+(user.game_ttt_wins||0);
             default: return 0;
         }
     }
     
-    const categoryOrder = ['Сделки', 'Акции', 'Рефералы', 'Финансы', 'Игры', 'Дни'];
+    const categoryOrder = ['Сделки', 'Акции', 'Рефералы', 'Финансы', 'Дни'];
     let allCategoriesHtml = '';
     for (const cat of categoryOrder) {
         const items = groups[cat] || [];
@@ -174,7 +151,6 @@ async function showAchievementsGuide(currentUser, getUserStats) {
                 progressPercent = 100;
             }
             let displayIcon = ach.icon;
-            if (ach.name === '❌⭕ Стратег') displayIcon = '❌';
             return `
                 <div class="guide-card">
                     <div class="guide-card-icon">${displayIcon}</div>
