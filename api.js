@@ -25,11 +25,12 @@ window.awardAchievement = async function(achievementId) {
             earned_at: new Date().toISOString()
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
+        // Гарантируем, что иконка – только первый символ (на случай дублей в БД)
+        const icon = ach.icon ? ach.icon.charAt(0) : '🏆';
         if (window.showCustomModal) {
-            // Заголовок – только "Достижение получено!", иконка и название – в теле
-            window.showCustomModal('🏆 Достижение получено!', `${ach.icon} ${ach.name}\n\n${ach.description}`);
+            window.showCustomModal('🏆 Достижение получено!', `${icon} ${ach.name}\n\n${ach.description}`);
         } else {
-            alert(`🏆 Достижение: ${ach.icon} ${ach.name}\n\n${ach.description}`);
+            alert(`🏆 Достижение: ${icon} ${ach.name}\n\n${ach.description}`);
         }
         if (window.renderProfileTab) window.renderProfileTab();
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
