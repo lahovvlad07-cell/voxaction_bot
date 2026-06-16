@@ -1,7 +1,7 @@
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
-// ========== НАСТРОЙКИ ИНТЕРФЕЙСА (СЛАЙДЕРЫ) ==========
+// ========== НАСТРОЙКИ ИНТЕРФЕЙСА ==========
 window.setUseSliders = function(use) {
     localStorage.setItem('use_sliders', use ? 'true' : 'false');
 };
@@ -9,7 +9,7 @@ window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
 };
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ ==========
+// ========== ДОСТИЖЕНИЯ ==========
 window.awardAchievement = async function(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -25,7 +25,6 @@ window.awardAchievement = async function(achievementId) {
             earned_at: new Date().toISOString()
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
-        // Обрезаем иконку до 1 символа (на случай дублей)
         const icon = ach.icon ? ach.icon.charAt(0) : '🏆';
         if (window.showCustomModal) {
             window.showCustomModal('🏆 Достижение получено!', `${icon} ${ach.name}\n\n${ach.description}`);
@@ -253,7 +252,7 @@ window.refreshActiveTab = async function() {
     }
 };
 
-// ========== СРЕДНЕВЗВЕШЕННАЯ ЦЕНА ЗА 24 ЧАСА ==========
+// ========== ОСТАЛЬНЫЕ ФУНКЦИИ ==========
 window.get24hAvgPrice = async function() {
     const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').gte('created_at', oneDayAgo);
@@ -263,7 +262,6 @@ window.get24hAvgPrice = async function() {
     return totalAmount ? totalStars / totalAmount / 100 : 0;
 };
 
-// ========== ОРДЕРА И СДЕЛКИ ==========
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
@@ -376,7 +374,6 @@ window.getTotalMarketCap = async () => {
     return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
 };
 
-// ========== РЕЙТИНГ И ДОСТИЖЕНИЯ ==========
 window.getLeaderboard = async () => {
     const { data, error } = await window.supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
     if (error) throw new Error(error.message);
@@ -419,7 +416,6 @@ window.getSellerRating = async (sellerId) => {
     return data.reduce((s,r)=>s+r.rating,0)/data.length;
 };
 
-// ========== КАСТОМИЗАЦИЯ ==========
 window.updateUserBorder = async (color) => {
     const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
     if (error) throw new Error(error.message);
@@ -427,7 +423,6 @@ window.updateUserBorder = async (color) => {
     return true;
 };
 
-// ========== РЫНОЧНЫЕ СДЕЛКИ ==========
 window.marketBuy = async function(starsAmount) {
     if (starsAmount <= 0) throw new Error('Сумма должна быть больше 0');
     const { data, error } = await window.supabase.rpc('market_buy', {
@@ -452,7 +447,6 @@ window.marketSell = async function(sharesAmount) {
     await window.refreshActiveTab();
 };
 
-// ========== АДМИНКА ==========
 window.adminFetchStats = async () => fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
 window.adminFetchUsers = async () => fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
 window.adminCancelOrder = async (orderId) => fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) }).then(r=>r.json());
@@ -460,7 +454,6 @@ window.adminAddShares = async (targetId, shares) => fetch(`${window.BACKEND_URL}
 window.adminAddStars = async (targetId, stars) => fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) }).then(r=>r.json());
 window.createInvoice = async (amount) => fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) }).then(r=>r.json());
 
-// ========== РЕФЕРАЛЫ ==========
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
@@ -488,7 +481,6 @@ window.claimReferralBonus = async (friendsNeeded, stars) => {
     return response.json();
 };
 
-// ========== ПРОСМОТР ПРОФИЛЕЙ ДРУГИХ ПОЛЬЗОВАТЕЛЕЙ ==========
 window.getEarnedAchievementsForUser = async (userId) => {
     const { data, error } = await window.supabase
         .from('user_achievements')
@@ -530,7 +522,6 @@ window.getUserRankForUser = async (userId) => {
     return idx + 1;
 };
 
-// ========== РЕНДЕР МИНИ-АВАТАРА ==========
 window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
     let bgColor = avatarBg;
     if (avatarBg && !avatarBg.startsWith('#')) {
