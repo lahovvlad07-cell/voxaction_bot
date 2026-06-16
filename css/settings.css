@@ -1,0 +1,93 @@
+/* settings.css – стили для модалки настроек */
+.settings-modal {
+    max-width: 480px;
+    width: 90%;
+}
+.settings-body {
+    padding: 8px 0;
+}
+.settings-section {
+    margin-bottom: 20px;
+}
+.settings-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0ff;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+.setting-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.setting-item:hover {
+    background: rgba(0, 255, 255, 0.08);
+}
+.setting-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #2b6e9e;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.setting-item span {
+    font-size: 14px;
+    color: #eef2ff;
+}
+.settings-action-btn {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 8px 16px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f87171;
+    cursor: pointer;
+    transition: 0.2s;
+    width: 100%;
+}
+.settings-action-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+.settings-hint {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 6px;
+    text-align: center;
+}
+.save-settings-btn {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    border: none;
+    padding: 14px;
+    border-radius: 60px;
+    font-weight: bold;
+    font-size: 16px;
+    color: white;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+    transition: 0.2s;
+}
+.save-settings-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 16px #0ff;
+}
+@media (max-width: 560px) {
+    .settings-modal {
+        width: 95%;
+    }
+    .setting-item {
+        padding: 6px 10px;
+    }
+    .setting-item span {
+        font-size: 13px;
+    }
+}
