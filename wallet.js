@@ -1,11 +1,11 @@
-// wallet.js – кошелёк с историей-аккордеоном
+// wallet.js – полностью переработанный кошелёк с онлайн-обновлением
 window.renderWalletTab = async function() {
     const { user: freshUser } = await window.getOrCreateUser();
     window.currentUser = freshUser;
-
+    
     const starsBalance = window.fromCents(freshUser.stars_balance);
     const sharesBalance = window.fromCents(freshUser.shares);
-
+    
     let totalSpent = 0;
     let totalEarned = 0;
     try {
@@ -18,12 +18,11 @@ window.renderWalletTab = async function() {
             totalEarned = trades.filter(t => t.seller_id === window.userId).reduce((s, t) => s + t.total_stars, 0) / 100;
         }
     } catch(e) { console.warn(e); }
-
+    
     const profit = totalEarned - totalSpent;
     const profitClass = profit >= 0 ? 'positive' : 'negative';
     const profitSign = profit >= 0 ? '+' : '';
-
-    // Лимит пополнения за 12 часов
+    
     let topupLimitUsed = 0;
     let topupLimitRemaining = 500;
     try {
@@ -38,8 +37,7 @@ window.renderWalletTab = async function() {
             topupLimitRemaining = Math.max(0, 500 - topupLimitUsed);
         }
     } catch(e) { console.warn('Ошибка загрузки лимита пополнений', e); }
-
-    // История операций (последние 5)
+    
     let recentOperations = [];
     try {
         const { data: ops } = await window.supabase
@@ -50,10 +48,9 @@ window.renderWalletTab = async function() {
             .limit(5);
         if (ops) recentOperations = ops;
     } catch(e) { console.warn('Ошибка загрузки истории', e); }
-
+    
     const html = `
         <div class="wallet-container">
-            <!-- Баланс -->
             <div class="wallet-balance-grid">
                 <div class="wallet-balance-card stars">
                     <div class="wallet-balance-icon">⭐</div>
@@ -68,8 +65,7 @@ window.renderWalletTab = async function() {
                     <div class="wallet-balance-sub">в вашем портфеле</div>
                 </div>
             </div>
-
-            <!-- Лимит -->
+            
             <div class="wallet-limit-card">
                 <div class="wallet-limit-header">
                     <span>📊 Лимит пополнения (12ч)</span>
@@ -80,8 +76,7 @@ window.renderWalletTab = async function() {
                 </div>
                 <div class="wallet-limit-remaining">Осталось: <strong>${topupLimitRemaining.toFixed(0)} ⭐</strong></div>
             </div>
-
-            <!-- Статистика -->
+            
             <div class="wallet-stats-grid">
                 <div class="wallet-stat-card">
                     <div class="wallet-stat-icon">💸</div>
@@ -99,35 +94,27 @@ window.renderWalletTab = async function() {
                     <div class="wallet-stat-label">Профит</div>
                 </div>
             </div>
-
-            <!-- Кнопки действий -->
+            
             <div class="wallet-actions">
                 <button id="topupBtn" class="wallet-btn primary">💸 Пополнить Stars</button>
                 <button id="withdrawBtn" class="wallet-btn secondary">🎁 Вывести через подарки</button>
             </div>
-
-            <!-- История операций (аккордеон) -->
+            
             <div class="wallet-history">
-                <button id="walletHistoryToggle" class="wallet-history-toggle">
-                    <span>📜 Последние операции</span>
-                    <span class="wallet-history-arrow">▾</span>
-                </button>
-                <div id="walletHistoryContent" class="wallet-history-content" style="display: none;">
-                    <div class="wallet-history-list">
-                        ${recentOperations.length ? recentOperations.map(op => `
-                            <div class="wallet-history-item">
-                                <span class="wallet-history-type ${op.type === 'topup' ? 'topup' : 'withdraw'}">
-                                    ${op.type === 'topup' ? '⬆ Пополнение' : '⬇ Вывод'}
-                                </span>
-                                <span class="wallet-history-amount">${(op.amount / 100).toFixed(2)} ⭐</span>
-                                <span class="wallet-history-date">${new Date(op.created_at).toLocaleDateString()}</span>
-                            </div>
-                        `).join('') : '<div class="wallet-history-empty">Нет операций</div>'}
-                    </div>
+                <div class="wallet-history-title">📜 Последние операции</div>
+                <div class="wallet-history-list">
+                    ${recentOperations.length ? recentOperations.map(op => `
+                        <div class="wallet-history-item">
+                            <span class="wallet-history-type ${op.type === 'topup' ? 'topup' : 'withdraw'}">
+                                ${op.type === 'topup' ? '⬆ Пополнение' : '⬇ Вывод'}
+                            </span>
+                            <span class="wallet-history-amount">${(op.amount / 100).toFixed(2)} ⭐</span>
+                            <span class="wallet-history-date">${new Date(op.created_at).toLocaleDateString()}</span>
+                        </div>
+                    `).join('') : '<div class="wallet-history-empty">Нет операций</div>'}
                 </div>
             </div>
-
-            <!-- Информация -->
+            
             <div class="wallet-info">
                 <div class="wallet-info-icon">ℹ️</div>
                 <div class="wallet-info-text">
@@ -136,10 +123,9 @@ window.renderWalletTab = async function() {
             </div>
         </div>
     `;
-
+    
     document.getElementById('app').innerHTML = html;
-
-    // Обработчик кнопки "Пополнить"
+    
     document.getElementById('topupBtn').addEventListener('click', () => {
         if (window.showTopupModal) {
             window.showTopupModal(() => {
@@ -149,19 +135,8 @@ window.renderWalletTab = async function() {
             console.warn('showTopupModal не определён');
         }
     });
-
+    
     document.getElementById('withdrawBtn').addEventListener('click', () => {
         window.tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw_gifts');
     });
-
-    // Обработчик кнопки истории (аккордеон)
-    const toggleBtn = document.getElementById('walletHistoryToggle');
-    const content = document.getElementById('walletHistoryContent');
-    if (toggleBtn && content) {
-        toggleBtn.addEventListener('click', () => {
-            const isOpen = content.style.display !== 'none';
-            content.style.display = isOpen ? 'none' : 'block';
-            toggleBtn.querySelector('.wallet-history-arrow').textContent = isOpen ? '▾' : '▴';
-        });
-    }
 };
