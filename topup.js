@@ -1,4 +1,4 @@
-// topup.js – модалка пополнения с живым расчётом комиссии
+// topup.js – модалка пополнения с живым расчётом комиссии и авто-заполнением поля
 window.showTopupModal = function(onSuccess) {
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
@@ -40,11 +40,12 @@ window.showTopupModal = function(onSuccess) {
         const receive = amount - fee;
         feeInfo.innerHTML = `
             <div class="fee-row">
-                <span>💰 Сумма: <strong>${amount} ⭐</strong></span>
-                <span style="margin-left:12px;">📉 Комиссия: <strong>${fee} ⭐</strong></span>
+                <span>💰 <strong>${amount} ⭐</strong></span>
+                <span style="margin-left:16px;">📉 <strong>${fee} ⭐</strong></span>
+                <span style="margin-left:16px;">✅ <strong style="color:#4ade80;">${receive} ⭐</strong></span>
             </div>
-            <div class="fee-row highlight" style="margin-top:4px;">
-                ✅ Вы получите: <strong>${receive} ⭐</strong>
+            <div class="fee-row" style="font-size:11px; color:#6b7280; margin-top:2px;">
+                комиссия 5%
             </div>
         `;
         confirmBtn.disabled = false;
