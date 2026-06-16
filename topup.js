@@ -1,4 +1,4 @@
-// topup.js – модалка пополнения с живым расчётом комиссии и красивым подтверждением
+// topup.js – модалка пополнения
 window.showTopupModal = function(onSuccess) {
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
@@ -30,13 +30,13 @@ window.showTopupModal = function(onSuccess) {
     const confirmBtn = document.getElementById('confirmTopupBtnNew');
     let selectedAmount = null;
     
-    // Функция обновления комиссии и состояния кнопки
-    function updateFee(amount) {
+    // === ОБНОВЛЕНИЕ КОМИССИИ И АКТИВАЦИЯ КНОПКИ ===
+    function updateFeeAndButton(amount) {
         if (!amount || amount < 10 || amount > 500) {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
             selectedAmount = null;
-            return;
+            return false;
         }
         const fee = Math.floor(amount * 0.05);
         const receive = amount - fee;
@@ -52,15 +52,14 @@ window.showTopupModal = function(onSuccess) {
         `;
         confirmBtn.disabled = false;
         selectedAmount = amount;
+        return true;
     }
     
-    // Обработчик ввода своей суммы
+    // === ОБРАБОТЧИК ВВОДА В ПОЛЕ ===
     function handleInput() {
-        // Снимаем выделение с шаблонов
-        document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
         const val = parseInt(customInput.value);
         if (!isNaN(val) && val >= 10 && val <= 500) {
-            updateFee(val);
+            updateFeeAndButton(val);
         } else {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
@@ -70,25 +69,34 @@ window.showTopupModal = function(onSuccess) {
     
     customInput.addEventListener('input', handleInput);
     
-    // Обработчик кнопок выбора суммы
+    // === ОБРАБОТЧИК КНОПОК ШАБЛОНОВ ===
     document.querySelectorAll('.amount-preset').forEach(btn => {
         btn.addEventListener('click', function() {
+            // Снимаем выделение со всех кнопок
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
             this.classList.add('selected');
+            
             const amount = parseInt(this.dataset.amount);
             customInput.value = amount;
-            // Вызываем handleInput, чтобы обновить комиссию и активировать кнопку
-            handleInput();
+            
+            // НЕ ВЫЗЫВАЕМ handleInput() – кнопка остаётся неактивной,
+            // комиссия не обновляется, пока пользователь не начнёт редактировать поле.
+            // Но мы оставляем поле заполненным.
+            // Сбрасываем комиссию и блокируем кнопку, если она была активна.
+            feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
+            confirmBtn.disabled = true;
+            selectedAmount = null;
         });
     });
     
-    // Закрытие модалки
+    // === ЗАКРЫТИЕ МОДАЛКИ ===
     const closeModal = () => modal.remove();
     document.getElementById('closeTopupModalNew').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     
-    // Кнопка пополнить с подтверждением
+    // === КНОПКА "ПОПОЛНИТЬ" С ПОДТВЕРЖДЕНИЕМ ===
     confirmBtn.addEventListener('click', function() {
+        // Проверяем, что selectedAmount установлен (значит, кнопка активна)
         if (!selectedAmount) {
             window.showCustomModal('Ошибка', 'Введите сумму от 10 до 500 ⭐');
             return;
