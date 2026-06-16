@@ -1,4 +1,4 @@
-// profile.js – полная версия (без игр, с поддержкой новых достижений)
+// profile.js – полная версия (без игр, с исправленным выбором достижений)
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -22,7 +22,7 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт) ==========
+// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт, без игр) ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
@@ -64,7 +64,7 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
     return unique.slice(0, 3);
 }
 
-// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА ==========
+// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА (БЕЗ ИГР) ==========
 function getConditionText(ach) {
     if (ach.condition_type === 'none') return '';
     let val = ach.condition_value;
@@ -200,6 +200,7 @@ async function awardStylistAchievement() {
     if (ach) await window.awardAchievement(ach.id);
 }
 
+// ИСПРАВЛЕННАЯ ВЕРСИЯ – без дублирования информации
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal) {
     const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
     const isSlotOccupied = currentSlotAchievementId !== null;
@@ -221,9 +222,9 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
                 case 'total_earned': conditionText = `💵 Заработано: ${ach.condition_value/100} ⭐`; break;
             }
         }
+        // Убираем дублирование: оставляем только название и условие
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
             <div class="achievement-name">${ach.name}</div>
-            <div class="achievement-desc">${ach.description}</div>
             ${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}
             <div class="achievement-date">🏅 Получено: ${earnedDate}</div>
         </div>`;
@@ -266,6 +267,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
+// Шаги кастомизации (без изменений)
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
