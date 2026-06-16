@@ -9,7 +9,7 @@ window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
 };
 
-// ========== ВЫДАЧА ДОСТИЖЕНИЙ (ИСПРАВЛЕНО) ==========
+// ========== ВЫДАЧА ДОСТИЖЕНИЙ (ИСПРАВЛЕНО – ОБРЕЗКА ИКОНКИ) ==========
 window.awardAchievement = async function(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -25,12 +25,14 @@ window.awardAchievement = async function(achievementId) {
             earned_at: new Date().toISOString()
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
-        // Гарантируем, что иконка – только первый символ (на случай дублей в БД)
-        const icon = ach.icon ? ach.icon.charAt(0) : '🏆';
+        // Принудительно обрезаем иконку до 1 символа
+        let icon = ach.icon ? ach.icon.trim() : '🏆';
+        icon = icon.charAt(0); // Берём только первый символ
+        const description = ach.description || '';
         if (window.showCustomModal) {
-            window.showCustomModal('🏆 Достижение получено!', `${icon} ${ach.name}\n\n${ach.description}`);
+            window.showCustomModal('🏆 Достижение получено!', `${icon} ${ach.name}\n\n${description}`);
         } else {
-            alert(`🏆 Достижение: ${icon} ${ach.name}\n\n${ach.description}`);
+            alert(`🏆 Достижение: ${icon} ${ach.name}\n\n${description}`);
         }
         if (window.renderProfileTab) window.renderProfileTab();
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
