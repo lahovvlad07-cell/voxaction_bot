@@ -151,7 +151,7 @@ input:focus {
     box-shadow: 0 0 12px rgba(251, 191, 36, 0.6) !important;
 }
 
-/* Отключение анимаций (для экономии трафика/батареи) */
+/* Отключение анимаций (с !important для надёжности) */
 .animations-off *,
 .animations-off .header-logo,
 .animations-off .stat-value,
