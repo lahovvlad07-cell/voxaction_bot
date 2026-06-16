@@ -1,4 +1,4 @@
-// topup.js – модалка пополнения с живым расчётом комиссии и подтверждением
+// topup.js – модалка пополнения с живым расчётом комиссии и красивым подтверждением
 window.showTopupModal = function(onSuccess) {
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
@@ -54,9 +54,12 @@ window.showTopupModal = function(onSuccess) {
     // Обработчики кнопок выбора суммы
     document.querySelectorAll('.amount-preset').forEach(btn => {
         btn.addEventListener('click', () => {
+            // Снимаем выделение со всех кнопок
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
+            
             const amount = parseInt(btn.dataset.amount);
+            // Заполняем поле ввода
             if (customInput) customInput.value = amount;
             selectedAmount = amount;
             updateFee(selectedAmount);
@@ -66,6 +69,7 @@ window.showTopupModal = function(onSuccess) {
     // Обработчик ввода своей суммы
     if (customInput) {
         customInput.addEventListener('input', () => {
+            // Снимаем выделение с кнопок
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
             let val = parseInt(customInput.value);
             if (!isNaN(val) && val >= 10 && val <= 500) {
@@ -79,13 +83,12 @@ window.showTopupModal = function(onSuccess) {
         });
     }
     
-    // Закрытие модалки
     const closeModal = () => modal.remove();
     document.getElementById('closeTopupModalNew').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     
-    // Кнопка подтверждения с окном подтверждения
-    document.getElementById('confirmTopupBtnNew').onclick = async () => {
+    // ---- КНОПКА ПОПОЛНИТЬ С КРАСИВЫМ ПОДТВЕРЖДЕНИЕМ ----
+    document.getElementById('confirmTopupBtnNew').onclick = () => {
         if (!selectedAmount || selectedAmount < 10 || selectedAmount > 500) {
             window.showCustomModal('Ошибка', 'Введите сумму от 10 до 500 ⭐');
             return;
@@ -93,44 +96,62 @@ window.showTopupModal = function(onSuccess) {
         const fee = Math.floor(selectedAmount * 0.05);
         const receive = selectedAmount - fee;
         
-        // Показываем окно подтверждения
-        const confirmMessage = `
-            💰 Сумма пополнения: <strong>${selectedAmount} ⭐</strong>
-            📉 Комиссия (5%): <strong>${fee} ⭐</strong>
-            ✅ Вы получите: <strong style="color:#4ade80;">${receive} ⭐</strong>
-            
-            Продолжить оплату?
+        // Создаём отдельную модалку подтверждения
+        const confirmHtml = `
+            <div class="modal" id="confirmModal" style="display:flex;">
+                <div class="modal-content confirm-modal">
+                    <span class="close-modal" id="closeConfirmModal">&times;</span>
+                    <h3>✅ Подтверждение пополнения</h3>
+                    <div class="confirm-body">
+                        <div class="confirm-row">
+                            <span>💰 Сумма пополнения</span>
+                            <strong>${selectedAmount} ⭐</strong>
+                        </div>
+                        <div class="confirm-row">
+                            <span>📉 Комиссия (5%)</span>
+                            <strong>${fee} ⭐</strong>
+                        </div>
+                        <div class="confirm-row highlight">
+                            <span>✅ Вы получите</span>
+                            <strong>${receive} ⭐</strong>
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="confirmCancelBtn" class="secondary">Отмена</button>
+                        <button id="confirmOkBtn">Подтвердить</button>
+                    </div>
+                </div>
+            </div>
         `;
-        window.showCustomModal('Подтверждение пополнения', confirmMessage);
+        document.body.insertAdjacentHTML('beforeend', confirmHtml);
         
-        // Подменяем обработчик OK в модалке
-        const modalOk = document.getElementById('customModalOkBtn');
-        if (modalOk) {
-            const originalClick = modalOk.onclick;
-            modalOk.onclick = async () => {
-                // Закрываем модалку подтверждения
-                const confirmModal = document.getElementById('customMessageModal');
-                if (confirmModal) confirmModal.remove();
-                
-                // Открываем инвойс
-                try {
-                    const res = await window.createInvoice(selectedAmount);
-                    if (res.ok && res.invoice_link) {
-                        window.tg.openInvoice(res.invoice_link, (status) => {
-                            if (status === 'paid') {
-                                window.showCustomModal('Успех', 'Баланс пополнен!');
-                                if (typeof onSuccess === 'function') onSuccess();
-                                if (window.refreshActiveTab) window.refreshActiveTab();
-                            }
-                        });
-                    } else {
-                        window.showCustomModal('Ошибка', res.error || 'Не удалось создать счёт');
-                    }
-                } catch(e) {
-                    window.showCustomModal('Ошибка', 'Соединение не удалось');
+        const confirmModal = document.getElementById('confirmModal');
+        const closeConfirm = () => confirmModal.remove();
+        document.getElementById('closeConfirmModal').onclick = closeConfirm;
+        confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) closeConfirm(); });
+        document.getElementById('confirmCancelBtn').onclick = closeConfirm;
+        
+        document.getElementById('confirmOkBtn').onclick = async () => {
+            closeConfirm();
+            // Закрываем основную модалку пополнения
+            closeModal();
+            try {
+                const res = await window.createInvoice(selectedAmount);
+                if (res.ok && res.invoice_link) {
+                    window.tg.openInvoice(res.invoice_link, (status) => {
+                        if (status === 'paid') {
+                            window.showCustomModal('Успех', 'Баланс пополнен!');
+                            if (typeof onSuccess === 'function') onSuccess();
+                            if (window.refreshActiveTab) window.refreshActiveTab();
+                        }
+                    });
+                } else {
+                    window.showCustomModal('Ошибка', res.error || 'Не удалось создать счёт');
                 }
-            };
-        }
+            } catch(e) {
+                window.showCustomModal('Ошибка', 'Соединение не удалось');
+            }
+        };
     };
 };
 
