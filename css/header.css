@@ -24,14 +24,12 @@
     background-clip: text;
     color: transparent;
     animation: gradientShift 3s ease infinite;
-    margin-right: 12px;
 }
 
 .header-icons {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     align-items: center;
-    margin-left: auto;
 }
 
 .header-icon {
@@ -84,18 +82,20 @@
     font-weight: bold;
 }
 
-/* ========== ОНЛАЙН-ИНДИКАТОР (улучшенный) ========== */
+/* ========== ОНЛАЙН-ИНДИКАТОР (справа, компактный) ========== */
 .header-online {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 12px;
+    gap: 4px;
+    padding: 4px 8px;
     background: rgba(74, 222, 128, 0.12);
-    border: 1px solid rgba(74, 222, 128, 0.3);
-    border-radius: 40px;
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    border-radius: 30px;
     cursor: default;
     transition: 0.2s;
-    flex-shrink: 0;
+    font-size: 13px;
+    color: #4ade80;
+    position: relative;
 }
 
 .header-online:hover {
@@ -105,29 +105,42 @@
 
 .online-dot {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     background: #4ade80;
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
     animation: pulse-dot 2s ease-in-out infinite;
 }
 
-.online-text {
-    font-size: 12px;
-    font-weight: 600;
-    color: #4ade80;
-}
-
 .online-count {
-    font-size: 13px;
     font-weight: 700;
     color: #eef2ff;
-    background: rgba(74, 222, 128, 0.15);
-    padding: 0 8px;
-    border-radius: 12px;
-    min-width: 20px;
+    min-width: 16px;
     text-align: center;
+}
+
+/* Подсказка при наведении (только на ПК) */
+@media (min-width: 768px) {
+    .header-online::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        top: 110%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: #eef2ff;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: 0.2s;
+    }
+    .header-online:hover::after {
+        opacity: 1;
+    }
 }
 
 @keyframes pulse-dot {
@@ -135,18 +148,16 @@
     50% { opacity: 0.5; transform: scale(0.85); }
 }
 
-/* Адаптив для мобильных (скрываем текст, оставляем точку + число) */
+/* Адаптив для мобильных */
 @media (max-width: 480px) {
     .header-online {
-        padding: 4px 8px;
-        gap: 4px;
-    }
-    .online-text {
-        display: none;
+        padding: 2px 6px;
+        gap: 2px;
     }
     .online-count {
         font-size: 11px;
-        min-width: 16px;
-        padding: 0 4px;
+    }
+    .header-icons {
+        gap: 12px;
     }
 }
