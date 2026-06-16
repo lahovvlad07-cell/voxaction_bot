@@ -38,7 +38,6 @@
         <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
         <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
         <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
-        <div class="tab" data-tab="games"><div class="tab-icon">🎮</div><div class="tab-label">Игры</div></div>
         <div class="tab" data-tab="settings"><div class="tab-icon">⚙️</div><div class="tab-label">Настройки</div></div>
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
@@ -68,7 +67,6 @@
 <script src="rating.js"></script>
 <script src="wallet.js"></script>
 <script src="referral.js"></script>
-<script src="games.js"></script>
 <script src="admin.js"></script>
 <script src="settings.js"></script>
 
@@ -163,14 +161,12 @@
                     case 'rating': await window.renderRatingTab(); break;
                     case 'wallet': await window.renderWalletTab(); break;
                     case 'referral': await window.renderReferralTab(); break;
-                    case 'games': await window.renderGamesTab(); break;
                     case 'settings': if (window.renderSettingsTab) await window.renderSettingsTab(); break;
                     case 'admin': await window.renderAdminTab(); break;
                 }
             });
         });
         
-        // Простой скролл табов (нативный)
         (function() {
             const wrapper = document.querySelector('.tabs-wrapper');
             if (!wrapper) return;
