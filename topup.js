@@ -1,5 +1,10 @@
-// topup.js – модалка пополнения (ПОЛНОСТЬЮ РАБОЧАЯ)
+// topup.js – надёжная модалка пополнения с ручным вводом и пресетами
+
 window.showTopupModal = function(onSuccess) {
+    // Удаляем старые модалки, если они есть
+    document.querySelectorAll('#topupModalNew, #confirmModal').forEach(el => el.remove());
+
+    // Создаём HTML модалки
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
             <div class="modal-content topup-modal">
@@ -14,30 +19,50 @@ window.showTopupModal = function(onSuccess) {
                     <button class="amount-preset" data-amount="500">500 ⭐</button>
                 </div>
                 <div class="custom-amount">
-                    <input type="number" id="customTopupAmount" placeholder="Своя сумма (10–500)" min="10" max="500" step="1">
+                    <input type="text" id="customTopupAmount" inputmode="numeric" placeholder="Своя сумма (10–500)" value="">
                 </div>
-                <div id="topupFeeInfo" class="topup-fee"></div>
+                <div id="topupFeeInfo" class="topup-fee">
+                    <div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>
+                </div>
                 <div class="topup-limit-info">⚠️ Максимум 500 ⭐ за 12 часов. Комиссия 5%.</div>
                 <button id="confirmTopupBtnNew" class="topup-confirm-btn" disabled>Пополнить</button>
             </div>
         </div>
     `;
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
     const modal = document.getElementById('topupModalNew');
-    const customInput = document.getElementById('customTopupAmount');
+    const input = document.getElementById('customTopupAmount');
     const feeInfo = document.getElementById('topupFeeInfo');
     const confirmBtn = document.getElementById('confirmTopupBtnNew');
 
-    // === ЕДИНАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ (принимает число) ===
-    function updateUI(amount) {
-        // Проверяем валидность
-        if (!amount || amount < 10 || amount > 500) {
+    // === Вспомогательная функция для очистки ввода ===
+    function sanitizeInput(value) {
+        // Удаляем всё, кроме цифр
+        return value.replace(/\D/g, '');
+    }
+
+    // === Функция обновления UI (вызывается при каждом изменении) ===
+    function updateUI(rawValue) {
+        // Очищаем от мусора
+        const digits = sanitizeInput(rawValue);
+        // Если пусто или 0 – показываем заглушку
+        if (!digits || digits === '0') {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
             return;
         }
-        // Считаем комиссию
+
+        const amount = parseInt(digits, 10);
+        // Проверяем диапазон
+        if (amount < 10 || amount > 500) {
+            feeInfo.innerHTML = `<div class="fee-row" style="color:#f87171;">Сумма должна быть от 10 до 500 ⭐</div>`;
+            confirmBtn.disabled = true;
+            return;
+        }
+
+        // Всё хорошо – считаем комиссию
         const fee = Math.floor(amount * 0.05);
         const receive = amount - fee;
         feeInfo.innerHTML = `
@@ -53,44 +78,54 @@ window.showTopupModal = function(onSuccess) {
         confirmBtn.disabled = false;
     }
 
-    // === ОБРАБОТЧИК ВВОДА В ПОЛЕ ===
-    customInput.addEventListener('input', function() {
-        const val = parseInt(this.value);
-        updateUI(val);
+    // === Обработчик ввода в поле ===
+    input.addEventListener('input', function() {
+        // Убираем всё, кроме цифр, и обновляем значение в поле
+        const cleaned = sanitizeInput(this.value);
+        if (this.value !== cleaned) {
+            this.value = cleaned;
+        }
+        // Снимаем выделение с пресетов
+        document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
+        // Обновляем интерфейс
+        updateUI(cleaned);
     });
 
-    // === ОБРАБОТЧИКИ КНОПОК ШАБЛОНОВ ===
+    // === Обработчики для пресетов ===
     document.querySelectorAll('.amount-preset').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
-            // Снимаем выделение
+            // Снимаем выделение со всех
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
             this.classList.add('selected');
             // Берём сумму из data-атрибута
-            const amount = parseInt(this.dataset.amount);
-            // Заполняем поле
-            customInput.value = amount;
-            // ЯВНО ВЫЗЫВАЕМ ОБНОВЛЕНИЕ (передаём сумму)
+            const amount = this.dataset.amount;
+            // Заполняем поле (оно автоматически очистится от нецифровых)
+            input.value = amount;
+            // Принудительно вызываем обновление
             updateUI(amount);
         });
     });
 
-    // === ЗАКРЫТИЕ МОДАЛКИ ===
+    // === Закрытие модалки ===
     const closeModal = () => modal.remove();
     document.getElementById('closeTopupModalNew').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    // === КНОПКА "ПОПОЛНИТЬ" ===
+    // === Кнопка "Пополнить" – открывает подтверждение ===
     confirmBtn.addEventListener('click', function() {
-        const amount = parseInt(customInput.value);
-        if (!amount || amount < 10 || amount > 500) {
-            window.showCustomModal('Ошибка', 'Введите сумму от 10 до 500 ⭐');
+        const digits = sanitizeInput(input.value);
+        if (!digits) return;
+        const amount = parseInt(digits, 10);
+        if (amount < 10 || amount > 500) {
+            window.showCustomModal('Ошибка', 'Сумма должна быть от 10 до 500 ⭐');
             return;
         }
+
         const fee = Math.floor(amount * 0.05);
         const receive = amount - fee;
 
-        // Окно подтверждения
+        // Показываем окно подтверждения
         const confirmHtml = `
             <div class="modal" id="confirmModal" style="display:flex;">
                 <div class="modal-content confirm-modal">
@@ -149,5 +184,5 @@ window.showTopupModal = function(onSuccess) {
 };
 
 function initTopupModal() {
-    // Новая модалка вызывается через window.showTopupModal
+    // Функция-заглушка для совместимости (вызывается в index.html)
 }
