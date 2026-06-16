@@ -1,11 +1,10 @@
-/* wallet.css – кошелёк с историей-аккордеоном */
+/* wallet.css – улучшенный кошелёк (современный стиль) */
 .wallet-container {
     max-width: 600px;
     margin: 0 auto;
     padding: 0 16px 80px 16px;
 }
 
-/* Баланс */
 .wallet-balance-grid {
     display: flex;
     gap: 12px;
@@ -76,7 +75,6 @@
     margin-top: 4px;
 }
 
-/* Лимит */
 .wallet-limit-card {
     background: rgba(18, 24, 38, 0.6);
     backdrop-filter: blur(8px);
@@ -118,7 +116,6 @@
     color: #4ade80;
 }
 
-/* Статистика */
 .wallet-stats-grid {
     display: flex;
     gap: 12px;
@@ -161,7 +158,6 @@
     margin-top: 4px;
 }
 
-/* Кнопки */
 .wallet-actions {
     display: flex;
     gap: 14px;
@@ -197,7 +193,6 @@
     box-shadow: 0 0 16px rgba(0,255,255,0.2);
 }
 
-/* История (аккордеон) */
 .wallet-history {
     background: rgba(18, 24, 38, 0.5);
     backdrop-filter: blur(4px);
@@ -206,31 +201,11 @@
     margin-bottom: 20px;
     border: 1px solid rgba(56, 189, 248, 0.08);
 }
-.wallet-history-toggle {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    background: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
+.wallet-history-title {
     font-size: 14px;
     font-weight: 600;
     color: #9ca3af;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.wallet-history-toggle:hover {
-    color: #eef2ff;
-}
-.wallet-history-arrow {
-    font-size: 16px;
-    transition: transform 0.2s;
-}
-.wallet-history-content {
-    margin-top: 12px;
-    display: none;
+    margin-bottom: 12px;
 }
 .wallet-history-list {
     display: flex;
@@ -270,7 +245,6 @@
     font-style: italic;
 }
 
-/* Информация */
 .wallet-info {
     display: flex;
     align-items: center;
@@ -293,7 +267,6 @@
     color: #eef2ff;
 }
 
-/* Адаптив */
 @media (max-width: 560px) {
     .wallet-container {
         padding: 0 12px 70px 12px;
