@@ -1,3 +1,4 @@
+// api.js – полная версия (игры удалены)
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -247,7 +248,7 @@ window.refreshActiveTab = async function() {
         case 'wallet': if (window.renderWalletTab) await window.renderWalletTab(); break;
         case 'referral': if (window.renderReferralTab) await window.renderReferralTab(); break;
         case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
-        case 'games': if (window.renderGamesTab) await window.renderGamesTab(); break;
+        case 'settings': if (window.renderSettingsTab) await window.renderSettingsTab(); break;
     }
 };
 
