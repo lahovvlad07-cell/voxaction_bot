@@ -166,7 +166,7 @@ input:focus {
     background-size: auto !important;
 }
 
-/* ========== МОДАЛКА ПОПОЛНЕНИЯ (FINAL) ========== */
+/* ========== МОДАЛКА ПОПОЛНЕНИЯ (TOPUP) ========== */
 .topup-modal {
     max-width: 400px;
     width: 92%;
@@ -317,7 +317,65 @@ input:focus {
     transform: none;
 }
 
-/* Адаптив модалки */
+/* ========== МОДАЛКА ПОДТВЕРЖДЕНИЯ ========== */
+.confirm-modal {
+    max-width: 380px;
+    width: 90%;
+}
+.confirm-modal h3 {
+    font-size: 22px;
+    margin: 16px 0 8px;
+}
+.confirm-body {
+    padding: 16px 20px;
+}
+.confirm-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 15px;
+}
+.confirm-row:last-child {
+    border-bottom: none;
+}
+.confirm-row span {
+    color: #9ca3af;
+}
+.confirm-row strong {
+    color: #eef2ff;
+    font-weight: 700;
+}
+.confirm-row.highlight {
+    background: rgba(74, 222, 128, 0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    border-bottom: none;
+}
+.confirm-row.highlight strong {
+    color: #4ade80;
+    font-size: 18px;
+}
+.confirm-modal .modal-buttons {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(56,189,248,0.2);
+    display: flex;
+    gap: 12px;
+}
+.confirm-modal .modal-buttons button {
+    margin-top: 0;
+    flex: 1;
+}
+.confirm-modal .modal-buttons .secondary {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.confirm-modal .modal-buttons .secondary:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+/* Адаптив модалок */
 @media (max-width: 480px) {
     .topup-modal {
         width: 95%;
@@ -347,6 +405,16 @@ input:focus {
     }
     .fee-row {
         font-size: 14px;
+    }
+    .confirm-modal {
+        width: 95%;
+    }
+    .confirm-row {
+        font-size: 14px;
+        padding: 8px 0;
+    }
+    .confirm-row.highlight strong {
+        font-size: 16px;
     }
 }
 
