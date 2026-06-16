@@ -1,4 +1,4 @@
-// topup.js – модалка пополнения с живым расчётом комиссии и авто-заполнением поля
+// topup.js – модалка пополнения с живым расчётом комиссии и подтверждением
 window.showTopupModal = function(onSuccess) {
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
@@ -51,6 +51,7 @@ window.showTopupModal = function(onSuccess) {
         confirmBtn.disabled = false;
     }
     
+    // Обработчики кнопок выбора суммы
     document.querySelectorAll('.amount-preset').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
@@ -62,6 +63,7 @@ window.showTopupModal = function(onSuccess) {
         });
     });
     
+    // Обработчик ввода своей суммы
     if (customInput) {
         customInput.addEventListener('input', () => {
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
@@ -77,31 +79,57 @@ window.showTopupModal = function(onSuccess) {
         });
     }
     
+    // Закрытие модалки
     const closeModal = () => modal.remove();
     document.getElementById('closeTopupModalNew').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     
+    // Кнопка подтверждения с окном подтверждения
     document.getElementById('confirmTopupBtnNew').onclick = async () => {
         if (!selectedAmount || selectedAmount < 10 || selectedAmount > 500) {
             window.showCustomModal('Ошибка', 'Введите сумму от 10 до 500 ⭐');
             return;
         }
-        closeModal();
-        try {
-            const res = await window.createInvoice(selectedAmount);
-            if (res.ok && res.invoice_link) {
-                window.tg.openInvoice(res.invoice_link, (status) => {
-                    if (status === 'paid') {
-                        window.showCustomModal('Успех', 'Баланс пополнен!');
-                        if (typeof onSuccess === 'function') onSuccess();
-                        if (window.refreshActiveTab) window.refreshActiveTab();
+        const fee = Math.floor(selectedAmount * 0.05);
+        const receive = selectedAmount - fee;
+        
+        // Показываем окно подтверждения
+        const confirmMessage = `
+            💰 Сумма пополнения: <strong>${selectedAmount} ⭐</strong>
+            📉 Комиссия (5%): <strong>${fee} ⭐</strong>
+            ✅ Вы получите: <strong style="color:#4ade80;">${receive} ⭐</strong>
+            
+            Продолжить оплату?
+        `;
+        window.showCustomModal('Подтверждение пополнения', confirmMessage);
+        
+        // Подменяем обработчик OK в модалке
+        const modalOk = document.getElementById('customModalOkBtn');
+        if (modalOk) {
+            const originalClick = modalOk.onclick;
+            modalOk.onclick = async () => {
+                // Закрываем модалку подтверждения
+                const confirmModal = document.getElementById('customMessageModal');
+                if (confirmModal) confirmModal.remove();
+                
+                // Открываем инвойс
+                try {
+                    const res = await window.createInvoice(selectedAmount);
+                    if (res.ok && res.invoice_link) {
+                        window.tg.openInvoice(res.invoice_link, (status) => {
+                            if (status === 'paid') {
+                                window.showCustomModal('Успех', 'Баланс пополнен!');
+                                if (typeof onSuccess === 'function') onSuccess();
+                                if (window.refreshActiveTab) window.refreshActiveTab();
+                            }
+                        });
+                    } else {
+                        window.showCustomModal('Ошибка', res.error || 'Не удалось создать счёт');
                     }
-                });
-            } else {
-                window.showCustomModal('Ошибка', res.error || 'Не удалось создать счёт');
-            }
-        } catch(e) {
-            window.showCustomModal('Ошибка', 'Соединение не удалось');
+                } catch(e) {
+                    window.showCustomModal('Ошибка', 'Соединение не удалось');
+                }
+            };
         }
     };
 };
