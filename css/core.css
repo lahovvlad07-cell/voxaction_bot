@@ -166,85 +166,81 @@ input:focus {
     background-size: auto !important;
 }
 
-/* ========== МОДАЛКА ПОПОЛНЕНИЯ (FIXED) ========== */
+/* ========== МОДАЛКА ПОПОЛНЕНИЯ (FINAL) ========== */
 .topup-modal {
     max-width: 400px;
     width: 92%;
     max-height: 90vh;
 }
 .topup-modal h3 {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    margin: 16px 0 8px;
+    margin: 20px 0 12px;
 }
 
 /* Кнопки выбора суммы */
 .topup-amount-buttons {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 10px;
     margin: 16px 0;
 }
 .amount-preset {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(0, 255, 255, 0.2);
-    padding: 10px 8px;
+    padding: 12px 8px;
     border-radius: 16px;
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
     color: #9ca3af;
     text-align: center;
 }
 .amount-preset:hover {
-    background: rgba(0, 255, 255, 0.08);
-    border-color: rgba(0, 255, 255, 0.4);
-    transform: translateY(-1px);
+    background: rgba(0, 255, 255, 0.12);
+    border-color: rgba(0, 255, 255, 0.5);
+    transform: translateY(-2px);
 }
 .amount-preset.selected {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
     border-color: #0ff;
     color: white;
-    box-shadow: 0 0 16px rgba(43, 110, 158, 0.4);
+    box-shadow: 0 0 20px rgba(43, 110, 158, 0.5);
+}
+.amount-preset .amount-preset-label {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    color: #eef2ff;
 }
 .amount-preset.selected .amount-preset-label {
     color: white;
 }
-.amount-preset .amount-preset-label {
-    display: block;
-    font-size: 18px;
-    font-weight: 800;
-    color: #eef2ff;
-}
-.amount-preset .amount-preset-sub {
-    font-size: 10px;
-    color: #6b7280;
-    font-weight: 400;
-}
 
 /* Своя сумма */
 .custom-amount {
-    margin: 12px 0 16px;
+    margin: 16px 0;
 }
 .custom-amount input {
     width: 100%;
     padding: 14px;
     background: #0a0f1a;
-    border: 1px solid #0ff;
+    border: 2px solid rgba(0, 255, 255, 0.3);
     border-radius: 40px;
     color: white;
     font-size: 18px;
     font-weight: 700;
     text-align: center;
+    transition: border 0.2s;
 }
 .custom-amount input:focus {
     border-color: #fbbf24;
-    box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
 }
 .custom-amount input::placeholder {
     color: #4a5568;
@@ -252,23 +248,30 @@ input:focus {
     font-size: 14px;
 }
 
-/* Информация о комиссии */
+/* Информация о комиссии (обновляется динамически) */
 .topup-fee {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 20px;
-    padding: 14px;
-    margin: 8px 0 16px;
+    padding: 16px;
+    margin: 12px 0 16px;
     text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .fee-row {
     font-size: 14px;
-    margin: 2px 0;
+    margin: 4px 0;
     color: #9ca3af;
+}
+.fee-row strong {
+    color: #eef2ff;
 }
 .fee-row.highlight {
     color: #4ade80;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 18px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 .fee-row.error {
     color: #f87171;
@@ -279,9 +282,9 @@ input:focus {
     font-size: 12px;
     color: #fbbf24;
     text-align: center;
-    margin: 4px 0 12px;
+    margin: 8px 0 16px;
     background: rgba(251, 191, 36, 0.08);
-    padding: 6px 12px;
+    padding: 6px 16px;
     border-radius: 40px;
     display: inline-block;
     width: auto;
@@ -300,15 +303,21 @@ input:focus {
     color: #1e1e2f;
     cursor: pointer;
     width: 100%;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
     margin-top: 8px;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
 }
 .topup-confirm-btn:hover {
     transform: scale(1.02);
-    box-shadow: 0 0 24px rgba(251, 191, 36, 0.4);
+    box-shadow: 0 8px 30px rgba(251, 191, 36, 0.4);
 }
 .topup-confirm-btn:active {
     transform: scale(0.97);
+}
+.topup-confirm-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
 }
 
 /* Адаптив модалки */
@@ -318,15 +327,15 @@ input:focus {
     }
     .topup-amount-buttons {
         grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
+        gap: 8px;
     }
     .amount-preset {
-        padding: 8px 4px;
+        padding: 10px 4px;
         font-size: 13px;
         border-radius: 12px;
     }
     .amount-preset .amount-preset-label {
-        font-size: 15px;
+        font-size: 17px;
     }
     .custom-amount input {
         font-size: 16px;
@@ -337,10 +346,13 @@ input:focus {
         padding: 14px;
     }
     .topup-fee {
-        padding: 10px;
+        padding: 12px;
     }
     .fee-row {
-        font-size: 12px;
+        font-size: 13px;
+    }
+    .fee-row.highlight {
+        font-size: 16px;
     }
 }
 
