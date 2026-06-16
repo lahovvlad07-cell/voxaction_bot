@@ -1,4 +1,4 @@
-// topup.js – модалка пополнения (берёт сумму напрямую из поля)
+// topup.js – модалка пополнения (работает с полем ввода)
 window.showTopupModal = function(onSuccess) {
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
@@ -29,7 +29,7 @@ window.showTopupModal = function(onSuccess) {
     const feeInfo = document.getElementById('topupFeeInfo');
     const confirmBtn = document.getElementById('confirmTopupBtnNew');
     
-    // === ФУНКЦИЯ ОБНОВЛЕНИЯ КОМИССИИ ===
+    // Функция обновления комиссии и активации кнопки
     function updateFeeAndButton(amount) {
         if (!amount || amount < 10 || amount > 500) {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
@@ -52,7 +52,7 @@ window.showTopupModal = function(onSuccess) {
         return true;
     }
     
-    // === ОБРАБОТЧИК ВВОДА В ПОЛЕ ===
+    // Обработчик ввода в поле
     function handleInput() {
         const val = parseInt(customInput.value);
         if (!isNaN(val) && val >= 10 && val <= 500) {
@@ -65,26 +65,30 @@ window.showTopupModal = function(onSuccess) {
     
     customInput.addEventListener('input', handleInput);
     
-    // === ОБРАБОТЧИК КНОПОК ШАБЛОНОВ ===
+    // Обработчики кнопок шаблонов
     document.querySelectorAll('.amount-preset').forEach(btn => {
         btn.addEventListener('click', function() {
+            // Снимаем выделение со всех кнопок
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
             this.classList.add('selected');
+            
             const amount = parseInt(this.dataset.amount);
             customInput.value = amount;
-            // При выборе шаблона кнопка НЕ АКТИВИРУЕТСЯ, комиссия НЕ ПОКАЗЫВАЕТСЯ
+            
+            // Кнопка НЕ АКТИВИРУЕТСЯ, комиссия НЕ ПОКАЗЫВАЕТСЯ
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
         });
     });
     
-    // === ЗАКРЫТИЕ МОДАЛКИ ===
+    // Закрытие модалки
     const closeModal = () => modal.remove();
     document.getElementById('closeTopupModalNew').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     
-    // === КНОПКА "ПОПОЛНИТЬ" — БЕРЁТ СУММУ ПРЯМО ИЗ ПОЛЯ ===
+    // Кнопка "Пополнить"
     confirmBtn.addEventListener('click', function() {
+        // Берём сумму напрямую из поля
         const amount = parseInt(customInput.value);
         if (!amount || amount < 10 || amount > 500) {
             window.showCustomModal('Ошибка', 'Введите сумму от 10 до 500 ⭐');
