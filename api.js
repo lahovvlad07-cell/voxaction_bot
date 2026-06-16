@@ -26,7 +26,7 @@ window.awardAchievement = async function(achievementId) {
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
         if (window.showCustomModal) {
-            // Теперь заголовок содержит иконку + название, описание – только условие
+            // Заголовок: трофей + иконка достижения + название
             window.showCustomModal(`🏆 ${ach.icon} ${ach.name}`, ach.description);
         } else {
             alert(`🏆 Достижение: ${ach.icon} ${ach.name}`);
