@@ -1,4 +1,4 @@
-// topup.js – модалка пополнения
+// topup.js – модалка пополнения (берёт сумму напрямую из поля)
 window.showTopupModal = function(onSuccess) {
     const modalHtml = `
         <div class="modal" id="topupModalNew" style="display:flex;">
@@ -28,14 +28,12 @@ window.showTopupModal = function(onSuccess) {
     const customInput = document.getElementById('customTopupAmount');
     const feeInfo = document.getElementById('topupFeeInfo');
     const confirmBtn = document.getElementById('confirmTopupBtnNew');
-    let selectedAmount = null;
     
-    // === ОБНОВЛЕНИЕ КОМИССИИ И АКТИВАЦИЯ КНОПКИ ===
+    // === ФУНКЦИЯ ОБНОВЛЕНИЯ КОМИССИИ ===
     function updateFeeAndButton(amount) {
         if (!amount || amount < 10 || amount > 500) {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
-            selectedAmount = null;
             return false;
         }
         const fee = Math.floor(amount * 0.05);
@@ -51,7 +49,6 @@ window.showTopupModal = function(onSuccess) {
             </div>
         `;
         confirmBtn.disabled = false;
-        selectedAmount = amount;
         return true;
     }
     
@@ -63,7 +60,6 @@ window.showTopupModal = function(onSuccess) {
         } else {
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
-            selectedAmount = null;
         }
     }
     
@@ -72,20 +68,13 @@ window.showTopupModal = function(onSuccess) {
     // === ОБРАБОТЧИК КНОПОК ШАБЛОНОВ ===
     document.querySelectorAll('.amount-preset').forEach(btn => {
         btn.addEventListener('click', function() {
-            // Снимаем выделение со всех кнопок
             document.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
             this.classList.add('selected');
-            
             const amount = parseInt(this.dataset.amount);
             customInput.value = amount;
-            
-            // НЕ ВЫЗЫВАЕМ handleInput() – кнопка остаётся неактивной,
-            // комиссия не обновляется, пока пользователь не начнёт редактировать поле.
-            // Но мы оставляем поле заполненным.
-            // Сбрасываем комиссию и блокируем кнопку, если она была активна.
+            // При выборе шаблона кнопка НЕ АКТИВИРУЕТСЯ, комиссия НЕ ПОКАЗЫВАЕТСЯ
             feeInfo.innerHTML = `<div class="fee-row" style="color:#9ca3af;">Введите сумму от 10 до 500 ⭐</div>`;
             confirmBtn.disabled = true;
-            selectedAmount = null;
         });
     });
     
@@ -94,15 +83,15 @@ window.showTopupModal = function(onSuccess) {
     document.getElementById('closeTopupModalNew').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     
-    // === КНОПКА "ПОПОЛНИТЬ" С ПОДТВЕРЖДЕНИЕМ ===
+    // === КНОПКА "ПОПОЛНИТЬ" — БЕРЁТ СУММУ ПРЯМО ИЗ ПОЛЯ ===
     confirmBtn.addEventListener('click', function() {
-        // Проверяем, что selectedAmount установлен (значит, кнопка активна)
-        if (!selectedAmount) {
+        const amount = parseInt(customInput.value);
+        if (!amount || amount < 10 || amount > 500) {
             window.showCustomModal('Ошибка', 'Введите сумму от 10 до 500 ⭐');
             return;
         }
-        const fee = Math.floor(selectedAmount * 0.05);
-        const receive = selectedAmount - fee;
+        const fee = Math.floor(amount * 0.05);
+        const receive = amount - fee;
         
         const confirmHtml = `
             <div class="modal" id="confirmModal" style="display:flex;">
@@ -112,7 +101,7 @@ window.showTopupModal = function(onSuccess) {
                     <div class="confirm-body">
                         <div class="confirm-row">
                             <span>💰 Сумма пополнения</span>
-                            <strong>${selectedAmount} ⭐</strong>
+                            <strong>${amount} ⭐</strong>
                         </div>
                         <div class="confirm-row">
                             <span>📉 Комиссия (5%)</span>
@@ -142,7 +131,7 @@ window.showTopupModal = function(onSuccess) {
             closeConfirm();
             closeModal();
             try {
-                const res = await window.createInvoice(selectedAmount);
+                const res = await window.createInvoice(amount);
                 if (res.ok && res.invoice_link) {
                     window.tg.openInvoice(res.invoice_link, (status) => {
                         if (status === 'paid') {
