@@ -7,6 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- Стили -->
     <link rel="stylesheet" href="css/core.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/header.css">
@@ -37,6 +38,30 @@
 </div>
 
 <div id="app">Загрузка...</div>
+
+<!-- Модалка обучения -->
+<div class="modal" id="tutorialModal" style="display:none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <span class="close-modal" id="closeTutorialModal">&times;</span>
+        <h3 id="tutorialTitle">🎓 Обучение</h3>
+        <div id="tutorialBody" style="padding: 16px 0;"></div>
+        <div class="modal-buttons" style="flex-wrap: wrap; gap: 8px;">
+            <button id="tutorialPrevBtn" class="secondary" style="flex:1;">← Назад</button>
+            <button id="tutorialNextBtn" style="flex:2;">Далее →</button>
+            <button id="tutorialSkipBtn" class="secondary" style="flex:1;">Пропустить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка онбординга (выбор аватарки) -->
+<div class="modal" id="onboardingModal" style="display:none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <h3>👋 Добро пожаловать!</h3>
+        <p style="text-align:center; margin:8px 0;">Выберите свой аватар, чтобы начать</p>
+        <div id="onboardingAvatars" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:16px 0;"></div>
+        <button id="onboardingConfirmBtn" disabled style="margin-top:8px;">Выбрать</button>
+    </div>
+</div>
 
 <div class="tabs-wrapper">
     <button class="tab-scroll-btn left" id="tabScrollLeft">‹</button>
@@ -69,6 +94,7 @@
 <script src="news.js"></script>
 <script src="admin.js"></script>
 <script src="settings.js"></script>
+<script src="tutorial.js"></script> <!-- Новый файл -->
 
 <script>
     (async () => {
@@ -115,6 +141,7 @@
             document.getElementById('app').innerHTML = '<div class="card">Ошибка: запустите через Telegram</div>'; 
             return; 
         }
+        if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
@@ -126,9 +153,16 @@
             const { user, isNew } = await window.getOrCreateUser();
             window.currentUser = user;
             
-            // Показываем админ-таб, если пользователь админ
-            if (user.is_admin) {
-                document.querySelector('.admin-tab').style.display = 'inline-flex';
+            // ===== ОНБОРДИНГ =====
+            if (isNew) {
+                await window.showOnboardingModal();
+            } else {
+                // Проверяем, нужно ли показать обучение
+                const tutorialProgress = await window.getTutorialProgress();
+                if (!tutorialProgress.completed) {
+                    // Показываем обучение через 2 секунды после загрузки
+                    setTimeout(() => window.startTutorial(), 1000);
+                }
             }
             
             async function updateOnlineStatus() {
@@ -146,11 +180,6 @@
             setInterval(updateOnlineStatus, 15000);
             
             await window.renderStocksTab(window.currentUser);
-            if (isNew) setTimeout(() => window.renderProfileTab(
-                window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
-                window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
-                window.updateBellBadge, window.showNotificationsModal
-            ), 500);
             if (typeof setupRealtimeNotifications === 'function') setupRealtimeNotifications();
             if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
             if (typeof initTopupModal === 'function') initTopupModal();
