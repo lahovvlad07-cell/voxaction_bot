@@ -1,4 +1,4 @@
-/* profile.css – финальная версия (аватар, слоты, статистика, прогресс-бары, справочник, улучшенные подсказки, категории, анимации) */
+/* profile.css – полная версия с аватаром, достижениями, статистикой и стилями для туториала */
 
 #avatarClickWrapper {
     display: flex;
@@ -384,22 +384,7 @@
     font-style: italic;
 }
 
-/* ========== УЛУЧШЕННЫЕ ПОДСКАЗКИ (ВИДИМЫЕ, НО НЕ МЕШАЮТ) ========== */
-#avatarClickWrapper .small-text,
-.achievement-icons + .small-text {
-    font-size: 11px;
-    color: #8e9aaf;
-    opacity: 0.9;
-}
-@media (max-width: 560px) {
-    #avatarClickWrapper .small-text,
-    .achievement-icons + .small-text {
-        font-size: 10px;
-        color: #7a859a;
-    }
-}
-
-/* ========== НОВЫЕ СТИЛИ ДЛЯ ПРОГРЕССА ПО КАТЕГОРИЯМ ========== */
+/* ===== ПРОГРЕСС ПО КАТЕГОРИЯМ ===== */
 .category-progress {
     margin-top: 16px;
     background: rgba(0, 0, 0, 0.2);
@@ -444,7 +429,7 @@
     flex-shrink: 0;
 }
 
-/* ========== АНИМАЦИИ МОДАЛОК ========== */
+/* ===== АНИМАЦИИ МОДАЛОК ===== */
 .modal {
     animation: modalFadeIn 0.25s ease;
 }
@@ -460,45 +445,128 @@
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* ========== СТИЛИ ДЛЯ КНОПКИ СМЕНЫ НИКА ========== */
-#changeNickBtn {
+/* ===== ТУТОРИАЛ (ОБУЧЕНИЕ) ===== */
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: modalFadeIn 0.3s ease;
+}
+.tutorial-card {
+    background: linear-gradient(145deg, #121826, #1a2040);
+    border-radius: 40px;
+    padding: 32px 24px;
+    max-width: 420px;
+    width: 92%;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 60px rgba(0, 255, 255, 0.15);
+    position: relative;
+}
+.tutorial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.tutorial-step {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0ff;
+}
+.tutorial-skip {
     background: none;
     border: none;
-    font-size: 18px;
+    color: #9ca3af;
+    font-size: 24px;
     cursor: pointer;
-    padding: 0;
-    margin: 0;
-    width: auto;
-    color: #0ff;
+    padding: 0 8px;
     transition: 0.2s;
 }
-#changeNickBtn:hover {
+.tutorial-skip:hover {
+    color: #eef2ff;
     transform: scale(1.1);
-    color: #4ade80;
 }
-#changeNickBtn:active {
-    transform: scale(0.9);
+.tutorial-icon {
+    font-size: 64px;
+    text-align: center;
+    margin-bottom: 12px;
 }
-
-/* ========== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СЛОТОВ ДОСТИЖЕНИЙ ========== */
-.achi-icon[data-slot] {
-    /* пустой слот отображается как "?" с серым фоном */
-    background: rgba(30, 40, 50, 0.5);
-    border-color: rgba(255, 255, 255, 0.1);
+.tutorial-title {
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    margin-bottom: 12px;
+}
+.tutorial-description {
+    font-size: 15px;
+    color: #cbd5e1;
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+.tutorial-progress {
+    margin-bottom: 20px;
+}
+.tutorial-progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    height: 6px;
+    overflow: hidden;
+}
+.tutorial-progress-fill {
+    background: linear-gradient(90deg, #2b6e9e, #0ff);
+    height: 100%;
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+.tutorial-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+.tutorial-buttons button {
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: 0.2s;
+}
+.tutorial-prev {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: #9ca3af;
 }
-.achi-icon[data-slot]:hover {
-    background: rgba(43, 110, 158, 0.3);
-    border-color: #2b6e9e;
+.tutorial-prev:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+.tutorial-next {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    color: white;
+    box-shadow: 0 4px 12px rgba(43, 110, 158, 0.4);
+}
+.tutorial-next:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(43, 110, 158, 0.6);
 }
 
-/* ========== ОБЩИЕ ПРАВКИ ========== */
-.small-text {
-    font-size: 12px;
-    color: #9ca3af;
-}
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+@media (max-width: 560px) {
+    .tutorial-card {
+        padding: 24px 16px;
+    }
+    .tutorial-icon { font-size: 48px; }
+    .tutorial-title { font-size: 20px; }
+    .tutorial-description { font-size: 14px; }
 }
