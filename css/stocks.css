@@ -1,4 +1,4 @@
-/* stocks.css – финальная версия с улучшенным дизайном стакана, графика, ордеров и модалок */
+/* stocks.css – финальная версия с улучшенным дизайном, стаканом, графиком, компактными ордерами */
 
 :root {
     --neon-blue: #0ff;
@@ -315,85 +315,47 @@
     color: #7e8c8f;
 }
 
-/* ===== СТАКАН (УЛУЧШЕННЫЙ) ===== */
+/* ===== СТАКАН ===== */
 .orderbook-split {
     display: flex;
-    gap: 16px;
+    gap: 20px;
     flex-wrap: wrap;
 }
 .orderbook-col {
     flex: 1;
-    min-width: 150px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 24px;
-    padding: 12px 0;
-    border: 1px solid rgba(0, 255, 255, 0.1);
+    min-width: 140px;
+    text-align: center;
 }
-.orderbook-header {
-    display: flex;
-    justify-content: space-between;
-    padding: 0 16px 10px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    font-size: 13px;
-    font-weight: 600;
-    color: #8e9aaf;
-    letter-spacing: 0.5px;
-}
-.orderbook-header .col-price {
+.orderbook-title {
+    font-size: 18px;
+    font-weight: 700;
     color: #0ff;
+    margin-bottom: 2px;
 }
-.orderbook-header .col-amount {
-    color: #eef2ff;
+.orderbook-subtitle {
+    font-size: 11px;
+    color: #8e9aaf;
+    margin-bottom: 12px;
 }
 .orderbook-list {
-    padding: 4px 0;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
+    padding: 8px;
 }
 .orderbook-row {
     display: flex;
     justify-content: space-between;
-    padding: 6px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    font-size: 14px;
+    align-items: center;
+    padding: 6px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
-    transition: 0.15s;
+    min-height: 36px;
 }
-.orderbook-row:hover {
-    background: rgba(255, 255, 255, 0.05);
+.orderbook-row:last-child {
+    border-bottom: none;
 }
-.orderbook-row .amount {
-    font-weight: 500;
-    color: #eef2ff;
-}
-.orderbook-row .price-sell {
-    color: #ff6b6b;
-    font-weight: 600;
-}
-.orderbook-row .price-buy {
-    color: #51cf66;
-    font-weight: 600;
-}
-.orderbook-row .volume-bar {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    opacity: 0.12;
-    border-radius: 4px;
-}
-.orderbook-row .volume-bar.sell {
-    right: 0;
-    background: #ff6b6b;
-}
-.orderbook-row .volume-bar.buy {
-    left: 0;
-    background: #51cf66;
-}
-.orderbook-empty {
-    text-align: center;
-    padding: 20px 0;
-    color: #6c7a89;
-    font-size: 13px;
-    font-style: italic;
-}
+.price-sell { color: #ff6b6b; font-weight: 700; }
+.price-buy { color: #51cf66; font-weight: 700; }
 
 /* ===== ОРДЕРА (КОМПАКТНЫЕ) ===== */
 .order-item {
@@ -584,43 +546,6 @@
     color: #4a5568;
     font-size: 14px;
 }
-#buyModal .buy-btn-row {
-    display: flex;
-    gap: 12px;
-}
-#buyModal .buy-btn {
-    flex: 1;
-    padding: 12px;
-    border-radius: 40px;
-    font-weight: bold;
-    cursor: pointer;
-    border: none;
-}
-#buyModal .buy-btn.primary {
-    background: linear-gradient(135deg, #00c6ff, #0072ff);
-    color: white;
-}
-#buyModal .buy-btn.all {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    color: #0ff;
-}
-#buyModal .buy-btn.all:hover {
-    background: rgba(0, 255, 255, 0.1);
-}
-#buyModal .cancel-btn {
-    padding: 8px 24px;
-    border-radius: 40px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #9ca3af;
-    cursor: pointer;
-    transition: 0.2s;
-}
-#buyModal .cancel-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #eef2ff;
-}
 
 /* ===== АДАПТИВ ===== */
 @media (max-width: 560px) {
@@ -644,7 +569,4 @@
     .order-seller-full { font-size: 10px; }
     .order-amount { font-size: 14px; }
     .order-price { font-size: 14px; }
-    .orderbook-col { min-width: 120px; }
-    .orderbook-row { font-size: 12px; padding: 4px 12px; }
-    .orderbook-header { font-size: 11px; padding: 0 12px 8px 12px; }
 }
