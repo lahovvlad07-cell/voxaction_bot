@@ -1,4 +1,5 @@
-/* profile.css – финальная версия (аватар, слоты, статистика, прогресс-бары, справочник, улучшенные подсказки) */
+/* profile.css – финальная версия (аватар, слоты, статистика, прогресс-бары, справочник, улучшенные подсказки, категории, анимации) */
+
 #avatarClickWrapper {
     display: flex;
     flex-direction: column;
@@ -398,6 +399,104 @@
     }
 }
 
+/* ========== НОВЫЕ СТИЛИ ДЛЯ ПРОГРЕССА ПО КАТЕГОРИЯМ ========== */
+.category-progress {
+    margin-top: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    padding: 12px;
+}
+.category-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.category-item:last-child {
+    margin-bottom: 0;
+}
+.category-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #a5b4fc;
+    width: 70px;
+    text-align: left;
+    flex-shrink: 0;
+}
+.category-bar {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 6px;
+    overflow: hidden;
+}
+.category-fill {
+    background: linear-gradient(90deg, #2b6e9e, #60a5fa);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.8s ease;
+}
+.category-count {
+    font-size: 11px;
+    color: #9ca3af;
+    width: 40px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* ========== АНИМАЦИИ МОДАЛОК ========== */
+.modal {
+    animation: modalFadeIn 0.25s ease;
+}
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+.modal-content {
+    animation: modalSlideUp 0.3s ease;
+}
+@keyframes modalSlideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* ========== СТИЛИ ДЛЯ КНОПКИ СМЕНЫ НИКА ========== */
+#changeNickBtn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    color: #0ff;
+    transition: 0.2s;
+}
+#changeNickBtn:hover {
+    transform: scale(1.1);
+    color: #4ade80;
+}
+#changeNickBtn:active {
+    transform: scale(0.9);
+}
+
+/* ========== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СЛОТОВ ДОСТИЖЕНИЙ ========== */
+.achi-icon[data-slot] {
+    /* пустой слот отображается как "?" с серым фоном */
+    background: rgba(30, 40, 50, 0.5);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+}
+.achi-icon[data-slot]:hover {
+    background: rgba(43, 110, 158, 0.3);
+    border-color: #2b6e9e;
+}
+
+/* ========== ОБЩИЕ ПРАВКИ ========== */
+.small-text {
+    font-size: 12px;
+    color: #9ca3af;
+}
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
