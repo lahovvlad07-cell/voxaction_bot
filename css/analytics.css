@@ -1,4 +1,4 @@
-/* analytics.css – улучшенный дизайн с дополнительной статистикой, анимациями и адаптивностью */
+/* analytics.css – профессиональный дашборд с аккордеоном для статистики, анимациями и адаптивностью */
 
 .analytics-container {
     max-width: 700px;
@@ -6,35 +6,85 @@
     padding: 0 16px 80px 16px;
 }
 
+/* ===== АККОРДЕОН СТАТИСТИКИ ===== */
+.stats-accordion {
+    margin-bottom: 20px;
+}
+
+.stats-toggle-btn {
+    width: 100%;
+    background: rgba(18, 24, 38, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 28px;
+    padding: 14px 20px;
+    color: #eef2ff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: inherit;
+}
+.stats-toggle-btn:hover {
+    border-color: #0ff;
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+}
+.stats-toggle-btn .arrow {
+    transition: transform 0.3s ease;
+    font-size: 18px;
+}
+.stats-toggle-btn .arrow.open {
+    transform: rotate(180deg);
+}
+
+.stats-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(18, 24, 38, 0.4);
+    border-radius: 28px;
+    margin-top: 8px;
+}
+.stats-content.open {
+    max-height: 800px;
+}
+.stats-content-inner {
+    padding: 16px 12px;
+}
+
 .analytics-stats {
     display: flex;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
+}
+.analytics-stats:last-child {
+    margin-bottom: 0;
 }
 
 .stat-card {
     flex: 1;
-    min-width: 90px;
-    background: rgba(18, 24, 38, 0.7);
-    backdrop-filter: blur(8px);
-    border-radius: 24px;
-    padding: 16px 12px;
+    min-width: 80px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 14px 10px;
     text-align: center;
-    border: 1px solid rgba(56, 189, 248, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.1);
     transition: all 0.2s;
 }
 .stat-card:hover {
     transform: translateY(-2px);
-    border-color: #0ff;
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+    border-color: rgba(0, 255, 255, 0.3);
 }
 .stat-icon {
-    font-size: 28px;
-    margin-bottom: 6px;
+    font-size: 22px;
+    margin-bottom: 4px;
 }
 .stat-value {
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 800;
     background: linear-gradient(135deg, #eef2ff, #a5b4fc);
     background-clip: text;
@@ -50,11 +100,14 @@
     color: #f87171;
 }
 .stat-label {
-    font-size: 11px;
+    font-size: 10px;
     color: #9ca3af;
     margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
+/* ===== ПЕРЕКЛЮЧАТЕЛИ ПЕРИОДОВ ===== */
 .period-switch {
     display: flex;
     gap: 8px;
@@ -71,6 +124,7 @@
     cursor: pointer;
     transition: 0.2s;
     color: #eef2ff;
+    font-family: inherit;
 }
 .period-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
@@ -82,6 +136,7 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
+/* ===== КАРТОЧКИ ГРАФИКОВ И ИНФОРМАЦИИ ===== */
 .chart-card, .info-card, .history-card {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(8px);
@@ -111,6 +166,7 @@
     margin-top: 8px;
 }
 
+/* ===== АКТИВНОСТЬ ПО ДНЯМ ===== */
 .weekday-stats { margin: 12px 0; }
 .weekday-item {
     display: flex;
@@ -136,6 +192,7 @@
 }
 .weekday-count { width: 30px; text-align: right; font-size: 12px; color: #a5b4fc; }
 
+/* ===== КРУПНЕЙШИЕ СДЕЛКИ ===== */
 .top-trades-list { display: flex; flex-direction: column; gap: 10px; }
 .top-trade-item {
     display: flex;
@@ -153,6 +210,7 @@
 .top-trade-details { font-size: 13px; color: #eef2ff; }
 .top-trade-date { font-size: 11px; color: #9ca3af; }
 
+/* ===== ПОСЛЕДНИЕ СДЕЛКИ ===== */
 .history-list {
     max-height: 400px;
     overflow-y: auto;
@@ -179,16 +237,21 @@
 
 .empty-history { text-align: center; padding: 30px; color: #9ca3af; font-style: italic; }
 
+/* ===== СКЕЛЕТОН ===== */
 .skeleton-line { height: 20px; background: linear-gradient(90deg, #2a2f3f 25%, #3a4055 50%, #2a2f3f 75%); background-size: 200% 100%; border-radius: 8px; animation: shimmer 1.5s infinite; }
 .skeleton-chart { height: 160px; background: linear-gradient(90deg, #2a2f3f 25%, #3a4055 50%, #2a2f3f 75%); background-size: 200% 100%; border-radius: 20px; animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+/* ===== АДАПТИВ ===== */
 @media (max-width: 560px) {
     .analytics-container { padding: 0 12px 70px 12px; }
-    .stat-card { padding: 12px 8px; }
-    .stat-value { font-size: 20px; }
-    .stat-icon { font-size: 22px; }
+    .stat-card { padding: 10px 6px; }
+    .stat-value { font-size: 18px; }
+    .stat-icon { font-size: 18px; }
     .top-trade-item, .history-item { flex-direction: column; align-items: flex-start; }
     .top-trade-date, .history-date { align-self: flex-end; }
     .period-btn { font-size: 12px; padding: 4px 12px; }
+    .stats-toggle-btn { font-size: 14px; padding: 12px 16px; }
+    .stats-content-inner { padding: 12px 8px; }
+    .analytics-stats { gap: 8px; }
 }
