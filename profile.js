@@ -1,4 +1,4 @@
-// profile.js – финальная версия с интерактивным обучением (без модалок)
+// profile.js – финальная версия (без обучения, без смены ника, исправлен дубль эмодзи, все достижения)
 
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
@@ -275,6 +275,7 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleDateString() : 'дата не указана';
         let conditionText = getConditionText(ach);
         if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Выпускник') conditionText = '';
+        // Исправление: не дублируем эмодзи
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
             <div class="achievement-name">${ach.name}</div>
             ${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}
@@ -533,16 +534,6 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     
     document.getElementById('avatarClickWrapper')?.addEventListener('click', () => { startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTabBound, showCustomModal); });
     document.querySelectorAll('.achi-icon').forEach(icon => { icon.addEventListener('click', async () => { const slot = parseInt(icon.dataset.slot); const currentAchId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null; await openAchievementSelectorForSlot(slot, earnedAchievements, selectedIds, currentAchId, updateUserCallback, currentUser, renderProfileTabBound, showCustomModal); }); });
-    
-    // Запускаем интерактивное обучение, если оно не пройдено
-    const tutorialProgress = localStorage.getItem('tutorial_progress');
-    if (!tutorialProgress || JSON.parse(tutorialProgress).completed !== true) {
-        setTimeout(() => {
-            if (typeof window.startTutorial === 'function') {
-                window.startTutorial();
-            }
-        }, 1000);
-    }
     
     await updateBellBadge();
 };
