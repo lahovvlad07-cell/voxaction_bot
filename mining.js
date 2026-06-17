@@ -1,16 +1,14 @@
-// mining.js – компактный майнинг
+// mining.js – с ежедневным бонусом (+10% за уровень)
 
 const MINING_KEY = 'mining_data_v1';
+const DAILY_BONUS_KEY = 'daily_bonus_v1';
 
 const SESSION_DURATION = 12 * 3600 * 1000;
 const MAX_PER_SESSION = 0.2;
 const BASE_RATE_PER_SEC = MAX_PER_SESSION / (SESSION_DURATION / 1000);
 const CLAIM_THRESHOLD = 0.1;
-
-// Стоимость улучшений (в акциях) и бонусы
-const UPGRADE_COSTS = [10, 25, 50, 100, 200, 400, 800, 1600, 3200, 6400];
-const UPGRADE_BONUS = 0.05; // +5% скорости за уровень
-const UPGRADE_MAX = UPGRADE_COSTS.length;
+const UPGRADE_BONUS = 0.10;
+const UPGRADE_MAX = 10;
 
 function getDefaultMiningData() {
     return {
@@ -46,7 +44,6 @@ function loadMiningData() {
         }
         return data;
     } catch (e) {
-        console.error('Ошибка загрузки майнинга', e);
         return getDefaultMiningData();
     }
 }
@@ -55,19 +52,58 @@ function saveMiningData(data) {
     localStorage.setItem(MINING_KEY, JSON.stringify(data));
 }
 
-let miningInterval = null;
-let countdownInterval = null;
-let miningData = loadMiningData();
+function getDailyBonus(level) {
+    return 0.1 * (1 + (level - 1) * 0.10);
+}
+
+function canClaimDailyBonus() {
+    const data = localStorage.getItem(DAILY_BONUS_KEY);
+    if (!data) return true;
+    try {
+        const parsed = JSON.parse(data);
+        const lastClaim = new Date(parsed.lastClaim);
+        const now = new Date();
+        return (now - lastClaim) >= 24 * 3600 * 1000;
+    } catch(e) { return true; }
+}
+
+async function claimDailyBonus() {
+    if (!canClaimDailyBonus()) {
+        window.showCustomModal('Ежедневный бонус', 'Вы уже получили бонус сегодня. Приходите завтра!');
+        return;
+    }
+    const bonus = getDailyBonus(miningData.level);
+    const sharesCents = Math.round(bonus * 100);
+    if (sharesCents > 0) {
+        const { error } = await window.supabase
+            .from('users')
+            .update({ shares: window.supabase.raw(`shares + ${sharesCents}`) })
+            .eq('id', window.userId);
+        if (error) {
+            console.error('Ошибка начисления бонуса', error);
+            window.showCustomModal('Ошибка', 'Не удалось начислить бонус');
+            return;
+        }
+        window.currentUser.shares += sharesCents;
+        miningData.total_mined += bonus;
+        saveMiningData(miningData);
+        localStorage.setItem(DAILY_BONUS_KEY, JSON.stringify({ lastClaim: new Date().toISOString() }));
+        window.showToast(`🎁 Ежедневный бонус: +${bonus.toFixed(4)} акций!`);
+        updateUI();
+    }
+}
+
+function getUpgradeCost(level) {
+    return Math.floor(10 * Math.pow(1.5, level - 1));
+}
 
 function getCurrentRate(level) {
     return BASE_RATE_PER_SEC * (1 + (level - 1) * UPGRADE_BONUS);
 }
 
-function getUpgradeCost(level) {
-    const idx = level - 1;
-    if (idx < UPGRADE_COSTS.length) return UPGRADE_COSTS[idx];
-    return UPGRADE_COSTS[UPGRADE_COSTS.length - 1] * Math.pow(1.5, idx - UPGRADE_COSTS.length + 1);
-}
+let miningInterval = null;
+let countdownInterval = null;
+let miningData = loadMiningData();
 
 async function startMining() {
     if (miningData.mining_active) {
@@ -197,7 +233,7 @@ async function upgradeLevel() {
     window.currentUser.shares -= costCents;
     miningData.level += 1;
     saveMiningData(miningData);
-    window.showToast(`⬆️ Уровень повышен до ${miningData.level}! Скорость майнинга +5%`);
+    window.showToast(`⬆️ Уровень повышен до ${miningData.level}! Скорость майнинга +10%`);
     updateUI();
 }
 
@@ -224,6 +260,7 @@ function updateUI() {
     const startBtn = document.getElementById('startMiningBtn');
     const upgradeBtn = document.getElementById('upgradeLevelBtn');
     const claimBtn = document.getElementById('claimBtn');
+    const dailyBtn = document.getElementById('dailyBonusBtn');
 
     if (levelEl) levelEl.textContent = miningData.level;
     if (totalEl) totalEl.textContent = miningData.total_mined.toFixed(4);
@@ -255,6 +292,14 @@ function updateUI() {
 
     updateClaimButton();
 
+    if (dailyBtn) {
+        const canClaim = canClaimDailyBonus();
+        const bonus = getDailyBonus(miningData.level);
+        dailyBtn.disabled = !canClaim;
+        dailyBtn.textContent = canClaim ? `🎁 Забрать бонус (${bonus.toFixed(4)} акций)` : '🎁 Бонус уже получен (ждите завтра)';
+        dailyBtn.style.opacity = canClaim ? '1' : '0.5';
+    }
+
     if (miningData.mining_active && miningData.mining_end) {
         const now = Date.now();
         const end = miningData.mining_end;
@@ -273,21 +318,15 @@ function updateUI() {
         if (timerEl) timerEl.textContent = '--:--:--';
     }
 
-    // Информация о текущей скорости и следующем уровне
     const rateInfo = document.getElementById('rateInfo');
     if (rateInfo) {
         const currentRate = getCurrentRate(miningData.level);
         const nextRate = miningData.level < UPGRADE_MAX ? getCurrentRate(miningData.level + 1) : currentRate;
+        const dailyBonus = getDailyBonus(miningData.level);
         rateInfo.innerHTML = `
-            <div class="rate-row">
-                <span>⚡ Текущая скорость</span>
-                <span>${(currentRate * 3600).toFixed(4)} акций/час</span>
-            </div>
-            ${miningData.level < UPGRADE_MAX ? `
-            <div class="rate-row">
-                <span>📈 После улучшения</span>
-                <span>${(nextRate * 3600).toFixed(4)} акций/час (+${(UPGRADE_BONUS*100).toFixed(0)}%)</span>
-            </div>` : ''}
+            <div class="rate-row"><span>⚡ Скорость майнинга</span><span>${(currentRate * 3600).toFixed(4)} акций/час</span></div>
+            ${miningData.level < UPGRADE_MAX ? `<div class="rate-row"><span>📈 После улучшения</span><span>${(nextRate * 3600).toFixed(4)} акций/час (+${(UPGRADE_BONUS*100).toFixed(0)}%)</span></div>` : ''}
+            <div class="rate-row"><span>🎁 Ежедневный бонус</span><span>${dailyBonus.toFixed(4)} акций</span></div>
         `;
     }
 }
@@ -297,6 +336,8 @@ window.renderMiningTab = async function() {
     if (countdownInterval) clearInterval(countdownInterval);
 
     miningData = loadMiningData();
+    const dailyBonus = getDailyBonus(miningData.level);
+    const canClaim = canClaimDailyBonus();
 
     const html = `
         <div class="mining-container">
@@ -305,23 +346,15 @@ window.renderMiningTab = async function() {
                 <p>Запустите майнинг на 12 часов – накапливайте акции</p>
             </div>
             <div class="mining-stats">
-                <div class="mining-stat">
-                    <div class="mining-stat-value" id="miningLevel">${miningData.level}</div>
-                    <div class="mining-stat-label">Уровень</div>
-                </div>
-                <div class="mining-stat">
-                    <div class="mining-stat-value" id="totalMined">${miningData.total_mined.toFixed(4)}</div>
-                    <div class="mining-stat-label">Всего намайнено</div>
-                </div>
-                <div class="mining-stat">
-                    <div class="mining-stat-value" id="minedAmount">${miningData.mined_amount.toFixed(6)}</div>
-                    <div class="mining-stat-label">Накоплено сейчас</div>
-                </div>
+                <div class="mining-stat"><div class="mining-stat-value" id="miningLevel">${miningData.level}</div><div class="mining-stat-label">Уровень</div></div>
+                <div class="mining-stat"><div class="mining-stat-value" id="totalMined">${miningData.total_mined.toFixed(4)}</div><div class="mining-stat-label">Всего намайнено</div></div>
+                <div class="mining-stat"><div class="mining-stat-value" id="minedAmount">${miningData.mined_amount.toFixed(6)}</div><div class="mining-stat-label">Накоплено сейчас</div></div>
             </div>
             <div class="mining-timer">
                 <div class="timer-label">⏳ Осталось</div>
                 <div class="timer-value" id="miningTimer">--:--:--</div>
             </div>
+            <button id="dailyBonusBtn" class="mining-btn daily" ${!canClaim ? 'disabled' : ''}>🎁 Забрать бонус (${dailyBonus.toFixed(4)} акций)</button>
             <button id="startMiningBtn" class="mining-btn primary">🚀 Начать майнинг (12ч)</button>
             <button id="claimBtn" class="mining-btn claim" disabled>💰 Забрать (нужно ${CLAIM_THRESHOLD} акций)</button>
             <button id="upgradeLevelBtn" class="mining-btn secondary">⬆️ Улучшить уровень</button>
@@ -330,6 +363,7 @@ window.renderMiningTab = async function() {
     `;
     document.getElementById('app').innerHTML = html;
 
+    document.getElementById('dailyBonusBtn').addEventListener('click', claimDailyBonus);
     document.getElementById('startMiningBtn').addEventListener('click', startMining);
     document.getElementById('claimBtn').addEventListener('click', claimMining);
     document.getElementById('upgradeLevelBtn').addEventListener('click', upgradeLevel);
