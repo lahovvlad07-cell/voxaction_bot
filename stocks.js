@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с модалкой покупки и пустыми полями
+// stocks.js – финальная версия с модалкой покупки, пустыми полями, компактными ордерами, графиком
 
 // Определяем глобальную функцию getActiveBuyOrders, если её нет
 if (!window.getActiveBuyOrders) {
@@ -477,24 +477,29 @@ window.renderStocksTab = async function(currentUser) {
         `).join('') : '<div class="empty-placeholder">Нет заявок</div>';
     }
 
-    // ---- ОРДЕРА (только кнопка «Купить») ----
+    // ---- ОРДЕРА (компактные) ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
         const foreignOrders = activeSellOrders.filter(o => o.seller_id !== window.userId);
-        if (!foreignOrders.length) { container.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>'; return; }
+        if (!foreignOrders.length) {
+            container.innerHTML = '<div class="empty-placeholder">Нет активных ордеров</div>';
+            return;
+        }
         container.innerHTML = foreignOrders.map(order => {
             const price = order.price_per_share / 100;
             const amount = order.amount / 100;
-            return `<div class="order-item">
-                <div class="order-info">
-                    <span>📦 ${amount.toFixed(2)} шт.</span>
-                    <span>⭐ ${price.toFixed(2)}</span>
-                    <span class="order-seller">👤 ${order.seller_id}</span>
+            const sellerIdShort = String(order.seller_id).slice(-6);
+            return `
+                <div class="order-item" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; gap:8px; padding:8px 12px;">
+                    <span style="font-size:12px; color:#8e9aaf; white-space:nowrap;">👤 ${sellerIdShort}</span>
+                    <span style="font-weight:600; white-space:nowrap;">${amount.toFixed(2)} шт.</span>
+                    <span style="color:#0ff; font-weight:700; white-space:nowrap;">${price.toFixed(2)} ⭐</span>
+                    <button class="buy-order-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}" style="white-space:nowrap; padding:4px 16px; border-radius:40px; background:linear-gradient(135deg,#2b6e9e,#1a4c6e); border:none; color:white; font-weight:bold; cursor:pointer;">Купить</button>
                 </div>
-                <button class="buy-order-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}">Купить</button>
-            </div>`;
+            `;
         }).join('');
+
         document.querySelectorAll('.buy-order-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const orderId = parseInt(this.dataset.id);
@@ -572,7 +577,6 @@ window.renderStocksTab = async function(currentUser) {
     function refreshInputMode(mode) {
         let curAmount = '', curPrice = '';
         if (mode === 'slider') {
-            // для слайдеров всегда стартуем с 1
             curAmount = 1;
             curPrice = 1;
         }
