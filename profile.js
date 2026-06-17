@@ -1,4 +1,4 @@
-// profile.js – финальная версия с онбордингом, без смены ника, исправлен дубль эмодзи
+// profile.js – финальная версия с интерактивным обучением (без модалок)
 
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
@@ -70,7 +70,6 @@ async function checkNewAchievements(earnedAchievements) {
     if (newIds.length) {
         const newAch = earnedAchievements.filter(a => newIds.includes(a.id));
         for (const ach of newAch) {
-            // Исправление: не дублируем эмодзи
             const icon = ach.icon || '🏆';
             window.showCustomModal('🏆 Новое достижение!', `${icon} ${ach.name}\n\n${ach.description}`);
         }
@@ -276,7 +275,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleDateString() : 'дата не указана';
         let conditionText = getConditionText(ach);
         if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Выпускник') conditionText = '';
-        // Исправление: не дублируем эмодзи
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
             <div class="achievement-name">${ach.name}</div>
             ${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}
@@ -421,86 +419,6 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await awardStylistAchievement(); await renderProfileTab();
 }
 
-// ========== ОНБОРДИНГ (ОБУЧЕНИЕ) ==========
-async function showOnboarding(renderProfileTab) {
-    const onboardingDone = localStorage.getItem('onboarding_done');
-    if (onboardingDone === 'true') return;
-
-    const steps = [
-        { tab: 'profile', title: '👤 Профиль', description: 'Здесь вы можете настроить аватар, посмотреть свою статистику и достижения.' },
-        { tab: 'stocks', title: '📈 Акции', description: 'Торгуйте виртуальными акциями: создавайте ордера на продажу и покупку, смотрите стакан и график.' },
-        { tab: 'analytics', title: '📊 Аналитика', description: 'Просматривайте свою статистику, графики цен и объёмов, анализируйте свои сделки.' },
-        { tab: 'rating', title: '🏆 Рейтинг', description: 'Соревнуйтесь с другими игроками по количеству акций. Поднимайтесь в топ!' },
-        { tab: 'wallet', title: '💳 Кошелёк', description: 'Пополняйте баланс Stars, выводите средства и следите за историей операций.' },
-        { tab: 'referral', title: '🔗 Рефералка', description: 'Приглашайте друзей и получайте бонусы за каждого активного реферала.' },
-        { tab: 'mining', title: '⛏️ Заработок', description: 'Запускайте майнинг на 12 часов и зарабатывайте акции в реальном времени.' },
-        { tab: 'news', title: '📰 Новости', description: 'Читайте последние новости проекта и анонсы обновлений.' }
-    ];
-
-    let currentStep = 0;
-
-    function showStep(index) {
-        const step = steps[index];
-        if (!step) return;
-
-        const modalHtml = `
-            <div class="modal onboarding-modal" id="onboardingModal" style="display:flex;">
-                <div class="modal-content">
-                    <span class="close-modal" id="closeOnboarding">&times;</span>
-                    <div class="onboarding-content">
-                        <div class="onboarding-step">${index + 1} / ${steps.length}</div>
-                        <div class="onboarding-title">${step.title}</div>
-                        <div class="onboarding-description">${step.description}</div>
-                        <div class="onboarding-tab-icon">${step.tab}</div>
-                        <div class="onboarding-buttons">
-                            <button id="onboardingSkip" class="secondary">Пропустить</button>
-                            <button id="onboardingNext">${index === steps.length - 1 ? '✅ Завершить' : 'Далее →'}</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        const modal = document.getElementById('onboardingModal');
-        document.getElementById('closeOnboarding').onclick = () => {
-            modal.remove();
-            completeOnboarding(renderProfileTab);
-        };
-        document.getElementById('onboardingSkip').onclick = () => {
-            modal.remove();
-            completeOnboarding(renderProfileTab);
-        };
-        document.getElementById('onboardingNext').onclick = () => {
-            modal.remove();
-            if (index < steps.length - 1) {
-                // Переключаем вкладку на следующую
-                const nextTab = steps[index + 1].tab;
-                const tabElement = document.querySelector(`.tab[data-tab="${nextTab}"]`);
-                if (tabElement) tabElement.click();
-                setTimeout(() => showStep(index + 1), 300);
-            } else {
-                completeOnboarding(renderProfileTab);
-            }
-        };
-    }
-
-    async function completeOnboarding(renderProfileTab) {
-        localStorage.setItem('onboarding_done', 'true');
-        // Выдаём достижение "Выпускник"
-        const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎓 Выпускник').single();
-        if (ach) {
-            await window.awardAchievement(ach.id);
-        }
-        if (renderProfileTab) await renderProfileTab();
-    }
-
-    // Начинаем обучение с первой вкладки
-    const firstTab = steps[0].tab;
-    const tabElement = document.querySelector(`.tab[data-tab="${firstTab}"]`);
-    if (tabElement) tabElement.click();
-    setTimeout(() => showStep(0), 500);
-}
-
 // ========== ГЛАВНЫЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(currentUser, supabase, userId, fromCents, showCustomModal, getUserStats, getUserRank, getEarnedAchievements, getAllAchievements, updateBellBadge, showNotificationsModal) {
     if (window.checkAllAchievements) await window.checkAllAchievements();
@@ -616,9 +534,14 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     document.getElementById('avatarClickWrapper')?.addEventListener('click', () => { startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTabBound, showCustomModal); });
     document.querySelectorAll('.achi-icon').forEach(icon => { icon.addEventListener('click', async () => { const slot = parseInt(icon.dataset.slot); const currentAchId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null; await openAchievementSelectorForSlot(slot, earnedAchievements, selectedIds, currentAchId, updateUserCallback, currentUser, renderProfileTabBound, showCustomModal); }); });
     
-    // Запускаем онбординг, если он ещё не был показан
-    if (!localStorage.getItem('onboarding_done')) {
-        setTimeout(() => showOnboarding(renderProfileTabBound), 1000);
+    // Запускаем интерактивное обучение, если оно не пройдено
+    const tutorialProgress = localStorage.getItem('tutorial_progress');
+    if (!tutorialProgress || JSON.parse(tutorialProgress).completed !== true) {
+        setTimeout(() => {
+            if (typeof window.startTutorial === 'function') {
+                window.startTutorial();
+            }
+        }, 1000);
     }
     
     await updateBellBadge();
