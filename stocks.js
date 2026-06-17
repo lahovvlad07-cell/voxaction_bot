@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с модалкой покупки, пустыми полями, компактными ордерами, графиком
+// stocks.js – финальная версия с улучшенным дизайном ордеров, модалкой покупки, графиком и автообновлением
 
 // Определяем глобальную функцию getActiveBuyOrders, если её нет
 if (!window.getActiveBuyOrders) {
@@ -477,7 +477,7 @@ window.renderStocksTab = async function(currentUser) {
         `).join('') : '<div class="empty-placeholder">Нет заявок</div>';
     }
 
-    // ---- ОРДЕРА (компактные) ----
+    // ---- ОРДЕРА (улучшенный визуал, полный ID) ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
@@ -489,13 +489,15 @@ window.renderStocksTab = async function(currentUser) {
         container.innerHTML = foreignOrders.map(order => {
             const price = order.price_per_share / 100;
             const amount = order.amount / 100;
-            const sellerIdShort = String(order.seller_id).slice(-6);
+            const sellerId = order.seller_id;
             return `
-                <div class="order-item" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; gap:8px; padding:8px 12px;">
-                    <span style="font-size:12px; color:#8e9aaf; white-space:nowrap;">👤 ${sellerIdShort}</span>
-                    <span style="font-weight:600; white-space:nowrap;">${amount.toFixed(2)} шт.</span>
-                    <span style="color:#0ff; font-weight:700; white-space:nowrap;">${price.toFixed(2)} ⭐</span>
-                    <button class="buy-order-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}" style="white-space:nowrap; padding:4px 16px; border-radius:40px; background:linear-gradient(135deg,#2b6e9e,#1a4c6e); border:none; color:white; font-weight:bold; cursor:pointer;">Купить</button>
+                <div class="order-item">
+                    <div class="order-info-compact">
+                        <span class="order-seller-full">👤 ${sellerId}</span>
+                        <span class="order-amount">${amount.toFixed(2)} шт.</span>
+                        <span class="order-price">${price.toFixed(2)} ⭐</span>
+                    </div>
+                    <button class="buy-order-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}">Купить</button>
                 </div>
             `;
         }).join('');
