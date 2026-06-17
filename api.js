@@ -1,4 +1,4 @@
-// api.js – полный файл со всеми функциями (включая новости, админов, маркет-мейкер, онбординг)
+// api.js – полный файл со всеми функциями (включая getTutorialProgress)
 
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
@@ -9,6 +9,19 @@ window.setUseSliders = function(use) {
 };
 window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
+};
+
+// ========== ТУТОРИАЛ (ОБУЧЕНИЕ) ==========
+window.getTutorialProgress = function() {
+    return {
+        completed: localStorage.getItem('onboarding_done') === 'true',
+        currentStep: parseInt(localStorage.getItem('onboarding_step')) || 0
+    };
+};
+
+window.setTutorialProgress = function(step, completed) {
+    if (step !== undefined) localStorage.setItem('onboarding_step', String(step));
+    if (completed !== undefined) localStorage.setItem('onboarding_done', completed ? 'true' : 'false');
 };
 
 // ========== ДОСТИЖЕНИЯ ==========
@@ -213,7 +226,7 @@ window.getUserStats = async function(forceRefresh = false) {
     return stats;
 };
 
-// ========== СМЕНА НИКНЕЙМА (оставлена для совместимости, но из профиля убрана) ==========
+// ========== СМЕНА НИКНЕЙМА (для обратной совместимости) ==========
 window.updateUsername = async function(newUsername) {
     if (!newUsername || newUsername.trim().length < 3) throw new Error('Минимум 3 символа');
     if (newUsername.length > 20) throw new Error('Не длиннее 20 символов');
