@@ -1,4 +1,4 @@
-/* core.css – базовые стили с CSS-переменными для тем */
+/* core.css – базовые стили для всего приложения с CSS-переменными */
 
 :root {
     --primary-color: #2b6e9e;
@@ -69,7 +69,7 @@ input:focus {
     border-color: var(--primary-color, #2b6e9e);
 }
 
-/* ===== МОДАЛКИ ===== */
+/* Модалки */
 .modal {
     display: none;
     position: fixed;
@@ -92,7 +92,7 @@ input:focus {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 1px solid var(--accent-color, #2b6e9e);
+    border: 1px solid var(--primary-color, #2b6e9e);
     position: relative;
 }
 .modal-content h3 {
@@ -122,8 +122,17 @@ input:focus {
 .modal-buttons button {
     margin-top: 0;
 }
+.modal-buttons .secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+}
+.modal-buttons .secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #eef2ff;
+}
 
-/* ===== ТОСТ ===== */
+/* Тост */
 .toast {
     position: fixed;
     top: 80px;
@@ -136,7 +145,7 @@ input:focus {
     border-radius: 40px;
     z-index: 2000;
     font-size: 14px;
-    border-left: 4px solid var(--accent-color, #2b6e9e);
+    border-left: 4px solid var(--primary-color, #2b6e9e);
     animation: fadeInOut 5s ease forwards;
     pointer-events: none;
     white-space: nowrap;
@@ -148,7 +157,7 @@ input:focus {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* ===== ДОСТИЖЕНИЯ ===== */
+/* Достижения */
 .achi-icon.earned:hover {
     transform: scale(1.1);
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.9);
@@ -159,7 +168,7 @@ input:focus {
     box-shadow: 0 0 12px rgba(251, 191, 36, 0.6) !important;
 }
 
-/* ===== ОТКЛЮЧЕНИЕ АНИМАЦИЙ ===== */
+/* Отключение анимаций */
 .animations-off *,
 .animations-off .header-logo,
 .animations-off .stat-value,
@@ -174,7 +183,7 @@ input:focus {
     background-size: auto !important;
 }
 
-/* ===== МОДАЛКА ПОПОЛНЕНИЯ ===== */
+/* ===== СТИЛИ ДЛЯ МОДАЛКИ ПОПОЛНЕНИЯ (TOPUP) ===== */
 .topup-modal {
     max-width: 400px;
     width: 92%;
@@ -213,8 +222,8 @@ input:focus {
     transform: translateY(-2px);
 }
 .amount-preset.selected {
-    background: linear-gradient(135deg, var(--primary-color, #2b6e9e), #1a4c6e);
-    border-color: var(--accent-color, #0ff);
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border-color: #0ff;
     color: white;
     box-shadow: 0 0 20px rgba(43, 110, 158, 0.5);
 }
@@ -373,8 +382,81 @@ input:focus {
     background: rgba(255,255,255,0.1);
 }
 
-/* ===== АДАПТИВ ===== */
-@media (max-width: 480px) {
+/* ===== ТУТОРИАЛ (подсветка и подсказки) ===== */
+.tutorial-highlight {
+    animation: tutorial-pulse 1.5s ease-in-out infinite;
+    position: relative;
+    z-index: 10001 !important;
+    outline: 3px solid #0ff;
+    outline-offset: 4px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+}
+@keyframes tutorial-pulse {
+    0%, 100% { outline: 3px solid #0ff; outline-offset: 4px; box-shadow: 0 0 20px rgba(0,255,255,0.6); }
+    50% { outline: 3px solid #fbbf24; outline-offset: 8px; box-shadow: 0 0 40px rgba(251,191,36,0.8); }
+}
+
+#tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    pointer-events: none;
+    transition: background 0.3s;
+}
+
+#tutorial-tooltip {
+    position: fixed;
+    background: #1e293b;
+    color: #eef2ff;
+    padding: 16px 20px;
+    border-radius: 16px;
+    max-width: 320px;
+    z-index: 10000;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    border: 1px solid #0ff;
+    pointer-events: auto;
+    font-size: 14px;
+    line-height: 1.5;
+    transition: opacity 0.3s;
+    opacity: 0;
+}
+#tutorial-tooltip.visible {
+    opacity: 1;
+}
+#tutorial-tooltip .tooltip-title {
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: #0ff;
+}
+#tutorial-tooltip .tooltip-text {
+    margin-bottom: 12px;
+}
+#tutorial-tooltip .tooltip-actions {
+    text-align: right;
+}
+#tutorial-tooltip button {
+    background: var(--primary-color, #2b6e9e);
+    border: none;
+    color: white;
+    padding: 6px 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    width: auto;
+    margin: 0;
+}
+#tutorial-tooltip button:hover {
+    transform: scale(1.02);
+}
+
+/* Адаптив */
+@media (max-width: 560px) {
     .topup-modal {
         width: 95%;
     }
