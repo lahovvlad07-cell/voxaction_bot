@@ -1,4 +1,4 @@
-// profile.js – финальная версия (без обучения, без смены ника, исправлен дубль эмодзи, все достижения)
+// profile.js – финальная версия (без обучения, с проверкой hideBalance)
 
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
@@ -275,7 +275,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleDateString() : 'дата не указана';
         let conditionText = getConditionText(ach);
         if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Выпускник') conditionText = '';
-        // Исправление: не дублируем эмодзи
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
             <div class="achievement-name">${ach.name}</div>
             ${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}
@@ -493,9 +492,12 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     const avatarBorder = currentUser.avatar_border || '#ffffff';
     const emojiStyle = getAvatarStyle(avatarUrl);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
-    const starsDisplay = fromCents(currentUser.stars_balance);
-    const volumeDisplay = stats.totalVolume.toFixed(2);
-    const sharesDisplay = fromCents(currentUser.shares);
+    
+    // ===== СКРЫТИЕ БАЛАНСА =====
+    const hideBalance = localStorage.getItem('hide_balance') === 'true';
+    const starsDisplay = hideBalance ? '***' : fromCents(currentUser.stars_balance);
+    const sharesDisplay = hideBalance ? '***' : fromCents(currentUser.shares);
+    const volumeDisplay = hideBalance ? '***' : stats.totalVolume.toFixed(2);
     
     const html = `
         <div class="card" style="text-align: center; overflow: visible !important;">
