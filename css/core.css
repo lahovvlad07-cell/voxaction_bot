@@ -1,4 +1,4 @@
-/* core.css – базовые стили для всего приложения с CSS-переменными */
+/* core.css – базовые стили с CSS-переменными для тем */
 
 :root {
     --primary-color: #2b6e9e;
@@ -25,7 +25,6 @@ body {
     padding-top: 70px;
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
     font-size: var(--base-font-size, 16px);
-    transition: background 0.3s, color 0.3s;
 }
 
 .card {
@@ -65,13 +64,12 @@ input {
     background: #111827;
     color: #f0f4ff;
     outline: none;
-    font-size: var(--base-font-size, 16px);
 }
 input:focus {
     border-color: var(--primary-color, #2b6e9e);
 }
 
-/* Модалки */
+/* ===== МОДАЛКИ ===== */
 .modal {
     display: none;
     position: fixed;
@@ -84,13 +82,7 @@ input:focus {
     z-index: 1000;
     align-items: center;
     justify-content: center;
-    animation: modalFadeIn 0.25s ease;
 }
-@keyframes modalFadeIn {
-    from { opacity: 0; transform: scale(0.97); }
-    to { opacity: 1; transform: scale(1); }
-}
-
 .modal-content {
     background: #121826;
     border-radius: 32px;
@@ -102,13 +94,7 @@ input:focus {
     overflow: hidden;
     border: 1px solid var(--accent-color, #2b6e9e);
     position: relative;
-    animation: modalSlideUp 0.3s ease;
 }
-@keyframes modalSlideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
 .modal-content h3 {
     text-align: center;
     margin: 16px 0 0;
@@ -137,7 +123,7 @@ input:focus {
     margin-top: 0;
 }
 
-/* Тост */
+/* ===== ТОСТ ===== */
 .toast {
     position: fixed;
     top: 80px;
@@ -150,7 +136,7 @@ input:focus {
     border-radius: 40px;
     z-index: 2000;
     font-size: 14px;
-    border-left: 4px solid var(--primary-color, #2b6e9e);
+    border-left: 4px solid var(--accent-color, #2b6e9e);
     animation: fadeInOut 5s ease forwards;
     pointer-events: none;
     white-space: nowrap;
@@ -162,7 +148,7 @@ input:focus {
     100% { opacity:0; transform:translateX(-50%) translateY(-20px); }
 }
 
-/* Достижения */
+/* ===== ДОСТИЖЕНИЯ ===== */
 .achi-icon.earned:hover {
     transform: scale(1.1);
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.9);
@@ -173,7 +159,7 @@ input:focus {
     box-shadow: 0 0 12px rgba(251, 191, 36, 0.6) !important;
 }
 
-/* Отключение анимаций */
+/* ===== ОТКЛЮЧЕНИЕ АНИМАЦИЙ ===== */
 .animations-off *,
 .animations-off .header-logo,
 .animations-off .stat-value,
@@ -188,7 +174,7 @@ input:focus {
     background-size: auto !important;
 }
 
-/* ========== МОДАЛКА ПОПОЛНЕНИЯ (TOPUP) ========== */
+/* ===== МОДАЛКА ПОПОЛНЕНИЯ ===== */
 .topup-modal {
     max-width: 400px;
     width: 92%;
@@ -203,8 +189,6 @@ input:focus {
     color: transparent;
     margin: 20px 0 12px;
 }
-
-/* Кнопки выбора суммы – 6 штук */
 .topup-amount-buttons {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -243,7 +227,6 @@ input:focus {
 .amount-preset.selected .amount-preset-label {
     color: white;
 }
-
 .custom-amount {
     margin: 16px 0;
 }
@@ -268,7 +251,6 @@ input:focus {
     font-weight: 400;
     font-size: 14px;
 }
-
 .topup-fee {
     background: rgba(0, 0, 0, 0.25);
     border-radius: 16px;
@@ -293,7 +275,6 @@ input:focus {
 .fee-row .highlight {
     color: #4ade80;
 }
-
 .topup-limit-info {
     font-size: 12px;
     color: #fbbf24;
@@ -307,7 +288,6 @@ input:focus {
     margin-left: auto;
     margin-right: auto;
 }
-
 .topup-confirm-btn {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     border: none;
@@ -335,7 +315,7 @@ input:focus {
     transform: none;
 }
 
-/* ========== МОДАЛКА ПОДТВЕРЖДЕНИЯ ========== */
+/* ===== МОДАЛКА ПОДТВЕРЖДЕНИЯ ===== */
 .confirm-modal {
     max-width: 380px;
     width: 90%;
@@ -393,12 +373,7 @@ input:focus {
     background: rgba(255,255,255,0.1);
 }
 
-.small-text {
-    font-size: 12px;
-    color: #9ca3af;
-}
-
-/* Адаптив модалок */
+/* ===== АДАПТИВ ===== */
 @media (max-width: 480px) {
     .topup-modal {
         width: 95%;
