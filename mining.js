@@ -1,25 +1,34 @@
-// mining.js – майнинг с правильной скоростью, кнопкой "Забрать", улучшениями и визуализацией
+// mining.js – майнинг с долгой окупаемостью улучшений
 
-const MINING_KEY = 'mining_data_v2';
+const MINING_KEY = 'mining_data_v1';
 
-const BASE_RATE = 0.2 / (12 * 3600); // 0.00000463 акций/сек (0.2 за 12 часов)
-const MAX_PER_SESSION = 0.2;
-const CLAIM_THRESHOLD = 0.1;
+// Константы майнинга
+const SESSION_DURATION = 12 * 3600 * 1000; // 12 часов
+const MAX_PER_SESSION = 0.2; // максимум акций за сессию
+const BASE_RATE_PER_SEC = MAX_PER_SESSION / (SESSION_DURATION / 1000); // ≈ 0.00000463 акций/сек
+const CLAIM_THRESHOLD = 0.1; // минимальное количество для забора
 
-// Уровни улучшений: каждый уровень увеличивает скорость на 10%, цену в акциях и лимит
-const UPGRADE_COST_BASE = 2; // начальная цена в акциях
-const UPGRADE_COST_MULTIPLIER = 1.5; // множитель цены за уровень
+// Стоимость улучшений (в акциях) – экспоненциальный рост для долгой окупаемости
+// Формула: cost(level) = 5 * (1.8 ^ level) + 2 * level
+function getUpgradeCost(level) {
+    return Math.round(5 * Math.pow(1.8, level) + 2 * level);
+}
+
+// Бонус за уровень (в процентах к базовой скорости)
+const UPGRADE_BONUS_PERCENT = 5; // +5% за уровень
+
+// Максимальный уровень (можно сделать безлимитным, но ограничим 20 для баланса)
+const UPGRADE_MAX = 20;
 
 function getDefaultMiningData() {
     return {
         mining_active: false,
         mining_start: null,
         mining_end: null,
-        mined_amount: 0,       // накоплено за текущую сессию
-        total_mined: 0,        // всего намайнено за всё время
-        level: 1,              // уровень ускорения (влияет на скорость)
-        limit_level: 1,        // уровень лимита (влияет на maxPerSession)
-        claimed_this_session: 0, // сколько уже забрали в этой сессии (чтобы не превысить лимит)
+        mined_amount: 0,
+        total_mined: 0,
+        level: 1,
+        claimed_total: 0
     };
 }
 
@@ -32,19 +41,19 @@ function loadMiningData() {
             return def;
         }
         const data = JSON.parse(raw);
-        // Проверяем активную сессию
         if (data.mining_active && data.mining_end) {
             const now = Date.now();
-            if (now > data.mining_end) {
-                // Сессия истекла – завершаем
+            const end = new Date(data.mining_end).getTime();
+            if (now > end) {
                 data.mining_active = false;
                 data.mined_amount = 0;
                 data.mining_start = null;
                 data.mining_end = null;
-                data.claimed_this_session = 0;
                 localStorage.setItem(MINING_KEY, JSON.stringify(data));
             }
         }
+        // Проверяем, не устарела ли структура (добавляем claimed_total если нет)
+        if (data.claimed_total === undefined) data.claimed_total = 0;
         return data;
     } catch (e) {
         console.error('Ошибка загрузки майнинга', e);
@@ -60,30 +69,30 @@ let miningInterval = null;
 let countdownInterval = null;
 let miningData = loadMiningData();
 
-// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РАСЧЁТОВ =====
-function getCurrentSpeed(data) {
-    // Базовая скорость * (1 + (level-1)*0.1)
-    const speedMultiplier = 1 + (data.level - 1) * 0.1;
-    return BASE_RATE * speedMultiplier;
-}
-
-function getCurrentMaxPerSession(data) {
-    // Базовый лимит * (1 + (limit_level-1)*0.25)
-    const limitMultiplier = 1 + (data.limit_level - 1) * 0.25;
-    return MAX_PER_SESSION * limitMultiplier;
+// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+function getCurrentRate(level) {
+    return BASE_RATE_PER_SEC * (1 + (level - 1) * (UPGRADE_BONUS_PERCENT / 100));
 }
 
 function getUpgradeCost(level) {
-    // Стоимость улучшения уровня (для speed или limit)
-    return Math.round(UPGRADE_COST_BASE * Math.pow(UPGRADE_COST_MULTIPLIER, level - 1) * 100) / 100;
+    return Math.round(5 * Math.pow(1.8, level) + 2 * level);
 }
 
-function getNextLevelSpeed(level) {
-    return BASE_RATE * (1 + level * 0.1);
+function getNextLevelBonus(level) {
+    return (level * UPGRADE_BONUS_PERCENT).toFixed(0) + '%';
 }
 
-function getNextLevelLimit(limitLevel) {
-    return MAX_PER_SESSION * (1 + limitLevel * 0.25);
+// ===== РАСЧЁТ ОКУПАЕМОСТИ УЛУЧШЕНИЯ (в часах) =====
+function getPaybackHours(level) {
+    if (level >= UPGRADE_MAX) return Infinity;
+    const cost = getUpgradeCost(level);
+    const currentRate = getCurrentRate(level);
+    const nextRate = getCurrentRate(level + 1);
+    const rateDiff = nextRate - currentRate; // прирост скорости (акций/сек)
+    if (rateDiff <= 0) return Infinity;
+    // Сколько часов нужно майнить, чтобы окупить стоимость улучшения
+    // cost акций / (rateDiff акций/сек * 3600 сек/час)
+    return cost / (rateDiff * 3600);
 }
 
 // ===== НАЧАТЬ МАЙНИНГ =====
@@ -92,103 +101,17 @@ async function startMining() {
         window.showCustomModal('Уже майнинг', 'Подождите окончания текущей сессии');
         return;
     }
-    // Сбрасываем накопленное и счётчик забора
-    miningData.mined_amount = 0;
-    miningData.claimed_this_session = 0;
     const now = Date.now();
-    const end = now + 12 * 3600 * 1000;
+    const end = now + SESSION_DURATION;
     miningData.mining_active = true;
     miningData.mining_start = now;
     miningData.mining_end = end;
+    miningData.mined_amount = 0;
     saveMiningData(miningData);
-    window.showToast('⛏️ Майнинг запущен!');
+    window.showToast('⛏️ Майнинг запущен на 12 часов!');
     updateUI();
     startCountdown();
     startMiningProgress();
-}
-
-// ===== ЗАБРАТЬ НАМАЙНЕННОЕ =====
-async function claimMined() {
-    if (!miningData.mining_active) {
-        window.showCustomModal('Ошибка', 'Майнинг не активен');
-        return;
-    }
-    const currentMax = getCurrentMaxPerSession(miningData);
-    // Сколько можно забрать сейчас
-    const available = miningData.mined_amount;
-    if (available < CLAIM_THRESHOLD) {
-        window.showCustomModal('Ошибка', `Нужно намайнить минимум ${CLAIM_THRESHOLD.toFixed(4)} акций, чтобы забрать`);
-        return;
-    }
-    // Проверяем, не превысили ли лимит за сессию (учитываем уже забранное)
-    const alreadyClaimed = miningData.claimed_this_session || 0;
-    const canClaim = Math.min(available, currentMax - alreadyClaimed);
-    if (canClaim <= 0) {
-        window.showCustomModal('Ошибка', 'Вы достигли лимита за сессию');
-        return;
-    }
-    // Начисляем акции
-    const sharesCents = Math.round(canClaim * 100);
-    if (sharesCents > 0) {
-        const { error } = await window.supabase
-            .from('users')
-            .update({ shares: window.supabase.raw(`shares + ${sharesCents}`) })
-            .eq('id', window.userId);
-        if (error) {
-            console.error('Ошибка начисления акций', error);
-            window.showCustomModal('Ошибка', 'Не удалось начислить акции');
-            return;
-        }
-        window.currentUser.shares += sharesCents;
-        miningData.total_mined += canClaim;
-        miningData.claimed_this_session = (miningData.claimed_this_session || 0) + canClaim;
-        // Уменьшаем накопленное (забираем)
-        miningData.mined_amount -= canClaim;
-        saveMiningData(miningData);
-        window.showToast(`✅ Забрано ${canClaim.toFixed(4)} акций!`);
-        updateUI();
-        if (window.refreshActiveTab) window.refreshActiveTab();
-    }
-}
-
-// ===== УЛУЧШЕНИЕ СКОРОСТИ =====
-async function upgradeSpeed() {
-    const cost = getUpgradeCost(miningData.level);
-    const userSharesCents = window.currentUser.shares;
-    if (userSharesCents < cost * 100) {
-        window.showCustomModal('Ошибка', `Недостаточно акций! Нужно ${cost.toFixed(2)} акций`);
-        return;
-    }
-    const costCents = Math.round(cost * 100);
-    await window.supabase
-        .from('users')
-        .update({ shares: window.supabase.raw(`shares - ${costCents}`) })
-        .eq('id', window.userId);
-    window.currentUser.shares -= costCents;
-    miningData.level += 1;
-    saveMiningData(miningData);
-    window.showToast(`⬆️ Скорость повышена до ${miningData.level} уровня!`);
-    updateUI();
-}
-
-// ===== УЛУЧШЕНИЕ ЛИМИТА =====
-async function upgradeLimit() {
-    const cost = getUpgradeCost(miningData.limit_level);
-    const userSharesCents = window.currentUser.shares;
-    if (userSharesCents < cost * 100) {
-        window.showCustomModal('Ошибка', `Недостаточно акций! Нужно ${cost.toFixed(2)} акций`);
-        return;
-    }
-    const costCents = Math.round(cost * 100);
-    await window.supabase
-        .from('users')
-        .update({ shares: window.supabase.raw(`shares - ${costCents}`) })
-        .eq('id', window.userId);
-    window.currentUser.shares -= costCents;
-    miningData.limit_level += 1;
-    saveMiningData(miningData);
-    window.showToast(`⬆️ Лимит повышен до ${miningData.limit_level} уровня!`);
-    updateUI();
 }
 
 // ===== ТАЙМЕР =====
@@ -203,9 +126,7 @@ function startCountdown() {
         const end = miningData.mining_end;
         if (now >= end) {
             clearInterval(countdownInterval);
-            // Не завершаем автоматически, даём пользователю возможность забрать остаток
-            // Но можно показать, что сессия завершена
-            updateUI();
+            finishMining();
             return;
         }
         const diff = end - now;
@@ -229,82 +150,103 @@ function startMiningProgress() {
         }
         const now = Date.now();
         const end = miningData.mining_end;
-        const start = miningData.mining_start;
         if (now >= end) {
-            // Сессия завершена, но не останавливаем майнинг, просто перестаём начислять
-            // Можно остановить, но оставить возможность забрать
-            updateUI();
+            clearInterval(miningInterval);
+            finishMining();
             return;
         }
-        // Рассчитываем накопленное с начала сессии до текущего момента
-        const elapsedSeconds = (now - start) / 1000;
-        const speed = getCurrentSpeed(miningData);
-        const theoretical = elapsedSeconds * speed;
-        const maxPerSession = getCurrentMaxPerSession(miningData);
-        const newAmount = Math.min(theoretical, maxPerSession);
-        // Обновляем mined_amount (но не уменьшаем, если уже забрали часть)
-        // Так как мы храним mined_amount как текущее невыведенное, а claimed_this_session уже выведено,
-        // то totalEarned = elapsedSeconds * speed, но мы можем вывести только maxPerSession.
-        // Однако мы уже вывели часть (claimed_this_session), значит доступно для вывода = totalEarned - claimed_this_session
-        const totalEarned = Math.min(elapsedSeconds * speed, maxPerSession);
-        const available = Math.max(0, totalEarned - (miningData.claimed_this_session || 0));
-        miningData.mined_amount = available;
-        // Обновляем UI
+        const rate = getCurrentRate(miningData.level);
+        const elapsedSeconds = (now - miningData.mining_start) / 1000;
+        let theoretical = elapsedSeconds * rate;
+        const newAmount = Math.min(theoretical, MAX_PER_SESSION);
+        miningData.mined_amount = newAmount;
+        
         const minedEl = document.getElementById('minedAmount');
-        if (minedEl) minedEl.textContent = miningData.mined_amount.toFixed(4);
-        // Кнопка забрать
-        const claimBtn = document.getElementById('claimMinedBtn');
-        if (claimBtn) {
-            if (miningData.mined_amount >= CLAIM_THRESHOLD) {
-                claimBtn.disabled = false;
-                claimBtn.style.opacity = '1';
-            } else {
-                claimBtn.disabled = true;
-                claimBtn.style.opacity = '0.5';
-            }
-        }
-        // Обновляем информацию о следующем улучшении
-        updateUpgradeInfo();
+        if (minedEl) minedEl.textContent = miningData.mined_amount.toFixed(6);
+        updateClaimButton();
     }, 1000);
 }
 
-// ===== ИНФОРМАЦИЯ О СЛЕДУЮЩЕМ УЛУЧШЕНИИ =====
-function updateUpgradeInfo() {
-    // Информация о следующем улучшении скорости
-    const speedLevel = miningData.level;
-    const nextSpeedLevel = speedLevel + 1;
-    const currentSpeed = getCurrentSpeed(miningData);
-    const nextSpeed = getNextLevelSpeed(speedLevel);
-    const speedCost = getUpgradeCost(nextSpeedLevel);
-    const speedEl = document.getElementById('speedUpgradeInfo');
-    if (speedEl) {
-        speedEl.innerHTML = `
-            <div class="upgrade-info-item">
-                <span class="upgrade-label">Скорость</span>
-                <span class="upgrade-current">${(currentSpeed * 3600 * 12).toFixed(4)} за сессию</span>
-                <span class="upgrade-arrow">→</span>
-                <span class="upgrade-next">${(nextSpeed * 3600 * 12).toFixed(4)}</span>
-                <span class="upgrade-cost">💰 ${speedCost.toFixed(2)} акций</span>
-            </div>
-        `;
+// ===== ЗАВЕРШЕНИЕ МАЙНИНГА =====
+async function finishMining() {
+    if (!miningData) return;
+    miningData.mining_active = false;
+    miningData.mining_start = null;
+    miningData.mining_end = null;
+    saveMiningData(miningData);
+    if (miningInterval) clearInterval(miningInterval);
+    if (countdownInterval) clearInterval(countdownInterval);
+    window.showToast(`⏰ Сессия майнинга завершена! Заберите накопленные акции.`);
+    updateUI();
+}
+
+// ===== CLAIM =====
+async function claimMining() {
+    if (!miningData) return;
+    const amount = miningData.mined_amount;
+    if (amount < CLAIM_THRESHOLD) {
+        window.showCustomModal('Ошибка', `Накоплено ${amount.toFixed(6)} акций. Минимум для забора: ${CLAIM_THRESHOLD} акций.`);
+        return;
     }
-    // Информация о следующем улучшении лимита
-    const limitLevel = miningData.limit_level;
-    const nextLimitLevel = limitLevel + 1;
-    const currentLimit = getCurrentMaxPerSession(miningData);
-    const nextLimit = getNextLevelLimit(limitLevel);
-    const limitCost = getUpgradeCost(nextLimitLevel);
-    const limitEl = document.getElementById('limitUpgradeInfo');
-    if (limitEl) {
-        limitEl.innerHTML = `
-            <div class="upgrade-info-item">
-                <span class="upgrade-label">Лимит сессии</span>
-                <span class="upgrade-current">${currentLimit.toFixed(4)}</span>
-                <span class="upgrade-arrow">→</span>
-                <span class="upgrade-next">${nextLimit.toFixed(4)}</span>
-                <span class="upgrade-cost">💰 ${limitCost.toFixed(2)} акций</span>
-            </div>
-        `;
+    const sharesCents = Math.round(amount * 100);
+    if (sharesCents > 0) {
+        const { error } = await window.supabase
+            .from('users')
+            .update({ shares: window.supabase.raw(`shares + ${sharesCents}`) })
+            .eq('id', window.userId);
+        if (error) {
+            console.error('Ошибка начисления акций', error);
+            window.showCustomModal('Ошибка', 'Не удалось начислить акции');
+            return;
+        }
+        window.currentUser.shares += sharesCents;
+        miningData.total_mined += amount;
+        miningData.claimed_total += amount;
+    }
+    miningData.mined_amount = 0;
+    saveMiningData(miningData);
+    window.showToast(`✅ Забрано ${amount.toFixed(4)} акций!`);
+    updateUI();
+}
+
+// ===== УЛУЧШЕНИЕ УРОВНЯ =====
+async function upgradeLevel() {
+    if (!miningData) return;
+    const cost = getUpgradeCost(miningData.level);
+    const userSharesCents = window.currentUser.shares;
+    if (userSharesCents < cost * 100) {
+        window.showCustomModal('Ошибка', `Недостаточно акций! Нужно ${cost} акций`);
+        return;
+    }
+    if (miningData.level >= UPGRADE_MAX) {
+        window.showCustomModal('Уведомление', 'Вы достигли максимального уровня!');
+        return;
+    }
+    const costCents = cost * 100;
+    await window.supabase
+        .from('users')
+        .update({ shares: window.supabase.raw(`shares - ${costCents}`) })
+        .eq('id', window.userId);
+    window.currentUser.shares -= costCents;
+    miningData.level += 1;
+    saveMiningData(miningData);
+    window.showToast(`⬆️ Уровень повышен до ${miningData.level}! Скорость майнинга +5%`);
+    updateUI();
+}
+
+// ===== ОБНОВЛЕНИЕ КНОПКИ CLAIM =====
+function updateClaimButton() {
+    const claimBtn = document.getElementById('claimBtn');
+    if (!claimBtn) return;
+    const amount = miningData.mined_amount;
+    if (amount >= CLAIM_THRESHOLD && miningData.mining_active) {
+        claimBtn.disabled = false;
+        claimBtn.textContent = `💰 Забрать (${amount.toFixed(4)} акций)`;
+        claimBtn.style.opacity = '1';
+    } else {
+        claimBtn.disabled = true;
+        claimBtn.textContent = `💰 Забрать (нужно ${CLAIM_THRESHOLD} акций)`;
+        claimBtn.style.opacity = '0.5';
     }
 }
 
@@ -315,13 +257,12 @@ function updateUI() {
     const minedEl = document.getElementById('minedAmount');
     const timerEl = document.getElementById('miningTimer');
     const startBtn = document.getElementById('startMiningBtn');
-    const claimBtn = document.getElementById('claimMinedBtn');
-    const speedUpgradeBtn = document.getElementById('upgradeSpeedBtn');
-    const limitUpgradeBtn = document.getElementById('upgradeLimitBtn');
+    const upgradeBtn = document.getElementById('upgradeLevelBtn');
+    const claimBtn = document.getElementById('claimBtn');
 
     if (levelEl) levelEl.textContent = miningData.level;
     if (totalEl) totalEl.textContent = miningData.total_mined.toFixed(4);
-    if (minedEl) minedEl.textContent = miningData.mined_amount.toFixed(4);
+    if (minedEl) minedEl.textContent = miningData.mined_amount.toFixed(6);
 
     if (startBtn) {
         if (miningData.mining_active) {
@@ -335,33 +276,31 @@ function updateUI() {
         }
     }
 
-    if (claimBtn) {
-        if (miningData.mining_active && miningData.mined_amount >= CLAIM_THRESHOLD) {
-            claimBtn.disabled = false;
-            claimBtn.style.opacity = '1';
-            claimBtn.textContent = `🎁 Забрать (${miningData.mined_amount.toFixed(4)})`;
+    if (upgradeBtn) {
+        const cost = getUpgradeCost(miningData.level);
+        const paybackHours = getPaybackHours(miningData.level);
+        let paybackText = '';
+        if (paybackHours === Infinity || miningData.level >= UPGRADE_MAX) {
+            paybackText = 'MAX';
         } else {
-            claimBtn.disabled = true;
-            claimBtn.style.opacity = '0.5';
-            claimBtn.textContent = `🎁 Забрать (${CLAIM_THRESHOLD.toFixed(4)} мин)`;
+            const days = Math.floor(paybackHours / 24);
+            const hours = Math.round(paybackHours % 24);
+            if (days > 0) {
+                paybackText = `~${days}д ${hours}ч окупаемости`;
+            } else {
+                paybackText = `~${Math.round(paybackHours)}ч окупаемости`;
+            }
+        }
+        upgradeBtn.textContent = `⬆️ Улучшить до ${miningData.level+1} уровня (${cost} акций, +5%, ${paybackText})`;
+        const userSharesCents = window.currentUser.shares;
+        upgradeBtn.disabled = (userSharesCents / 100) < cost || miningData.level >= UPGRADE_MAX;
+        if (miningData.level >= UPGRADE_MAX) {
+            upgradeBtn.textContent = '🏆 Максимальный уровень достигнут';
         }
     }
 
-    // Кнопки улучшений
-    if (speedUpgradeBtn) {
-        const cost = getUpgradeCost(miningData.level + 1);
-        const userSharesCents = window.currentUser.shares;
-        speedUpgradeBtn.disabled = (userSharesCents / 100) < cost;
-        speedUpgradeBtn.textContent = `⚡ Улучшить скорость (${cost.toFixed(2)} акций)`;
-    }
-    if (limitUpgradeBtn) {
-        const cost = getUpgradeCost(miningData.limit_level + 1);
-        const userSharesCents = window.currentUser.shares;
-        limitUpgradeBtn.disabled = (userSharesCents / 100) < cost;
-        limitUpgradeBtn.textContent = `📈 Улучшить лимит (${cost.toFixed(2)} акций)`;
-    }
+    updateClaimButton();
 
-    // Таймер
     if (miningData.mining_active && miningData.mining_end) {
         const now = Date.now();
         const end = miningData.mining_end;
@@ -380,8 +319,35 @@ function updateUI() {
         if (timerEl) timerEl.textContent = '--:--:--';
     }
 
-    // Информация об улучшениях
-    updateUpgradeInfo();
+    // Информация о следующем уровне
+    const nextLevelInfo = document.getElementById('nextLevelInfo');
+    if (nextLevelInfo) {
+        if (miningData.level < UPGRADE_MAX) {
+            const nextLevel = miningData.level + 1;
+            const cost = getUpgradeCost(miningData.level);
+            const bonus = getNextLevelBonus(nextLevel);
+            const rate = getCurrentRate(nextLevel);
+            const payback = getPaybackHours(miningData.level);
+            let paybackStr = '';
+            if (payback === Infinity) {
+                paybackStr = '∞';
+            } else {
+                const days = Math.floor(payback / 24);
+                const hours = Math.round(payback % 24);
+                paybackStr = days > 0 ? `${days}д ${hours}ч` : `${Math.round(payback)}ч`;
+            }
+            nextLevelInfo.innerHTML = `
+                <div class="next-level-details">
+                    <span class="level-number">${nextLevel}</span>
+                    <span class="level-cost">${cost} акций</span>
+                    <span class="level-bonus">+${bonus}</span>
+                    <span class="level-payback">⏱️ ${paybackStr}</span>
+                </div>
+            `;
+        } else {
+            nextLevelInfo.innerHTML = `<div class="next-level-details max">🏆 Максимальный уровень достигнут</div>`;
+        }
+    }
 }
 
 // ===== ГЛАВНЫЙ РЕНДЕР =====
@@ -391,28 +357,37 @@ window.renderMiningTab = async function() {
 
     miningData = loadMiningData();
 
-    const speed = getCurrentSpeed(miningData);
-    const maxPerSession = getCurrentMaxPerSession(miningData);
+    const currentRate = getCurrentRate(miningData.level);
+    const upgradeCost = getUpgradeCost(miningData.level);
+    const paybackHours = getPaybackHours(miningData.level);
+    let paybackText = '';
+    if (paybackHours === Infinity || miningData.level >= UPGRADE_MAX) {
+        paybackText = 'MAX';
+    } else {
+        const days = Math.floor(paybackHours / 24);
+        const hours = Math.round(paybackHours % 24);
+        paybackText = days > 0 ? `~${days}д ${hours}ч` : `~${Math.round(paybackHours)}ч`;
+    }
 
     const html = `
         <div class="mining-container">
             <div class="mining-header">
                 <h2>⛏️ Майнинг акций</h2>
-                <p>Запустите майнинг на 12 часов – получайте акции в реальном времени!</p>
+                <p>Запустите майнинг на 12 часов – накапливайте акции в реальном времени!</p>
             </div>
             
             <div class="mining-stats">
                 <div class="mining-stat">
                     <div class="mining-stat-value" id="miningLevel">${miningData.level}</div>
-                    <div class="mining-stat-label">Уровень скорости</div>
+                    <div class="mining-stat-label">Уровень</div>
                 </div>
                 <div class="mining-stat">
                     <div class="mining-stat-value" id="totalMined">${miningData.total_mined.toFixed(4)}</div>
                     <div class="mining-stat-label">Всего намайнено</div>
                 </div>
                 <div class="mining-stat">
-                    <div class="mining-stat-value" id="minedAmount">${miningData.mined_amount.toFixed(4)}</div>
-                    <div class="mining-stat-label">Доступно к забору</div>
+                    <div class="mining-stat-value" id="minedAmount">${miningData.mined_amount.toFixed(6)}</div>
+                    <div class="mining-stat-label">Накоплено сейчас</div>
                 </div>
             </div>
             
@@ -422,37 +397,34 @@ window.renderMiningTab = async function() {
             </div>
             
             <button id="startMiningBtn" class="mining-btn primary">🚀 Начать майнинг (12ч)</button>
-            <button id="claimMinedBtn" class="mining-btn claim" disabled>🎁 Забрать (${CLAIM_THRESHOLD.toFixed(4)} мин)</button>
+            <button id="claimBtn" class="mining-btn claim" disabled>💰 Забрать (нужно ${CLAIM_THRESHOLD} акций)</button>
+            <button id="upgradeLevelBtn" class="mining-btn secondary">⬆️ Улучшить до ${miningData.level+1} уровня (${upgradeCost} акций, +5%, ${paybackText})</button>
             
-            <div class="mining-upgrades">
-                <div class="upgrade-section">
-                    <div class="upgrade-title">⚡ Скорость майнинга</div>
-                    <div id="speedUpgradeInfo" class="upgrade-info"></div>
-                    <button id="upgradeSpeedBtn" class="mining-btn secondary">⚡ Улучшить скорость (${getUpgradeCost(miningData.level + 1).toFixed(2)} акций)</button>
-                </div>
-                <div class="upgrade-section">
-                    <div class="upgrade-title">📈 Лимит за сессию</div>
-                    <div id="limitUpgradeInfo" class="upgrade-info"></div>
-                    <button id="upgradeLimitBtn" class="mining-btn secondary">📈 Улучшить лимит (${getUpgradeCost(miningData.limit_level + 1).toFixed(2)} акций)</button>
-                </div>
+            <div class="next-level-preview">
+                <div class="next-level-label">📈 Следующий уровень</div>
+                <div id="nextLevelInfo"></div>
             </div>
             
             <div class="mining-info">
                 <div class="info-row">
                     <span>📈 Текущая скорость</span>
-                    <span>${(speed * 3600).toFixed(6)} акций/час (${(speed * 3600 * 12).toFixed(4)} за сессию)</span>
+                    <span>${currentRate.toFixed(8)} акций/сек</span>
                 </div>
                 <div class="info-row">
-                    <span>⚡ Лимит сессии</span>
-                    <span>${maxPerSession.toFixed(4)} акций</span>
+                    <span>⚡ Максимум за сессию</span>
+                    <span>${MAX_PER_SESSION} акций</span>
                 </div>
                 <div class="info-row">
                     <span>🔄 Длительность сессии</span>
                     <span>12 часов</span>
                 </div>
                 <div class="info-row">
-                    <span>🎯 Минимум для забора</span>
-                    <span>${CLAIM_THRESHOLD.toFixed(4)} акций</span>
+                    <span>💰 Минимум для забора</span>
+                    <span>${CLAIM_THRESHOLD} акций</span>
+                </div>
+                <div class="info-row">
+                    <span>🏆 Бонус уровня</span>
+                    <span>+${((miningData.level - 1) * 5).toFixed(0)}% скорости</span>
                 </div>
             </div>
         </div>
@@ -460,9 +432,8 @@ window.renderMiningTab = async function() {
     document.getElementById('app').innerHTML = html;
 
     document.getElementById('startMiningBtn').addEventListener('click', startMining);
-    document.getElementById('claimMinedBtn').addEventListener('click', claimMined);
-    document.getElementById('upgradeSpeedBtn').addEventListener('click', upgradeSpeed);
-    document.getElementById('upgradeLimitBtn').addEventListener('click', upgradeLimit);
+    document.getElementById('claimBtn').addEventListener('click', claimMining);
+    document.getElementById('upgradeLevelBtn').addEventListener('click', upgradeLevel);
 
     updateUI();
     if (miningData.mining_active) {
