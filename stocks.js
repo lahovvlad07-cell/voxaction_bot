@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с улучшенным стаканом, модалкой покупки, компактными ордерами, графиком и автообновлением
+// stocks.js – финальная версия с улучшенным стаканом, модалкой покупки, графиком и автообновлением
 
 // Определяем глобальную функцию getActiveBuyOrders, если её нет
 if (!window.getActiveBuyOrders) {
@@ -59,14 +59,14 @@ function showBuyModal(orderId, maxAmount, price, callback) {
                         <span>Доступно</span>
                         <span style="color:#4ade80; font-weight:bold;">${maxAmount.toFixed(2)} шт.</span>
                     </div>
-                    <input type="number" id="buyAmountInput" placeholder="Введите количество (шт.)" step="0.01" min="0.01" max="${maxAmount}">
-                    <div class="buy-btn-row">
-                        <button id="buyConfirmBtn" class="buy-btn primary">Купить</button>
-                        <button id="buyAllBtn" class="buy-btn all">Всё</button>
+                    <input type="number" id="buyAmountInput" placeholder="Введите количество (шт.)" step="0.01" min="0.01" max="${maxAmount}" style="margin-bottom:12px; width:100%; padding:12px; background:#0a0f1a; border:1px solid #0ff; border-radius:40px; color:#fff; font-size:16px; text-align:center;">
+                    <div style="display:flex; gap:12px; margin-bottom:12px;">
+                        <button id="buyConfirmBtn" style="flex:1; padding:12px; border-radius:40px; background:linear-gradient(135deg,#00c6ff,#0072ff); border:none; color:white; font-weight:bold; cursor:pointer;">Купить</button>
+                        <button id="buyAllBtn" style="flex:1; padding:12px; border-radius:40px; background:rgba(255,255,255,0.05); border:1px solid rgba(0,255,255,0.3); color:#0ff; font-weight:bold; cursor:pointer;">Всё</button>
                     </div>
                 </div>
                 <div style="text-align:center;">
-                    <button id="cancelBuyModal" class="cancel-btn">Отмена</button>
+                    <button id="cancelBuyModal" style="padding:8px 24px; border-radius:40px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#9ca3af; cursor:pointer;">Отмена</button>
                 </div>
             </div>
         </div>
@@ -100,7 +100,7 @@ function showBuyModal(orderId, maxAmount, price, callback) {
     };
 }
 
-// ===== ГЛАВНЫЙ РЕНДЕР =====
+// ===== ГЛАВНАЯ ФУНКЦИЯ РЕНДЕРА =====
 window.renderStocksTab = async function(currentUser) {
     if (updateInterval) clearInterval(updateInterval);
 
@@ -298,17 +298,11 @@ window.renderStocksTab = async function(currentUser) {
             <div id="tab-orderbook" class="tab-pane">
                 <div class="orderbook-split">
                     <div class="orderbook-col">
-                        <div class="orderbook-header">
-                            <span class="col-price">Цена ⭐</span>
-                            <span class="col-amount">Объём</span>
-                        </div>
+                        <div class="orderbook-title">💰 Продажа</div>
                         <div id="sellBookList" class="orderbook-list"></div>
                     </div>
                     <div class="orderbook-col">
-                        <div class="orderbook-header">
-                            <span class="col-price">Цена ⭐</span>
-                            <span class="col-amount">Объём</span>
-                        </div>
+                        <div class="orderbook-title">🏦 Покупка</div>
                         <div id="buyBookList" class="orderbook-list"></div>
                     </div>
                 </div>
@@ -459,41 +453,31 @@ window.renderStocksTab = async function(currentUser) {
         });
     });
 
-    // ---- СТАКАН (УЛУЧШЕННЫЙ) ----
+    // ---- СТАКАН (улучшенный дизайн) ----
     function renderOrderBook() {
         const sellBook = groupOrdersByPrice(activeSellOrders, 'sell').slice(0, 10);
         const buyBook = groupOrdersByPrice(activeBuyOrders, 'buy').slice(0, 10);
         const maxSellVolume = sellBook.length ? Math.max(...sellBook.map(b => b.amount)) : 1;
         const maxBuyVolume = buyBook.length ? Math.max(...buyBook.map(b => b.amount)) : 1;
 
-        const sellList = document.getElementById('sellBookList');
-        if (sellBook.length) {
-            sellList.innerHTML = sellBook.map(b => `
-                <div class="orderbook-row">
-                    <div class="volume-bar sell" style="width: ${(b.amount/maxSellVolume)*70}%;"></div>
-                    <span class="price-sell">${b.price.toFixed(2)}</span>
-                    <span class="amount">${b.amount.toFixed(2)}</span>
-                </div>
-            `).join('');
-        } else {
-            sellList.innerHTML = '<div class="orderbook-empty">Нет ордеров</div>';
-        }
+        document.getElementById('sellBookList').innerHTML = sellBook.length ? sellBook.map(b => `
+            <div class="orderbook-row" style="display:flex; justify-content:space-between; padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.05); position:relative;">
+                <div style="position:absolute; right:0; top:0; height:100%; background:rgba(255,100,100,0.12); width:${(b.amount/maxSellVolume)*70}%; z-index:0; border-radius:12px;"></div>
+                <span style="position:relative; z-index:1; font-size:13px; color:#eef2ff;">${b.amount.toFixed(2)} шт.</span>
+                <span class="price-sell" style="position:relative; z-index:1; font-weight:700; color:#ff6b6b;">${b.price.toFixed(2)} ⭐</span>
+            </div>
+        `).join('') : '<div class="empty-placeholder">Нет ордеров</div>';
 
-        const buyList = document.getElementById('buyBookList');
-        if (buyBook.length) {
-            buyList.innerHTML = buyBook.map(b => `
-                <div class="orderbook-row">
-                    <div class="volume-bar buy" style="width: ${(b.amount/maxBuyVolume)*70}%;"></div>
-                    <span class="price-buy">${b.price.toFixed(2)}</span>
-                    <span class="amount">${b.amount.toFixed(2)}</span>
-                </div>
-            `).join('');
-        } else {
-            buyList.innerHTML = '<div class="orderbook-empty">Нет заявок</div>';
-        }
+        document.getElementById('buyBookList').innerHTML = buyBook.length ? buyBook.map(b => `
+            <div class="orderbook-row" style="display:flex; justify-content:space-between; padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.05); position:relative;">
+                <div style="position:absolute; left:0; top:0; height:100%; background:rgba(100,255,100,0.12); width:${(b.amount/maxBuyVolume)*70}%; z-index:0; border-radius:12px;"></div>
+                <span style="position:relative; z-index:1; font-size:13px; color:#eef2ff;">${b.amount.toFixed(2)} шт.</span>
+                <span class="price-buy" style="position:relative; z-index:1; font-weight:700; color:#51cf66;">${b.price.toFixed(2)} ⭐</span>
+            </div>
+        `).join('') : '<div class="empty-placeholder">Нет заявок</div>';
     }
 
-    // ---- ОРДЕРА (компактные) ----
+    // ---- ОРДЕРА (улучшенный визуал, полный ID) ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
