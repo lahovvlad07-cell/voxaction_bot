@@ -1,4 +1,4 @@
-// profile.js – полная версия с правильным склонением и улучшенными достижениями
+// profile.js – финальная версия с анимациями, сменой ника, прогрессом по категориям и подсветкой новых достижений
 
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
@@ -61,6 +61,25 @@ function getConditionText(ach) {
     }
 }
 
+// ========== ПОДСВЕТКА НОВЫХ ДОСТИЖЕНИЙ ==========
+let lastKnownAchievementIds = [];
+
+async function checkNewAchievements(earnedAchievements) {
+    const currentIds = earnedAchievements.map(a => a.id).sort();
+    const newIds = currentIds.filter(id => !lastKnownAchievementIds.includes(id));
+    if (newIds.length) {
+        // Показываем уведомление о новых достижениях
+        const newAch = earnedAchievements.filter(a => newIds.includes(a.id));
+        for (const ach of newAch) {
+            // Показываем модалку или тост
+            window.showCustomModal(`🏆 Новое достижение!`, `${ach.icon} ${ach.name}\n\n${ach.description}`);
+        }
+    }
+    lastKnownAchievementIds = currentIds;
+    // Сохраняем в localStorage, чтобы не показывать повторно
+    localStorage.setItem('lastKnownAchievementIds', JSON.stringify(currentIds));
+}
+
 // ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (до 5 шт, сортировка по прогрессу) ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
@@ -94,8 +113,35 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
     
     // Сортируем по прогрессу (кто ближе к завершению – выше)
     withProgress.sort((a, b) => b.progress - a.progress);
-    // Возвращаем до 5 ближайших
     return withProgress.slice(0, 5);
+}
+
+// ========== ПРОГРЕСС ПО КАТЕГОРИЯМ ==========
+async function getCategoryProgress(currentUser, getUserStats) {
+    const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
+    if (!all) return {};
+    const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
+    const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
+    const categories = {
+        'Сделки': { total: 0, earned: 0 },
+        'Акции': { total: 0, earned: 0 },
+        'Рефералы': { total: 0, earned: 0 },
+        'Финансы': { total: 0, earned: 0 },
+        'Дни': { total: 0, earned: 0 }
+    };
+    for (const ach of all) {
+        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист') continue;
+        let category = '';
+        if (ach.condition_type === 'trades_count') category = 'Сделки';
+        else if (ach.condition_type === 'shares_held') category = 'Акции';
+        else if (ach.condition_type === 'referrals_count') category = 'Рефералы';
+        else if (['total_topup', 'total_spent', 'total_earned', 'total_volume', 'stars_held'].includes(ach.condition_type)) category = 'Финансы';
+        else if (ach.condition_type === 'days_active') category = 'Дни';
+        else continue;
+        categories[category].total++;
+        if (earnedIds.has(ach.id)) categories[category].earned++;
+    }
+    return categories;
 }
 
 // ========== СПРАВОЧНИК ==========
@@ -218,7 +264,6 @@ async function awardStylistAchievement() {
 }
 
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal) {
-    // Если нет достижений – сообщаем
     if (!earnedAchievements.length) {
         window.showCustomModal('Достижения', 'У вас пока нет полученных достижений. Выполняйте задания, чтобы их получить!');
         return;
@@ -377,11 +422,69 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await awardStylistAchievement(); await renderProfileTab();
 }
 
+// ========== СМЕНА НИКА (ПРЯМО В ПРОФИЛЕ) ==========
+async function showChangeNicknameModal(currentUser, updateUserCallback, renderProfileTab, showCustomModal) {
+    const modalHtml = `
+        <div class="modal" id="changeNickModal" style="display:flex;">
+            <div class="modal-content" style="max-width: 400px;">
+                <span class="close-modal" id="closeChangeNickModal">&times;</span>
+                <h3>✏️ Изменить никнейм</h3>
+                <div style="padding: 20px 0;">
+                    <input type="text" id="newNickInput" placeholder="Новый никнейм (3-20 символов)" value="${currentUser.username}" maxlength="20">
+                    <div style="font-size: 11px; color: #9ca3af; margin-top: 8px;">Только латиница, цифры, _ и -</div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="cancelChangeNick" class="secondary">Отмена</button>
+                    <button id="saveChangeNick">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('changeNickModal');
+    document.getElementById('closeChangeNickModal').onclick = () => modal.remove();
+    document.getElementById('cancelChangeNick').onclick = () => modal.remove();
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    
+    document.getElementById('saveChangeNick').onclick = async () => {
+        const newNick = document.getElementById('newNickInput').value.trim();
+        if (!newNick) {
+            showCustomModal('Ошибка', 'Никнейм не может быть пустым');
+            return;
+        }
+        try {
+            const result = await window.updateUsername(newNick);
+            if (result.success) {
+                await updateUserCallback({ username: newNick });
+                currentUser.username = newNick;
+                showCustomModal('Успех', 'Никнейм изменён!');
+                modal.remove();
+                await renderProfileTab();
+            } else {
+                showCustomModal('Ошибка', result.message || 'Не удалось изменить никнейм');
+            }
+        } catch(e) {
+            showCustomModal('Ошибка', e.message);
+        }
+    };
+}
+
 // ========== ГЛАВНЫЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(currentUser, supabase, userId, fromCents, showCustomModal, getUserStats, getUserRank, getEarnedAchievements, getAllAchievements, updateBellBadge, showNotificationsModal) {
+    // Проверяем новые достижения
     if (window.checkAllAchievements) await window.checkAllAchievements();
-    const stats = await getUserStats();
     const earnedAchievements = await getEarnedAchievements();
+    // Загружаем сохранённые ID для подсветки
+    const savedIds = localStorage.getItem('lastKnownAchievementIds');
+    if (savedIds) {
+        try {
+            lastKnownAchievementIds = JSON.parse(savedIds);
+        } catch(e) { lastKnownAchievementIds = []; }
+    }
+    // Проверяем, появились ли новые
+    await checkNewAchievements(earnedAchievements);
+    
+    const stats = await getUserStats();
     let selectedIds = currentUser.selected_achievements || [];
     selectedIds = [...new Set(selectedIds)];
     const iconsHtml = [];
@@ -422,6 +525,22 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
         nextHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
     }
     
+    // ===== Прогресс по категориям =====
+    const categoryProgress = await getCategoryProgress(currentUser, getUserStats);
+    let categoryHtml = `<div class="category-progress"><div class="small-text" style="margin-bottom:8px;">📊 Прогресс по категориям достижений:</div>`;
+    for (const [cat, data] of Object.entries(categoryProgress)) {
+        if (data.total === 0) continue;
+        const percent = (data.earned / data.total) * 100;
+        categoryHtml += `
+            <div class="category-item">
+                <div class="category-label">${cat}</div>
+                <div class="category-bar"><div class="category-fill" style="width: ${percent}%;"></div></div>
+                <div class="category-count">${data.earned}/${data.total}</div>
+            </div>
+        `;
+    }
+    categoryHtml += `</div>`;
+    
     const avatarUrl = currentUser.avatar_url || '👤';
     const avatarBg = currentUser.avatar_bg && currentUser.avatar_bg.startsWith('#') ? currentUser.avatar_bg : ({ gradient1:'#2b6e9e', gradient2:'#9b59b6', gradient3:'#e67e22', gradient4:'#27ae60', gradient5:'#f1c40f', gradient6:'#e74c3c', gradient7:'#1abc9c', gradient8:'#3498db', gradient9:'#2c3e50', gradient10:'#ff9a9e', gradient11:'#a18cd1' }[currentUser.avatar_bg] || '#2b6e9e');
     const avatarBorder = currentUser.avatar_border || '#ffffff';
@@ -430,12 +549,51 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     const starsDisplay = fromCents(currentUser.stars_balance);
     const volumeDisplay = stats.totalVolume.toFixed(2);
     const sharesDisplay = fromCents(currentUser.shares);
-    const html = `<div class="card" style="text-align: center; overflow: visible !important;"><div id="avatarClickWrapper"><div class="avatar-circle" style="background: ${avatarBg}; border: 3px solid ${avatarBorder};"><span class="avatar-emoji" style="${emojiStyle}">${avatarUrl}</span></div><div class="small-text">Нажмите на аватар для кастомизации</div></div><p style="font-size:20px; font-weight:bold; margin-top:8px;">${currentUser.username}</p><p class="small-text">ID: ${userId}</p><p class="small-text">📅 Регистрация: ${registeredDate}</p><div class="achievement-icons">${iconsHtml.join('')}</div><div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div><div class="stats-container"><div class="stats-row"><div class="stat-card"><div class="stat-value">${starsDisplay}</div><div class="stat-label">Stars</div></div><div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div></div><div class="stats-row"><div class="stat-card"><div class="stat-value">${volumeDisplay}</div><div class="stat-label">Объём (⭐)</div></div><div class="stat-card"><div class="stat-value">${sharesDisplay}</div><div class="stat-label">Акций</div></div></div></div>${rankHtml}${nextHtml}</div>`;
+    
+    const html = `
+        <div class="card" style="text-align: center; overflow: visible !important;">
+            <div id="avatarClickWrapper">
+                <div class="avatar-circle" style="background: ${avatarBg}; border: 3px solid ${avatarBorder};">
+                    <span class="avatar-emoji" style="${emojiStyle}">${avatarUrl}</span>
+                </div>
+                <div class="small-text">Нажмите на аватар для кастомизации</div>
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 8px;">
+                <p style="font-size:20px; font-weight:bold; margin:0;">${currentUser.username}</p>
+                <button id="changeNickBtn" style="background: none; border: none; font-size: 18px; cursor: pointer; padding: 0; margin: 0; width: auto; color: #0ff;">✏️</button>
+            </div>
+            <p class="small-text">ID: ${userId}</p>
+            <p class="small-text">📅 Регистрация: ${registeredDate}</p>
+            <div class="achievement-icons">${iconsHtml.join('')}</div>
+            <div class="small-text">Нажмите на значок, чтобы выбрать/убрать достижение</div>
+            <div class="stats-container">
+                <div class="stats-row">
+                    <div class="stat-card"><div class="stat-value">${starsDisplay}</div><div class="stat-label">Stars</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.totalTrades}</div><div class="stat-label">Сделок</div></div>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-card"><div class="stat-value">${volumeDisplay}</div><div class="stat-label">Объём (⭐)</div></div>
+                    <div class="stat-card"><div class="stat-value">${sharesDisplay}</div><div class="stat-label">Акций</div></div>
+                </div>
+            </div>
+            ${rankHtml}
+            ${nextHtml}
+            ${categoryHtml}
+        </div>
+    `;
     document.getElementById('app').innerHTML = html;
+    
+    // Обработчики
     document.getElementById('showGuideBtn')?.addEventListener('click', () => showAchievementsGuide(currentUser, getUserStats));
+    document.getElementById('changeNickBtn')?.addEventListener('click', () => {
+        showChangeNicknameModal(currentUser, updateUserCallback, renderProfileTabBound, showCustomModal);
+    });
+    
     const updateUserCallback = async (updates) => { await supabase.from('users').update(updates).eq('id', userId); Object.assign(currentUser, updates); };
     const renderProfileTabBound = async () => { await window.renderProfileTab(currentUser, supabase, userId, fromCents, showCustomModal, getUserStats, getUserRank, getEarnedAchievements, getAllAchievements, updateBellBadge, showNotificationsModal); };
+    
     document.getElementById('avatarClickWrapper')?.addEventListener('click', () => { startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTabBound, showCustomModal); });
     document.querySelectorAll('.achi-icon').forEach(icon => { icon.addEventListener('click', async () => { const slot = parseInt(icon.dataset.slot); const currentAchId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null; await openAchievementSelectorForSlot(slot, earnedAchievements, selectedIds, currentAchId, updateUserCallback, currentUser, renderProfileTabBound, showCustomModal); }); });
+    
     await updateBellBadge();
 };
