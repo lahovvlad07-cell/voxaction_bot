@@ -1,20 +1,88 @@
+/* tabs.css – улучшенные табы со стрелками для прокрутки */
+
 .tabs-wrapper {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(10,14,26,0.95);
+    background: rgba(10, 14, 26, 0.95);
     backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(56,189,248,0.25);
+    border-top: 1px solid rgba(56, 189, 248, 0.25);
     padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
     z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.tabs-scroll-container {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.tabs {
+    display: flex;
+    gap: 6px;
+    padding: 0 12px;
     overflow-x: auto;
-    white-space: nowrap;
+    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     cursor: grab;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex: 1;
+    justify-content: flex-start;
 }
-.tabs-wrapper:active { cursor: grabbing; }
-.tabs { display: inline-flex; gap: 6px; padding: 0 12px; }
+.tabs::-webkit-scrollbar {
+    display: none;
+}
+.tabs:active {
+    cursor: grabbing;
+}
+
+/* Стрелки прокрутки */
+.tab-scroll-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+    font-size: 18px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+    user-select: none;
+    opacity: 0;
+    pointer-events: none;
+}
+.tabs-wrapper:hover .tab-scroll-btn {
+    opacity: 0.7;
+    pointer-events: auto;
+}
+.tab-scroll-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #eef2ff;
+    border-color: #0ff;
+}
+.tab-scroll-btn:active {
+    transform: scale(0.9);
+}
+.tab-scroll-btn.hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Каждый таб */
 .tab {
     display: inline-flex;
     flex-direction: column;
@@ -22,14 +90,47 @@
     justify-content: center;
     padding: 8px 12px;
     border-radius: 60px;
-    background: rgba(255,255,255,0.04);
+    background: rgba(255, 255, 255, 0.04);
     transition: all 0.2s;
     cursor: pointer;
     min-width: 68px;
+    flex-shrink: 0;
+    border: 1px solid transparent;
 }
 .tab.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    box-shadow: 0 0 12px rgba(43,110,158,0.6);
+    box-shadow: 0 0 12px rgba(43, 110, 158, 0.6);
+    border-color: #0ff;
 }
-.tab-icon { font-size: 22px; margin-bottom: 4px; }
-.tab-label { font-size: 11px; font-weight: 600; }
+.tab-icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+.tab-label {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Адаптив */
+@media (max-width: 560px) {
+    .tab-scroll-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+        margin: 0 1px;
+    }
+    .tab {
+        padding: 6px 10px;
+        min-width: 56px;
+    }
+    .tab-icon {
+        font-size: 20px;
+    }
+    .tab-label {
+        font-size: 10px;
+    }
+    .tabs {
+        padding: 0 8px;
+        gap: 4px;
+    }
+}
