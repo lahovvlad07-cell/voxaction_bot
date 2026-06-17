@@ -1,4 +1,4 @@
-// profile.js – финальная версия с анимациями, сменой ника, прогрессом по категориям и подсветкой новых достижений
+// profile.js – финальная версия с анимациями, сменой ника, прогрессом по категориям, подсветкой новых достижений и ТОЛЬКО ДАТОЙ в полученных достижениях
 
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
@@ -68,15 +68,12 @@ async function checkNewAchievements(earnedAchievements) {
     const currentIds = earnedAchievements.map(a => a.id).sort();
     const newIds = currentIds.filter(id => !lastKnownAchievementIds.includes(id));
     if (newIds.length) {
-        // Показываем уведомление о новых достижениях
         const newAch = earnedAchievements.filter(a => newIds.includes(a.id));
         for (const ach of newAch) {
-            // Показываем модалку или тост
             window.showCustomModal(`🏆 Новое достижение!`, `${ach.icon} ${ach.name}\n\n${ach.description}`);
         }
     }
     lastKnownAchievementIds = currentIds;
-    // Сохраняем в localStorage, чтобы не показывать повторно
     localStorage.setItem('lastKnownAchievementIds', JSON.stringify(currentIds));
 }
 
@@ -111,7 +108,6 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
         return null;
     }).filter(a => a !== null);
     
-    // Сортируем по прогрессу (кто ближе к завершению – выше)
     withProgress.sort((a, b) => b.progress - a.progress);
     return withProgress.slice(0, 5);
 }
@@ -275,7 +271,8 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         const isUsedElsewhere = otherSelected.includes(ach.id);
         const disabledClass = isUsedElsewhere ? 'disabled' : '';
         const selectedClass = isSelected ? 'selected' : '';
-        const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleString() : 'дата не указана';
+        // ТОЛЬКО ДАТА (без времени)
+        const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleDateString() : 'дата не указана';
         let conditionText = getConditionText(ach);
         if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист') conditionText = '';
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
@@ -471,17 +468,14 @@ async function showChangeNicknameModal(currentUser, updateUserCallback, renderPr
 
 // ========== ГЛАВНЫЙ РЕНДЕР ПРОФИЛЯ ==========
 window.renderProfileTab = async function(currentUser, supabase, userId, fromCents, showCustomModal, getUserStats, getUserRank, getEarnedAchievements, getAllAchievements, updateBellBadge, showNotificationsModal) {
-    // Проверяем новые достижения
     if (window.checkAllAchievements) await window.checkAllAchievements();
     const earnedAchievements = await getEarnedAchievements();
-    // Загружаем сохранённые ID для подсветки
     const savedIds = localStorage.getItem('lastKnownAchievementIds');
     if (savedIds) {
         try {
             lastKnownAchievementIds = JSON.parse(savedIds);
         } catch(e) { lastKnownAchievementIds = []; }
     }
-    // Проверяем, появились ли новые
     await checkNewAchievements(earnedAchievements);
     
     const stats = await getUserStats();
@@ -525,7 +519,6 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
         nextHtml = `<div class="next-achievements" style="text-align:center;"><span style="font-size:48px;">✅</span><br><span class="small-text">Все достижения получены!</span></div>`;
     }
     
-    // ===== Прогресс по категориям =====
     const categoryProgress = await getCategoryProgress(currentUser, getUserStats);
     let categoryHtml = `<div class="category-progress"><div class="small-text" style="margin-bottom:8px;">📊 Прогресс по категориям достижений:</div>`;
     for (const [cat, data] of Object.entries(categoryProgress)) {
@@ -583,7 +576,6 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     `;
     document.getElementById('app').innerHTML = html;
     
-    // Обработчики
     document.getElementById('showGuideBtn')?.addEventListener('click', () => showAchievementsGuide(currentUser, getUserStats));
     document.getElementById('changeNickBtn')?.addEventListener('click', () => {
         showChangeNicknameModal(currentUser, updateUserCallback, renderProfileTabBound, showCustomModal);
