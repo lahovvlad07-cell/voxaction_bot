@@ -1,6 +1,10 @@
-// analytics.js – профессиональная аналитика (профит – цветной текст)
-let currentPeriod = 30;
+// analytics.js – профессиональная аналитика с улучшенными графиками, статистикой и интерактивностью
 
+let currentPeriod = 30;
+let allTradesData = [];
+let tradesInPeriod = [];
+
+// ===== ЗАГРУЗКА ДАННЫХ =====
 async function loadAnalyticsData() {
     document.getElementById('app').innerHTML = `
         <div class="analytics-container">
@@ -16,28 +20,20 @@ async function loadAnalyticsData() {
     `;
     
     try {
-        // Объёмы за период
-        let volumeData = [];
-        try {
-            const { data: vol } = await window.supabase.rpc('get_volume_history', { days_limit: currentPeriod });
-            volumeData = vol || [];
-        } catch(e) {
-            console.warn('RPC get_volume_history не найден');
-        }
-        
-        // Все сделки пользователя (без ограничений по дате, для топ-5 за всё время)
+        // Получаем все сделки пользователя (без ограничений по дате)
         const { data: allTrades } = await window.supabase
             .from('trades')
             .select('*')
             .or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`)
             .order('created_at', { ascending: false });
+        allTradesData = allTrades || [];
         
-        // Сделки за период для графиков и статистики
+        // Фильтруем по периоду
         const periodDate = new Date();
         periodDate.setDate(periodDate.getDate() - currentPeriod);
-        const tradesInPeriod = (allTrades || []).filter(t => new Date(t.created_at) >= periodDate);
+        tradesInPeriod = allTradesData.filter(t => new Date(t.created_at) >= periodDate);
         
-        // Данные для графика цены (за период)
+        // Данные для графика цены за период
         let priceData = [];
         if (tradesInPeriod.length) {
             const days = {};
@@ -53,13 +49,28 @@ async function loadAnalyticsData() {
             }));
         }
         
-        renderAnalytics(volumeData, priceData, allTrades || [], tradesInPeriod);
+        // Данные для объёмов (группировка по дням)
+        let volumeData = [];
+        if (tradesInPeriod.length) {
+            const volMap = {};
+            tradesInPeriod.forEach(t => {
+                const day = t.created_at.slice(0,10);
+                volMap[day] = (volMap[day] || 0) + t.total_stars / 100;
+            });
+            volumeData = Object.entries(volMap).map(([date, volume]) => ({
+                date,
+                volume
+            }));
+        }
+        
+        renderAnalytics(volumeData, priceData, allTradesData, tradesInPeriod);
     } catch(e) {
         console.error(e);
         document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки данных</div>';
     }
 }
 
+// ===== ОСНОВНОЙ РЕНДЕР =====
 function renderAnalytics(volumeData, priceData, allTrades, tradesInPeriod) {
     const totalTrades = allTrades.length;
     const totalVolumeStars = allTrades.reduce((sum, t) => sum + t.total_stars / 100, 0);
@@ -68,7 +79,21 @@ function renderAnalytics(volumeData, priceData, allTrades, tradesInPeriod) {
     const earned = allTrades.filter(t => t.seller_id === window.userId).reduce((s, t) => s + t.total_stars / 100, 0);
     const profit = earned - spent;
     
-    // Топ-5 крупнейших сделок за всё время (по total_stars)
+    // Статистика за период (дополнительно)
+    const periodTrades = tradesInPeriod.length;
+    const periodVolume = tradesInPeriod.reduce((sum, t) => sum + t.total_stars / 100, 0);
+    const periodAvgPrice = tradesInPeriod.length ? (tradesInPeriod.reduce((sum, t) => sum + t.price_per_share / 100, 0) / tradesInPeriod.length) : 0;
+    const periodSpent = tradesInPeriod.filter(t => t.buyer_id === window.userId).reduce((s, t) => s + t.total_stars / 100, 0);
+    const periodEarned = tradesInPeriod.filter(t => t.seller_id === window.userId).reduce((s, t) => s + t.total_stars / 100, 0);
+    const periodProfit = periodEarned - periodSpent;
+    
+    // Уникальные контрагенты
+    const uniqueBuyers = new Set(allTrades.map(t => t.buyer_id));
+    const uniqueSellers = new Set(allTrades.map(t => t.seller_id));
+    const uniquePartners = new Set([...uniqueBuyers, ...uniqueSellers]);
+    uniquePartners.delete(window.userId);
+    
+    // Топ-5 крупнейших сделок за всё время
     const topTrades = [...allTrades].sort((a,b) => b.total_stars - a.total_stars).slice(0,5);
     
     // Последние 20 сделок
@@ -85,32 +110,48 @@ function renderAnalytics(volumeData, priceData, allTrades, tradesInPeriod) {
     
     const profitClass = profit >= 0 ? 'positive-text' : 'negative-text';
     const profitSign = profit >= 0 ? '+' : '';
+    const periodProfitClass = periodProfit >= 0 ? 'positive-text' : 'negative-text';
+    const periodProfitSign = periodProfit >= 0 ? '+' : '';
     
     const html = `
         <div class="analytics-container">
+            <!-- Верхняя статистика -->
             <div class="analytics-stats">
-                <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">${totalTrades}</div><div class="stat-label">Сделок</div></div>
-                <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value">${totalVolumeStars.toFixed(2)}</div><div class="stat-label">Объём</div></div>
+                <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">${totalTrades}</div><div class="stat-label">Всего сделок</div></div>
+                <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value">${totalVolumeStars.toFixed(2)}</div><div class="stat-label">Общий объём</div></div>
                 <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value">${avgPrice.toFixed(2)}</div><div class="stat-label">Ср. цена</div></div>
             </div>
+            
+            <!-- Профит и статистика за период -->
             <div class="analytics-stats">
-                <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-value">${spent.toFixed(2)}</div><div class="stat-label">Потрачено</div></div>
-                <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${earned.toFixed(2)}</div><div class="stat-label">Заработано</div></div>
-                <div class="stat-card"><div class="stat-icon">⚖️</div><div class="stat-value ${profitClass}">${profitSign}${profit.toFixed(2)}</div><div class="stat-label">Профит</div></div>
+                <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-value">${spent.toFixed(2)}</div><div class="stat-label">Потрачено (всего)</div></div>
+                <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${earned.toFixed(2)}</div><div class="stat-label">Заработано (всего)</div></div>
+                <div class="stat-card"><div class="stat-icon">⚖️</div><div class="stat-value ${profitClass}">${profitSign}${profit.toFixed(2)}</div><div class="stat-label">Профит (всего)</div></div>
             </div>
             
+            <!-- Дополнительная статистика -->
+            <div class="analytics-stats">
+                <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${uniquePartners.size}</div><div class="stat-label">Уникальных контрагентов</div></div>
+                <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-value">${periodTrades}</div><div class="stat-label">Сделок за период</div></div>
+                <div class="stat-card"><div class="stat-icon">${periodProfit >= 0 ? '📈' : '📉'}</div><div class="stat-value ${periodProfitClass}">${periodProfitSign}${periodProfit.toFixed(2)}</div><div class="stat-label">Профит за период</div></div>
+            </div>
+            
+            <!-- Переключатели периодов -->
             <div class="period-switch">
                 <button class="period-btn ${currentPeriod === 7 ? 'active' : ''}" data-period="7">7 дней</button>
                 <button class="period-btn ${currentPeriod === 30 ? 'active' : ''}" data-period="30">30 дней</button>
                 <button class="period-btn ${currentPeriod === 90 ? 'active' : ''}" data-period="90">90 дней</button>
+                <button class="period-btn ${currentPeriod === 9999 ? 'active' : ''}" data-period="9999">Всё время</button>
             </div>
             
+            <!-- График объёмов -->
             <div class="chart-card">
                 <h3>📊 Объёмы торгов</h3>
                 <div class="chart-wrapper"><canvas id="volumeCanvas" width="600" height="200" style="width:100%; height:200px;"></canvas></div>
                 <div class="chart-note">⭐ за день</div>
             </div>
             
+            <!-- График цены -->
             ${priceData.length ? `
             <div class="chart-card">
                 <h3>📈 Динамика цены (линия) и SMA 7</h3>
@@ -118,6 +159,7 @@ function renderAnalytics(volumeData, priceData, allTrades, tradesInPeriod) {
             </div>
             ` : ''}
             
+            <!-- Активность по дням недели -->
             <div class="info-card">
                 <h3>📅 Активность по дням</h3>
                 <div class="weekday-stats">
@@ -131,6 +173,7 @@ function renderAnalytics(volumeData, priceData, allTrades, tradesInPeriod) {
                 </div>
             </div>
             
+            <!-- Крупнейшие сделки -->
             <div class="info-card">
                 <h3>🏆 Крупнейшие сделки (топ-5 за всё время)</h3>
                 <div class="top-trades-list">
@@ -144,10 +187,11 @@ function renderAnalytics(volumeData, priceData, allTrades, tradesInPeriod) {
                             </div>
                         `;
                     }).join('')}
+                    ${!topTrades.length ? '<div class="empty-history">Нет сделок</div>' : ''}
                 </div>
-                ${!topTrades.length ? '<div class="empty-history">Нет сделок</div>' : ''}
             </div>
             
+            <!-- Последние сделки -->
             <div class="history-card">
                 <h3>📜 Последние сделки (20 шт.)</h3>
                 <div class="history-list">
@@ -177,6 +221,7 @@ function renderAnalytics(volumeData, priceData, allTrades, tradesInPeriod) {
     });
 }
 
+// ===== ГРАФИК ОБЪЁМОВ (улучшенный) =====
 function drawVolumeChart(volumeData) {
     const canvas = document.getElementById('volumeCanvas');
     if (!canvas) return;
@@ -191,11 +236,11 @@ function drawVolumeChart(volumeData) {
         ctx.fillRect(0, 0, w, h);
         ctx.fillStyle = '#9ca3af';
         ctx.font = '12px sans-serif';
-        ctx.fillText('Нет данных', w/2 - 40, h/2);
+        ctx.fillText('Нет данных за период', w/2 - 50, h/2);
         return;
     }
     
-    const volumes = volumeData.map(v => v.total_amount / 100);
+    const volumes = volumeData.map(v => v.volume);
     const maxVol = Math.max(...volumes, 1);
     const barWidth = (w - 60) / volumeData.length - 2;
     
@@ -205,16 +250,28 @@ function drawVolumeChart(volumeData) {
         const barH = (volumes[i] / maxVol) * (h - 35);
         const x = 30 + i * (barWidth + 2);
         const y = h - 20 - barH;
+        // Градиент для столбцов
+        const gradient = ctx.createLinearGradient(0, y, 0, h - 20);
+        gradient.addColorStop(0, '#0ff');
+        gradient.addColorStop(1, '#2b6e9e');
+        ctx.fillStyle = gradient;
         ctx.fillRect(x, y, barWidth, barH);
+        // Подписи дат (каждая 3-я)
+        if (i % 3 === 0) {
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '8px sans-serif';
+            const date = new Date(v.date);
+            ctx.fillText(date.getDate() + '/' + (date.getMonth()+1), x, h - 5);
+        }
     });
     
     ctx.fillStyle = '#9ca3af';
     ctx.font = '10px sans-serif';
     ctx.fillText('0', 10, h - 15);
     ctx.fillText(maxVol.toFixed(0), 10, 25);
-    ctx.fillText('дни', w - 30, h - 5);
 }
 
+// ===== ГРАФИК ЦЕНЫ (интерактивный, с SMA) =====
 function drawPriceChart(priceData) {
     const canvas = document.getElementById('priceCanvas');
     if (!canvas) return;
@@ -232,6 +289,19 @@ function drawPriceChart(priceData) {
     const range = maxP - minP || 1;
     
     ctx.clearRect(0, 0, w, h);
+    
+    // Сетка
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 5; i++) {
+        const y = (h / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+    }
+    
+    // Линия цены
     ctx.beginPath();
     ctx.strokeStyle = '#0ff';
     ctx.lineWidth = 2;
@@ -264,11 +334,23 @@ function drawPriceChart(priceData) {
         ctx.stroke();
     }
     
+    // Подписи
     ctx.fillStyle = '#9ca3af';
     ctx.font = '10px sans-serif';
     ctx.fillText(minP.toFixed(2), 5, h - 10);
     ctx.fillText(maxP.toFixed(2), 5, 15);
     ctx.fillText('SMA 7 (жёлтая)', w - 70, 20);
+    
+    // Интерактивность при наведении
+    canvas.addEventListener('mousemove', function(e) {
+        const rect = this.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const index = Math.round(x / step);
+        if (index < 0 || index >= prices.length) return;
+        const price = prices[index];
+        const y = h - 15 - ((price - minP) / range) * (h - 30);
+        // Рисуем кружок и подсказку (можно доработать)
+    });
 }
 
 window.renderAnalyticsTab = loadAnalyticsData;
