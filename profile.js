@@ -1,4 +1,4 @@
-// profile.js – полная версия с обучением, без смены ника, с исправленными эмодзи
+// profile.js – финальная версия с онбордингом, без смены ника, исправлен дубль эмодзи
 
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
@@ -70,9 +70,9 @@ async function checkNewAchievements(earnedAchievements) {
     if (newIds.length) {
         const newAch = earnedAchievements.filter(a => newIds.includes(a.id));
         for (const ach of newAch) {
-            // Исправлено: убираем дублирование эмодзи (берем только icon из базы)
+            // Исправление: не дублируем эмодзи
             const icon = ach.icon || '🏆';
-            window.showCustomModal(`🏆 Новое достижение!`, `${icon} ${ach.name}\n\n${ach.description}`);
+            window.showCustomModal('🏆 Новое достижение!', `${icon} ${ach.name}\n\n${ach.description}`);
         }
     }
     lastKnownAchievementIds = currentIds;
@@ -85,7 +85,7 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
     if (!all) return [];
     const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
     const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
-    const exclude = ['🌟 Первый шаг', '🎨 Стилист', '🎓 Прошёл обучение'];
+    const exclude = ['🌟 Первый шаг', '🎨 Стилист', '🎓 Выпускник'];
     const notEarned = all.filter(a => !earnedIds.has(a.id) && !exclude.includes(a.name) && a.condition_type !== 'none');
     if (notEarned.length === 0) return [];
     
@@ -128,7 +128,7 @@ async function getCategoryProgress(currentUser, getUserStats) {
         'Дни': { total: 0, earned: 0 }
     };
     for (const ach of all) {
-        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Прошёл обучение') continue;
+        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Выпускник') continue;
         let category = '';
         if (ach.condition_type === 'trades_count') category = 'Сделки';
         else if (ach.condition_type === 'shares_held') category = 'Акции';
@@ -156,7 +156,7 @@ async function getAllAchievementsByCategory() {
         'Дни': []
     };
     for (const ach of all) {
-        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Прошёл обучение') continue;
+        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Выпускник') continue;
         let category = '';
         if (ach.condition_type === 'trades_count') category = 'Сделки';
         else if (ach.condition_type === 'shares_held') category = 'Акции';
@@ -211,7 +211,7 @@ async function showAchievementsGuide(currentUser, getUserStats) {
             } else if (isCompleted) {
                 progressPercent = 100;
             }
-            let displayIcon = ach.icon || '🏆';
+            let displayIcon = ach.icon;
             return `
                 <div class="guide-card">
                     <div class="guide-card-icon">${displayIcon}</div>
@@ -275,11 +275,10 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         const selectedClass = isSelected ? 'selected' : '';
         const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleDateString() : 'дата не указана';
         let conditionText = getConditionText(ach);
-        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Прошёл обучение') conditionText = '';
-        // Исправлено: используем ach.icon, если есть, иначе '🏆'
-        const displayIcon = ach.icon || '🏆';
+        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист' || ach.name === '🎓 Выпускник') conditionText = '';
+        // Исправление: не дублируем эмодзи
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
-            <div class="achievement-name">${displayIcon} ${ach.name}</div>
+            <div class="achievement-name">${ach.name}</div>
             ${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}
             <div class="achievement-date">🏅 Получено: ${earnedDate}</div>
         </div>`;
@@ -422,79 +421,84 @@ async function startFullCustomization(currentUser, supabase, updateUserCallback,
     await awardStylistAchievement(); await renderProfileTab();
 }
 
-// ========== ТУТОРИАЛ (ОБУЧЕНИЕ) ==========
-function showTutorial(currentUser, renderProfileTabBound, getUserStats, getUserRank, getEarnedAchievements, getAllAchievements, updateBellBadge, showNotificationsModal) {
-    const tutorialData = window.getTutorialData();
-    let currentStep = 0;
-    const totalSteps = tutorialData.length;
+// ========== ОНБОРДИНГ (ОБУЧЕНИЕ) ==========
+async function showOnboarding(renderProfileTab) {
+    const onboardingDone = localStorage.getItem('onboarding_done');
+    if (onboardingDone === 'true') return;
 
-    function renderStep() {
-        const step = tutorialData[currentStep];
-        const isLast = currentStep === totalSteps - 1;
-        const html = `
-            <div class="tutorial-overlay" id="tutorialOverlay">
-                <div class="tutorial-card">
-                    <div class="tutorial-header">
-                        <span class="tutorial-step">${currentStep + 1}/${totalSteps}</span>
-                        <button class="tutorial-skip" id="tutorialSkip">✕</button>
-                    </div>
-                    <div class="tutorial-icon">${step.tab === 'profile' ? '👤' : step.tab === 'stocks' ? '📈' : step.tab === 'analytics' ? '📊' : step.tab === 'rating' ? '🏆' : step.tab === 'wallet' ? '💳' : step.tab === 'referral' ? '🔗' : step.tab === 'mining' ? '⛏️' : '📰'}</div>
-                    <div class="tutorial-title">${step.title}</div>
-                    <div class="tutorial-description">${step.description}</div>
-                    <div class="tutorial-progress">
-                        <div class="tutorial-progress-bar">
-                            <div class="tutorial-progress-fill" style="width: ${((currentStep + 1) / totalSteps) * 100}%;"></div>
+    const steps = [
+        { tab: 'profile', title: '👤 Профиль', description: 'Здесь вы можете настроить аватар, посмотреть свою статистику и достижения.' },
+        { tab: 'stocks', title: '📈 Акции', description: 'Торгуйте виртуальными акциями: создавайте ордера на продажу и покупку, смотрите стакан и график.' },
+        { tab: 'analytics', title: '📊 Аналитика', description: 'Просматривайте свою статистику, графики цен и объёмов, анализируйте свои сделки.' },
+        { tab: 'rating', title: '🏆 Рейтинг', description: 'Соревнуйтесь с другими игроками по количеству акций. Поднимайтесь в топ!' },
+        { tab: 'wallet', title: '💳 Кошелёк', description: 'Пополняйте баланс Stars, выводите средства и следите за историей операций.' },
+        { tab: 'referral', title: '🔗 Рефералка', description: 'Приглашайте друзей и получайте бонусы за каждого активного реферала.' },
+        { tab: 'mining', title: '⛏️ Заработок', description: 'Запускайте майнинг на 12 часов и зарабатывайте акции в реальном времени.' },
+        { tab: 'news', title: '📰 Новости', description: 'Читайте последние новости проекта и анонсы обновлений.' }
+    ];
+
+    let currentStep = 0;
+
+    function showStep(index) {
+        const step = steps[index];
+        if (!step) return;
+
+        const modalHtml = `
+            <div class="modal onboarding-modal" id="onboardingModal" style="display:flex;">
+                <div class="modal-content">
+                    <span class="close-modal" id="closeOnboarding">&times;</span>
+                    <div class="onboarding-content">
+                        <div class="onboarding-step">${index + 1} / ${steps.length}</div>
+                        <div class="onboarding-title">${step.title}</div>
+                        <div class="onboarding-description">${step.description}</div>
+                        <div class="onboarding-tab-icon">${step.tab}</div>
+                        <div class="onboarding-buttons">
+                            <button id="onboardingSkip" class="secondary">Пропустить</button>
+                            <button id="onboardingNext">${index === steps.length - 1 ? '✅ Завершить' : 'Далее →'}</button>
                         </div>
-                    </div>
-                    <div class="tutorial-buttons">
-                        ${currentStep > 0 ? `<button class="tutorial-prev" id="tutorialPrev">← Назад</button>` : ''}
-                        <button class="tutorial-next" id="tutorialNext">${isLast ? '🏆 Завершить' : 'Далее →'}</button>
                     </div>
                 </div>
             </div>
         `;
-        // Удаляем старый туториал, если есть
-        const old = document.getElementById('tutorialOverlay');
-        if (old) old.remove();
-        document.body.insertAdjacentHTML('beforeend', html);
-
-        document.getElementById('tutorialSkip').addEventListener('click', async () => {
-            document.getElementById('tutorialOverlay').remove();
-            // Если пропустили, не выдаём достижение, но помечаем, что видели
-            localStorage.setItem('tutorial_completed', 'skipped');
-            // Переключаем на вкладку профиля для отображения
-            document.querySelector('.tab[data-tab="profile"]').click();
-        });
-
-        document.getElementById('tutorialNext').addEventListener('click', async () => {
-            if (isLast) {
-                document.getElementById('tutorialOverlay').remove();
-                // Выдаём достижение за завершение обучения
-                await window.completeTutorial();
-                // Переключаем на вкладку профиля, чтобы показать достижение
-                document.querySelector('.tab[data-tab="profile"]').click();
-                // Показываем модалку с поздравлением
-                window.showCustomModal('🎉 Обучение пройдено!', 'Вы получили достижение "🎓 Прошёл обучение"! Теперь вы готовы к полноценной игре.');
-                return;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = document.getElementById('onboardingModal');
+        document.getElementById('closeOnboarding').onclick = () => {
+            modal.remove();
+            completeOnboarding(renderProfileTab);
+        };
+        document.getElementById('onboardingSkip').onclick = () => {
+            modal.remove();
+            completeOnboarding(renderProfileTab);
+        };
+        document.getElementById('onboardingNext').onclick = () => {
+            modal.remove();
+            if (index < steps.length - 1) {
+                // Переключаем вкладку на следующую
+                const nextTab = steps[index + 1].tab;
+                const tabElement = document.querySelector(`.tab[data-tab="${nextTab}"]`);
+                if (tabElement) tabElement.click();
+                setTimeout(() => showStep(index + 1), 300);
+            } else {
+                completeOnboarding(renderProfileTab);
             }
-            currentStep++;
-            renderStep();
-            // Переключаем вкладку на соответствующую
-            const tabName = tutorialData[currentStep].tab;
-            document.querySelector(`.tab[data-tab="${tabName}"]`).click();
-        });
-
-        document.getElementById('tutorialPrev')?.addEventListener('click', () => {
-            currentStep--;
-            renderStep();
-            const tabName = tutorialData[currentStep].tab;
-            document.querySelector(`.tab[data-tab="${tabName}"]`).click();
-        });
+        };
     }
 
-    // Начинаем с первой вкладки
-    document.querySelector(`.tab[data-tab="${tutorialData[0].tab}"]`).click();
-    renderStep();
+    async function completeOnboarding(renderProfileTab) {
+        localStorage.setItem('onboarding_done', 'true');
+        // Выдаём достижение "Выпускник"
+        const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎓 Выпускник').single();
+        if (ach) {
+            await window.awardAchievement(ach.id);
+        }
+        if (renderProfileTab) await renderProfileTab();
+    }
+
+    // Начинаем обучение с первой вкладки
+    const firstTab = steps[0].tab;
+    const tabElement = document.querySelector(`.tab[data-tab="${firstTab}"]`);
+    if (tabElement) tabElement.click();
+    setTimeout(() => showStep(0), 500);
 }
 
 // ========== ГЛАВНЫЙ РЕНДЕР ПРОФИЛЯ ==========
@@ -515,7 +519,7 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     const iconsHtml = [];
     for (let i = 0; i < 3; i++) {
         const ach = earnedAchievements.find(a => a.id === selectedIds[i]);
-        iconsHtml.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon || '🏆'}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
+        iconsHtml.push(ach ? `<div class="achi-icon earned" data-slot="${i}" data-ach-id="${ach.id}" title="${ach.name}: ${ach.description}">${ach.icon}</div>` : `<div class="achi-icon" data-slot="${i}">?</div>`);
     }
     const rank = await getUserRank();
     const rankHtml = rank ? `<div class="rank-card"><span>🏆 Рейтинг</span><span style="font-size:20px; font-weight:bold;">#${rank}</span></div>` : '';
@@ -537,7 +541,7 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
             nextHtml += `
                 <div class="next-achievement-item">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span class="next-achievement-icon">${ach.icon || '🏆'}</span>
+                        <span class="next-achievement-icon">${ach.icon}</span>
                         <span class="next-achievement-text">${conditionStr}</span>
                         <span class="next-achievement-count">${progressDisplay}</span>
                     </div>
@@ -574,7 +578,6 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     const volumeDisplay = stats.totalVolume.toFixed(2);
     const sharesDisplay = fromCents(currentUser.shares);
     
-    // Убрана кнопка смены ника
     const html = `
         <div class="card" style="text-align: center; overflow: visible !important;">
             <div id="avatarClickWrapper">
@@ -613,26 +616,10 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     document.getElementById('avatarClickWrapper')?.addEventListener('click', () => { startFullCustomization(currentUser, supabase, updateUserCallback, renderProfileTabBound, showCustomModal); });
     document.querySelectorAll('.achi-icon').forEach(icon => { icon.addEventListener('click', async () => { const slot = parseInt(icon.dataset.slot); const currentAchId = icon.dataset.achId ? parseInt(icon.dataset.achId) : null; await openAchievementSelectorForSlot(slot, earnedAchievements, selectedIds, currentAchId, updateUserCallback, currentUser, renderProfileTabBound, showCustomModal); }); });
     
-    await updateBellBadge();
-
-    // ===== ПЕРВЫЙ ЗАПУСК ИЛИ ОБУЧЕНИЕ =====
-    // Проверяем, нужно ли показать обучение
-    const isFirstLaunch = window.isFirstLaunch();
-    const tutorialCompleted = window.isTutorialCompleted();
-    if (isFirstLaunch && !tutorialCompleted) {
-        // Показываем приветствие и запускаем туториал
-        window.showCustomModal('👋 Добро пожаловать в VoxAction!', 'Сейчас мы проведём вас по основным вкладкам проекта.\n\nЭто займёт всего минуту, и вы получите достижение 🎓 "Прошёл обучение"!\n\nНажмите "Далее", чтобы начать.');
-        // Ждём закрытия модалки, затем запускаем туториал
-        const checkModal = setInterval(() => {
-            const modal = document.getElementById('customMessageModal');
-            if (!modal) {
-                clearInterval(checkModal);
-                showTutorial(currentUser, renderProfileTabBound, getUserStats, getUserRank, getEarnedAchievements, getAllAchievements, updateBellBadge, showNotificationsModal);
-                window.markFirstLaunchDone();
-            }
-        }, 500);
-    } else if (isFirstLaunch && tutorialCompleted === 'skipped') {
-        // Если пропустили, просто помечаем, что первый запуск пройден
-        window.markFirstLaunchDone();
+    // Запускаем онбординг, если он ещё не был показан
+    if (!localStorage.getItem('onboarding_done')) {
+        setTimeout(() => showOnboarding(renderProfileTabBound), 1000);
     }
+    
+    await updateBellBadge();
 };
