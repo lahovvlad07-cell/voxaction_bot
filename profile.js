@@ -1,4 +1,5 @@
-// profile.js – полная версия (без игр, с исправленным выбором достижений)
+// profile.js – полная версия с правильным склонением и улучшенными достижениями
+
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
     { name: 'Синий', value: '#2b6e9e' }, { name: 'Фиолетовый', value: '#9b59b6' },
@@ -22,21 +23,58 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (3 шт, без игр) ==========
+// ========== ПРАВИЛЬНОЕ СКЛОНЕНИЕ ==========
+function getConditionText(ach) {
+    if (ach.condition_type === 'none') return '';
+    let val = ach.condition_value;
+    let suffix = '';
+    switch (ach.condition_type) {
+        case 'trades_count':
+            if (val % 10 === 1 && val % 100 !== 11) suffix = 'сделка';
+            else if (val % 10 >= 2 && val % 10 <= 4 && (val % 100 < 10 || val % 100 >= 20)) suffix = 'сделки';
+            else suffix = 'сделок';
+            return `${val} ${suffix}`;
+        case 'shares_held':
+            return `${val/100} акций`;
+        case 'referrals_count':
+            if (val === 1) suffix = 'друг';
+            else if (val >= 2 && val <= 4) suffix = 'друга';
+            else suffix = 'друзей';
+            return `${val} ${suffix}`;
+        case 'total_topup':
+            return `${val/100} ⭐ пополнено`;
+        case 'total_spent':
+            return `${val/100} ⭐ потрачено`;
+        case 'total_earned':
+            return `${val/100} ⭐ заработано`;
+        case 'total_volume':
+            return `${val/100} ⭐ объём`;
+        case 'stars_held':
+            return `${val/100} ⭐ на балансе`;
+        case 'days_active':
+            if (val === 1) suffix = 'день';
+            else if (val >= 2 && val <= 4) suffix = 'дня';
+            else suffix = 'дней';
+            return `${val} ${suffix}`;
+        default:
+            return '';
+    }
+}
+
+// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ (до 5 шт, сортировка по прогрессу) ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
     const { data: earned } = await window.supabase.from('user_achievements').select('achievement_id').eq('user_id', window.userId);
     const earnedIds = new Set(earned?.map(e => e.achievement_id) || []);
     const exclude = ['🌟 Первый шаг', '🎨 Стилист'];
-    const notEarned = all.filter(a => !earnedIds.has(a.id) && !exclude.includes(a.name));
+    const notEarned = all.filter(a => !earnedIds.has(a.id) && !exclude.includes(a.name) && a.condition_type !== 'none');
     if (notEarned.length === 0) return [];
     
     const stats = await getUserStats();
     const user = currentUser;
     
     const withProgress = notEarned.map(ach => {
-        if (ach.condition_type === 'none') return null;
         let current = 0, needed = ach.condition_value;
         switch (ach.condition_type) {
             case 'trades_count': current = stats.totalTrades; break;
@@ -54,34 +92,13 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
         return null;
     }).filter(a => a !== null);
     
-    const byType = new Map();
-    for (const ach of withProgress) {
-        const t = ach.condition_type;
-        if (!byType.has(t) || ach.needed < byType.get(t).needed) byType.set(t, ach);
-    }
-    const unique = Array.from(byType.values());
-    unique.sort((a,b) => a.needed - b.needed);
-    return unique.slice(0, 3);
+    // Сортируем по прогрессу (кто ближе к завершению – выше)
+    withProgress.sort((a, b) => b.progress - a.progress);
+    // Возвращаем до 5 ближайших
+    return withProgress.slice(0, 5);
 }
 
-// ========== ФУНКЦИИ ДЛЯ СПРАВОЧНИКА (БЕЗ ИГР) ==========
-function getConditionText(ach) {
-    if (ach.condition_type === 'none') return '';
-    let val = ach.condition_value;
-    switch (ach.condition_type) {
-        case 'trades_count': return `${val} сделок`;
-        case 'shares_held': return `${val/100} акций`;
-        case 'referrals_count': return `${val} друзей`;
-        case 'total_topup': return `${val/100} ⭐ пополнено`;
-        case 'total_spent': return `${val/100} ⭐ потрачено`;
-        case 'total_earned': return `${val/100} ⭐ заработано`;
-        case 'total_volume': return `${val/100} ⭐ объём`;
-        case 'stars_held': return `${val/100} ⭐ на балансе`;
-        case 'days_active': return `${val} дней`;
-        default: return '';
-    }
-}
-
+// ========== СПРАВОЧНИК ==========
 async function getAllAchievementsByCategory() {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return {};
@@ -194,14 +211,18 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
-// ========== КАСТОМИЗАЦИЯ АВАТАРА И ВЫБОР ДОСТИЖЕНИЙ ==========
+// ========== КАСТОМИЗАЦИЯ АВАТАРА ==========
 async function awardStylistAchievement() {
     const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
     if (ach) await window.awardAchievement(ach.id);
 }
 
-// ИСПРАВЛЕННАЯ ВЕРСИЯ – без дублирования информации
 async function openAchievementSelectorForSlot(slot, earnedAchievements, currentSelectedIds, currentSlotAchievementId, updateUserCallback, currentUser, renderProfileTab, showCustomModal) {
+    // Если нет достижений – сообщаем
+    if (!earnedAchievements.length) {
+        window.showCustomModal('Достижения', 'У вас пока нет полученных достижений. Выполняйте задания, чтобы их получить!');
+        return;
+    }
     const otherSelected = currentSelectedIds.filter((_, idx) => idx !== slot);
     const isSlotOccupied = currentSlotAchievementId !== null;
     const gridHtml = earnedAchievements.map(ach => {
@@ -210,19 +231,8 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
         const disabledClass = isUsedElsewhere ? 'disabled' : '';
         const selectedClass = isSelected ? 'selected' : '';
         const earnedDate = ach.earned_at ? new Date(ach.earned_at).toLocaleString() : 'дата не указана';
-        let conditionText = '';
-        const hideCondition = ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист';
-        if (!hideCondition && ach.condition_type !== 'none') {
-            switch(ach.condition_type) {
-                case 'trades_count': conditionText = `📊 Сделок: ${ach.condition_value}`; break;
-                case 'shares_held': conditionText = `📈 Акций: ${ach.condition_value/100}`; break;
-                case 'referrals_count': conditionText = `👥 Приглашений: ${ach.condition_value}`; break;
-                case 'total_topup': conditionText = `💰 Пополнено: ${ach.condition_value/100} ⭐`; break;
-                case 'total_spent': conditionText = `💸 Потрачено: ${ach.condition_value/100} ⭐`; break;
-                case 'total_earned': conditionText = `💵 Заработано: ${ach.condition_value/100} ⭐`; break;
-            }
-        }
-        // Убираем дублирование: оставляем только название и условие
+        let conditionText = getConditionText(ach);
+        if (ach.name === '🌟 Первый шаг' || ach.name === '🎨 Стилист') conditionText = '';
         return `<div class="achievement-card ${selectedClass} ${disabledClass}" data-ach-id="${ach.id}" data-disabled="${isUsedElsewhere}">
             <div class="achievement-name">${ach.name}</div>
             ${conditionText ? `<div class="achievement-condition">${conditionText}</div>` : ''}
