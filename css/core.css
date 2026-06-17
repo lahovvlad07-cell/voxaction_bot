@@ -1,4 +1,4 @@
-/* core.css – базовые стили для всего приложения с CSS-переменными */
+/* core.css – базовые стили для всего приложения (без туториала) */
 
 :root {
     --primary-color: #2b6e9e;
@@ -380,79 +380,6 @@ input:focus {
 }
 .confirm-modal .modal-buttons .secondary:hover {
     background: rgba(255,255,255,0.1);
-}
-
-/* ===== ТУТОРИАЛ (подсветка и подсказки) ===== */
-.tutorial-highlight {
-    animation: tutorial-pulse 1.5s ease-in-out infinite;
-    position: relative;
-    z-index: 10001 !important;
-    outline: 3px solid #0ff;
-    outline-offset: 4px;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
-}
-@keyframes tutorial-pulse {
-    0%, 100% { outline: 3px solid #0ff; outline-offset: 4px; box-shadow: 0 0 20px rgba(0,255,255,0.6); }
-    50% { outline: 3px solid #fbbf24; outline-offset: 8px; box-shadow: 0 0 40px rgba(251,191,36,0.8); }
-}
-
-#tutorial-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 9999;
-    pointer-events: none;
-    transition: background 0.3s;
-}
-
-#tutorial-tooltip {
-    position: fixed;
-    background: #1e293b;
-    color: #eef2ff;
-    padding: 16px 20px;
-    border-radius: 16px;
-    max-width: 320px;
-    z-index: 10000;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-    border: 1px solid #0ff;
-    pointer-events: auto;
-    font-size: 14px;
-    line-height: 1.5;
-    transition: opacity 0.3s;
-    opacity: 0;
-}
-#tutorial-tooltip.visible {
-    opacity: 1;
-}
-#tutorial-tooltip .tooltip-title {
-    font-weight: 700;
-    font-size: 18px;
-    margin-bottom: 8px;
-    color: #0ff;
-}
-#tutorial-tooltip .tooltip-text {
-    margin-bottom: 12px;
-}
-#tutorial-tooltip .tooltip-actions {
-    text-align: right;
-}
-#tutorial-tooltip button {
-    background: var(--primary-color, #2b6e9e);
-    border: none;
-    color: white;
-    padding: 6px 18px;
-    border-radius: 30px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-    width: auto;
-    margin: 0;
-}
-#tutorial-tooltip button:hover {
-    transform: scale(1.02);
 }
 
 /* Адаптив */
