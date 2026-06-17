@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="css/settings.css">
     <link rel="stylesheet" href="css/wallet.css">
     <link rel="stylesheet" href="css/mining.css">
+    <link rel="stylesheet" href="css/news.css">
 </head>
 <body>
 <div class="app-header">
@@ -48,6 +49,7 @@
             <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
             <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
             <div class="tab" data-tab="mining"><div class="tab-icon">⛏️</div><div class="tab-label">Заработок</div></div>
+            <div class="tab" data-tab="news"><div class="tab-icon">📰</div><div class="tab-label">Новости</div></div>
             <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
         </div>
     </div>
@@ -64,6 +66,7 @@
 <script src="wallet.js"></script>
 <script src="referral.js"></script>
 <script src="mining.js"></script>
+<script src="news.js"></script>
 <script src="admin.js"></script>
 <script src="settings.js"></script>
 
@@ -112,7 +115,6 @@
             document.getElementById('app').innerHTML = '<div class="card">Ошибка: запустите через Telegram</div>'; 
             return; 
         }
-        if (window.userId === 6048486427) document.querySelector('.admin-tab').style.display = 'inline-flex';
         
         const SUPABASE_URL = "https://gsutnhhklidxmewdkcvk.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdXRuaGhrbGlkeG1ld2RrY3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzA2MTEsImV4cCI6MjA5NjE0NjYxMX0.XEtyJVT0BfmEgAAsGagPHRdHhmCgrtWEbtzov0c3EXc";
@@ -123,6 +125,11 @@
         try {
             const { user, isNew } = await window.getOrCreateUser();
             window.currentUser = user;
+            
+            // Показываем админ-таб, если пользователь админ
+            if (user.is_admin) {
+                document.querySelector('.admin-tab').style.display = 'inline-flex';
+            }
             
             async function updateOnlineStatus() {
                 if (!window.userId) return;
@@ -192,7 +199,6 @@
                 const tabName = tab.dataset.tab;
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                // Прокручиваем активный таб в центр
                 if (tabsContainer) {
                     const containerWidth = tabsContainer.clientWidth;
                     const tabLeft = tab.offsetLeft;
@@ -208,6 +214,7 @@
                     case 'wallet': await window.renderWalletTab(); break;
                     case 'referral': await window.renderReferralTab(); break;
                     case 'mining': await window.renderMiningTab(); break;
+                    case 'news': await window.renderNewsTab(); break;
                     case 'admin': await window.renderAdminTab(); break;
                 }
             });
