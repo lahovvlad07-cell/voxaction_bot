@@ -1,3 +1,5 @@
+// api.js – полный файл со всеми функциями (включая новости, админов, маркет-мейкер, онбординг)
+
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
 
@@ -25,7 +27,7 @@ window.awardAchievement = async function(achievementId) {
             earned_at: new Date().toISOString()
         });
         const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
-        const icon = ach.icon ? ach.icon.charAt(0) : '🏆';
+        const icon = ach.icon || '🏆';
         if (window.showCustomModal) {
             window.showCustomModal('🏆 Достижение получено!', `${icon} ${ach.name}\n\n${ach.description}`);
         } else {
@@ -35,7 +37,7 @@ window.awardAchievement = async function(achievementId) {
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
 };
 
-async function checkAllAchievements() {
+window.checkAllAchievements = async function() {
     const stats = await window.getUserStats(true);
     const user = window.currentUser;
     if (!user) return;
@@ -59,9 +61,9 @@ async function checkAllAchievements() {
         }
         if (conditionMet) await window.awardAchievement(ach.id);
     }
-}
+};
 
-async function updateUserStats() {
+window.updateUserStats = async function() {
     const { data: trades } = await window.supabase
         .from('trades')
         .select('total_stars, buyer_id, seller_id')
@@ -85,7 +87,7 @@ async function updateUserStats() {
         window.currentUser.total_volume = totalVolume;
         window.currentUser.trades_count = totalTrades;
     }
-}
+};
 
 // ========== ПОЛЬЗОВАТЕЛЬ ==========
 window.getOrCreateUser = async function() {
@@ -139,8 +141,7 @@ window.getOrCreateUser = async function() {
             total_volume: 0,
             trades_count: 0,
             days_active: 0,
-            last_username_change: new Date().toISOString(),
-            is_admin: false
+            last_username_change: new Date().toISOString()
         }]).select().single();
         
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
@@ -173,9 +174,9 @@ window.getOrCreateUser = async function() {
     }
     
     let updated = false;
-    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change', 'is_admin'];
+    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change'];
     for (let f of newFields) {
-        if (data[f] === undefined) { data[f] = f === 'last_username_change' ? new Date().toISOString() : (f === 'is_admin' ? false : 0); updated = true; }
+        if (data[f] === undefined) { data[f] = f === 'last_username_change' ? new Date().toISOString() : 0; updated = true; }
     }
     if (updated) {
         await window.supabase.from('users').update({
@@ -185,8 +186,7 @@ window.getOrCreateUser = async function() {
             total_volume: data.total_volume,
             trades_count: data.trades_count,
             days_active: data.days_active,
-            last_username_change: data.last_username_change,
-            is_admin: data.is_admin
+            last_username_change: data.last_username_change
         }).eq('id', window.userId);
     }
     return { user: data, isNew: false };
@@ -213,7 +213,7 @@ window.getUserStats = async function(forceRefresh = false) {
     return stats;
 };
 
-// ========== СМЕНА НИКНЕЙМА ==========
+// ========== СМЕНА НИКНЕЙМА (оставлена для совместимости, но из профиля убрана) ==========
 window.updateUsername = async function(newUsername) {
     if (!newUsername || newUsername.trim().length < 3) throw new Error('Минимум 3 символа');
     if (newUsername.length > 20) throw new Error('Не длиннее 20 символов');
@@ -250,23 +250,87 @@ window.refreshActiveTab = async function() {
         case 'wallet': if (window.renderWalletTab) await window.renderWalletTab(); break;
         case 'referral': if (window.renderReferralTab) await window.renderReferralTab(); break;
         case 'mining': if (window.renderMiningTab) await window.renderMiningTab(); break;
-        case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
         case 'news': if (window.renderNewsTab) await window.renderNewsTab(); break;
+        case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
     }
 };
 
-// ========== ОСТАЛЬНЫЕ ФУНКЦИИ ==========
+// ========== ОНЛАЙН-СТАТУС ==========
+window.updateLastSeen = async function() {
+    try {
+        await window.supabase
+            .from('users')
+            .update({ last_seen: new Date().toISOString() })
+            .eq('id', window.userId);
+    } catch(e) {
+        console.warn('Ошибка обновления last_seen', e);
+    }
+};
+
+window.getOnlineCount = async function() {
+    try {
+        const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
+        const { count, error } = await window.supabase
+            .from('users')
+            .select('*', { count: 'exact', head: true })
+            .gte('last_seen', thirtySecondsAgo);
+        if (error) throw error;
+        return count || 0;
+    } catch(e) {
+        console.warn('Ошибка получения онлайн-статистики', e);
+        return 0;
+    }
+};
+
+// ========== АВАТАР ==========
+window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
+    let bgColor = avatarBg;
+    if (avatarBg && !avatarBg.startsWith('#')) {
+        const mapping = {
+            'gradient1': '#2b6e9e', 'gradient2': '#9b59b6', 'gradient3': '#e67e22',
+            'gradient4': '#27ae60', 'gradient5': '#f1c40f', 'gradient6': '#e74c3c',
+            'gradient7': '#1abc9c', 'gradient8': '#3498db', 'gradient9': '#2c3e50',
+            'gradient10': '#ff9a9e', 'gradient11': '#a18cd1'
+        };
+        bgColor = mapping[avatarBg] || '#2b6e9e';
+    } else if (!avatarBg) {
+        bgColor = '#2b6e9e';
+    }
+    const borderColor = avatarBorder || '#ffffff';
+    const emoji = avatarUrl || '👤';
+    let fontSize = '32px';
+    if (size === '52px') fontSize = '32px';
+    else if (size === '40px') fontSize = '24px';
+    else if (size === '36px') fontSize = '22px';
+    else fontSize = `calc(${size} * 0.6)`;
+    return `<div class="mini-avatar" style="width:${size}; height:${size}; background:${bgColor}; border:2px solid ${borderColor}; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:${fontSize}; box-shadow:0 2px 6px rgba(0,0,0,0.3); flex-shrink:0;"><span>${emoji}</span></div>`;
+};
+
+window.updateUserBorder = async function(color) {
+    const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    if (window.currentUser) window.currentUser.avatar_border = color;
+    return true;
+};
+
+// ========== ОРДЕРА И ТОРГОВЛЯ ==========
 window.get24hAvgPrice = async function() {
     const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').gte('created_at', oneDayAgo);
     if (error || !data || data.length === 0) return 0;
     let totalAmount = 0, totalStars = 0;
     for (let t of data) { totalAmount += t.amount; totalStars += t.amount * t.price_per_share; }
-    return totalAmount ? totalStars / totalAmount / 100 : 0;
+    return totalAmount ? totalStars / totalAmount : 0;
 };
 
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getActiveBuyOrders = async function() {
+    const { data, error } = await window.supabase.from('buy_orders').select('*').eq('status', 'active').order('price_per_share', { ascending: false });
     if (error) throw new Error(error.message);
     return data || [];
 };
@@ -306,8 +370,8 @@ window.createOrder = async function(amountStars, priceStars) {
     if (!data.success) throw new Error(data.error);
     if (data.executed_amount > 0) window.showToast(`✅ Продано ${window.fromCents(data.executed_amount)} шт.`);
     if (data.remaining_amount > 0) window.showToast(`✅ Остаток ${window.fromCents(data.remaining_amount)} шт. в ордере`);
-    await updateUserStats();
-    await checkAllAchievements();
+    await window.updateUserStats();
+    await window.checkAllAchievements();
     return true;
 };
 
@@ -330,8 +394,8 @@ window.createBuyOrder = async function(amountStars, priceStars) {
     if (!data.success) throw new Error(data.error);
     if (data.executed_amount > 0) window.showToast(`✅ Куплено ${window.fromCents(data.executed_amount)} шт.`);
     if (data.remaining_amount > 0) window.showToast(`✅ Остаток ${window.fromCents(data.remaining_amount)} шт. в заявке`);
-    await updateUserStats();
-    await checkAllAchievements();
+    await window.updateUserStats();
+    await window.checkAllAchievements();
     return true;
 };
 
@@ -343,86 +407,8 @@ window.executePartialTrade = async function(orderId, buyAmountCents) {
     });
     if (error) throw new Error(error.message);
     if (!data.success) throw new Error(data.error);
-    await updateUserStats();
-    await checkAllAchievements();
-    return true;
-};
-
-window.getRecentTrades = async (limit = 10) => {
-    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
-    if (error) throw new Error(error.message);
-    return data || [];
-};
-
-window.getPriceHistory = async () => {
-    const { data, error } = await window.supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
-    if (error) throw new Error(error.message);
-    return data || [];
-};
-
-window.getCurrentPrice = async () => {
-    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
-    if (error || !data || data.length === 0) return 100;
-    let totalAmount = 0, totalStars = 0;
-    for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
-    return totalAmount > 0 ? totalStars / totalAmount : 100;
-};
-
-window.getTotalMarketCap = async () => {
-    const { data, error } = await window.supabase.from('users').select('shares');
-    if (error) throw new Error(error.message);
-    const totalSharesCents = data.reduce((s,u) => s + u.shares, 0);
-    const currentPriceCents = await window.getCurrentPrice();
-    const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
-    return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
-};
-
-window.getLeaderboard = async () => {
-    const { data, error } = await window.supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
-    if (error) throw new Error(error.message);
-    return data || [];
-};
-
-window.getUserRank = async () => {
-    const leaders = await window.getLeaderboard();
-    const idx = leaders.findIndex(u => u.id === window.userId);
-    if (idx === -1) return null;
-    return idx + 1;
-};
-
-window.getEarnedAchievements = async () => {
-    const { data, error } = await window.supabase
-        .from('user_achievements')
-        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
-        .eq('user_id', window.userId);
-    if (error) return [];
-    return data.map(ua => ({
-        id: ua.achievements.id,
-        name: ua.achievements.name,
-        description: ua.achievements.description,
-        icon: ua.achievements.icon,
-        earned_at: ua.earned_at,
-        condition_type: ua.achievements.condition_type,
-        condition_value: ua.achievements.condition_value
-    }));
-};
-
-window.getAllAchievements = async () => {
-    const { data, error } = await window.supabase.from('achievements').select('*');
-    if (error) return [];
-    return data;
-};
-
-window.getSellerRating = async (sellerId) => {
-    const { data, error } = await window.supabase.from('seller_ratings').select('rating').eq('seller_id', sellerId);
-    if (error || !data.length) return null;
-    return data.reduce((s,r)=>s+r.rating,0)/data.length;
-};
-
-window.updateUserBorder = async (color) => {
-    const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
-    if (error) throw new Error(error.message);
-    if (window.currentUser) window.currentUser.avatar_border = color;
+    await window.updateUserStats();
+    await window.checkAllAchievements();
     return true;
 };
 
@@ -450,13 +436,115 @@ window.marketSell = async function(sharesAmount) {
     await window.refreshActiveTab();
 };
 
-window.adminFetchStats = async () => fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
-window.adminFetchUsers = async () => fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
-window.adminCancelOrder = async (orderId) => fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) }).then(r=>r.json());
-window.adminAddShares = async (targetId, shares) => fetch(`${window.BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, shares }) }).then(r=>r.json());
-window.adminAddStars = async (targetId, stars) => fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) }).then(r=>r.json());
-window.createInvoice = async (amount) => fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) }).then(r=>r.json());
+window.getCurrentPrice = async function() {
+    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(50);
+    if (error || !data || data.length === 0) return 100;
+    let totalAmount = 0, totalStars = 0;
+    for (let trade of data) { totalAmount += trade.amount; totalStars += trade.amount * trade.price_per_share; }
+    return totalAmount > 0 ? totalStars / totalAmount : 100;
+};
 
+window.getTotalMarketCap = async function() {
+    const { data, error } = await window.supabase.from('users').select('shares');
+    if (error) throw new Error(error.message);
+    const totalSharesCents = data.reduce((s,u) => s + u.shares, 0);
+    const currentPriceCents = await window.getCurrentPrice();
+    const marketCapStars = (totalSharesCents / 100) * (currentPriceCents / 100);
+    return { totalShares: totalSharesCents, currentPrice: currentPriceCents, marketCap: marketCapStars };
+};
+
+window.getRecentTrades = async (limit = 10) => {
+    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').order('created_at', { ascending: false }).limit(limit);
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getPriceHistory = async () => {
+    const { data, error } = await window.supabase.from('price_history').select('price, created_at').order('created_at', { ascending: true }).limit(100);
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+// ========== РЕЙТИНГ ==========
+window.getLeaderboard = async () => {
+    const { data, error } = await window.supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.getUserRank = async () => {
+    const leaders = await window.getLeaderboard();
+    const idx = leaders.findIndex(u => u.id === window.userId);
+    if (idx === -1) return null;
+    return idx + 1;
+};
+
+// ========== ДОСТИЖЕНИЯ (для профиля) ==========
+window.getEarnedAchievements = async () => {
+    const { data, error } = await window.supabase
+        .from('user_achievements')
+        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
+        .eq('user_id', window.userId);
+    if (error) return [];
+    return data.map(ua => ({
+        id: ua.achievements.id,
+        name: ua.achievements.name,
+        description: ua.achievements.description,
+        icon: ua.achievements.icon,
+        earned_at: ua.earned_at,
+        condition_type: ua.achievements.condition_type,
+        condition_value: ua.achievements.condition_value
+    }));
+};
+
+window.getAllAchievements = async () => {
+    const { data, error } = await window.supabase.from('achievements').select('*');
+    if (error) return [];
+    return data;
+};
+
+window.getUserStatsForUser = async (userId) => {
+    const { data, error } = await window.supabase
+        .from('trades')
+        .select('amount, total_stars')
+        .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+    if (error) return { totalTrades: 0, totalVolume: 0 };
+    return {
+        totalTrades: data.length,
+        totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0)
+    };
+};
+
+window.getUserRankForUser = async (userId) => {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('id, shares')
+        .eq('hide_rating', false)
+        .order('shares', { ascending: false });
+    if (error) return null;
+    const idx = data.findIndex(u => u.id === userId);
+    if (idx === -1) return null;
+    return idx + 1;
+};
+
+window.getEarnedAchievementsForUser = async (userId) => {
+    const { data, error } = await window.supabase
+        .from('user_achievements')
+        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
+        .eq('user_id', userId);
+    if (error) return [];
+    return data.map(ua => ({
+        id: ua.achievements.id,
+        name: ua.achievements.name,
+        description: ua.achievements.description,
+        icon: ua.achievements.icon,
+        earned_at: ua.earned_at,
+        condition_type: ua.achievements.condition_type,
+        condition_value: ua.achievements.condition_value
+    }));
+};
+
+// ========== РЕФЕРАЛЫ ==========
 window.getReferralsList = async function() {
     const { data, error } = await window.supabase
         .from('referrals')
@@ -484,95 +572,29 @@ window.claimReferralBonus = async (friendsNeeded, stars) => {
     return response.json();
 };
 
-window.getEarnedAchievementsForUser = async (userId) => {
-    const { data, error } = await window.supabase
-        .from('user_achievements')
-        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
-        .eq('user_id', userId);
-    if (error) return [];
-    return data.map(ua => ({
-        id: ua.achievements.id,
-        name: ua.achievements.name,
-        description: ua.achievements.description,
-        icon: ua.achievements.icon,
-        earned_at: ua.earned_at,
-        condition_type: ua.achievements.condition_type,
-        condition_value: ua.achievements.condition_value
-    }));
+// ========== АДМИНКА ==========
+window.adminFetchStats = async () => fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
+window.adminFetchUsers = async () => fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
+window.adminCancelOrder = async (orderId) => fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) }).then(r=>r.json());
+window.adminAddShares = async (targetId, shares) => fetch(`${window.BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, shares }) }).then(r=>r.json());
+window.adminAddStars = async (targetId, stars) => fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) }).then(r=>r.json());
+
+// ========== МАРКЕТ-МЕЙКЕР ==========
+window.getMarketMakerPrice = async function() {
+    const price = await window.getSetting('market_maker_price');
+    return price ? parseFloat(price) : 100;
 };
 
-window.getUserStatsForUser = async (userId) => {
-    const { data, error } = await window.supabase
-        .from('trades')
-        .select('amount, total_stars')
-        .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
-    if (error) return { totalTrades: 0, totalVolume: 0 };
-    return {
-        totalTrades: data.length,
-        totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0)
-    };
-};
-
-window.getUserRankForUser = async (userId) => {
-    const { data, error } = await window.supabase
-        .from('users')
-        .select('id, shares')
-        .eq('hide_rating', false)
-        .order('shares', { ascending: false });
-    if (error) return null;
-    const idx = data.findIndex(u => u.id === userId);
-    if (idx === -1) return null;
-    return idx + 1;
-};
-
-window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
-    let bgColor = avatarBg;
-    if (avatarBg && !avatarBg.startsWith('#')) {
-        const mapping = {
-            'gradient1': '#2b6e9e', 'gradient2': '#9b59b6', 'gradient3': '#e67e22',
-            'gradient4': '#27ae60', 'gradient5': '#f1c40f', 'gradient6': '#e74c3c',
-            'gradient7': '#1abc9c', 'gradient8': '#3498db', 'gradient9': '#2c3e50',
-            'gradient10': '#ff9a9e', 'gradient11': '#a18cd1'
-        };
-        bgColor = mapping[avatarBg] || '#2b6e9e';
-    } else if (!avatarBg) {
-        bgColor = '#2b6e9e';
-    }
-    const borderColor = avatarBorder || '#ffffff';
-    const emoji = avatarUrl || '👤';
-    let fontSize = '32px';
-    if (size === '52px') fontSize = '32px';
-    else if (size === '40px') fontSize = '24px';
-    else if (size === '36px') fontSize = '22px';
-    else fontSize = `calc(${size} * 0.6)`;
-    return `<div class="mini-avatar" style="width:${size}; height:${size}; background:${bgColor}; border:2px solid ${borderColor}; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:${fontSize}; box-shadow:0 2px 6px rgba(0,0,0,0.3); flex-shrink:0;"><span>${emoji}</span></div>`;
-};
-
-// ========== ОНЛАЙН-СТАТУС ==========
-window.updateLastSeen = async function() {
-    try {
-        await window.supabase
-            .from('users')
-            .update({ last_seen: new Date().toISOString() })
-            .eq('id', window.userId);
-    } catch(e) {
-        console.warn('Ошибка обновления last_seen', e);
-    }
-};
-
-window.getOnlineCount = async function() {
-    try {
-        const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
-        const { count, error } = await window.supabase
-            .from('users')
-            .select('*', { count: 'exact', head: true })
-            .gte('last_seen', thirtySecondsAgo);
-        if (error) throw error;
-        return count || 0;
-    } catch(e) {
-        console.warn('Ошибка получения онлайн-статистики', e);
-        return 0;
-    }
+window.sellToMarketMaker = async function(sharesAmount) {
+    if (sharesAmount <= 0) throw new Error('Количество должно быть > 0');
+    const sharesCents = window.toCents(sharesAmount);
+    const { data, error } = await window.supabase.rpc('sell_to_market_maker', {
+        p_user_id: window.userId,
+        p_shares_cents: sharesCents
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    return data;
 };
 
 // ========== НОВОСТИ ==========
@@ -581,20 +603,18 @@ window.getNews = async function() {
         .from('news')
         .select('*')
         .order('created_at', { ascending: false });
-    if (error) return [];
-    return data;
+    if (error) throw error;
+    return data || [];
 };
 
-window.createNews = async function(title, content) {
-    const { error } = await window.supabase
+window.createNews = async function(title, content, image_url) {
+    const { data, error } = await window.supabase
         .from('news')
-        .insert({
-            title: title,
-            content: content,
-            created_at: new Date().toISOString()
-        });
-    if (error) throw new Error(error.message);
-    return true;
+        .insert({ title, content, image_url, author_id: window.userId })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
 };
 
 window.deleteNews = async function(newsId) {
@@ -602,34 +622,65 @@ window.deleteNews = async function(newsId) {
         .from('news')
         .delete()
         .eq('id', newsId);
-    if (error) throw new Error(error.message);
+    if (error) throw error;
     return true;
 };
 
-// ========== УПРАВЛЕНИЕ АДМИНАМИ ==========
+// ========== АДМИНЫ ==========
+window.isAdmin = async function(userId) {
+    const { data, error } = await window.supabase
+        .from('admins')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error) throw error;
+    return !!data;
+};
+
 window.getAdmins = async function() {
     const { data, error } = await window.supabase
-        .from('users')
-        .select('id, username')
-        .eq('is_admin', true);
-    if (error) return [];
-    return data;
+        .from('admins')
+        .select('*')
+        .order('added_at', { ascending: true });
+    if (error) throw error;
+    return data || [];
 };
 
 window.addAdmin = async function(userId) {
     const { error } = await window.supabase
-        .from('users')
-        .update({ is_admin: true })
-        .eq('id', userId);
-    if (error) throw new Error(error.message);
+        .from('admins')
+        .insert({ user_id: userId });
+    if (error) throw error;
     return true;
 };
 
 window.removeAdmin = async function(userId) {
     const { error } = await window.supabase
-        .from('users')
-        .update({ is_admin: false })
-        .eq('id', userId);
-    if (error) throw new Error(error.message);
+        .from('admins')
+        .delete()
+        .eq('user_id', userId);
+    if (error) throw error;
     return true;
 };
+
+// ========== НАСТРОЙКИ ==========
+window.getSetting = async function(key) {
+    const { data, error } = await window.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', key)
+        .maybeSingle();
+    if (error) throw error;
+    return data ? data.value : null;
+};
+
+window.setSetting = async function(key, value) {
+    const { error } = await window.supabase
+        .from('settings')
+        .upsert({ key, value, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    return true;
+};
+
+// ========== СОЗДАНИЕ ИНВОЙСА ==========
+window.createInvoice = async (amount) => fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) }).then(r=>r.json());
