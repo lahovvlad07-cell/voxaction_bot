@@ -42,8 +42,8 @@
     <button class="tab-scroll-btn left" id="tabScrollLeft">‹</button>
     <div class="tabs-scroll-container">
         <div class="tabs" id="tabs">
-            <div class="tab" data-tab="profile"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
-            <div class="tab active" data-tab="stocks"><div class="tab-icon">📈</div><div class="tab-label">Акции</div></div>
+            <div class="tab active" data-tab="profile"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
+            <div class="tab" data-tab="stocks"><div class="tab-icon">📈</div><div class="tab-label">Акции</div></div>
             <div class="tab" data-tab="analytics"><div class="tab-icon">📊</div><div class="tab-label">Аналитика</div></div>
             <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
             <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
@@ -141,7 +141,13 @@
             await updateOnlineStatus();
             setInterval(updateOnlineStatus, 15000);
             
-            await window.renderStocksTab(window.currentUser);
+            // Стартовая вкладка — Профиль
+            await window.renderProfileTab(
+                window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
+                window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
+                window.updateBellBadge, window.showNotificationsModal
+            );
+            
             if (isNew) setTimeout(() => window.renderProfileTab(
                 window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
                 window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
