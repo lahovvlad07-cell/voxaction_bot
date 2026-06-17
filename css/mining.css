@@ -1,0 +1,188 @@
+/* mining.css – стили для вкладки майнинга */
+
+.mining-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 16px 80px 16px;
+    text-align: center;
+}
+
+.mining-header {
+    margin: 20px 0 16px;
+}
+.mining-header h2 {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.mining-header p {
+    font-size: 14px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.mining-stats {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 16px 0;
+}
+.mining-stat {
+    background: rgba(18, 24, 38, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 24px;
+    padding: 16px 12px;
+    flex: 1;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.mining-stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #eef2ff, #a5b4fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.mining-stat-label {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.energy-bar-container {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 24px;
+    padding: 16px;
+    margin: 16px 0;
+}
+.energy-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #cbd5e1;
+    margin-bottom: 8px;
+}
+.energy-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    height: 10px;
+    overflow: hidden;
+}
+.energy-fill {
+    background: linear-gradient(90deg, #2b6e9e, #60a5fa, #0ff);
+    height: 100%;
+    width: 0%;
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+
+.tap-button {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fbbf24, #f59e0b);
+    border: none;
+    font-size: 80px;
+    cursor: pointer;
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.4), inset 0 -8px 20px rgba(0,0,0,0.3);
+    transition: transform 0.1s, box-shadow 0.2s;
+    margin: 20px auto;
+    display: block;
+    color: white;
+    line-height: 1;
+    user-select: none;
+}
+.tap-button:active {
+    transform: scale(0.92);
+    box-shadow: 0 0 60px rgba(251, 191, 36, 0.7), inset 0 -8px 20px rgba(0,0,0,0.3);
+}
+.tap-button:hover {
+    box-shadow: 0 0 60px rgba(251, 191, 36, 0.6), inset 0 -8px 20px rgba(0,0,0,0.3);
+}
+
+.floating-coin {
+    position: fixed;
+    font-size: 24px;
+    font-weight: 800;
+    color: #fbbf24;
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+    z-index: 999;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+@keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+}
+
+.mining-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0;
+}
+.mining-btn {
+    padding: 14px;
+    border-radius: 40px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    transition: 0.2s;
+    width: 100%;
+}
+.mining-btn.primary {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    color: white;
+    box-shadow: 0 4px 12px rgba(43, 110, 158, 0.3);
+}
+.mining-btn.primary:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(43, 110, 158, 0.5);
+}
+.mining-btn.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    color: #0ff;
+}
+.mining-btn.secondary:hover {
+    background: rgba(0, 255, 255, 0.1);
+}
+.mining-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.mining-info {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 24px;
+    padding: 16px;
+    margin-top: 16px;
+    text-align: left;
+}
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
+    color: #cbd5e1;
+}
+.info-row:last-child {
+    border-bottom: none;
+}
+.info-row span:last-child {
+    color: #eef2ff;
+    font-weight: 600;
+}
+
+@media (max-width: 560px) {
+    .mining-container { padding: 0 12px 70px 12px; }
+    .tap-button { width: 150px; height: 150px; font-size: 64px; }
+    .mining-stat-value { font-size: 22px; }
+    .mining-btn { font-size: 14px; padding: 12px; }
+}
