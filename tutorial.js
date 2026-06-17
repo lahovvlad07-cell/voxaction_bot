@@ -1,15 +1,15 @@
-// tutorial.js – интерактивное обучение с подсветкой элементов, без модалок
+// tutorial.js – интерактивное обучение с подсветкой элементов и подсказками без модалок
 
 let tutorialSteps = [];
 let currentStepIndex = 0;
 let tutorialActive = false;
-let targetElement = null;
 let overlay = null;
 let tooltip = null;
+let currentHighlighted = null;
 
 const TUTORIAL_KEY = 'tutorial_progress';
 
-// Определяем шаги обучения (для каждой вкладки)
+// Определяем шаги обучения
 function initTutorialSteps() {
     tutorialSteps = [
         {
@@ -18,24 +18,22 @@ function initTutorialSteps() {
             text: 'Начните с настройки профиля. Нажмите на вкладку «Профиль».',
             selector: '.tab[data-tab="profile"]',
             action: 'click',
-            waitForTab: 'profile',
-            // После открытия вкладки профиля сразу показываем следующий шаг
+            waitForTab: 'profile'
         },
         {
             id: 'avatar',
             title: '🖼️ Аватар',
-            text: 'Нажмите на аватар, чтобы выбрать эмодзи, фон и цвет обводки.',
-            selector: '#avatarClickWrapper',
-            action: 'click',
-            // После клика по аватарке откроется модалка, мы не ждём её закрытия, просто переходим дальше
+            text: 'Нажмите на аватар, чтобы выбрать себе эмодзи, фон и цвет обводки.',
+            selector: '#avatarClickWrapper .avatar-circle',
+            action: 'click'
         },
         {
             id: 'achievement_slot',
             title: '🏆 Достижения',
-            text: 'Нажмите на пустой слот достижения, чтобы выбрать одно из полученных достижений.',
+            text: 'Нажмите на пустой слот, чтобы выбрать достижение для отображения в профиле.',
             selector: '.achi-icon[data-slot]:not(.earned)',
             action: 'click',
-            optional: true, // если нет пустых слотов – пропускаем
+            optional: true
         },
         {
             id: 'stocks_tab',
@@ -43,46 +41,37 @@ function initTutorialSteps() {
             text: 'Теперь перейдите во вкладку «Акции», чтобы научиться торговать.',
             selector: '.tab[data-tab="stocks"]',
             action: 'click',
-            waitForTab: 'stocks',
+            waitForTab: 'stocks'
         },
         {
-            id: 'order_type',
-            title: '📉 Продажа или покупка',
-            text: 'Нажмите на кнопку «Продать» или «Купить», чтобы выбрать тип ордера.',
-            selector: '.type-opt',
-            action: 'click',
-            // Можно подсветить любую из кнопок, но для простоты подсветим обе
-        },
-        {
-            id: 'create_order',
-            title: '📝 Создание ордера',
-            text: 'Заполните количество и цену, затем нажмите «Разместить ордер». (можете пропустить)',
-            selector: '#createOrderBtn',
-            action: 'click',
-            optional: true,
+            id: 'sell_order',
+            title: '📉 Продажа',
+            text: 'Нажмите на кнопку «Продать», чтобы переключиться на форму продажи акций.',
+            selector: '#orderTypeSell',
+            action: 'click'
         },
         {
             id: 'mining_tab',
             title: '⛏️ Заработок',
-            text: 'Перейдите во вкладку «Заработок», чтобы узнать о майнинге.',
+            text: 'Откройте вкладку «Заработок», чтобы узнать, как добывать акции без вложений.',
             selector: '.tab[data-tab="mining"]',
             action: 'click',
-            waitForTab: 'mining',
+            waitForTab: 'mining'
         },
         {
             id: 'start_mining',
             title: '🚀 Запуск майнинга',
             text: 'Нажмите «Начать майнинг», чтобы запустить добычу акций на 12 часов.',
             selector: '#startMiningBtn',
-            action: 'click',
+            action: 'click'
         },
         {
             id: 'final',
             title: '🎉 Поздравляем!',
-            text: 'Вы прошли обучение! Награда: достижение «Выпускник» 🎓',
+            text: 'Вы прошли обучение! Получите достижение «Выпускник» и начинайте игру!',
             selector: null,
             action: null,
-            isFinal: true,
+            isFinal: true
         }
     ];
 }
@@ -103,15 +92,6 @@ function createOverlay() {
     if (overlay) return;
     overlay = document.createElement('div');
     overlay.id = 'tutorial-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        pointer-events: none;
-        transition: background 0.3s;
-        backdrop-filter: blur(2px);
-    `;
     document.body.appendChild(overlay);
 }
 
@@ -126,48 +106,21 @@ function createTooltip(text, title = '') {
     if (tooltip) removeTooltip();
     tooltip = document.createElement('div');
     tooltip.id = 'tutorial-tooltip';
-    tooltip.style.cssText = `
-        position: fixed;
-        background: #1a1f2e;
-        color: #eef2ff;
-        padding: 16px 20px;
-        border-radius: 16px;
-        max-width: 340px;
-        z-index: 10000;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-        border: 1px solid #0ff;
-        pointer-events: auto;
-        font-size: 14px;
-        line-height: 1.5;
-        transition: opacity 0.3s;
-        opacity: 0;
-        font-family: 'Inter', system-ui, sans-serif;
-    `;
     let html = '';
-    if (title) html += `<div style="font-weight:700; font-size:18px; margin-bottom:8px; color:#0ff;">${title}</div>`;
-    html += `<div>${text}</div>`;
-    // Кнопка "Пропустить" и "Далее"
-    html += `
-        <div style="margin-top:12px; display:flex; gap:10px; justify-content:flex-end;">
-            <button id="tutorial-skip-btn" style="background:transparent; border:1px solid #9ca3af; color:#9ca3af; padding:4px 14px; border-radius:20px; cursor:pointer; font-size:12px;">Пропустить</button>
-            <button id="tutorial-next-btn" style="background:#2b6e9e; border:none; color:white; padding:6px 18px; border-radius:30px; cursor:pointer; font-weight:600; font-size:14px;">Далее →</button>
-        </div>
-    `;
+    if (title) html += `<div class="tooltip-title">${title}</div>`;
+    html += `<div class="tooltip-text">${text}</div>`;
+    html += `<div class="tooltip-actions"><button id="tutorial-next-btn">Далее →</button></div>`;
     tooltip.innerHTML = html;
     document.body.appendChild(tooltip);
     
+    // Показываем с небольшой задержкой
+    setTimeout(() => { tooltip.classList.add('visible'); }, 100);
+    
     // Кнопка "Далее" – переходим к следующему шагу
     document.getElementById('tutorial-next-btn').addEventListener('click', () => {
-        // Если текущий шаг ещё не выполнен (например, не кликнули по элементу), всё равно переходим
         nextStep();
     });
-    // Кнопка "Пропустить" – пропускаем все оставшиеся шаги и завершаем обучение
-    document.getElementById('tutorial-skip-btn').addEventListener('click', () => {
-        finishTutorial();
-    });
     
-    // Показываем с небольшой задержкой
-    setTimeout(() => { tooltip.style.opacity = '1'; }, 100);
     return tooltip;
 }
 
@@ -198,23 +151,16 @@ function positionTooltip(element, tooltipEl) {
 }
 
 function highlightElement(element) {
+    if (currentHighlighted) unhighlightElement(currentHighlighted);
     if (!element) return;
-    // Создаём подсветку вокруг элемента
-    element.style.outline = '3px solid #0ff';
-    element.style.outlineOffset = '4px';
-    element.style.boxShadow = '0 0 20px rgba(0, 255, 255, 0.6)';
-    element.style.zIndex = '10001';
-    element.style.position = 'relative';
     element.classList.add('tutorial-highlight');
+    currentHighlighted = element;
 }
 
 function unhighlightElement(element) {
     if (!element) return;
-    element.style.outline = '';
-    element.style.outlineOffset = '';
-    element.style.boxShadow = '';
-    element.style.zIndex = '';
     element.classList.remove('tutorial-highlight');
+    if (currentHighlighted === element) currentHighlighted = null;
 }
 
 // ===== ОСНОВНАЯ ЛОГИКА =====
@@ -277,12 +223,11 @@ async function showStep(index) {
     const step = tutorialSteps[index];
     if (!step) return;
     
-    // Если шаг финальный – показываем поздравление
+    // Если шаг финальный – показываем поздравление (тост) и выдаём достижение
     if (step.isFinal) {
         removeOverlay();
         removeTooltip();
-        // Показываем простое сообщение (без модалки, через toast или custom modal)
-        window.showCustomModal('🎉 Обучение пройдено!', 'Вы успешно освоили основные возможности приложения. Награда: достижение «Выпускник»! 🎓');
+        window.showToast('🎉 Обучение пройдено! Награда: достижение «Выпускник»! 🎓');
         // Выдаём достижение
         (async () => {
             const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎓 Выпускник').single();
@@ -305,33 +250,42 @@ async function showStep(index) {
         }
     }
     
-    // Если нужно ждать открытия вкладки – сначала показываем подсказку, потом ждём
+    // Если нужно ждать открытия вкладки – подсвечиваем таб и ждём клика
     if (step.waitForTab) {
-        // Показываем подсказку с объяснением
-        createOverlay();
-        const tooltipEl = createTooltip(step.text, step.title);
-        // Подсвечиваем таб
         const tabEl = findElement(step.selector);
         if (tabEl) {
+            createOverlay();
+            const tooltipEl = createTooltip(step.text, step.title);
             highlightElement(tabEl);
             positionTooltip(tabEl, tooltipEl);
-            // Добавляем обработчик клика для автоматического перехода
+            
+            // Добавляем обработчик клика для перехода к следующему шагу
             const clickHandler = () => {
                 tabEl.removeEventListener('click', clickHandler);
+                unhighlightElement(tabEl);
+                removeTooltip();
+                removeOverlay();
                 // Ждём, пока вкладка откроется
                 setTimeout(async () => {
+                    await waitForTab(step.waitForTab);
+                    nextStep();
+                }, 300);
+            };
+            tabEl.addEventListener('click', clickHandler);
+            
+            // Также обрабатываем кнопку "Далее" (пропуск)
+            const nextBtn = document.getElementById('tutorial-next-btn');
+            if (nextBtn) {
+                nextBtn.onclick = () => {
+                    tabEl.removeEventListener('click', clickHandler);
                     unhighlightElement(tabEl);
                     removeTooltip();
                     removeOverlay();
-                    await waitForTab(step.waitForTab);
-                    // После открытия вкладки переходим к следующему шагу
                     nextStep();
-                }, 500);
-            };
-            tabEl.addEventListener('click', clickHandler);
-            // Также добавляем возможность перехода по кнопке "Далее" (уже есть в tooltip)
+                };
+            }
         } else {
-            // Если таба нет – просто ждём или переходим дальше
+            // Если таба нет – ждём
             setTimeout(() => {
                 removeTooltip();
                 removeOverlay();
@@ -369,19 +323,28 @@ async function showStep(index) {
                 unhighlightElement(el);
                 removeTooltip();
                 removeOverlay();
-                // Небольшая задержка перед переходом
                 setTimeout(() => {
                     nextStep();
                 }, 300);
             };
             el.addEventListener('click', clickHandler);
-            // Также можно разрешить переход по кнопке "Далее" (она уже есть в tooltip)
+            
+            // Кнопка "Далее" – пропускаем шаг
+            const nextBtn = document.getElementById('tutorial-next-btn');
+            if (nextBtn) {
+                nextBtn.onclick = () => {
+                    el.removeEventListener('click', clickHandler);
+                    unhighlightElement(el);
+                    removeTooltip();
+                    removeOverlay();
+                    nextStep();
+                };
+            }
         }
     } else {
         // Шаг без селектора – просто показываем текст и кнопку
         createOverlay();
         const tooltipEl = createTooltip(step.text, step.title);
-        // Располагаем по центру
         tooltipEl.style.left = '50%';
         tooltipEl.style.top = '50%';
         tooltipEl.style.transform = 'translate(-50%, -50%)';
@@ -394,7 +357,10 @@ function nextStep() {
     currentStepIndex++;
     saveTutorialProgress(currentStepIndex);
     // Убираем предыдущие выделения
-    document.querySelectorAll('.tutorial-highlight').forEach(el => unhighlightElement(el));
+    if (currentHighlighted) {
+        unhighlightElement(currentHighlighted);
+        currentHighlighted = null;
+    }
     removeTooltip();
     removeOverlay();
     // Запускаем следующий шаг
@@ -406,7 +372,7 @@ function nextStep() {
 function finishTutorial() {
     removeTooltip();
     removeOverlay();
-    document.querySelectorAll('.tutorial-highlight').forEach(el => unhighlightElement(el));
+    if (currentHighlighted) unhighlightElement(currentHighlighted);
     tutorialActive = false;
     saveTutorialProgress(tutorialSteps.length, true);
     // Выдаём достижение, если ещё не выдано
@@ -427,7 +393,6 @@ window.startTutorial = async function() {
     // Инициализируем шаги
     initTutorialSteps();
     currentStepIndex = progress.step || 0;
-    // Если шаг уже пройден больше чем количество шагов – завершаем
     if (currentStepIndex >= tutorialSteps.length) {
         finishTutorial();
         return;
@@ -435,24 +400,20 @@ window.startTutorial = async function() {
     
     tutorialActive = true;
     // Ждём, пока загрузится интерфейс
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 800));
     showStep(currentStepIndex);
 };
 
-// Функция для принудительного запуска (если нужно)
 window.forceStartTutorial = function() {
     localStorage.removeItem(TUTORIAL_KEY);
     window.startTutorial();
 };
 
-// Очистка при переключении вкладок – чтобы не было конфликтов
+// Очистка при переключении вкладок
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && tutorialActive) {
-        // Скрываем подсказки, если вкладка неактивна
         removeTooltip();
         removeOverlay();
-        document.querySelectorAll('.tutorial-highlight').forEach(el => unhighlightElement(el));
+        if (currentHighlighted) unhighlightElement(currentHighlighted);
     }
 });
-
-// Если пользователь кликнул вне области подсказки – не закрываем её, только по кнопкам
