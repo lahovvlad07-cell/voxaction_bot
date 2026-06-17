@@ -34,7 +34,9 @@
         <div class="header-icon" id="headerSettingsGear">⚙️</div>
     </div>
 </div>
+
 <div id="app">Загрузка...</div>
+
 <div class="tabs-wrapper">
     <div class="tabs" id="tabs">
         <div class="tab" data-tab="profile"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
@@ -47,7 +49,7 @@
     </div>
 </div>
 
-<!-- СТАРАЯ МОДАЛКА ПОПОЛНЕНИЯ УДАЛЕНА – теперь используется новая из topup.js -->
+<!-- СТАРАЯ МОДАЛКА ПОПОЛНЕНИЯ УДАЛЕНА – используется новая из topup.js -->
 
 <script src="api.js"></script>
 <script src="notifications.js"></script>
@@ -140,8 +142,6 @@
             ), 500);
             if (typeof setupRealtimeNotifications === 'function') setupRealtimeNotifications();
             if (typeof window.updateBellBadge === 'function') await window.updateBellBadge();
-            
-            // Инициализация модалки пополнения (теперь ничего не делает, т.к. всё в showTopupModal)
             if (typeof initTopupModal === 'function') initTopupModal();
             
             window.supabase.channel('global-updates')
