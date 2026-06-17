@@ -1,3 +1,174 @@
 /* admin.css – стили для админ-панели */
-/* Здесь пока нет специфических стилей, всё через общие классы */
-/* Если появятся, добавятся сюда */
+
+.admin-card {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.admin-section {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.admin-section:last-child {
+    border-bottom: none;
+}
+
+.admin-section h3 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: #0ff;
+}
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+.admin-stat {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    padding: 12px;
+    text-align: center;
+}
+.admin-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #eef2ff;
+    display: block;
+}
+.admin-stat-label {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.admin-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.admin-form input {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 40px;
+    color: #eef2ff;
+    font-size: 14px;
+}
+.admin-form input:focus {
+    border-color: #0ff;
+}
+.admin-form button {
+    padding: 10px 20px;
+    border-radius: 40px;
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border: none;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.admin-form button:hover {
+    transform: scale(1.02);
+}
+
+.admin-search {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 40px;
+    color: #eef2ff;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+.admin-search:focus {
+    border-color: #0ff;
+}
+
+.admin-users-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+.admin-user-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.admin-user-id {
+    color: #9ca3af;
+    font-size: 12px;
+}
+.admin-user-name {
+    font-weight: 600;
+    flex: 1;
+}
+.admin-user-shares {
+    color: #0ff;
+}
+.admin-user-stars {
+    color: #fbbf24;
+}
+
+.admin-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.admin-order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.admin-order-item .cancel-order-btn {
+    background: rgba(255, 100, 100, 0.15);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+    color: #ff6b6b;
+    padding: 4px 14px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.admin-order-item .cancel-order-btn:hover {
+    background: rgba(255, 100, 100, 0.25);
+}
+
+.admin-trades-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+.admin-trade-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.admin-trade-item span:last-child {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.empty-placeholder {
+    color: #9ca3af;
+    font-style: italic;
+    padding: 8px 0;
+}
