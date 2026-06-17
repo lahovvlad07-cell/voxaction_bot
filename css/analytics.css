@@ -1,17 +1,21 @@
-/* analytics.css – профессиональный дашборд (профит – цветной текст) */
+/* analytics.css – улучшенный дизайн с дополнительной статистикой, анимациями и адаптивностью */
+
 .analytics-container {
     max-width: 700px;
     margin: 0 auto;
     padding: 0 16px 80px 16px;
 }
+
 .analytics-stats {
     display: flex;
     gap: 12px;
     margin-bottom: 20px;
     flex-wrap: wrap;
 }
+
 .stat-card {
     flex: 1;
+    min-width: 90px;
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(8px);
     border-radius: 24px;
@@ -37,7 +41,6 @@
     -webkit-background-clip: text;
     color: transparent;
 }
-/* Профит – только цвет текста, без фона */
 .stat-value.positive-text {
     background: none;
     color: #4ade80;
@@ -51,11 +54,13 @@
     color: #9ca3af;
     margin-top: 4px;
 }
+
 .period-switch {
     display: flex;
     gap: 8px;
     justify-content: center;
     margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 .period-btn {
     background: rgba(30, 40, 50, 0.6);
@@ -65,6 +70,7 @@
     font-size: 13px;
     cursor: pointer;
     transition: 0.2s;
+    color: #eef2ff;
 }
 .period-btn.active {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
@@ -72,6 +78,10 @@
     color: white;
     box-shadow: 0 0 8px #0ff;
 }
+.period-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .chart-card, .info-card, .history-card {
     background: rgba(18, 24, 38, 0.7);
     backdrop-filter: blur(8px);
@@ -100,6 +110,7 @@
     color: #9ca3af;
     margin-top: 8px;
 }
+
 .weekday-stats { margin: 12px 0; }
 .weekday-item {
     display: flex;
@@ -121,8 +132,10 @@
     height: 100%;
     width: 0%;
     border-radius: 10px;
+    transition: width 0.6s ease;
 }
 .weekday-count { width: 30px; text-align: right; font-size: 12px; color: #a5b4fc; }
+
 .top-trades-list { display: flex; flex-direction: column; gap: 10px; }
 .top-trade-item {
     display: flex;
@@ -139,6 +152,7 @@
 .top-trade-type.sell { color: #f97316; }
 .top-trade-details { font-size: 13px; color: #eef2ff; }
 .top-trade-date { font-size: 11px; color: #9ca3af; }
+
 .history-list {
     max-height: 400px;
     overflow-y: auto;
@@ -147,6 +161,7 @@
 .history-list::-webkit-scrollbar { width: 4px; }
 .history-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
 .history-list::-webkit-scrollbar-thumb { background: #2b6e9e; border-radius: 4px; }
+
 .history-item {
     display: flex;
     justify-content: space-between;
@@ -161,10 +176,13 @@
 .history-type.sell { color: #f97316; }
 .history-details { display: flex; gap: 12px; font-size: 14px; color: #eef2ff; }
 .history-date { font-size: 11px; color: #9ca3af; }
+
 .empty-history { text-align: center; padding: 30px; color: #9ca3af; font-style: italic; }
+
 .skeleton-line { height: 20px; background: linear-gradient(90deg, #2a2f3f 25%, #3a4055 50%, #2a2f3f 75%); background-size: 200% 100%; border-radius: 8px; animation: shimmer 1.5s infinite; }
 .skeleton-chart { height: 160px; background: linear-gradient(90deg, #2a2f3f 25%, #3a4055 50%, #2a2f3f 75%); background-size: 200% 100%; border-radius: 20px; animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
 @media (max-width: 560px) {
     .analytics-container { padding: 0 12px 70px 12px; }
     .stat-card { padding: 12px 8px; }
@@ -172,4 +190,5 @@
     .stat-icon { font-size: 22px; }
     .top-trade-item, .history-item { flex-direction: column; align-items: flex-start; }
     .top-trade-date, .history-date { align-self: flex-end; }
+    .period-btn { font-size: 12px; padding: 4px 12px; }
 }
