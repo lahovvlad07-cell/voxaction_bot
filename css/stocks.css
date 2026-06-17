@@ -1,4 +1,4 @@
-/* stocks.css – финальная версия с ровным переключателем режима */
+/* stocks.css – финальная версия с улучшенным визуалом (бары, анимации, стакан) */
 :root {
     --neon-blue: #0ff;
     --card-bg: rgba(12, 15, 25, 0.75);
@@ -70,7 +70,7 @@
 }
 #mainPriceChart {
     width: 100%;
-    height: 160px;
+    height: 200px;
     display: block;
 }
 
@@ -132,14 +132,16 @@
     font-weight: 600;
     color: #ccd6f0;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.25s ease;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 .tab-btn.active {
     background: linear-gradient(135deg, #00c6ff, #0072ff);
     border-color: #0ff;
     color: white;
-    box-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 198, 255, 0.5);
+    transform: scale(1.04);
 }
 .tab-btn:hover:not(.active) {
     background: rgba(0, 255, 255, 0.1);
@@ -149,11 +151,11 @@
 /* Панели */
 .tab-pane {
     display: none;
-    animation: fadeSlide 0.25s ease;
+    animation: fadeSlide 0.3s ease;
 }
 .tab-pane.active { display: block; }
 @keyframes fadeSlide {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -179,17 +181,17 @@
     border-radius: 60px;
     font-weight: 600;
     cursor: pointer;
-    transition: 0.2s;
+    transition: 0.25s;
     text-align: center;
 }
 .type-opt.active {
     background: linear-gradient(135deg, #0072ff, #00c6ff);
     border-color: #0ff;
     color: white;
-    box-shadow: 0 0 8px #0ff;
+    box-shadow: 0 0 12px #0ff;
 }
 
-/* Переключатель режима – ровный, с разделением пространства */
+/* Переключатель режима */
 .input-mode-switch {
     display: flex;
     align-items: center;
@@ -231,7 +233,7 @@
     box-shadow: 0 0 6px #0ff;
 }
 
-/* Контролы – центрируем */
+/* Контролы */
 .control-group {
     margin: 12px 0;
     text-align: center;
@@ -261,7 +263,7 @@
     background: #0ff;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 0 6px #0ff;
+    box-shadow: 0 0 8px #0ff;
 }
 .slider-value {
     text-align: center;
@@ -281,10 +283,11 @@
     width: 100%;
     cursor: pointer;
     text-align: center;
+    transition: 0.25s;
 }
 #createOrderBtn:hover {
     transform: scale(1.02);
-    box-shadow: 0 0 16px #0ff;
+    box-shadow: 0 0 20px #0ff;
 }
 .hint {
     font-size: 11px;
@@ -293,7 +296,7 @@
     color: #7e8c8f;
 }
 
-/* Стакан – две строки, центрировано */
+/* Стакан */
 .orderbook-split {
     display: flex;
     gap: 20px;
@@ -318,17 +321,22 @@
 .orderbook-list {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 24px;
-    padding: 8px;
+    padding: 6px 0;
 }
 .orderbook-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 12px;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     font-size: 14px;
+    position: relative;
+    overflow: hidden;
 }
-.price-sell { color: #ffaa44; font-weight: bold; }
-.price-buy { color: #44ffaa; font-weight: bold; }
+.orderbook-row:last-child {
+    border-bottom: none;
+}
+.price-sell { color: #ff6b6b; font-weight: bold; }
+.price-buy { color: #51cf66; font-weight: bold; }
 
 /* Ордера */
 .section-header {
@@ -355,6 +363,11 @@
     flex-wrap: wrap;
     gap: 8px;
     border: 1px solid rgba(0, 255, 255, 0.2);
+    transition: 0.2s;
+}
+.order-item:hover {
+    border-color: #0ff;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
 }
 .order-info {
     display: flex;
@@ -373,6 +386,25 @@
     border-radius: 60px;
     font-weight: bold;
     cursor: pointer;
+    color: white;
+    transition: 0.2s;
+}
+.buy-order-btn:hover, .cancel-order-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px #2b6e9e;
+}
+.buy-all-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    color: #0ff;
+    padding: 4px 14px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: 0.2s;
+}
+.buy-all-btn:hover {
+    background: rgba(0, 255, 255, 0.15);
 }
 .empty-placeholder {
     text-align: left;
@@ -407,15 +439,37 @@
     border: none;
     cursor: pointer;
     text-align: center;
+    transition: 0.2s;
 }
 .market-btn:active { transform: scale(0.97); }
 .market-btn.buy {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     color: #1e1e2f;
 }
+.market-btn.buy:hover {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
 .market-btn.sell {
     background: linear-gradient(135deg, #f97316, #ea580c);
     color: white;
+}
+.market-btn.sell:hover {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+}
+
+/* Индикатор обновления */
+#updateDot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 8px;
+    vertical-align: middle;
+    animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
 }
 
 /* Модальные окна */
@@ -458,5 +512,5 @@
     .market-buttons { bottom: 65px; padding: 8px 12px; }
     .market-btn { padding: 10px; font-size: 14px; }
     .order-item, .my-order-item { flex-direction: column; align-items: stretch; }
-    .buy-order-btn, .cancel-order-btn { width: 100%; text-align: center; }
+    .buy-order-btn, .cancel-order-btn, .buy-all-btn { width: 100%; text-align: center; }
 }
