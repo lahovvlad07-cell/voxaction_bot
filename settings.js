@@ -1,4 +1,4 @@
-// settings.js – расширенные настройки с темами, шрифтами и скрытием баланса
+// settings.js – исправленный
 
 async function renderSettingsTab() {
     const existing = document.getElementById('settingsModal');
@@ -22,8 +22,6 @@ async function renderSettingsTab() {
                 <span class="close-modal" id="closeSettingsModal">&times;</span>
                 <h3>⚙️ Настройки</h3>
                 <div class="settings-body scrollable">
-                    
-                    <!-- Внешний вид -->
                     <div class="settings-section">
                         <div class="settings-section-title">🎨 Внешний вид</div>
                         <div class="setting-item">
@@ -53,7 +51,6 @@ async function renderSettingsTab() {
                         </label>
                     </div>
 
-                    <!-- Общие -->
                     <div class="settings-section">
                         <div class="settings-section-title">📱 Общие</div>
                         <label class="setting-item">
@@ -70,7 +67,6 @@ async function renderSettingsTab() {
                         </label>
                     </div>
 
-                    <!-- Уведомления -->
                     <div class="settings-section">
                         <div class="settings-section-title">🔔 Уведомления</div>
                         <label class="setting-item">
@@ -91,7 +87,6 @@ async function renderSettingsTab() {
                         </label>
                     </div>
 
-                    <!-- О приложении -->
                     <div class="settings-section">
                         <div class="settings-section-title">ℹ️ О приложении</div>
                         <div class="app-info">
@@ -114,7 +109,6 @@ async function renderSettingsTab() {
     document.getElementById('closeSettingsModal').onclick = closeModal;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    // Сохранение
     document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
         const hideRating = document.getElementById('hideRatingCheckbox').checked;
         const useSliders = document.getElementById('useSlidersCheckbox').checked;
@@ -125,11 +119,8 @@ async function renderSettingsTab() {
         const notifyTopup = document.getElementById('notifyTopupCheckbox').checked;
         const notifyReferral = document.getElementById('notifyReferralCheckbox').checked;
 
-        // Выбранная тема
         const activeTheme = document.querySelector('.theme-option.active');
         const theme = activeTheme ? activeTheme.dataset.theme : 'blue';
-
-        // Выбранный размер шрифта
         const activeFont = document.querySelector('.font-option.active');
         const fontSize = activeFont ? activeFont.dataset.size : 'medium';
 
@@ -140,7 +131,6 @@ async function renderSettingsTab() {
         localStorage.setItem('app_theme', theme);
         localStorage.setItem('font_size', fontSize);
 
-        // Применяем тему и шрифт
         applyTheme(theme);
         applyFontSize(fontSize);
 
@@ -167,7 +157,6 @@ async function renderSettingsTab() {
         if (window.refreshActiveTab) window.refreshActiveTab();
     });
 
-    // Обработчики выбора темы
     document.querySelectorAll('.theme-option').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.theme-option').forEach(b => b.classList.remove('active'));
@@ -175,7 +164,6 @@ async function renderSettingsTab() {
         });
     });
 
-    // Обработчики выбора шрифта
     document.querySelectorAll('.font-option').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.font-option').forEach(b => b.classList.remove('active'));
@@ -183,14 +171,12 @@ async function renderSettingsTab() {
         });
     });
 
-    // Применяем текущие настройки при открытии
     applyTheme(theme);
     applyFontSize(fontSize);
     if (disableAnimations) document.body.classList.add('animations-off');
     else document.body.classList.remove('animations-off');
 }
 
-// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 function applyTheme(theme) {
     const root = document.documentElement;
     const themes = {
@@ -202,7 +188,6 @@ function applyTheme(theme) {
     const t = themes[theme] || themes.blue;
     root.style.setProperty('--primary-color', t.primary);
     root.style.setProperty('--accent-color', t.accent);
-    // Также меняем градиенты в некоторых элементах (можно добавить CSS переменные)
 }
 
 function applyFontSize(size) {
