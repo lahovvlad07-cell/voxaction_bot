@@ -1,4 +1,5 @@
-// stocks.js – улучшенная вкладка (стакан с барами, автообновление, кнопка "Всё")
+// stocks.js – финальная версия с профессиональным графиком и стильными табами
+
 // Определяем глобальную функцию getActiveBuyOrders, если её нет
 if (!window.getActiveBuyOrders) {
     window.getActiveBuyOrders = async function() {
@@ -27,7 +28,6 @@ function showUpdateIndicator() {
         if (header) header.appendChild(dot);
     }
 }
-
 function hideUpdateIndicator() {
     const dot = document.getElementById('updateDot');
     if (dot) dot.remove();
@@ -47,14 +47,12 @@ function groupOrdersByPrice(orders, type) {
 
 // ===== ГЛАВНЫЙ РЕНДЕР =====
 window.renderStocksTab = async function(currentUser) {
-    // Останавливаем старый интервал
     if (updateInterval) clearInterval(updateInterval);
 
-    // Режим ввода (поля / слайдеры) – из настроек
+    // Режим ввода (поля / слайдеры)
     function getInputMode() {
         return localStorage.getItem('stock_input_mode') === 'slider' ? 'slider' : 'field';
     }
-
     function renderInputControls(amountContainer, priceContainer, mode, curAmount = 1, curPrice = 1) {
         if (mode === 'slider') {
             amountContainer.innerHTML = `
@@ -65,18 +63,16 @@ window.renderStocksTab = async function(currentUser) {
                 <input type="range" id="orderPriceSlider" min="1" max="10" step="0.1" value="${curPrice}">
                 <div class="slider-value">${curPrice.toFixed(1)} ⭐</div>
             `;
-            const aS = document.getElementById('orderAmountSlider');
-            const pS = document.getElementById('orderPriceSlider');
-            if (aS) aS.oninput = () => {
-                const v = parseInt(aS.value);
-                aS.nextElementSibling.innerText = v + ' шт.';
+            document.getElementById('orderAmountSlider')?.addEventListener('input', function() {
+                const v = parseInt(this.value);
+                this.nextElementSibling.innerText = v + ' шт.';
                 if (document.getElementById('orderAmount')) document.getElementById('orderAmount').value = v;
-            };
-            if (pS) pS.oninput = () => {
-                const v = parseFloat(pS.value).toFixed(1);
-                pS.nextElementSibling.innerText = v + ' ⭐';
+            });
+            document.getElementById('orderPriceSlider')?.addEventListener('input', function() {
+                const v = parseFloat(this.value).toFixed(1);
+                this.nextElementSibling.innerText = v + ' ⭐';
                 if (document.getElementById('orderPrice')) document.getElementById('orderPrice').value = v;
-            };
+            });
         } else {
             amountContainer.innerHTML = `<input type="number" id="orderAmount" placeholder="Количество (шт.)" step="1" min="1" value="${curAmount}">`;
             priceContainer.innerHTML = `<input type="number" id="orderPrice" placeholder="Цена за 1 шт. (⭐)" step="0.1" min="1" value="${curPrice}">`;
@@ -125,23 +121,21 @@ window.renderStocksTab = async function(currentUser) {
         activeBuyOrders,
         mySellOrders,
         myBuyOrders,
-        priceHistory
+        priceHistory,
+        recentTrades
     ] = await Promise.all([
         window.getCurrentPrice(),
         window.getTotalMarketCap(),
         window.get24hAvgPrice(),
         window.getActiveOrders(),
-        window.getActiveBuyOrders(), // теперь функция определена глобально
+        window.getActiveBuyOrders(),
         window.getUserOrders(),
         (async () => {
-            const { data } = await window.supabase
-                .from('buy_orders')
-                .select('*')
-                .eq('buyer_id', window.userId)
-                .eq('status', 'active');
+            const { data } = await window.supabase.from('buy_orders').select('*').eq('buyer_id', window.userId).eq('status', 'active');
             return data || [];
         })(),
         (async () => {
+            // Грузим историю цен за последние 30 дней для графика
             const { data: trades } = await window.supabase
                 .from('trades')
                 .select('price_per_share, created_at')
@@ -159,23 +153,43 @@ window.renderStocksTab = async function(currentUser) {
                 date,
                 price: sum / count / 100
             }));
+        })(),
+        (async () => {
+            const { data } = await window.supabase.from('trades').select('amount, price_per_share, created_at').order('created_at', { ascending: false }).limit(20);
+            return data || [];
         })()
     ]);
+
+    // Формируем данные для графика (объём и цена)
+    let chartData = priceHistory.map(p => ({ date: p.date, price: p.price }));
+    let volumeData = [];
+    // Если есть сделки за последние 30 дней, берём объём по дням
+    try {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+        const { data: volTrades } = await window.supabase
+            .from('trades')
+            .select('amount, created_at')
+            .gte('created_at', thirtyDaysAgo)
+            .order('created_at', { ascending: true });
+        if (volTrades && volTrades.length) {
+            const volMap = {};
+            volTrades.forEach(t => {
+                const day = t.created_at.slice(0,10);
+                volMap[day] = (volMap[day] || 0) + t.amount / 100;
+            });
+            volumeData = Object.entries(volMap).map(([date, volume]) => ({ date, volume }));
+        }
+    } catch(e) { console.warn('Volume data error', e); }
 
     // Цена
     let showPrice = '—';
     let hasPrice = false;
-    if (priceHistory.length > 0 && currentPriceCents && currentPriceCents >= 100) {
-        showPrice = (currentPriceCents / 100).toFixed(2);
-        hasPrice = true;
-    } else if (currentPriceCents && currentPriceCents > 100) {
+    if (currentPriceCents && currentPriceCents >= 100) {
         showPrice = (currentPriceCents / 100).toFixed(2);
         hasPrice = true;
     }
-    
     const marketCap = marketCapData.marketCap.toFixed(2);
     const totalShares = (marketCapData.totalShares / 100).toFixed(2);
-    
     let avgPercentText = '0%';
     let avgPercentClass = '';
     if (avgPrice24hCents >= 100 && currentPriceCents >= 100 && currentPriceCents > 100) {
@@ -184,19 +198,25 @@ window.renderStocksTab = async function(currentUser) {
         avgPercentClass = percent >= 0 ? 'positive' : 'negative';
     }
 
-    // ---- HTML (без вкладки "История") ----
+    // ---- HTML ----
     const html = `
         <div class="stocks-container">
-            <!-- Баланс и цена -->
+            <!-- Баланс -->
             <div class="balance-row">
                 <div class="balance-card"><div class="bal-label">📊 Акции</div><div class="bal-value">${userShares}</div></div>
                 <div class="balance-card"><div class="bal-label">⭐ Stars</div><div class="bal-value">${userStars}</div></div>
                 <div class="balance-card"><div class="bal-label">💰 Цена</div><div class="bal-value ${hasPrice ? 'price-active' : 'price-placeholder'}">${showPrice}</div></div>
             </div>
             
-            <!-- График (увеличенный) -->
-            <div class="chart-container-main" style="height:200px;">
+            <!-- График с переключателями периодов -->
+            <div class="chart-container-main">
                 <canvas id="mainPriceChart" width="600" height="200" style="width:100%; height:200px;"></canvas>
+                <div class="chart-tooltip" id="chartTooltip"><span class="price"></span></div>
+                <div class="chart-timeframes">
+                    <button class="timeframe-btn active" data-period="7">7Д</button>
+                    <button class="timeframe-btn" data-period="30">30Д</button>
+                    <button class="timeframe-btn" data-period="90">90Д</button>
+                </div>
             </div>
             
             <!-- Статистика -->
@@ -206,12 +226,12 @@ window.renderStocksTab = async function(currentUser) {
                 <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-label">Ср. цена (24ч)</div><div class="stat-value ${avgPercentClass}">${avgPercentText}</div></div>
             </div>
             
-            <!-- Табы -->
+            <!-- Табы (новый дизайн) -->
             <div class="tabs-row">
-                <button class="tab-btn active" data-tab="orderform">✍️ Новый ордер</button>
-                <button class="tab-btn" data-tab="orderbook">📖 Стакан</button>
-                <button class="tab-btn" data-tab="orders">📋 Ордера</button>
-                <button class="tab-btn" data-tab="myorders">📌 Мои ордера</button>
+                <button class="tab-btn active" data-tab="orderform"><span class="tab-icon">✍️</span><span class="tab-label">Новый ордер</span></button>
+                <button class="tab-btn" data-tab="orderbook"><span class="tab-icon">📖</span><span class="tab-label">Стакан</span></button>
+                <button class="tab-btn" data-tab="orders"><span class="tab-icon">📋</span><span class="tab-label">Ордера</span></button>
+                <button class="tab-btn" data-tab="myorders"><span class="tab-icon">📌</span><span class="tab-label">Мои ордера</span></button>
             </div>
             
             <!-- Панели -->
@@ -256,8 +276,23 @@ window.renderStocksTab = async function(currentUser) {
 
     document.getElementById('app').innerHTML = html;
 
-    // ---- ГРАФИК (увеличенный) ----
-    function drawMainChart() {
+    // ---- ГРАФИК С ПЕРИОДАМИ И КРОССХАИР ----
+    let currentPeriod = 7; // дней
+    let chartPriceData = chartData.slice(); // копия для отображения
+    let chartVolumeData = volumeData.slice();
+
+    function filterDataByPeriod(period) {
+        const now = new Date();
+        const cutoff = new Date(now);
+        cutoff.setDate(cutoff.getDate() - period);
+        const cutoffStr = cutoff.toISOString().slice(0,10);
+        const filtered = chartData.filter(d => d.date >= cutoffStr);
+        // объём тоже фильтруем
+        const volFiltered = volumeData.filter(d => d.date >= cutoffStr);
+        return { price: filtered, volume: volFiltered };
+    }
+
+    function drawMainChart(period = currentPeriod) {
         const canvas = document.getElementById('mainPriceChart');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -266,31 +301,42 @@ window.renderStocksTab = async function(currentUser) {
         canvas.width = w;
         canvas.height = h;
 
-        if (!priceHistory.length) {
+        const filtered = filterDataByPeriod(period);
+        const pricePoints = filtered.price;
+        const volPoints = filtered.volume;
+
+        if (!pricePoints.length) {
             ctx.fillStyle = '#0f1320';
             ctx.fillRect(0, 0, w, h);
             ctx.fillStyle = '#9ca3af';
             ctx.font = '12px sans-serif';
-            ctx.fillText('Нет данных для графика', w/2 - 60, h/2);
+            ctx.fillText('Нет данных', w/2 - 30, h/2);
             return;
         }
 
-        const prices = priceHistory.map(p => p.price);
+        const prices = pricePoints.map(p => p.price);
         const maxP = Math.max(...prices, 0.01);
         const minP = Math.min(...prices, 0);
         const range = maxP - minP || 1;
 
+        // ---- ОБЪЁМ (внизу) ----
+        const volMax = volPoints.length ? Math.max(...volPoints.map(v => v.volume)) : 1;
+        const volHeight = 30; // высота объёма в пикселях
+        const priceHeight = h - volHeight - 20; // оставляем отступы
+
         ctx.clearRect(0, 0, w, h);
-        // Сетка
+
+        // Сетка для цены
         ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.lineWidth = 0.5;
         for (let i = 0; i < 5; i++) {
-            const y = (h / 5) * i;
+            const y = (priceHeight / 5) * i + 10;
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(w, y);
             ctx.stroke();
         }
+
         // Линия цены
         ctx.beginPath();
         ctx.strokeStyle = '#0ff';
@@ -298,26 +344,82 @@ window.renderStocksTab = async function(currentUser) {
         const step = w / (prices.length - 1);
         prices.forEach((price, i) => {
             const x = i * step;
-            const y = h - 12 - ((price - minP) / range) * (h - 24);
+            const y = 10 + priceHeight - ((price - minP) / range) * (priceHeight - 10);
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         });
         ctx.stroke();
-        // Заливка
-        ctx.lineTo(w, h - 12);
-        ctx.lineTo(0, h - 12);
-        ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+
+        // Заливка под линией
+        const lastX = (prices.length - 1) * step;
+        ctx.lineTo(lastX, 10 + priceHeight);
+        ctx.lineTo(0, 10 + priceHeight);
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.08)';
         ctx.fill();
+
+        // ---- ОБЪЁМ (столбцы) ----
+        if (volPoints.length) {
+            const volStep = w / volPoints.length;
+            volPoints.forEach((v, i) => {
+                const barH = (v.volume / volMax) * (volHeight - 4);
+                const x = i * volStep;
+                const y = 10 + priceHeight + (volHeight - barH);
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+                ctx.fillRect(x + 1, y, volStep - 2, barH);
+            });
+        }
+
         // Подписи
         ctx.fillStyle = '#9ca3af';
         ctx.font = '10px sans-serif';
-        ctx.fillText(minP.toFixed(2), 5, h - 10);
-        ctx.fillText(maxP.toFixed(2), 5, 15);
-    }
-    setTimeout(drawMainChart, 50);
-    window.addEventListener('resize', () => setTimeout(drawMainChart, 50));
+        ctx.fillText(minP.toFixed(2), 5, 10 + priceHeight - 4);
+        ctx.fillText(maxP.toFixed(2), 5, 20);
+        // Метка периода
+        ctx.fillText(`${period}Д`, w - 30, 15);
 
-    // ---- СТАКАН С ВИЗУАЛЬНЫМИ БАРАМИ ----
+        // Кроссhair (будет обновляться при mousemove)
+        canvas.crosshairData = { prices, step, minP, range, priceHeight, volPoints, volMax, volHeight };
+    }
+
+    // Обработчик движения мыши для кроссhair
+    function setupCrosshair() {
+        const canvas = document.getElementById('mainPriceChart');
+        if (!canvas) return;
+        const tooltip = document.getElementById('chartTooltip');
+
+        canvas.addEventListener('mousemove', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const w = this.width;
+            const data = this.crosshairData;
+            if (!data || !data.prices.length) return;
+
+            const index = Math.round(x / data.step);
+            if (index < 0 || index >= data.prices.length) {
+                tooltip.classList.remove('visible');
+                return;
+            }
+            const price = data.prices[index];
+            tooltip.innerHTML = `<span class="price">${price.toFixed(2)} ⭐</span>`;
+            tooltip.style.left = Math.min(Math.max(x, 30), w - 30) + 'px';
+            tooltip.classList.add('visible');
+        });
+        canvas.addEventListener('mouseleave', function() {
+            document.getElementById('chartTooltip').classList.remove('visible');
+        });
+    }
+
+    // Переключение периодов
+    document.querySelectorAll('.timeframe-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentPeriod = parseInt(this.dataset.period);
+            drawMainChart(currentPeriod);
+        });
+    });
+
+    // ---- ОСТАЛЬНЫЕ ФУНКЦИИ (стакан, ордера, автообновление) ----
     function renderOrderBook() {
         const sellBook = groupOrdersByPrice(activeSellOrders, 'sell').slice(0, 10);
         const buyBook = groupOrdersByPrice(activeBuyOrders, 'buy').slice(0, 10);
@@ -325,7 +427,7 @@ window.renderStocksTab = async function(currentUser) {
         const maxBuyVolume = buyBook.length ? Math.max(...buyBook.map(b => b.amount)) : 1;
 
         document.getElementById('sellBookList').innerHTML = sellBook.length ? sellBook.map(b => `
-            <div class="orderbook-row" style="position:relative; padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div class="orderbook-row">
                 <div style="position:absolute; right:0; top:0; height:100%; background:rgba(255,100,100,0.15); width:${(b.amount/maxSellVolume)*70}%; z-index:0;"></div>
                 <span style="position:relative; z-index:1;">${b.amount.toFixed(2)} шт.</span>
                 <span class="price-sell" style="position:relative; z-index:1;">${b.price.toFixed(2)} ⭐</span>
@@ -333,7 +435,7 @@ window.renderStocksTab = async function(currentUser) {
         `).join('') : '<div class="empty-placeholder">Нет ордеров</div>';
 
         document.getElementById('buyBookList').innerHTML = buyBook.length ? buyBook.map(b => `
-            <div class="orderbook-row" style="position:relative; padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div class="orderbook-row">
                 <div style="position:absolute; left:0; top:0; height:100%; background:rgba(100,255,100,0.15); width:${(b.amount/maxBuyVolume)*70}%; z-index:0;"></div>
                 <span style="position:relative; z-index:1;">${b.amount.toFixed(2)} шт.</span>
                 <span class="price-buy" style="position:relative; z-index:1;">${b.price.toFixed(2)} ⭐</span>
@@ -341,7 +443,6 @@ window.renderStocksTab = async function(currentUser) {
         `).join('') : '<div class="empty-placeholder">Нет заявок</div>';
     }
 
-    // ---- АКТИВНЫЕ ОРДЕРА (чужие) с кнопкой "Купить всё" ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
@@ -350,7 +451,7 @@ window.renderStocksTab = async function(currentUser) {
         container.innerHTML = foreignOrders.map(order => {
             const price = order.price_per_share / 100;
             const amount = order.amount / 100;
-            return `<div class="order-item" data-id="${order.id}">
+            return `<div class="order-item">
                 <div class="order-info">
                     <span>📦 ${amount.toFixed(2)} шт.</span>
                     <span>⭐ ${price.toFixed(2)}</span>
@@ -358,7 +459,7 @@ window.renderStocksTab = async function(currentUser) {
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button class="buy-order-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}">Купить</button>
-                    <button class="buy-all-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}" style="background:rgba(255,255,255,0.05); border:1px solid rgba(0,255,255,0.3); color:#0ff; padding:4px 12px; border-radius:20px; cursor:pointer; font-size:12px;">Всё</button>
+                    <button class="buy-all-btn" data-id="${order.id}" data-price="${price}" data-amount="${amount}">Всё</button>
                 </div>
             </div>`;
         }).join('');
@@ -390,7 +491,6 @@ window.renderStocksTab = async function(currentUser) {
         });
     }
 
-    // ---- МОИ ОРДЕРА ----
     function renderMyOrders() {
         const sellContainer = document.getElementById('mySellOrdersList');
         if (sellContainer) {
@@ -434,7 +534,7 @@ window.renderStocksTab = async function(currentUser) {
             if (target === 'orderbook') renderOrderBook();
             if (target === 'orders') renderActiveSellOrders();
             if (target === 'myorders') renderMyOrders();
-            if (target === 'orderform') drawMainChart();
+            if (target === 'orderform') drawMainChart(currentPeriod);
         });
     });
 
@@ -476,11 +576,9 @@ window.renderStocksTab = async function(currentUser) {
             window.showCustomModal('Ошибка', 'Введите корректные количество и цену (минимум 1)');
             return;
         }
-        
         const freshUser = await window.getOrCreateUser();
         const userSharesCents = freshUser.user.shares;
         const userStarsCents = freshUser.user.stars_balance;
-        
         if (currentOrderType === 'sell') {
             const neededSharesCents = window.toCents(amount);
             if (userSharesCents < neededSharesCents) {
@@ -504,13 +602,13 @@ window.renderStocksTab = async function(currentUser) {
                 window.showToast(`✅ Заявка на покупку ${amount} шт. по ${price} ⭐ размещена`, 2500);
             }
             if (getInputMode() === 'slider') {
-                if (document.getElementById('orderAmountSlider')) document.getElementById('orderAmountSlider').value = 1;
-                if (document.getElementById('orderPriceSlider')) document.getElementById('orderPriceSlider').value = 1;
-                if (document.querySelector('#amountControl .slider-value')) document.querySelector('#amountControl .slider-value').innerText = '1 шт.';
-                if (document.querySelector('#priceControl .slider-value')) document.querySelector('#priceControl .slider-value').innerText = '1.0 ⭐';
+                document.getElementById('orderAmountSlider').value = 1;
+                document.getElementById('orderPriceSlider').value = 1;
+                document.querySelector('#amountControl .slider-value').innerText = '1 шт.';
+                document.querySelector('#priceControl .slider-value').innerText = '1.0 ⭐';
             } else {
-                if (document.getElementById('orderAmount')) document.getElementById('orderAmount').value = '';
-                if (document.getElementById('orderPrice')) document.getElementById('orderPrice').value = '';
+                document.getElementById('orderAmount').value = '';
+                document.getElementById('orderPrice').value = '';
             }
             window.refreshActiveTab();
         } catch(e) {
@@ -552,7 +650,7 @@ window.renderStocksTab = async function(currentUser) {
         });
     };
 
-    // ---- АВТООБНОВЛЕНИЕ (каждые 10 секунд) ----
+    // ---- АВТООБНОВЛЕНИЕ ----
     showUpdateIndicator();
     updateInterval = setInterval(async () => {
         if (!isTabActive) return;
@@ -561,59 +659,43 @@ window.renderStocksTab = async function(currentUser) {
             const newSellOrders = await window.getActiveOrders();
             const newBuyOrders = await window.getActiveBuyOrders();
             
-            // Обновляем цену на карточке
             const priceEl = document.querySelector('.balance-card .bal-value.price-active, .balance-card .bal-value.price-placeholder');
             if (priceEl && newPrice && newPrice > 100) {
                 priceEl.textContent = (newPrice / 100).toFixed(2);
                 priceEl.className = 'bal-value price-active';
             }
-            
-            // Обновляем стакан, если активен
             const activeTab = document.querySelector('.tab-btn.active');
-            if (activeTab && activeTab.dataset.tab === 'orderbook') {
-                activeSellOrders.length = 0;
-                activeSellOrders.push(...newSellOrders);
-                activeBuyOrders.length = 0;
-                activeBuyOrders.push(...newBuyOrders);
-                renderOrderBook();
+            if (activeTab) {
+                if (activeTab.dataset.tab === 'orderbook') {
+                    activeSellOrders.length = 0; activeSellOrders.push(...newSellOrders);
+                    activeBuyOrders.length = 0; activeBuyOrders.push(...newBuyOrders);
+                    renderOrderBook();
+                } else if (activeTab.dataset.tab === 'orders') {
+                    activeSellOrders.length = 0; activeSellOrders.push(...newSellOrders);
+                    renderActiveSellOrders();
+                }
             }
-            
-            // Обновляем ордера, если активны
-            if (activeTab && activeTab.dataset.tab === 'orders') {
-                activeSellOrders.length = 0;
-                activeSellOrders.push(...newSellOrders);
-                renderActiveSellOrders();
-            }
-            
-            // Мигаем индикатором
+            // Обновляем график, если есть новые данные (можно не обновлять часто)
             const dot = document.getElementById('updateDot');
-            if (dot) {
-                dot.style.background = '#fbbf24';
-                setTimeout(() => dot.style.background = '#4ade80', 300);
-            }
-        } catch(e) {
-            console.warn('Auto-update error:', e);
-        }
+            if (dot) { dot.style.background = '#fbbf24'; setTimeout(() => dot.style.background = '#4ade80', 300); }
+        } catch(e) { console.warn('Auto-update error:', e); }
     }, 10000);
 
-    // ---- ЗАВЕРШЕНИЕ ----
-    drawMainChart();
+    // ---- ИНИЦИАЛИЗАЦИЯ ----
+    drawMainChart(currentPeriod);
+    setupCrosshair();
     renderOrderBook();
     renderActiveSellOrders();
     renderMyOrders();
 };
 
-// Остановка автообновления при уходе с вкладки
+// Остановка автообновления
 document.addEventListener('visibilitychange', () => {
     isTabActive = !document.hidden;
-    if (!isTabActive && updateInterval) {
-        hideUpdateIndicator();
-    } else if (isTabActive) {
-        showUpdateIndicator();
-    }
+    if (!isTabActive && updateInterval) hideUpdateIndicator();
+    else if (isTabActive) showUpdateIndicator();
 });
 
-// Переопределяем showToast (если нужно)
 window.showToast = function(message, duration = 2500) {
     const toast = document.createElement('div');
     toast.className = 'toast';
