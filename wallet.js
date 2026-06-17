@@ -1,4 +1,4 @@
-// wallet.js – полностью переработанный кошелёк с кнопкой истории по центру
+// wallet.js – кошелёк с кнопкой "Последние операции" по центру, загружает 10 последних пополнений
 window.renderWalletTab = async function() {
     const { user: freshUser } = await window.getOrCreateUser();
     window.currentUser = freshUser;
