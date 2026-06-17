@@ -139,7 +139,8 @@ window.getOrCreateUser = async function() {
             total_volume: 0,
             trades_count: 0,
             days_active: 0,
-            last_username_change: new Date().toISOString()
+            last_username_change: new Date().toISOString(),
+            is_admin: false
         }]).select().single();
         
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
@@ -172,9 +173,9 @@ window.getOrCreateUser = async function() {
     }
     
     let updated = false;
-    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change'];
+    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change', 'is_admin'];
     for (let f of newFields) {
-        if (data[f] === undefined) { data[f] = f === 'last_username_change' ? new Date().toISOString() : 0; updated = true; }
+        if (data[f] === undefined) { data[f] = f === 'last_username_change' ? new Date().toISOString() : (f === 'is_admin' ? false : 0); updated = true; }
     }
     if (updated) {
         await window.supabase.from('users').update({
@@ -184,7 +185,8 @@ window.getOrCreateUser = async function() {
             total_volume: data.total_volume,
             trades_count: data.trades_count,
             days_active: data.days_active,
-            last_username_change: data.last_username_change
+            last_username_change: data.last_username_change,
+            is_admin: data.is_admin
         }).eq('id', window.userId);
     }
     return { user: data, isNew: false };
@@ -247,8 +249,9 @@ window.refreshActiveTab = async function() {
         case 'rating': if (window.renderRatingTab) await window.renderRatingTab(); break;
         case 'wallet': if (window.renderWalletTab) await window.renderWalletTab(); break;
         case 'referral': if (window.renderReferralTab) await window.renderReferralTab(); break;
+        case 'mining': if (window.renderMiningTab) await window.renderMiningTab(); break;
         case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
-        case 'settings': if (window.renderSettingsTab) await window.renderSettingsTab(); break;
+        case 'news': if (window.renderNewsTab) await window.renderNewsTab(); break;
     }
 };
 
@@ -570,4 +573,63 @@ window.getOnlineCount = async function() {
         console.warn('Ошибка получения онлайн-статистики', e);
         return 0;
     }
+};
+
+// ========== НОВОСТИ ==========
+window.getNews = async function() {
+    const { data, error } = await window.supabase
+        .from('news')
+        .select('*')
+        .order('created_at', { ascending: false });
+    if (error) return [];
+    return data;
+};
+
+window.createNews = async function(title, content) {
+    const { error } = await window.supabase
+        .from('news')
+        .insert({
+            title: title,
+            content: content,
+            created_at: new Date().toISOString()
+        });
+    if (error) throw new Error(error.message);
+    return true;
+};
+
+window.deleteNews = async function(newsId) {
+    const { error } = await window.supabase
+        .from('news')
+        .delete()
+        .eq('id', newsId);
+    if (error) throw new Error(error.message);
+    return true;
+};
+
+// ========== УПРАВЛЕНИЕ АДМИНАМИ ==========
+window.getAdmins = async function() {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('id, username')
+        .eq('is_admin', true);
+    if (error) return [];
+    return data;
+};
+
+window.addAdmin = async function(userId) {
+    const { error } = await window.supabase
+        .from('users')
+        .update({ is_admin: true })
+        .eq('id', userId);
+    if (error) throw new Error(error.message);
+    return true;
+};
+
+window.removeAdmin = async function(userId) {
+    const { error } = await window.supabase
+        .from('users')
+        .update({ is_admin: false })
+        .eq('id', userId);
+    if (error) throw new Error(error.message);
+    return true;
 };
