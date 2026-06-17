@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/settings.css">
     <link rel="stylesheet" href="css/wallet.css">
-    <link rel="stylesheet" href="css/mining.css"> <!-- НОВЫЙ СТИЛЬ -->
+    <link rel="stylesheet" href="css/mining.css">
 </head>
 <body>
 <div class="app-header">
@@ -46,12 +46,12 @@
         <div class="tab" data-tab="rating"><div class="tab-icon">🏆</div><div class="tab-label">Рейтинг</div></div>
         <div class="tab" data-tab="wallet"><div class="tab-icon">💳</div><div class="tab-label">Кошелёк</div></div>
         <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
-        <div class="tab" data-tab="mining"><div class="tab-icon">⛏️</div><div class="tab-label">Заработок</div></div> <!-- НОВАЯ ВКЛАДКА -->
+        <div class="tab" data-tab="mining"><div class="tab-icon">⛏️</div><div class="tab-label">Заработок</div></div>
         <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
     </div>
 </div>
 
-<!-- СТАРАЯ МОДАЛКА ПОПОЛНЕНИЯ УДАЛЕНА – используется новая из topup.js -->
+<!-- Модалка пополнения теперь создаётся динамически через topup.js, поэтому старую убрали -->
 
 <script src="api.js"></script>
 <script src="notifications.js"></script>
@@ -62,7 +62,7 @@
 <script src="rating.js"></script>
 <script src="wallet.js"></script>
 <script src="referral.js"></script>
-<script src="mining.js"></script> <!-- НОВЫЙ СКРИПТ -->
+<script src="mining.js"></script>
 <script src="admin.js"></script>
 <script src="settings.js"></script>
 
@@ -172,7 +172,7 @@
                     case 'rating': await window.renderRatingTab(); break;
                     case 'wallet': await window.renderWalletTab(); break;
                     case 'referral': await window.renderReferralTab(); break;
-                    case 'mining': await window.renderMiningTab(); break; // НОВАЯ ВКЛАДКА
+                    case 'mining': await window.renderMiningTab(); break;
                     case 'admin': await window.renderAdminTab(); break;
                 }
             });
