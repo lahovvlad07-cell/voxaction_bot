@@ -85,7 +85,7 @@
     font-weight: bold;
 }
 
-/* ========== ОНЛАЙН-ИНДИКАТОР (исправленное выравнивание) ========== */
+/* ========== ОНЛАЙН-ИНДИКАТОР ========== */
 .header-online {
     display: flex;
     align-items: center;
@@ -163,15 +163,16 @@
     50% { opacity: 0.5; transform: scale(0.85); }
 }
 
-/* Адаптив для мобильных (скрываем текст «Онлайн») */
+/* Адаптив для мобильных – теперь НЕ скрываем текст "Онлайн" */
 @media (max-width: 480px) {
     .header-online {
-        padding: 4px 8px;
+        padding: 4px 10px;
         gap: 4px;
         height: 28px;
     }
     .online-text {
-        display: none;
+        /* больше не скрываем */
+        font-size: 10px;
     }
     .online-count {
         font-size: 11px;
