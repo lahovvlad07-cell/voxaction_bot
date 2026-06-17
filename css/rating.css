@@ -1,4 +1,4 @@
-/* rating.css – финальная версия с принудительной прокруткой */
+/* rating.css – финальная версия с улучшенным дизайном, сортировкой и прогрессом */
 
 .rating-title {
     text-align: center;
@@ -26,6 +26,35 @@
     background: rgba(0, 0, 0, 0.3);
     padding: 2px 10px;
     border-radius: 30px;
+}
+
+/* ===== СОРТИРОВКА ===== */
+.sort-controls {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.sort-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.sort-btn.active {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border-color: #0ff;
+    color: white;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+}
+.sort-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 #ratingListContainer {
@@ -220,13 +249,13 @@
     100% { background-position: -200% 0; }
 }
 
+/* ===== МОЯ КАРТОЧКА ===== */
 .my-rank-card {
     background: linear-gradient(135deg, rgba(43, 110, 158, 0.25), rgba(26, 76, 110, 0.35));
     backdrop-filter: blur(8px);
     border-radius: 24px;
-    padding: 12px 16px;
+    padding: 16px 20px;
     margin-top: 20px;
-    text-align: center;
     border: 1px solid rgba(56, 189, 248, 0.4);
 }
 .my-rank-title {
@@ -236,6 +265,7 @@
     letter-spacing: 1px;
     margin-bottom: 8px;
     color: #60a5fa;
+    text-align: center;
 }
 .my-rank-details {
     display: flex;
@@ -259,10 +289,35 @@
     font-weight: 700;
 }
 
+.next-rank-progress {
+    margin-top: 12px;
+}
+.progress-text {
+    font-size: 12px;
+    color: #9ca3af;
+    text-align: center;
+}
+.progress-text strong {
+    color: #eef2ff;
+}
+.progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    height: 6px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+.progress-fill {
+    background: linear-gradient(90deg, #2b6e9e, #60a5fa);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.8s ease;
+}
+
 /* ===== МОДАЛЬНОЕ ОКНО ПРОФИЛЯ ===== */
 #profileModal .modal-content {
     max-height: 85vh;
-    overflow-y: scroll;  /* принудительный скроллбар */
+    overflow-y: scroll;
     padding-bottom: 20px;
 }
 #profileModal .modal-content::-webkit-scrollbar {
@@ -344,5 +399,12 @@
         width: 44px;
         height: 44px;
         font-size: 24px;
+    }
+    .sort-controls {
+        gap: 4px;
+    }
+    .sort-btn {
+        font-size: 10px;
+        padding: 4px 10px;
     }
 }
