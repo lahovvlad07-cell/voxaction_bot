@@ -1,4 +1,4 @@
-/* stocks.css – финальная версия с улучшенным дизайном и графиком */
+/* stocks.css – финальная версия с улучшенным дизайном, стаканом, графиком, компактными ордерами */
 
 :root {
     --neon-blue: #0ff;
@@ -166,7 +166,7 @@
 .stat-value.positive { color: #4ade80; }
 .stat-value.negative { color: #f87171; }
 
-/* ===== ТАБЫ (НОВЫЙ ДИЗАЙН) ===== */
+/* ===== ТАБЫ ===== */
 .tabs-row {
     display: flex;
     gap: 6px;
@@ -354,7 +354,93 @@
 .price-sell { color: #ff6b6b; font-weight: bold; }
 .price-buy { color: #51cf66; font-weight: bold; }
 
-/* ===== ОРДЕРА ===== */
+/* ===== ОРДЕРА (КОМПАКТНЫЕ) ===== */
+.order-item {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    border: 1px solid rgba(0, 255, 255, 0.15);
+    transition: 0.2s;
+}
+.order-item:hover {
+    border-color: rgba(0, 255, 255, 0.4);
+    background: rgba(0, 0, 0, 0.65);
+}
+.order-info-compact {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.order-seller-full {
+    font-size: 12px;
+    color: #8e9aaf;
+    white-space: nowrap;
+}
+.order-amount {
+    font-weight: 600;
+    color: #eef2ff;
+    white-space: nowrap;
+}
+.order-price {
+    color: #0ff;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.buy-order-btn {
+    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    border: none;
+    padding: 6px 20px;
+    border-radius: 40px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+    white-space: nowrap;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(43, 110, 158, 0.3);
+}
+.buy-order-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 16px rgba(43, 110, 158, 0.5);
+}
+.buy-order-btn:active {
+    transform: scale(0.97);
+}
+
+/* ===== МОИ ОРДЕРА ===== */
+.my-order-item {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+}
+.cancel-order-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 100, 100, 0.4);
+    padding: 6px 16px;
+    border-radius: 60px;
+    font-weight: 600;
+    color: #ff6b6b;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.cancel-order-btn:hover {
+    background: rgba(255, 100, 100, 0.15);
+    border-color: #ff6b6b;
+}
+
+/* ===== ОБЩИЕ ЭЛЕМЕНТЫ ===== */
 .section-header {
     font-size: 16px;
     font-weight: 600;
@@ -369,35 +455,6 @@
     flex-direction: column;
     gap: 10px;
 }
-.order-item, .my-order-item {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    border: 1px solid rgba(0, 255, 255, 0.2);
-}
-.order-info {
-    display: flex;
-    gap: 12px;
-    align-items: baseline;
-    flex-wrap: wrap;
-}
-.order-seller {
-    font-size: 11px;
-    color: #8e9aaf;
-}
-.buy-order-btn, .cancel-order-btn {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    border: none;
-    padding: 6px 16px;
-    border-radius: 60px;
-    font-weight: bold;
-    cursor: pointer;
-}
 .empty-placeholder {
     text-align: left;
     padding: 16px 12px;
@@ -406,19 +463,6 @@
     background: rgba(0, 0, 0, 0.3);
     border-radius: 20px;
     margin: 8px 0;
-}
-.buy-all-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    color: #0ff;
-    padding: 4px 12px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: 0.2s;
-}
-.buy-all-btn:hover {
-    background: rgba(0, 255, 255, 0.15);
 }
 
 /* ===== РЫНОЧНЫЕ КНОПКИ ===== */
@@ -455,6 +499,21 @@
     color: white;
 }
 
+/* ===== ИНДИКАТОР ОБНОВЛЕНИЯ ===== */
+#updateDot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 8px;
+    vertical-align: middle;
+    animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
 /* ===== АДАПТИВ ===== */
 @media (max-width: 560px) {
     .stocks-container { padding: 0 12px 70px 12px; }
@@ -469,6 +528,12 @@
     .order-form-panel { padding: 16px; }
     .market-buttons { bottom: 65px; padding: 8px 12px; }
     .market-btn { padding: 10px; font-size: 14px; }
-    .order-item, .my-order-item { flex-direction: column; align-items: stretch; }
-    .buy-order-btn, .cancel-order-btn { width: 100%; text-align: center; }
+    .order-item { flex-direction: column; align-items: stretch; }
+    .order-info-compact { justify-content: space-between; }
+    .buy-order-btn { width: 100%; text-align: center; }
+    .my-order-item { flex-direction: column; align-items: stretch; }
+    .cancel-order-btn { width: 100%; text-align: center; }
+    .order-seller-full { font-size: 10px; }
+    .order-amount { font-size: 14px; }
+    .order-price { font-size: 14px; }
 }
