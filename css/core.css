@@ -1,4 +1,11 @@
-/* core.css – базовые стили для всего приложения */
+/* core.css – базовые стили для всего приложения с CSS-переменными */
+
+:root {
+    --primary-color: #2b6e9e;
+    --accent-color: #0ff;
+    --base-font-size: 16px;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -17,6 +24,8 @@ body {
     color: #eef2ff;
     padding-top: 70px;
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    font-size: var(--base-font-size, 16px);
+    transition: background 0.3s, color 0.3s;
 }
 
 .card {
@@ -30,7 +39,7 @@ body {
 }
 
 button {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
+    background: linear-gradient(135deg, var(--primary-color, #2b6e9e), #1a4c6e);
     border: none;
     padding: 12px 20px;
     border-radius: 44px;
@@ -56,9 +65,10 @@ input {
     background: #111827;
     color: #f0f4ff;
     outline: none;
+    font-size: var(--base-font-size, 16px);
 }
 input:focus {
-    border-color: #2b6e9e;
+    border-color: var(--primary-color, #2b6e9e);
 }
 
 /* Модалки */
@@ -74,7 +84,13 @@ input:focus {
     z-index: 1000;
     align-items: center;
     justify-content: center;
+    animation: modalFadeIn 0.25s ease;
 }
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+
 .modal-content {
     background: #121826;
     border-radius: 32px;
@@ -84,9 +100,15 @@ input:focus {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 1px solid #2b6e9e;
+    border: 1px solid var(--accent-color, #2b6e9e);
     position: relative;
+    animation: modalSlideUp 0.3s ease;
 }
+@keyframes modalSlideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
 .modal-content h3 {
     text-align: center;
     margin: 16px 0 0;
@@ -128,7 +150,7 @@ input:focus {
     border-radius: 40px;
     z-index: 2000;
     font-size: 14px;
-    border-left: 4px solid #2b6e9e;
+    border-left: 4px solid var(--primary-color, #2b6e9e);
     animation: fadeInOut 5s ease forwards;
     pointer-events: none;
     white-space: nowrap;
@@ -207,8 +229,8 @@ input:focus {
     transform: translateY(-2px);
 }
 .amount-preset.selected {
-    background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
-    border-color: #0ff;
+    background: linear-gradient(135deg, var(--primary-color, #2b6e9e), #1a4c6e);
+    border-color: var(--accent-color, #0ff);
     color: white;
     box-shadow: 0 0 20px rgba(43, 110, 158, 0.5);
 }
@@ -222,7 +244,6 @@ input:focus {
     color: white;
 }
 
-/* Своя сумма */
 .custom-amount {
     margin: 16px 0;
 }
@@ -248,7 +269,6 @@ input:focus {
     font-size: 14px;
 }
 
-/* Блок комиссии – компактный */
 .topup-fee {
     background: rgba(0, 0, 0, 0.25);
     border-radius: 16px;
@@ -274,7 +294,6 @@ input:focus {
     color: #4ade80;
 }
 
-/* Лимит */
 .topup-limit-info {
     font-size: 12px;
     color: #fbbf24;
@@ -289,7 +308,6 @@ input:focus {
     margin-right: auto;
 }
 
-/* Кнопка пополнить */
 .topup-confirm-btn {
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     border: none;
@@ -373,6 +391,11 @@ input:focus {
 }
 .confirm-modal .modal-buttons .secondary:hover {
     background: rgba(255,255,255,0.1);
+}
+
+.small-text {
+    font-size: 12px;
+    color: #9ca3af;
 }
 
 /* Адаптив модалок */
