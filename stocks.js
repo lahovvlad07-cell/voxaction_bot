@@ -1,4 +1,4 @@
-// stocks.js – финальная версия с улучшенным дизайном ордеров, модалкой покупки, графиком и автообновлением
+// stocks.js – финальная версия с улучшенным стаканом, модалкой покупки, компактными ордерами, графиком и автообновлением
 
 // Определяем глобальную функцию getActiveBuyOrders, если её нет
 if (!window.getActiveBuyOrders) {
@@ -43,7 +43,7 @@ function groupOrdersByPrice(orders, type) {
     return type === 'sell' ? sorted.sort((a, b) => a.price - b.price) : sorted.sort((a, b) => b.price - a.price);
 }
 
-// ===== МОДАЛКА ПОКУПКИ =====
+// ===== МОДАЛКА ПОКУПКИ (симметричная) =====
 function showBuyModal(orderId, maxAmount, price, callback) {
     const modalHtml = `
         <div class="modal" id="buyModal" style="display:flex;">
@@ -59,14 +59,14 @@ function showBuyModal(orderId, maxAmount, price, callback) {
                         <span>Доступно</span>
                         <span style="color:#4ade80; font-weight:bold;">${maxAmount.toFixed(2)} шт.</span>
                     </div>
-                    <input type="number" id="buyAmountInput" placeholder="Введите количество (шт.)" step="0.01" min="0.01" max="${maxAmount}" style="margin-bottom:12px;">
-                    <div style="display:flex; gap:12px;">
-                        <button id="buyConfirmBtn" style="flex:2;">Купить</button>
-                        <button id="buyAllBtn" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(0,255,255,0.3); color:#0ff;">Всё</button>
+                    <input type="number" id="buyAmountInput" placeholder="Введите количество (шт.)" step="0.01" min="0.01" max="${maxAmount}">
+                    <div class="buy-btn-row">
+                        <button id="buyConfirmBtn" class="buy-btn primary">Купить</button>
+                        <button id="buyAllBtn" class="buy-btn all">Всё</button>
                     </div>
                 </div>
-                <div class="modal-buttons">
-                    <button id="cancelBuyModal" class="secondary">Отмена</button>
+                <div style="text-align:center;">
+                    <button id="cancelBuyModal" class="cancel-btn">Отмена</button>
                 </div>
             </div>
         </div>
@@ -213,7 +213,7 @@ window.renderStocksTab = async function(currentUser) {
             const { data } = await window.supabase.from('trades').select('amount, price_per_share, created_at').order('created_at', { ascending: false }).limit(20);
             return data || [];
         })()
-    ]);
+    );
 
     // Данные для графика
     let chartData = priceHistory.map(p => ({ date: p.date, price: p.price }));
@@ -298,11 +298,17 @@ window.renderStocksTab = async function(currentUser) {
             <div id="tab-orderbook" class="tab-pane">
                 <div class="orderbook-split">
                     <div class="orderbook-col">
-                        <div class="orderbook-title">💰 Продажа</div>
+                        <div class="orderbook-header">
+                            <span class="col-price">Цена ⭐</span>
+                            <span class="col-amount">Объём</span>
+                        </div>
                         <div id="sellBookList" class="orderbook-list"></div>
                     </div>
                     <div class="orderbook-col">
-                        <div class="orderbook-title">🏦 Покупка</div>
+                        <div class="orderbook-header">
+                            <span class="col-price">Цена ⭐</span>
+                            <span class="col-amount">Объём</span>
+                        </div>
                         <div id="buyBookList" class="orderbook-list"></div>
                     </div>
                 </div>
@@ -453,31 +459,41 @@ window.renderStocksTab = async function(currentUser) {
         });
     });
 
-    // ---- СТАКАН ----
+    // ---- СТАКАН (УЛУЧШЕННЫЙ) ----
     function renderOrderBook() {
         const sellBook = groupOrdersByPrice(activeSellOrders, 'sell').slice(0, 10);
         const buyBook = groupOrdersByPrice(activeBuyOrders, 'buy').slice(0, 10);
         const maxSellVolume = sellBook.length ? Math.max(...sellBook.map(b => b.amount)) : 1;
         const maxBuyVolume = buyBook.length ? Math.max(...buyBook.map(b => b.amount)) : 1;
 
-        document.getElementById('sellBookList').innerHTML = sellBook.length ? sellBook.map(b => `
-            <div class="orderbook-row">
-                <div style="position:absolute; right:0; top:0; height:100%; background:rgba(255,100,100,0.15); width:${(b.amount/maxSellVolume)*70}%; z-index:0;"></div>
-                <span style="position:relative; z-index:1;">${b.amount.toFixed(2)} шт.</span>
-                <span class="price-sell" style="position:relative; z-index:1;">${b.price.toFixed(2)} ⭐</span>
-            </div>
-        `).join('') : '<div class="empty-placeholder">Нет ордеров</div>';
+        const sellList = document.getElementById('sellBookList');
+        if (sellBook.length) {
+            sellList.innerHTML = sellBook.map(b => `
+                <div class="orderbook-row">
+                    <div class="volume-bar sell" style="width: ${(b.amount/maxSellVolume)*70}%;"></div>
+                    <span class="price-sell">${b.price.toFixed(2)}</span>
+                    <span class="amount">${b.amount.toFixed(2)}</span>
+                </div>
+            `).join('');
+        } else {
+            sellList.innerHTML = '<div class="orderbook-empty">Нет ордеров</div>';
+        }
 
-        document.getElementById('buyBookList').innerHTML = buyBook.length ? buyBook.map(b => `
-            <div class="orderbook-row">
-                <div style="position:absolute; left:0; top:0; height:100%; background:rgba(100,255,100,0.15); width:${(b.amount/maxBuyVolume)*70}%; z-index:0;"></div>
-                <span style="position:relative; z-index:1;">${b.amount.toFixed(2)} шт.</span>
-                <span class="price-buy" style="position:relative; z-index:1;">${b.price.toFixed(2)} ⭐</span>
-            </div>
-        `).join('') : '<div class="empty-placeholder">Нет заявок</div>';
+        const buyList = document.getElementById('buyBookList');
+        if (buyBook.length) {
+            buyList.innerHTML = buyBook.map(b => `
+                <div class="orderbook-row">
+                    <div class="volume-bar buy" style="width: ${(b.amount/maxBuyVolume)*70}%;"></div>
+                    <span class="price-buy">${b.price.toFixed(2)}</span>
+                    <span class="amount">${b.amount.toFixed(2)}</span>
+                </div>
+            `).join('');
+        } else {
+            buyList.innerHTML = '<div class="orderbook-empty">Нет заявок</div>';
+        }
     }
 
-    // ---- ОРДЕРА (улучшенный визуал, полный ID) ----
+    // ---- ОРДЕРА (компактные) ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
