@@ -1,12 +1,10 @@
-// mining.js – система майнинга с запуском раз в 12 часов и прокачкой за акции
+// mining.js – простая система майнинга (нажать – майнить 12 часов)
 
-const MINING_DURATION = 6 * 60 * 60 * 1000; // 6 часов
-const COOLDOWN_DURATION = 12 * 60 * 60 * 1000; // 12 часов
-const BASE_REWARD = 0.05; // базовое кол-во акций за сессию
-const UPGRADE_COST_MULTIPLIER = 1.5; // множитель стоимости улучшения
-const MAX_LEVEL = 20;
+let miningInterval = null;
+let countdownInterval = null;
+let miningData = null;
 
-// ===== ЗАГРУЗКА ДАННЫХ МАЙНИНГА =====
+// ===== ЗАГРУЗКА ДАННЫХ =====
 async function loadMiningData() {
     try {
         const { data, error } = await window.supabase
@@ -21,21 +19,34 @@ async function loadMiningData() {
                 .from('mining')
                 .insert({
                     user_id: window.userId,
-                    mining_level: 1,
-                    mining_started_at: null,
-                    mining_end_at: null,
-                    mining_accumulated: 0,
-                    last_claim_at: null
+                    mining_active: false,
+                    mining_start: null,
+                    mining_end: null,
+                    mined_amount: 0,
+                    total_mined: 0,
+                    level: 1,
+                    last_update: new Date().toISOString()
                 })
                 .select()
                 .single();
             if (insertError) throw insertError;
-            return newData;
+            miningData = newData;
         } else if (error) {
             throw error;
         } else {
-            return data;
+            miningData = data;
+            // Проверяем, не истекла ли активная сессия
+            if (miningData.mining_active && miningData.mining_end) {
+                const now = new Date();
+                const end = new Date(miningData.mining_end);
+                if (now > end) {
+                    // Сессия истекла – завершаем
+                    miningData.mining_active = false;
+                    await saveMiningData();
+                }
+            }
         }
+        return miningData;
     } catch(e) {
         console.error('Ошибка загрузки майнинга', e);
         return null;
@@ -43,295 +54,304 @@ async function loadMiningData() {
 }
 
 // ===== СОХРАНЕНИЕ =====
-async function saveMiningData(data) {
+async function saveMiningData() {
+    if (!miningData) return;
     const { error } = await window.supabase
         .from('mining')
         .update({
-            mining_level: data.mining_level,
-            mining_started_at: data.mining_started_at,
-            mining_end_at: data.mining_end_at,
-            mining_accumulated: data.mining_accumulated,
-            last_claim_at: data.last_claim_at
+            mining_active: miningData.mining_active,
+            mining_start: miningData.mining_start,
+            mining_end: miningData.mining_end,
+            mined_amount: miningData.mined_amount,
+            total_mined: miningData.total_mined,
+            level: miningData.level,
+            last_update: new Date().toISOString()
         })
         .eq('user_id', window.userId);
     if (error) console.error('Ошибка сохранения майнинга', error);
 }
 
-// ===== ЗАПУСК МАЙНИНГА =====
+// ===== НАЧАТЬ МАЙНИНГ =====
 async function startMining() {
-    const miningData = await loadMiningData();
     if (!miningData) return;
-
-    const now = Date.now();
-    // Проверяем, можно ли запустить (прошло 12 часов с последнего запуска)
-    if (miningData.mining_started_at) {
-        const elapsed = now - new Date(miningData.mining_started_at).getTime();
-        if (elapsed < COOLDOWN_DURATION) {
-            const remaining = COOLDOWN_DURATION - elapsed;
-            const hours = Math.floor(remaining / 3600000);
-            const minutes = Math.floor((remaining % 3600000) / 60000);
-            window.showCustomModal('Ошибка', `Майнинг можно запустить через ${hours}ч ${minutes}мин`);
-            return;
-        }
-    }
-
-    // Проверяем, не идёт ли уже майнинг
-    if (miningData.mining_end_at && new Date(miningData.mining_end_at).getTime() > now) {
-        window.showCustomModal('Ошибка', 'Майнинг уже идёт! Дождитесь завершения.');
+    if (miningData.mining_active) {
+        window.showCustomModal('Уже майнинг', 'Подождите окончания текущей сессии');
         return;
     }
-
-    // Запускаем майнинг
-    const startTime = now;
-    const endTime = startTime + MINING_DURATION;
-    miningData.mining_started_at = new Date(startTime).toISOString();
-    miningData.mining_end_at = new Date(endTime).toISOString();
-    miningData.mining_accumulated = 0;
-
-    await saveMiningData(miningData);
+    // Проверяем, не прошло ли 12 часов с последней сессии (можно разрешить сразу)
+    // Начинаем сессию
+    const now = new Date();
+    const end = new Date(now.getTime() + 12 * 3600 * 1000); // +12 часов
+    miningData.mining_active = true;
+    miningData.mining_start = now.toISOString();
+    miningData.mining_end = end.toISOString();
+    miningData.mined_amount = 0;
+    await saveMiningData();
     window.showToast('⛏️ Майнинг запущен!');
-    renderMiningTab();
+    updateUI();
+    startCountdown();
 }
 
-// ===== ЗАВЕРШЕНИЕ МАЙНИНГА (вызывается в цикле) =====
-async function checkMiningCompletion() {
-    const miningData = await loadMiningData();
-    if (!miningData) return;
-    if (!miningData.mining_end_at) return;
+// ===== ОСТАНОВИТЬ МАЙНИНГ (завершить сессию) =====
+async function stopMining() {
+    if (!miningData || !miningData.mining_active) return;
+    miningData.mining_active = false;
+    miningData.mined_amount = 0;
+    miningData.mining_start = null;
+    miningData.mining_end = null;
+    await saveMiningData();
+    if (miningInterval) clearInterval(miningInterval);
+    if (countdownInterval) clearInterval(countdownInterval);
+    updateUI();
+}
 
-    const now = Date.now();
-    const end = new Date(miningData.mining_end_at).getTime();
-    if (now >= end) {
-        // Майнинг завершён, начисляем награду
-        const level = miningData.mining_level;
-        const reward = BASE_REWARD * (1 + (level - 1) * 0.1); // +10% за уровень
-        const rewardCents = Math.round(reward * 100);
-        if (rewardCents > 0) {
-            // Добавляем акции пользователю
-            const { error } = await window.supabase
-                .from('users')
-                .update({ shares: window.supabase.raw(`shares + ${rewardCents}`) })
-                .eq('id', window.userId);
-            if (error) {
-                console.error('Ошибка начисления акций', error);
-            } else {
-                window.showToast(`✅ Получено ${reward.toFixed(2)} акций за майнинг!`);
-                // Обновляем currentUser
-                if (window.currentUser) {
-                    window.currentUser.shares += rewardCents;
-                }
-            }
+// ===== ТАЙМЕР ОБРАТНОГО ОТСЧЁТА =====
+function startCountdown() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+        if (!miningData || !miningData.mining_active) {
+            clearInterval(countdownInterval);
+            return;
         }
-        // Сбрасываем данные майнинга
-        miningData.mining_started_at = null;
-        miningData.mining_end_at = null;
-        miningData.mining_accumulated = 0;
-        miningData.last_claim_at = new Date(now).toISOString();
-        await saveMiningData(miningData);
-        renderMiningTab();
-        if (window.refreshActiveTab) window.refreshActiveTab();
+        const now = new Date();
+        const end = new Date(miningData.mining_end);
+        if (now >= end) {
+            // Сессия завершена
+            clearInterval(countdownInterval);
+            finishMining();
+            return;
+        }
+        const diff = end - now;
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        document.getElementById('miningTimer').textContent = 
+            `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }, 1000);
+}
+
+// ===== ЗАВЕРШЕНИЕ МАЙНИНГА =====
+async function finishMining() {
+    if (!miningData) return;
+    // Начисляем намайненное (mined_amount) пользователю в акции
+    const sharesCents = Math.round(miningData.mined_amount * 100);
+    if (sharesCents > 0) {
+        const { error } = await window.supabase
+            .from('users')
+            .update({ shares: window.supabase.raw(`shares + ${sharesCents}`) })
+            .eq('id', window.userId);
+        if (error) {
+            console.error('Ошибка начисления акций', error);
+            window.showCustomModal('Ошибка', 'Не удалось начислить акции');
+            return;
+        }
+        window.currentUser.shares += sharesCents;
+        // Добавляем в total_mined
+        miningData.total_mined += miningData.mined_amount;
     }
+    miningData.mining_active = false;
+    miningData.mined_amount = 0;
+    miningData.mining_start = null;
+    miningData.mining_end = null;
+    await saveMiningData();
+    if (miningInterval) clearInterval(miningInterval);
+    if (countdownInterval) clearInterval(countdownInterval);
+    window.showToast(`✅ Намайнено ${miningData.mined_amount.toFixed(4)} акций!`);
+    miningData.mined_amount = 0;
+    updateUI();
+}
+
+// ===== ОБНОВЛЕНИЕ В РЕАЛЬНОМ ВРЕМЕНИ (каждую секунду) =====
+function startMiningProgress() {
+    if (miningInterval) clearInterval(miningInterval);
+    miningInterval = setInterval(async () => {
+        if (!miningData || !miningData.mining_active) {
+            clearInterval(miningInterval);
+            return;
+        }
+        const now = new Date();
+        const end = new Date(miningData.mining_end);
+        if (now >= end) {
+            clearInterval(miningInterval);
+            finishMining();
+            return;
+        }
+        // Скорость майнинга зависит от уровня
+        const baseRate = 0.0002; // базовая скорость за секунду
+        const rate = baseRate * (1 + (miningData.level - 1) * 0.05); // +5% за уровень
+        // Начисляем за прошедшую секунду (но не более 0.2 за сессию)
+        const maxPerSession = 0.2;
+        const elapsedSeconds = (now - new Date(miningData.mining_start)) / 1000;
+        const theoretical = elapsedSeconds * rate;
+        const maxAllowed = Math.min(theoretical, maxPerSession);
+        // Но не уменьшаем уже начисленное
+        const newAmount = Math.min(maxAllowed, maxPerSession);
+        miningData.mined_amount = newAmount;
+        // Обновляем отображение
+        document.getElementById('minedAmount').textContent = miningData.mined_amount.toFixed(4);
+    }, 1000);
 }
 
 // ===== УЛУЧШЕНИЕ УРОВНЯ =====
-async function upgradeMiningLevel() {
-    const miningData = await loadMiningData();
+async function upgradeLevel() {
     if (!miningData) return;
-    if (miningData.mining_level >= MAX_LEVEL) {
-        window.showCustomModal('Ошибка', 'Максимальный уровень достигнут!');
-        return;
-    }
-    const currentLevel = miningData.mining_level;
-    const cost = Math.round(currentLevel * 0.5 * 100) / 100; // стоимость в акциях: 0.5 * уровень
-    const costCents = Math.round(cost * 100);
-    // Проверяем, есть ли у пользователя столько акций
-    const user = window.currentUser;
-    if (!user || user.shares < costCents) {
-        window.showCustomModal('Ошибка', `Недостаточно акций! Нужно ${cost.toFixed(2)} акций.`);
+    const cost = Math.floor(10 + (miningData.level - 1) * 3); // стоимость в акциях (целых)
+    // Проверяем акции пользователя
+    const userSharesCents = window.currentUser.shares;
+    const userShares = userSharesCents / 100;
+    if (userShares < cost) {
+        window.showCustomModal('Ошибка', `Недостаточно акций! Нужно ${cost.toFixed(2)} акций`);
         return;
     }
     // Списываем акции
-    const { error: updateError } = await window.supabase
+    const costCents = cost * 100;
+    await window.supabase
         .from('users')
         .update({ shares: window.supabase.raw(`shares - ${costCents}`) })
         .eq('id', window.userId);
-    if (updateError) {
-        console.error('Ошибка списания акций', updateError);
-        window.showCustomModal('Ошибка', 'Не удалось списать акции');
-        return;
-    }
-    // Повышаем уровень майнинга
-    miningData.mining_level += 1;
-    await saveMiningData(miningData);
-    // Обновляем currentUser
-    if (window.currentUser) {
-        window.currentUser.shares -= costCents;
-    }
-    window.showToast(`⬆️ Уровень майнинга повышен до ${miningData.mining_level}!`);
-    renderMiningTab();
+    window.currentUser.shares -= costCents;
+    // Повышаем уровень
+    miningData.level += 1;
+    await saveMiningData();
+    window.showToast(`⬆️ Уровень повышен до ${miningData.level}!`);
+    updateUI();
 }
 
-// ===== РЕНДЕР ВКЛАДКИ =====
+// ===== ОБНОВЛЕНИЕ UI =====
+function updateUI() {
+    if (!miningData) return;
+    document.getElementById('miningLevel').textContent = miningData.level;
+    document.getElementById('totalMined').textContent = miningData.total_mined.toFixed(4);
+    document.getElementById('minedAmount').textContent = miningData.mined_amount.toFixed(4);
+    // Кнопка начала
+    const startBtn = document.getElementById('startMiningBtn');
+    if (startBtn) {
+        if (miningData.mining_active) {
+            startBtn.textContent = '⛏️ Майнинг идёт...';
+            startBtn.disabled = true;
+            startBtn.style.opacity = '0.6';
+        } else {
+            startBtn.textContent = '🚀 Начать майнинг (12ч)';
+            startBtn.disabled = false;
+            startBtn.style.opacity = '1';
+        }
+    }
+    // Кнопка улучшения
+    const upgradeBtn = document.getElementById('upgradeLevelBtn');
+    if (upgradeBtn) {
+        const cost = 10 + (miningData.level - 1) * 3;
+        upgradeBtn.textContent = `⬆️ Улучшить уровень (${cost} акций)`;
+        const userSharesCents = window.currentUser.shares;
+        upgradeBtn.disabled = (userSharesCents / 100) < cost;
+    }
+    // Таймер
+    if (miningData.mining_active && miningData.mining_end) {
+        const now = new Date();
+        const end = new Date(miningData.mining_end);
+        if (now < end) {
+            const diff = end - now;
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            document.getElementById('miningTimer').textContent = 
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        } else {
+            document.getElementById('miningTimer').textContent = '00:00:00';
+        }
+    } else {
+        document.getElementById('miningTimer').textContent = '--:--:--';
+    }
+}
+
+// ===== ГЛАВНЫЙ РЕНДЕР =====
 window.renderMiningTab = async function() {
-    const miningData = await loadMiningData();
+    // Останавливаем старые интервалы
+    if (miningInterval) clearInterval(miningInterval);
+    if (countdownInterval) clearInterval(countdownInterval);
+    
+    await loadMiningData();
     if (!miningData) {
         document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки данных</div>';
         return;
     }
-
-    const user = window.currentUser;
-    const now = Date.now();
-
-    // Проверяем, завершился ли майнинг (если время вышло)
-    await checkMiningCompletion();
-    // Перезагружаем данные после проверки, так как они могли измениться
-    const freshData = await loadMiningData();
-    if (freshData) {
-        Object.assign(miningData, freshData);
-    }
-
-    // Вычисляем статус майнинга
-    let miningStatus = 'Готов к запуску';
-    let canStart = true;
-    let timeRemaining = 0;
-    let progressPercent = 0;
-    let reward = 0;
-
-    const level = miningData.mining_level;
-    const baseReward = BASE_REWARD * (1 + (level - 1) * 0.1);
-
-    if (miningData.mining_end_at) {
-        const end = new Date(miningData.mining_end_at).getTime();
-        if (now < end) {
-            // Майнинг идёт
-            miningStatus = '⛏️ Идёт майнинг...';
-            canStart = false;
-            timeRemaining = end - now;
-            const totalDuration = MINING_DURATION;
-            const elapsed = totalDuration - timeRemaining;
-            progressPercent = (elapsed / totalDuration) * 100;
-            // Награда накапливается пропорционально
-            const rewardSoFar = baseReward * (elapsed / totalDuration);
-            reward = Math.min(rewardSoFar, baseReward);
-        } else {
-            // Майнинг завершён, но ещё не начислена награда (закроется при следующей проверке)
-            // Принудительно завершим
-            await checkMiningCompletion();
-            // Перезагрузим данные
-            const reloaded = await loadMiningData();
-            if (reloaded) {
-                Object.assign(miningData, reloaded);
-            }
-            // После завершения обновим статус
-            miningStatus = 'Готов к запуску';
-            canStart = true;
-        }
-    } else {
-        // Проверяем кд
-        if (miningData.last_claim_at) {
-            const lastClaim = new Date(miningData.last_claim_at).getTime();
-            const elapsedSinceClaim = now - lastClaim;
-            if (elapsedSinceClaim < COOLDOWN_DURATION) {
-                const remaining = COOLDOWN_DURATION - elapsedSinceClaim;
-                const hours = Math.floor(remaining / 3600000);
-                const minutes = Math.floor((remaining % 3600000) / 60000);
-                miningStatus = `⏳ Доступен через ${hours}ч ${minutes}мин`;
-                canStart = false;
-            }
-        }
-    }
-
-    // Стоимость улучшения
-    const upgradeCost = Math.round(miningData.mining_level * 0.5 * 100) / 100;
-    const canUpgrade = (user && user.shares >= Math.round(upgradeCost * 100)) && miningData.mining_level < MAX_LEVEL;
-
+    
     const html = `
         <div class="mining-container">
             <div class="mining-header">
                 <h2>⛏️ Майнинг акций</h2>
-                <p>Запускайте майнинг раз в 12 часов и получайте акции пассивно.</p>
+                <p>Запустите майнинг на 12 часов – получайте акции в реальном времени!</p>
             </div>
-
+            
             <div class="mining-stats">
                 <div class="mining-stat">
-                    <div class="mining-stat-value">${miningData.mining_level}</div>
+                    <div class="mining-stat-value" id="miningLevel">${miningData.level}</div>
                     <div class="mining-stat-label">Уровень</div>
                 </div>
                 <div class="mining-stat">
-                    <div class="mining-stat-value">${baseReward.toFixed(2)}</div>
-                    <div class="mining-stat-label">Награда</div>
+                    <div class="mining-stat-value" id="totalMined">${miningData.total_mined.toFixed(4)}</div>
+                    <div class="mining-stat-label">Всего намайнено</div>
                 </div>
                 <div class="mining-stat">
-                    <div class="mining-stat-value">${canStart ? '✅' : '⏳'}</div>
-                    <div class="mining-stat-label">Статус</div>
+                    <div class="mining-stat-value" id="minedAmount">${miningData.mined_amount.toFixed(4)}</div>
+                    <div class="mining-stat-label">В этой сессии</div>
                 </div>
             </div>
-
-            <div class="mining-status-card">
-                <div class="mining-status-text">${miningStatus}</div>
-                ${miningData.mining_end_at && now < new Date(miningData.mining_end_at).getTime() ? `
-                    <div class="mining-progress-bar">
-                        <div class="mining-progress-fill" style="width: ${Math.min(100, progressPercent)}%;"></div>
-                    </div>
-                    <div class="mining-progress-info">
-                        <span>Добыто: ${reward.toFixed(2)} / ${baseReward.toFixed(2)} акций</span>
-                        <span>${Math.floor(timeRemaining / 60000)} мин</span>
-                    </div>
-                ` : ''}
+            
+            <div class="mining-timer">
+                <div class="timer-label">⏳ Осталось до завершения</div>
+                <div class="timer-value" id="miningTimer">--:--:--</div>
             </div>
-
-            <div class="mining-actions">
-                <button id="startMiningBtn" class="mining-btn primary" ${!canStart ? 'disabled' : ''}>
-                    ${canStart ? '🚀 Начать майнинг' : '⏳ Ожидание'}
-                </button>
-                <button id="upgradeMiningBtn" class="mining-btn secondary" ${!canUpgrade ? 'disabled' : ''}>
-                    ⬆️ Улучшить (${upgradeCost.toFixed(2)} акций)
-                </button>
-            </div>
-
+            
+            <button id="startMiningBtn" class="mining-btn primary">🚀 Начать майнинг (12ч)</button>
+            <button id="upgradeLevelBtn" class="mining-btn secondary">⬆️ Улучшить уровень (${10 + (miningData.level - 1) * 3} акций)</button>
+            
             <div class="mining-info">
                 <div class="info-row">
-                    <span>⏱️ Длительность майнинга</span>
-                    <span>6 часов</span>
+                    <span>📈 Скорость майнинга</span>
+                    <span>${(0.0002 * (1 + (miningData.level - 1) * 0.05)).toFixed(6)} акций/сек</span>
                 </div>
                 <div class="info-row">
-                    <span>🔄 Кулдаун</span>
+                    <span>⚡ Максимум за сессию</span>
+                    <span>0.2 акций</span>
+                </div>
+                <div class="info-row">
+                    <span>🔄 Длительность сессии</span>
                     <span>12 часов</span>
                 </div>
                 <div class="info-row">
-                    <span>📈 Бонус за уровень</span>
-                    <span>+10% за уровень</span>
-                </div>
-                <div class="info-row">
-                    <span>💰 Стоимость улучшения</span>
-                    <span>${upgradeCost.toFixed(2)} акций</span>
+                    <span>🏆 Бонус уровня</span>
+                    <span>+${((miningData.level - 1) * 5).toFixed(0)}% скорости</span>
                 </div>
             </div>
         </div>
     `;
-
     document.getElementById('app').innerHTML = html;
-
+    
     // Обработчики
-    document.getElementById('startMiningBtn')?.addEventListener('click', startMining);
-    document.getElementById('upgradeMiningBtn')?.addEventListener('click', upgradeMiningLevel);
-
-    // Обновление каждые 10 секунд (для таймера и прогресса)
-    if (window.miningInterval) clearInterval(window.miningInterval);
-    window.miningInterval = setInterval(() => {
-        const activeTab = document.querySelector('.tab.active');
-        if (activeTab && activeTab.dataset.tab === 'mining') {
-            renderMiningTab();
-        } else {
-            clearInterval(window.miningInterval);
-        }
-    }, 10000);
+    document.getElementById('startMiningBtn').addEventListener('click', startMining);
+    document.getElementById('upgradeLevelBtn').addEventListener('click', upgradeLevel);
+    
+    // Запускаем обновление
+    updateUI();
+    if (miningData.mining_active) {
+        startCountdown();
+        startMiningProgress();
+    }
 };
 
-// Очистка интервала при переключении вкладок
+// Остановка интервалов при уходе
 document.addEventListener('visibilitychange', () => {
-    if (document.hidden && window.miningInterval) {
-        clearInterval(window.miningInterval);
-        window.miningInterval = null;
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab && activeTab.dataset.tab === 'mining') {
+        // Если вкладка активна, перезапускаем обновление
+        if (!document.hidden && miningData) {
+            if (miningData.mining_active) {
+                startCountdown();
+                startMiningProgress();
+            }
+        } else {
+            if (miningInterval) clearInterval(miningInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+        }
     }
 });
