@@ -1,4 +1,4 @@
-/* mining.css – стили для вкладки майнинга (новая система) */
+/* mining.css – стили для вкладки майнинга */
 
 .mining-container {
     max-width: 500px;
@@ -52,47 +52,25 @@
     margin-top: 4px;
 }
 
-.mining-status-card {
+.mining-timer {
     background: rgba(0, 0, 0, 0.4);
     border-radius: 24px;
     padding: 20px;
     margin: 16px 0;
-    border: 1px solid rgba(56, 189, 248, 0.2);
 }
-.mining-status-text {
-    font-size: 18px;
-    font-weight: 700;
-    color: #eef2ff;
-    margin-bottom: 12px;
-}
-.mining-progress-bar {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    height: 10px;
-    overflow: hidden;
-    margin: 8px 0;
-}
-.mining-progress-fill {
-    background: linear-gradient(90deg, #2b6e9e, #60a5fa, #0ff);
-    height: 100%;
-    width: 0%;
-    border-radius: 20px;
-    transition: width 1s ease;
-}
-.mining-progress-info {
-    display: flex;
-    justify-content: space-between;
+.timer-label {
     font-size: 13px;
     color: #9ca3af;
-    margin-top: 6px;
+    margin-bottom: 8px;
+}
+.timer-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #0ff;
+    font-family: monospace;
+    letter-spacing: 2px;
 }
 
-.mining-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin: 16px 0;
-}
 .mining-btn {
     padding: 14px;
     border-radius: 40px;
@@ -102,6 +80,7 @@
     border: none;
     transition: 0.2s;
     width: 100%;
+    margin-bottom: 12px;
 }
 .mining-btn.primary {
     background: linear-gradient(135deg, #2b6e9e, #1a4c6e);
@@ -153,5 +132,5 @@
     .mining-container { padding: 0 12px 70px 12px; }
     .mining-stat-value { font-size: 22px; }
     .mining-btn { font-size: 14px; padding: 12px; }
-    .mining-status-text { font-size: 16px; }
+    .timer-value { font-size: 28px; }
 }
