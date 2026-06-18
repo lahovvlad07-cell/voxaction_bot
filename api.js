@@ -1,4 +1,4 @@
-// api.js – полный файл со всеми функциями (включая getTutorialProgress)
+// api.js – финальная версия, все функции собраны
 
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
@@ -11,20 +11,7 @@ window.getUseSliders = function() {
     return localStorage.getItem('use_sliders') !== 'false';
 };
 
-// ========== ТУТОРИАЛ (ОБУЧЕНИЕ) ==========
-window.getTutorialProgress = function() {
-    return {
-        completed: localStorage.getItem('onboarding_done') === 'true',
-        currentStep: parseInt(localStorage.getItem('onboarding_step')) || 0
-    };
-};
-
-window.setTutorialProgress = function(step, completed) {
-    if (step !== undefined) localStorage.setItem('onboarding_step', String(step));
-    if (completed !== undefined) localStorage.setItem('onboarding_done', completed ? 'true' : 'false');
-};
-
-// ========== ДОСТИЖЕНИЯ ==========
+// ========== ДОСТИЖЕНИЯ (без дубля эмодзи) ==========
 window.awardAchievement = async function(achievementId) {
     try {
         const { data: existing } = await window.supabase
@@ -39,13 +26,9 @@ window.awardAchievement = async function(achievementId) {
             achievement_id: achievementId,
             earned_at: new Date().toISOString()
         });
-        const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
-        const icon = ach.icon || '🏆';
-        if (window.showCustomModal) {
-            window.showCustomModal('🏆 Достижение получено!', `${icon} ${ach.name}\n\n${ach.description}`);
-        } else {
-            alert(`🏆 Достижение: ${icon} ${ach.name}\n\n${ach.description}`);
-        }
+        const { data: ach } = await window.supabase.from('achievements').select('name, description').eq('id', achievementId).single();
+        // В name уже есть эмодзи, поэтому не добавляем icon отдельно
+        window.showCustomModal('🏆 Достижение получено!', `${ach.name}\n\n${ach.description}`);
         if (window.renderProfileTab) window.renderProfileTab();
     } catch(e) { console.error('Ошибка выдачи достижения', e); }
 };
@@ -224,22 +207,6 @@ window.getUserStats = async function(forceRefresh = false) {
     };
     window._cachedStats = stats;
     return stats;
-};
-
-// ========== СМЕНА НИКНЕЙМА (для обратной совместимости) ==========
-window.updateUsername = async function(newUsername) {
-    if (!newUsername || newUsername.trim().length < 3) throw new Error('Минимум 3 символа');
-    if (newUsername.length > 20) throw new Error('Не длиннее 20 символов');
-    if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) throw new Error('Только латиница, цифры, _ и -');
-    
-    const { data: user } = await window.supabase.from('users').select('username').eq('id', window.userId).single();
-    if (!user) throw new Error('Пользователь не найден');
-    if (user.username === newUsername) return { success: true, message: 'Никнейм не изменён' };
-    
-    const { error } = await window.supabase.from('users').update({ username: newUsername, last_username_change: new Date().toISOString() }).eq('id', window.userId);
-    if (error) throw new Error(error.message);
-    if (window.currentUser) window.currentUser.username = newUsername;
-    return { success: true, message: 'Никнейм успешно изменён!' };
 };
 
 // ========== ОБНОВЛЕНИЕ ТЕКУЩЕЙ ВКЛАДКИ ==========
