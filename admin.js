@@ -1,4 +1,4 @@
-// admin.js – полностью переработанная админ-панель с рабочим маркет-мейкером
+// admin.js – полностью переработанная админ-панель с рабочим маркет-мейкером и выдачей
 
 const OWNER_ID = 6048486427;
 
@@ -19,6 +19,7 @@ window.renderAdminTab = async function() {
         const adminsList = await window.getAdmins();
         const achievements = await window.getAllAchievements();
         const mmBalance = await window.getMarketMakerBalance();
+        const mmLevel = await window.getMiningLevelForUser(999999999);
 
         let html = `
             <div class="admin-container">
@@ -43,7 +44,7 @@ window.renderAdminTab = async function() {
                         <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${users.reduce((s,u) => s + u.shares, 0) / 100}</div><div class="stat-label">Акций в обращении</div></div>
                         <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${users.length}</div><div class="stat-label">Пользователей</div></div>
                         <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value">${orders.length}</div><div class="stat-label">Активных ордеров</div></div>
-                        <div class="stat-card"><div class="stat-icon">🤖</div><div class="stat-value">${mmBalance.shares.toFixed(2)} / ${mmBalance.stars.toFixed(2)}</div><div class="stat-label">Маркет-мейкер (акции / звёзды)</div></div>
+                        <div class="stat-card"><div class="stat-icon">🤖</div><div class="stat-value">${mmBalance.shares.toFixed(2)} / ${mmBalance.stars.toFixed(2)} (ур. ${mmLevel})</div><div class="stat-label">Маркет-мейкер (акции / звёзды)</div></div>
                     </div>
                     <div class="quick-actions">
                         <h3>⚡ Быстрые действия</h3>
@@ -113,13 +114,11 @@ window.renderAdminTab = async function() {
 
                 <!-- Маркет-мейкер -->
                 <div id="admin-mm" class="admin-pane" style="display:none;">
-                    <h3>🤖 Управление маркет-мейкером</h3>
+                    <h3>🤖 Маркет-мейкер</h3>
                     <div style="margin-bottom:16px;">
-                        <label>Баланс акций:</label>
-                        <input type="number" id="mmShares" value="${mmBalance.shares}" style="margin-bottom:8px;">
-                        <label>Баланс звёзд:</label>
-                        <input type="number" id="mmStars" value="${mmBalance.stars}" style="margin-bottom:8px;">
-                        <button id="setMMBudgetBtn" style="background:linear-gradient(135deg,#2b6e9e,#1a4c6e);">Установить бюджет</button>
+                        <p><strong>Баланс акций:</strong> <span id="mmSharesDisplay">${mmBalance.shares.toFixed(2)}</span></p>
+                        <p><strong>Баланс звёзд:</strong> <span id="mmStarsDisplay">${mmBalance.stars.toFixed(2)}</span></p>
+                        <p><strong>Уровень майнинга:</strong> <span id="mmLevelDisplay">${mmLevel}</span></p>
                     </div>
                     <div>
                         <button id="runMMBtn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e1e2f;">▶️ Запустить маркет-мейкера (однократно)</button>
@@ -211,6 +210,7 @@ window.renderAdminTab = async function() {
             try {
                 await window.runMarketMaker();
                 window.showToast('🤖 Маркет-мейкер отработал');
+                window.renderAdminTab();
             } catch(e) {
                 window.showCustomModal('Ошибка', e.message);
             }
@@ -365,7 +365,6 @@ window.renderAdminTab = async function() {
                 return;
             }
             container.innerHTML = list.map(a => {
-                // Убираем дублирование эмодзи
                 const displayName = a.name;
                 return `
                     <div style="background:rgba(0,0,0,0.3); border-radius:16px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -410,22 +409,6 @@ window.renderAdminTab = async function() {
         };
 
         // ---- МАРКЕТ-МЕЙКЕР ----
-        document.getElementById('setMMBudgetBtn').onclick = async () => {
-            const shares = parseFloat(document.getElementById('mmShares').value);
-            const stars = parseFloat(document.getElementById('mmStars').value);
-            if (isNaN(shares) || isNaN(stars) || shares < 0 || stars < 0) {
-                window.showCustomModal('Ошибка', 'Введите корректные значения');
-                return;
-            }
-            try {
-                await window.setMarketMakerBudget(shares, stars);
-                window.showToast('Бюджет маркет-мейкера обновлён');
-                window.renderAdminTab();
-            } catch(e) {
-                window.showCustomModal('Ошибка', e.message);
-            }
-        };
-
         document.getElementById('runMMBtn').onclick = async () => {
             try {
                 await window.runMarketMaker();
@@ -470,3 +453,12 @@ window.renderAdminTab = async function() {
         console.error(e);
     }
 };
+
+// ===== АВТОМАТИЧЕСКИЙ ЗАПУСК МАРКЕТ-МЕЙКЕРА =====
+setInterval(async () => {
+    try {
+        await window.runMarketMaker();
+    } catch(e) {
+        console.warn('Автоматический запуск маркет-мейкера не удался', e);
+    }
+}, 5 * 60 * 1000);
