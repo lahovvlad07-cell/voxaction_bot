@@ -50,8 +50,6 @@
             <div class="tab" data-tab="referral"><div class="tab-icon">🔗</div><div class="tab-label">Рефералка</div></div>
             <div class="tab" data-tab="mining"><div class="tab-icon">⛏️</div><div class="tab-label">Заработок</div></div>
             <div class="tab" data-tab="news"><div class="tab-icon">📰</div><div class="tab-label">Новости</div></div>
-            <div class="tab" data-tab="withdraw"><div class="tab-icon">💸</div><div class="tab-label">Вывод</div></div>
-            <div class="tab" data-tab="pvp"><div class="tab-icon">⚔️</div><div class="tab-label">Дуэли</div></div>
             <div class="tab admin-tab" data-tab="admin" style="display: none;"><div class="tab-icon">👑</div><div class="tab-label">Админ</div></div>
         </div>
     </div>
@@ -69,8 +67,6 @@
 <script src="referral.js"></script>
 <script src="mining.js"></script>
 <script src="news.js"></script>
-<script src="withdraw.js"></script>   <!-- Новый модуль вывода -->
-<script src="pvp.js"></script>        <!-- Новый модуль дуэлей -->
 <script src="admin.js"></script>
 <script src="settings.js"></script>
 
@@ -159,8 +155,7 @@
             window.supabase.channel('global-updates')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => { if (document.querySelector('.tab.active')?.dataset.tab === 'rating') window.refreshActiveTab(); })
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => { if (document.querySelector('.tab.active')?.dataset.tab === 'rating') window.refreshActiveTab(); })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'withdrawals' }, () => { if (document.querySelector('.tab.active')?.dataset.tab === 'withdraw') window.refreshActiveTab(); })
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'duels' }, () => { if (document.querySelector('.tab.active')?.dataset.tab === 'pvp') window.refreshActiveTab(); })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'withdrawals' }, () => { if (document.querySelector('.tab.active')?.dataset.tab === 'wallet') window.refreshActiveTab(); })
                 .subscribe();
         } catch(err) {
             document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
@@ -218,8 +213,6 @@
                     case 'referral': await window.renderReferralTab(); break;
                     case 'mining': await window.renderMiningTab(); break;
                     case 'news': await window.renderNewsTab(); break;
-                    case 'withdraw': await window.renderWithdrawTab(); break;
-                    case 'pvp': await window.renderPvpTab(); break;
                     case 'admin': await window.renderAdminTab(); break;
                 }
             });
