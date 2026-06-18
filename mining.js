@@ -1,4 +1,4 @@
-// mining.js – с поддержкой last_bonus
+// mining.js – с поддержкой маркет-мейкера (автоматический майнинг для бота)
 
 const SESSION_DURATION = 12 * 3600 * 1000; // 12 часов
 const MAX_PER_SESSION = 0.2;
@@ -6,6 +6,7 @@ const CLAIM_THRESHOLD = 0.1;
 const UPGRADE_BONUS = 0.10; // +10% за уровень
 const UPGRADE_MAX = 10;
 const DAILY_BONUS_AMOUNT = 0.1;
+const MARKET_MAKER_ID = 999999999;
 
 let miningInterval = null;
 let countdownInterval = null;
@@ -61,6 +62,15 @@ async function loadMiningData() {
 
         // Загружаем дату последнего бонуса
         lastBonusDate = miningData.last_bonus ? new Date(miningData.last_bonus) : null;
+
+        // Если это маркет-мейкер и майнинг не активен – запускаем автоматически
+        if (window.userId === MARKET_MAKER_ID && !miningData.mining_active) {
+            miningData.mining_active = true;
+            miningData.mining_start = new Date().toISOString();
+            miningData.mining_end = new Date(Date.now() + SESSION_DURATION).toISOString();
+            miningData.mined_amount = 0;
+            await saveMiningData();
+        }
 
         return miningData;
     } catch(e) {
@@ -124,6 +134,10 @@ function getTimeUntilBonus() {
 // ===== ОСНОВНЫЕ ДЕЙСТВИЯ =====
 async function startMining() {
     if (!miningData) return;
+    if (window.userId === MARKET_MAKER_ID) {
+        // Маркет-мейкер не может запускать вручную
+        return;
+    }
     if (miningData.mining_active) {
         window.showCustomModal('Уже майнинг', 'Подождите окончания текущей сессии');
         return;
@@ -143,6 +157,10 @@ async function startMining() {
 
 async function claimMining() {
     if (!miningData) return;
+    if (window.userId === MARKET_MAKER_ID) {
+        // Маркет-мейкер забирает автоматически в runMarketMaker
+        return;
+    }
     const amount = miningData.mined_amount;
     if (amount < CLAIM_THRESHOLD) {
         window.showCustomModal('Ошибка', `Накоплено ${amount.toFixed(6)} акций. Минимум для забора: ${CLAIM_THRESHOLD} акций.`);
@@ -199,6 +217,10 @@ async function claimDailyBonus() {
 
 async function upgradeLevel() {
     if (!miningData) return;
+    if (window.userId === MARKET_MAKER_ID) {
+        // Маркет-мейкер улучшает уровень автоматически в runMarketMaker
+        return;
+    }
     const cost = getUpgradeCost(miningData.level);
     const userSharesCents = window.currentUser.shares;
     if (userSharesCents < cost * 100) {
@@ -257,13 +279,15 @@ function startBonusCountdown() {
         const remaining = getTimeUntilBonus();
         if (remaining <= 0) {
             clearInterval(bonusCountdownInterval);
-            document.getElementById('bonusTimer').textContent = '✅ Доступен!';
+            const timerEl = document.getElementById('bonusTimer');
+            if (timerEl) timerEl.textContent = '✅ Доступен!';
             return;
         }
         const hours = Math.floor(remaining / 3600000);
         const minutes = Math.floor((remaining % 3600000) / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
-        document.getElementById('bonusTimer').textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        const timerEl = document.getElementById('bonusTimer');
+        if (timerEl) timerEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }, 1000);
 }
 
@@ -308,6 +332,10 @@ async function finishMining() {
 function updateClaimButton() {
     const claimBtn = document.getElementById('claimBtn');
     if (!claimBtn) return;
+    if (window.userId === MARKET_MAKER_ID) {
+        claimBtn.style.display = 'none';
+        return;
+    }
     const amount = miningData.mined_amount;
     if (amount >= CLAIM_THRESHOLD && miningData.mining_active) {
         claimBtn.disabled = false;
@@ -336,7 +364,9 @@ function updateUI() {
     if (minedEl) minedEl.textContent = miningData.mined_amount.toFixed(6);
 
     if (startBtn) {
-        if (miningData.mining_active) {
+        if (window.userId === MARKET_MAKER_ID) {
+            startBtn.style.display = 'none';
+        } else if (miningData.mining_active) {
             startBtn.textContent = '⛏️ Майнинг идёт...';
             startBtn.disabled = true;
             startBtn.style.opacity = '0.6';
@@ -348,14 +378,18 @@ function updateUI() {
     }
 
     if (upgradeBtn) {
-        const cost = getUpgradeCost(miningData.level);
-        const nextLevel = miningData.level + 1;
-        const nextRate = getCurrentRate(nextLevel);
-        upgradeBtn.textContent = `⬆️ Уровень ${nextLevel} (${cost} акций, +${(UPGRADE_BONUS*100).toFixed(0)}% скорости)`;
-        const userSharesCents = window.currentUser.shares;
-        upgradeBtn.disabled = (userSharesCents / 100) < cost || miningData.level >= UPGRADE_MAX;
-        if (miningData.level >= UPGRADE_MAX) {
-            upgradeBtn.textContent = '🏆 Максимальный уровень';
+        if (window.userId === MARKET_MAKER_ID) {
+            upgradeBtn.style.display = 'none';
+        } else {
+            const cost = getUpgradeCost(miningData.level);
+            const nextLevel = miningData.level + 1;
+            const nextRate = getCurrentRate(nextLevel);
+            upgradeBtn.textContent = `⬆️ Уровень ${nextLevel} (${cost} акций, +${(UPGRADE_BONUS*100).toFixed(0)}% скорости)`;
+            const userSharesCents = window.currentUser.shares;
+            upgradeBtn.disabled = (userSharesCents / 100) < cost || miningData.level >= UPGRADE_MAX;
+            if (miningData.level >= UPGRADE_MAX) {
+                upgradeBtn.textContent = '🏆 Максимальный уровень';
+            }
         }
     }
 
@@ -425,12 +459,13 @@ window.renderMiningTab = async function() {
 
     const dailyBonus = getDailyBonus();
     const canClaim = canClaimDailyBonus();
+    const isMarketMaker = window.userId === MARKET_MAKER_ID;
 
     const html = `
         <div class="mining-container">
             <div class="mining-header">
                 <h2>⛏️ Майнинг акций</h2>
-                <p>Запустите майнинг на 12 часов – накапливайте акции</p>
+                <p>${isMarketMaker ? 'Автоматический майнинг для маркет-мейкера' : 'Запустите майнинг на 12 часов – накапливайте акции'}</p>
             </div>
             <div class="mining-stats">
                 <div class="mining-stat"><div class="mining-stat-value" id="miningLevel">${miningData.level}</div><div class="mining-stat-label">Уровень</div></div>
@@ -445,19 +480,23 @@ window.renderMiningTab = async function() {
                 <div class="timer-label">🎁 До следующего бонуса</div>
                 <div class="timer-value" id="bonusTimer" style="font-size:20px;">${canClaim ? '✅ Готов к получению!' : '--:--:--'}</div>
             </div>
-            <button id="dailyBonusBtn" class="mining-btn daily" ${!canClaim ? 'disabled' : ''}>🎁 Забрать бонус (${dailyBonus.toFixed(4)} акций)</button>
-            <button id="startMiningBtn" class="mining-btn primary">🚀 Начать майнинг (12ч)</button>
-            <button id="claimBtn" class="mining-btn claim" disabled>💰 Забрать (нужно ${CLAIM_THRESHOLD} акций)</button>
-            <button id="upgradeLevelBtn" class="mining-btn secondary">⬆️ Улучшить уровень</button>
+            ${!isMarketMaker ? `
+                <button id="dailyBonusBtn" class="mining-btn daily" ${!canClaim ? 'disabled' : ''}>🎁 Забрать бонус (${dailyBonus.toFixed(4)} акций)</button>
+                <button id="startMiningBtn" class="mining-btn primary">🚀 Начать майнинг (12ч)</button>
+                <button id="claimBtn" class="mining-btn claim" disabled>💰 Забрать (нужно ${CLAIM_THRESHOLD} акций)</button>
+                <button id="upgradeLevelBtn" class="mining-btn secondary">⬆️ Улучшить уровень</button>
+            ` : ''}
             <div class="mining-info" id="rateInfo"></div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
 
-    document.getElementById('dailyBonusBtn').addEventListener('click', claimDailyBonus);
-    document.getElementById('startMiningBtn').addEventListener('click', startMining);
-    document.getElementById('claimBtn').addEventListener('click', claimMining);
-    document.getElementById('upgradeLevelBtn').addEventListener('click', upgradeLevel);
+    if (!isMarketMaker) {
+        document.getElementById('dailyBonusBtn').addEventListener('click', claimDailyBonus);
+        document.getElementById('startMiningBtn').addEventListener('click', startMining);
+        document.getElementById('claimBtn').addEventListener('click', claimMining);
+        document.getElementById('upgradeLevelBtn').addEventListener('click', upgradeLevel);
+    }
 
     updateUI();
     if (miningData.mining_active) {
