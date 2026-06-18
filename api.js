@@ -1,4 +1,4 @@
-// api.js – полный файл со всеми функциями (включая вывод, достижения, майнинг, настройки)
+// api.js – полный файл со всеми функциями (включая админку и маркет-мейкер)
 
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
@@ -187,6 +187,7 @@ window.getOrCreateUser = async function() {
         return { user: newUser, isNew: true };
     }
     
+    // Проверка на новые поля
     let updated = false;
     const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change'];
     for (let f of newFields) {
@@ -586,39 +587,183 @@ window.claimReferralBonus = async (friendsNeeded, stars) => {
     return response.json();
 };
 
-// ========== ВЫВОД СРЕДСТВ ==========
-window.createWithdrawal = async function(amountStars) {
-    if (amountStars < 10) throw new Error('Минимальная сумма вывода – 10 ⭐');
-    const amountCents = window.toCents(amountStars);
-    const user = window.currentUser;
-    if (user.stars_balance < amountCents) throw new Error('Недостаточно Stars');
-    
-    const { error } = await window.supabase.from('withdrawals').insert({
-        user_id: window.userId,
-        amount: amountCents,
-        status: 'pending',
-        created_at: new Date().toISOString()
-    });
+// ========== ВЫВОД СРЕДСТВ (удалён, оставлен только для совместимости) ==========
+// window.createWithdrawal, window.getWithdrawals, window.getPendingWithdrawals – удалены
+
+// ========== АДМИНКА (прямое взаимодействие с Supabase) ==========
+
+// Выдать акции (без бекенда)
+window.adminAddSharesDirect = async function(targetId, shares) {
+    const sharesCents = window.toCents(shares);
+    const { error } = await window.supabase
+        .from('users')
+        .update({ shares: window.supabase.raw(`shares + ${sharesCents}`) })
+        .eq('id', targetId);
     if (error) throw new Error(error.message);
-    
-    await window.supabase.from('users').update({
-        stars_balance: window.supabase.raw(`stars_balance - ${amountCents}`)
-    }).eq('id', window.userId);
-    window.currentUser.stars_balance -= amountCents;
     return true;
 };
 
-window.getWithdrawals = async function() {
-    const { data, error } = await window.supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('user_id', window.userId)
-        .order('created_at', { ascending: false });
-    if (error) return [];
-    return data;
+// Выдать Stars (без бекенда)
+window.adminAddStarsDirect = async function(targetId, stars) {
+    const starsCents = window.toCents(stars);
+    const { error } = await window.supabase
+        .from('users')
+        .update({ stars_balance: window.supabase.raw(`stars_balance + ${starsCents}`) })
+        .eq('id', targetId);
+    if (error) throw new Error(error.message);
+    return true;
 };
 
-// ========== АДМИНКА ==========
+// Получить всех пользователей (без бекенда)
+window.adminGetAllUsers = async function() {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('id, username, shares, stars_balance, hide_rating')
+        .order('id', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+// Отменить ордер (без бекенда)
+window.adminCancelOrderDirect = async function(orderId) {
+    const { error } = await window.supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId);
+    if (error) throw new Error(error.message);
+    return true;
+};
+
+// Рассылка всем пользователям
+window.adminBroadcast = async function(message) {
+    // Получаем всех пользователей
+    const users = await window.adminGetAllUsers();
+    const notifications = users.map(u => ({
+        user_id: u.id,
+        message: `📢 ${message}`,
+        type: 'broadcast',
+        is_read: false,
+        created_at: new Date().toISOString()
+    }));
+    // Вставляем пачками по 1000 записей
+    const chunkSize = 1000;
+    for (let i = 0; i < notifications.length; i += chunkSize) {
+        const chunk = notifications.slice(i, i + chunkSize);
+        const { error } = await window.supabase.from('notifications').insert(chunk);
+        if (error) throw new Error(error.message);
+    }
+    return true;
+};
+
+// ===== МАРКЕТ-МЕЙКЕР =====
+const MARKET_MAKER_ID = 999999999;
+
+// Инициализация маркет-мейкера (создаём пользователя, если нет)
+window.initMarketMaker = async function() {
+    // Проверяем, существует ли пользователь
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('id')
+        .eq('id', MARKET_MAKER_ID)
+        .maybeSingle();
+    if (error) throw error;
+    if (!data) {
+        // Создаём
+        const { error: insertError } = await window.supabase.from('users').insert({
+            id: MARKET_MAKER_ID,
+            username: 'MarketMaker',
+            shares: 1000000, // 10 000 акций (в центах)
+            stars_balance: 1000000, // 10 000 звёзд (в центах)
+            hide_rating: false,
+            registered_at: new Date().toISOString()
+        });
+        if (insertError) throw insertError;
+    }
+};
+
+// Получить баланс маркет-мейкера
+window.getMarketMakerBalance = async function() {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('shares, stars_balance')
+        .eq('id', MARKET_MAKER_ID)
+        .single();
+    if (error) throw error;
+    return { shares: data.shares / 100, stars: data.stars_balance / 100 };
+};
+
+// Установить бюджет маркет-мейкера (в админке)
+window.setMarketMakerBudget = async function(shares, stars) {
+    const sharesCents = window.toCents(shares);
+    const starsCents = window.toCents(stars);
+    const { error } = await window.supabase
+        .from('users')
+        .update({ shares: sharesCents, stars_balance: starsCents })
+        .eq('id', MARKET_MAKER_ID);
+    if (error) throw error;
+    return true;
+};
+
+// Запустить маркет-мейкера (вызывается из админки или периодически)
+window.runMarketMaker = async function() {
+    try {
+        // 1. Получаем текущую цену
+        const priceCents = await window.getCurrentPrice();
+        const price = priceCents / 100;
+
+        // 2. Получаем баланс маркет-мейкера
+        const balance = await window.getMarketMakerBalance();
+
+        // 3. Определяем диапазон цен (например, +/- 10%)
+        const lowerBound = price * 0.9;
+        const upperBound = price * 1.1;
+
+        // 4. Удаляем старые ордера маркет-мейкера (если есть)
+        await window.supabase
+            .from('orders')
+            .update({ status: 'cancelled' })
+            .eq('seller_id', MARKET_MAKER_ID)
+            .eq('status', 'active');
+        await window.supabase
+            .from('buy_orders')
+            .update({ status: 'cancelled' })
+            .eq('buyer_id', MARKET_MAKER_ID)
+            .eq('status', 'active');
+
+        // 5. Выставляем новые ордера
+        // Продажа: если цена выше верхней границы, продаём часть акций
+        if (price > upperBound && balance.shares > 10) {
+            const sellAmount = Math.min(balance.shares * 0.1, 100); // продаём 10% или 100 акций
+            const sellPrice = price * 0.98; // чуть ниже рынка
+            await window.supabase.from('orders').insert({
+                seller_id: MARKET_MAKER_ID,
+                amount: window.toCents(sellAmount),
+                price_per_share: window.toCents(sellPrice),
+                status: 'active',
+                created_at: new Date().toISOString()
+            });
+        }
+
+        // Покупка: если цена ниже нижней границы, покупаем
+        if (price < lowerBound && balance.stars > 100) {
+            const buyAmount = Math.min(balance.stars / price * 0.1, 100); // тратим 10% бюджета
+            const buyPrice = price * 1.02; // чуть выше рынка
+            await window.supabase.from('buy_orders').insert({
+                buyer_id: MARKET_MAKER_ID,
+                amount: window.toCents(buyAmount),
+                price_per_share: window.toCents(buyPrice),
+                status: 'active',
+                created_at: new Date().toISOString()
+            });
+        }
+        return true;
+    } catch(e) {
+        console.error('Ошибка маркет-мейкера', e);
+        throw e;
+    }
+};
+
+// ========== АДМИНКА (старые функции, оставлены для совместимости) ==========
 window.adminFetchStats = async () => fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
 window.adminFetchUsers = async () => fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
 window.adminCancelOrder = async (orderId) => fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) }).then(r=>r.json());
@@ -691,7 +836,7 @@ window.removeAdmin = async function(userId) {
     return true;
 };
 
-// ========== МАРКЕТ-МЕЙКЕР ==========
+// ========== МАРКЕТ-МЕЙКЕР (старые функции) ==========
 window.getMarketMakerPrice = async function() {
     const price = await window.getSetting('market_maker_price');
     return price ? parseFloat(price) : 100;
