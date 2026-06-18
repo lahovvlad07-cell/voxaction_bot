@@ -587,9 +587,6 @@ window.claimReferralBonus = async (friendsNeeded, stars) => {
     return response.json();
 };
 
-// ========== ВЫВОД СРЕДСТВ (удалён, оставлен только для совместимости) ==========
-// window.createWithdrawal, window.getWithdrawals, window.getPendingWithdrawals – удалены
-
 // ========== АДМИНКА (прямое взаимодействие с Supabase) ==========
 
 // Выдать акции (без бекенда)
@@ -668,12 +665,12 @@ window.initMarketMaker = async function() {
         .maybeSingle();
     if (error) throw error;
     if (!data) {
-        // Создаём
+        // Создаём с нулевым балансом
         const { error: insertError } = await window.supabase.from('users').insert({
             id: MARKET_MAKER_ID,
             username: 'MarketMaker',
-            shares: 1000000, // 10 000 акций (в центах)
-            stars_balance: 1000000, // 10 000 звёзд (в центах)
+            shares: 0,
+            stars_balance: 0,
             hide_rating: false,
             registered_at: new Date().toISOString()
         });
@@ -681,7 +678,7 @@ window.initMarketMaker = async function() {
     }
 };
 
-// Получить баланс маркет-мейкера
+// Получить баланс маркет-мейкера (в штуках и звёздах)
 window.getMarketMakerBalance = async function() {
     const { data, error } = await window.supabase
         .from('users')
@@ -692,33 +689,71 @@ window.getMarketMakerBalance = async function() {
     return { shares: data.shares / 100, stars: data.stars_balance / 100 };
 };
 
-// Установить бюджет маркет-мейкера (в админке)
-window.setMarketMakerBudget = async function(shares, stars) {
-    const sharesCents = window.toCents(shares);
-    const starsCents = window.toCents(stars);
-    const { error } = await window.supabase
-        .from('users')
-        .update({ shares: sharesCents, stars_balance: starsCents })
-        .eq('id', MARKET_MAKER_ID);
-    if (error) throw error;
-    return true;
+// Получить уровень майнинга маркет-мейкера
+window.getMiningLevelForUser = async function(userId) {
+    const { data, error } = await window.supabase
+        .from('mining')
+        .select('level')
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error) return 1;
+    return data ? data.level : 1;
+};
+
+// Получить данные майнинга для пользователя
+window.getMiningDataForUser = async function(userId) {
+    const { data, error } = await window.supabase
+        .from('mining')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error) return null;
+    return data;
 };
 
 // Запустить маркет-мейкера (вызывается из админки или периодически)
 window.runMarketMaker = async function() {
     try {
-        // 1. Получаем текущую цену
+        // 1. Забираем накопленные акции из майнинга (если есть)
+        const miningData = await window.getMiningDataForUser(MARKET_MAKER_ID);
+        if (miningData && miningData.mined_amount >= 0.01) {
+            const sharesCents = Math.round(miningData.mined_amount * 100);
+            if (sharesCents > 0) {
+                await window.supabase
+                    .from('users')
+                    .update({ shares: window.supabase.raw(`shares + ${sharesCents}`) })
+                    .eq('id', MARKET_MAKER_ID);
+                await window.supabase
+                    .from('mining')
+                    .update({ mined_amount: 0, total_mined: window.supabase.raw(`total_mined + ${miningData.mined_amount}`) })
+                    .eq('user_id', MARKET_MAKER_ID);
+            }
+        }
+
+        // 2. Получаем текущий баланс и уровень майнинга
+        const balance = await window.getMarketMakerBalance();
+        const level = await window.getMiningLevelForUser(MARKET_MAKER_ID);
+
+        // 3. Улучшаем уровень майнинга, если есть достаточно акций (>= 10)
+        const upgradeCost = Math.floor(10 * Math.pow(1.5, level - 1));
+        if (balance.shares >= upgradeCost && level < 10) {
+            const costCents = upgradeCost * 100;
+            await window.supabase
+                .from('users')
+                .update({ shares: window.supabase.raw(`shares - ${costCents}`) })
+                .eq('id', MARKET_MAKER_ID);
+            await window.supabase
+                .from('mining')
+                .update({ level: window.supabase.raw(`level + 1`) })
+                .eq('user_id', MARKET_MAKER_ID);
+            balance.shares -= upgradeCost;
+        }
+
+        // 4. Торговая логика (как была)
         const priceCents = await window.getCurrentPrice();
         const price = priceCents / 100;
 
-        // 2. Получаем баланс маркет-мейкера
-        const balance = await window.getMarketMakerBalance();
-
-        // 3. Определяем диапазон цен (например, +/- 10%)
-        const lowerBound = price * 0.9;
-        const upperBound = price * 1.1;
-
-        // 4. Удаляем старые ордера маркет-мейкера (если есть)
+        // Удаляем старые ордера маркет-мейкера
         await window.supabase
             .from('orders')
             .update({ status: 'cancelled' })
@@ -730,11 +765,60 @@ window.runMarketMaker = async function() {
             .eq('buyer_id', MARKET_MAKER_ID)
             .eq('status', 'active');
 
-        // 5. Выставляем новые ордера
-        // Продажа: если цена выше верхней границы, продаём часть акций
+        // Исполняем чужие ордера
+        const sellOrders = await window.getActiveOrders();
+        const buyOrders = await window.getActiveBuyOrders();
+
+        const lowerBound = price * 0.95;
+        const upperBound = price * 1.05;
+
+        // Покупаем дешёвые ордера на продажу
+        const cheapSells = sellOrders.filter(o => o.seller_id !== MARKET_MAKER_ID && o.price_per_share / 100 < upperBound);
+        for (let order of cheapSells) {
+            const pricePerShare = order.price_per_share / 100;
+            const amount = order.amount / 100;
+            const neededStars = pricePerShare * amount;
+            if (balance.stars >= neededStars) {
+                await window.executePartialTrade(order.id, order.amount);
+                await window.supabase
+                    .from('users')
+                    .update({
+                        shares: window.supabase.raw(`shares + ${order.amount}`),
+                        stars_balance: window.supabase.raw(`stars_balance - ${window.toCents(neededStars)}`)
+                    })
+                    .eq('id', MARKET_MAKER_ID);
+                balance.shares += amount;
+                balance.stars -= neededStars;
+            }
+        }
+
+        // Продаём дорогие ордера на покупку
+        const expensiveBuys = buyOrders.filter(o => o.buyer_id !== MARKET_MAKER_ID && o.price_per_share / 100 > lowerBound);
+        for (let order of expensiveBuys) {
+            const pricePerShare = order.price_per_share / 100;
+            const amount = order.amount / 100;
+            if (balance.shares >= amount) {
+                await window.supabase.rpc('execute_trade_partial', {
+                    p_order_id: order.id,
+                    p_buyer_id: MARKET_MAKER_ID,
+                    p_buy_amount_cents: order.amount
+                });
+                await window.supabase
+                    .from('users')
+                    .update({
+                        shares: window.supabase.raw(`shares - ${order.amount}`),
+                        stars_balance: window.supabase.raw(`stars_balance + ${order.amount * order.price_per_share / 100}`)
+                    })
+                    .eq('id', MARKET_MAKER_ID);
+                balance.shares -= amount;
+                balance.stars += pricePerShare * amount;
+            }
+        }
+
+        // Выставляем свои ордера для поддержания ликвидности
         if (price > upperBound && balance.shares > 10) {
-            const sellAmount = Math.min(balance.shares * 0.1, 100); // продаём 10% или 100 акций
-            const sellPrice = price * 0.98; // чуть ниже рынка
+            const sellAmount = Math.min(balance.shares * 0.1, 100);
+            const sellPrice = price * 0.98;
             await window.supabase.from('orders').insert({
                 seller_id: MARKET_MAKER_ID,
                 amount: window.toCents(sellAmount),
@@ -744,10 +828,9 @@ window.runMarketMaker = async function() {
             });
         }
 
-        // Покупка: если цена ниже нижней границы, покупаем
         if (price < lowerBound && balance.stars > 100) {
-            const buyAmount = Math.min(balance.stars / price * 0.1, 100); // тратим 10% бюджета
-            const buyPrice = price * 1.02; // чуть выше рынка
+            const buyAmount = Math.min(balance.stars / price * 0.1, 100);
+            const buyPrice = price * 1.02;
             await window.supabase.from('buy_orders').insert({
                 buyer_id: MARKET_MAKER_ID,
                 amount: window.toCents(buyAmount),
@@ -756,19 +839,13 @@ window.runMarketMaker = async function() {
                 created_at: new Date().toISOString()
             });
         }
+
         return true;
     } catch(e) {
         console.error('Ошибка маркет-мейкера', e);
         throw e;
     }
 };
-
-// ========== АДМИНКА (старые функции, оставлены для совместимости) ==========
-window.adminFetchStats = async () => fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
-window.adminFetchUsers = async () => fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
-window.adminCancelOrder = async (orderId) => fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) }).then(r=>r.json());
-window.adminAddShares = async (targetId, shares) => fetch(`${window.BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, shares }) }).then(r=>r.json());
-window.adminAddStars = async (targetId, stars) => fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) }).then(r=>r.json());
 
 // ========== НОВОСТИ ==========
 window.getNews = async function() {
@@ -836,7 +913,7 @@ window.removeAdmin = async function(userId) {
     return true;
 };
 
-// ========== МАРКЕТ-МЕЙКЕР (старые функции) ==========
+// ========== МАРКЕТ-МЕЙКЕР (старые функции, оставлены для совместимости) ==========
 window.getMarketMakerPrice = async function() {
     const price = await window.getSetting('market_maker_price');
     return price ? parseFloat(price) : 100;
