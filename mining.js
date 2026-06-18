@@ -1,39 +1,30 @@
-// mining.js – данные в Supabase, синхронизация между устройствами
+// mining.js – с поддержкой last_bonus
 
-const SESSION_DURATION = 12 * 3600 * 1000;
+const SESSION_DURATION = 12 * 3600 * 1000; // 12 часов
 const MAX_PER_SESSION = 0.2;
 const CLAIM_THRESHOLD = 0.1;
-const UPGRADE_BONUS = 0.10;
+const UPGRADE_BONUS = 0.10; // +10% за уровень
 const UPGRADE_MAX = 10;
 const DAILY_BONUS_AMOUNT = 0.1;
 
-let miningData = null;
-let lastBonusDate = null;
 let miningInterval = null;
 let countdownInterval = null;
 let bonusCountdownInterval = null;
+let miningData = null;
+let lastBonusDate = null;
 
 // ===== ЗАГРУЗКА ДАННЫХ ИЗ SUPABASE =====
 async function loadMiningData() {
     try {
+        // Загружаем данные майнинга
         const { data, error } = await window.supabase
             .from('mining')
             .select('*')
             .eq('user_id', window.userId)
             .maybeSingle();
 
-        if (error) {
-            // Проверяем, существует ли таблица
-            if (error.message && error.message.includes('relation "mining" does not exist')) {
-                console.error('Таблица mining не найдена. Создайте её через SQL.');
-                window.showCustomModal('Ошибка', 'Таблица mining не создана. Обратитесь к администратору.');
-                return null;
-            }
-            throw error;
-        }
-
-        if (!data) {
-            // Создаём новую запись
+        if (error && error.code === 'PGRST116') {
+            // Нет записи – создаём
             const { data: newData, error: insertError } = await window.supabase
                 .from('mining')
                 .insert({
@@ -44,13 +35,14 @@ async function loadMiningData() {
                     mined_amount: 0,
                     total_mined: 0,
                     level: 1,
-                    last_bonus: null,
-                    last_update: new Date().toISOString()
+                    last_bonus: null
                 })
                 .select()
                 .single();
             if (insertError) throw insertError;
             miningData = newData;
+        } else if (error) {
+            throw error;
         } else {
             miningData = data;
             // Проверяем активную сессию
@@ -67,7 +59,9 @@ async function loadMiningData() {
             }
         }
 
+        // Загружаем дату последнего бонуса
         lastBonusDate = miningData.last_bonus ? new Date(miningData.last_bonus) : null;
+
         return miningData;
     } catch(e) {
         console.error('Ошибка загрузки майнинга', e);
@@ -89,8 +83,7 @@ async function saveMiningData() {
                 mined_amount: miningData.mined_amount,
                 total_mined: miningData.total_mined,
                 level: miningData.level,
-                last_bonus: miningData.last_bonus,
-                last_update: new Date().toISOString()
+                last_bonus: miningData.last_bonus
             })
             .eq('user_id', window.userId);
         if (error) throw error;
@@ -258,9 +251,25 @@ function startCountdown() {
     }, 1000);
 }
 
+function startBonusCountdown() {
+    if (bonusCountdownInterval) clearInterval(bonusCountdownInterval);
+    bonusCountdownInterval = setInterval(() => {
+        const remaining = getTimeUntilBonus();
+        if (remaining <= 0) {
+            clearInterval(bonusCountdownInterval);
+            document.getElementById('bonusTimer').textContent = '✅ Доступен!';
+            return;
+        }
+        const hours = Math.floor(remaining / 3600000);
+        const minutes = Math.floor((remaining % 3600000) / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        document.getElementById('bonusTimer').textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }, 1000);
+}
+
 function startMiningProgress() {
     if (miningInterval) clearInterval(miningInterval);
-    miningInterval = setInterval(() => {
+    miningInterval = setInterval(async () => {
         if (!miningData || !miningData.mining_active) {
             clearInterval(miningInterval);
             return;
@@ -283,25 +292,6 @@ function startMiningProgress() {
     }, 1000);
 }
 
-function startBonusCountdown() {
-    if (bonusCountdownInterval) clearInterval(bonusCountdownInterval);
-    bonusCountdownInterval = setInterval(() => {
-        const remaining = getTimeUntilBonus();
-        if (remaining <= 0) {
-            clearInterval(bonusCountdownInterval);
-            updateUI();
-            return;
-        }
-        const hours = Math.floor(remaining / 3600000);
-        const minutes = Math.floor((remaining % 3600000) / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
-        const bonusTimer = document.getElementById('bonusTimer');
-        if (bonusTimer) {
-            bonusTimer.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
-    }, 1000);
-}
-
 async function finishMining() {
     if (!miningData) return;
     miningData.mining_active = false;
@@ -318,8 +308,8 @@ async function finishMining() {
 function updateClaimButton() {
     const claimBtn = document.getElementById('claimBtn');
     if (!claimBtn) return;
-    const amount = miningData?.mined_amount || 0;
-    if (amount >= CLAIM_THRESHOLD && miningData?.mining_active) {
+    const amount = miningData.mined_amount;
+    if (amount >= CLAIM_THRESHOLD && miningData.mining_active) {
         claimBtn.disabled = false;
         claimBtn.textContent = `💰 Забрать (${amount.toFixed(4)} акций)`;
         claimBtn.style.opacity = '1';
@@ -331,7 +321,6 @@ function updateClaimButton() {
 }
 
 function updateUI() {
-    if (!miningData) return;
     const levelEl = document.getElementById('miningLevel');
     const totalEl = document.getElementById('totalMined');
     const minedEl = document.getElementById('minedAmount');
@@ -361,6 +350,7 @@ function updateUI() {
     if (upgradeBtn) {
         const cost = getUpgradeCost(miningData.level);
         const nextLevel = miningData.level + 1;
+        const nextRate = getCurrentRate(nextLevel);
         upgradeBtn.textContent = `⬆️ Уровень ${nextLevel} (${cost} акций, +${(UPGRADE_BONUS*100).toFixed(0)}% скорости)`;
         const userSharesCents = window.currentUser.shares;
         upgradeBtn.disabled = (userSharesCents / 100) < cost || miningData.level >= UPGRADE_MAX;
@@ -379,53 +369,49 @@ function updateUI() {
         dailyBtn.style.opacity = canClaim ? '1' : '0.5';
     }
 
-    // Таймер до бонуса
     if (bonusTimer) {
-        const remaining = getTimeUntilBonus();
-        if (remaining > 0 && !canClaimDailyBonus()) {
+        if (!canClaimDailyBonus()) {
+            const remaining = getTimeUntilBonus();
             const hours = Math.floor(remaining / 3600000);
             const minutes = Math.floor((remaining % 3600000) / 60000);
             const seconds = Math.floor((remaining % 60000) / 1000);
-            bonusTimer.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            bonusTimer.textContent = `⏳ ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         } else {
-            bonusTimer.textContent = 'Готово!';
+            bonusTimer.textContent = '✅ Готов к получению!';
         }
     }
 
-    if (miningData.mining_active && miningData.mining_end) {
-        const now = Date.now();
-        const end = new Date(miningData.mining_end).getTime();
-        if (now < end) {
-            const diff = end - now;
-            const hours = Math.floor(diff / 3600000);
-            const minutes = Math.floor((diff % 3600000) / 60000);
-            const seconds = Math.floor((diff % 60000) / 1000);
-            if (timerEl) {
+    if (timerEl) {
+        if (miningData.mining_active && miningData.mining_end) {
+            const now = Date.now();
+            const end = new Date(miningData.mining_end).getTime();
+            if (now < end) {
+                const diff = end - now;
+                const hours = Math.floor(diff / 3600000);
+                const minutes = Math.floor((diff % 3600000) / 60000);
+                const seconds = Math.floor((diff % 60000) / 1000);
                 timerEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                timerEl.textContent = '00:00:00';
             }
         } else {
-            if (timerEl) timerEl.textContent = '00:00:00';
+            timerEl.textContent = '--:--:--';
         }
-    } else {
-        if (timerEl) timerEl.textContent = '--:--:--';
     }
 
-    // Информация о скорости
     const rateInfo = document.getElementById('rateInfo');
     if (rateInfo) {
         const currentRate = getCurrentRate(miningData.level);
         const nextRate = miningData.level < UPGRADE_MAX ? getCurrentRate(miningData.level + 1) : currentRate;
         const dailyBonus = getDailyBonus();
-        const canClaim = canClaimDailyBonus();
         rateInfo.innerHTML = `
             <div class="rate-row"><span>⚡ Скорость майнинга</span><span>${(currentRate * 3600).toFixed(4)} акций/час</span></div>
             ${miningData.level < UPGRADE_MAX ? `<div class="rate-row"><span>📈 После улучшения</span><span>${(nextRate * 3600).toFixed(4)} акций/час (+${(UPGRADE_BONUS*100).toFixed(0)}%)</span></div>` : ''}
-            <div class="rate-row"><span>🎁 Ежедневный бонус</span><span>${dailyBonus.toFixed(4)} акций ${canClaim ? '✅ доступен' : '⏳'}</span></div>
+            <div class="rate-row"><span>🎁 Ежедневный бонус</span><span>${dailyBonus.toFixed(4)} акций</span></div>
         `;
     }
 }
 
-// ===== ГЛАВНЫЙ РЕНДЕР =====
 window.renderMiningTab = async function() {
     if (miningInterval) clearInterval(miningInterval);
     if (countdownInterval) clearInterval(countdownInterval);
@@ -433,16 +419,11 @@ window.renderMiningTab = async function() {
 
     await loadMiningData();
     if (!miningData) {
-        document.getElementById('app').innerHTML = `
-            <div class="card error">
-                Ошибка загрузки данных майнинга.<br>
-                Проверьте, что таблица <strong>mining</strong> создана в базе данных.
-            </div>
-        `;
+        document.getElementById('app').innerHTML = '<div class="card error">Ошибка загрузки данных майнинга</div>';
         return;
     }
 
-    const bonus = getDailyBonus();
+    const dailyBonus = getDailyBonus();
     const canClaim = canClaimDailyBonus();
 
     const html = `
@@ -460,11 +441,11 @@ window.renderMiningTab = async function() {
                 <div class="timer-label">⏳ Осталось до завершения сессии</div>
                 <div class="timer-value" id="miningTimer">--:--:--</div>
             </div>
-            <div class="mining-timer bonus-timer">
+            <div class="mining-timer" style="margin-top:8px;">
                 <div class="timer-label">🎁 До следующего бонуса</div>
-                <div class="timer-value" id="bonusTimer">${canClaim ? 'Готово!' : '--:--:--'}</div>
+                <div class="timer-value" id="bonusTimer" style="font-size:20px;">${canClaim ? '✅ Готов к получению!' : '--:--:--'}</div>
             </div>
-            <button id="dailyBonusBtn" class="mining-btn daily" ${!canClaim ? 'disabled' : ''}>🎁 Забрать бонус (${bonus.toFixed(4)} акций)</button>
+            <button id="dailyBonusBtn" class="mining-btn daily" ${!canClaim ? 'disabled' : ''}>🎁 Забрать бонус (${dailyBonus.toFixed(4)} акций)</button>
             <button id="startMiningBtn" class="mining-btn primary">🚀 Начать майнинг (12ч)</button>
             <button id="claimBtn" class="mining-btn claim" disabled>💰 Забрать (нужно ${CLAIM_THRESHOLD} акций)</button>
             <button id="upgradeLevelBtn" class="mining-btn secondary">⬆️ Улучшить уровень</button>
@@ -483,23 +464,23 @@ window.renderMiningTab = async function() {
         startCountdown();
         startMiningProgress();
     }
-    if (!canClaimDailyBonus()) {
+    if (!canClaim) {
         startBonusCountdown();
     }
 };
 
-// Остановка интервалов
 document.addEventListener('visibilitychange', () => {
     const activeTab = document.querySelector('.tab.active');
     if (activeTab && activeTab.dataset.tab === 'mining') {
         if (!document.hidden) {
-            if (miningData?.mining_active) {
-                startCountdown();
-                startMiningProgress();
-            }
-            if (!canClaimDailyBonus()) {
-                startBonusCountdown();
-            }
+            // Обновляем данные при возврате
+            loadMiningData().then(() => {
+                if (miningData.mining_active) {
+                    startCountdown();
+                    startMiningProgress();
+                }
+                updateUI();
+            });
         } else {
             if (miningInterval) clearInterval(miningInterval);
             if (countdownInterval) clearInterval(countdownInterval);
