@@ -1,4 +1,4 @@
-// api.js – полный файл со всеми функциями (включая вывод, дуэли, динамические настройки)
+// api.js – полный файл со всеми функциями (включая вывод, достижения, майнинг, настройки)
 
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
@@ -72,7 +72,6 @@ window.checkAllAchievements = async function() {
             case 'total_volume': conditionMet = (user.total_volume || 0) >= ach.condition_value; break;
             case 'stars_held': conditionMet = user.stars_balance >= ach.condition_value; break;
             case 'days_active': conditionMet = (user.days_active || 0) >= ach.condition_value; break;
-            case 'duels_won': conditionMet = (user.duels_won || 0) >= ach.condition_value; break;
         }
         if (conditionMet) await window.awardAchievement(ach.id);
     }
@@ -156,9 +155,7 @@ window.getOrCreateUser = async function() {
             total_volume: 0,
             trades_count: 0,
             days_active: 0,
-            last_username_change: new Date().toISOString(),
-            duels_won: 0,
-            duels_lost: 0
+            last_username_change: new Date().toISOString()
         }]).select().single();
         
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
@@ -190,9 +187,8 @@ window.getOrCreateUser = async function() {
         return { user: newUser, isNew: true };
     }
     
-    // Проверка на новые поля
     let updated = false;
-    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change','duels_won','duels_lost'];
+    const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change'];
     for (let f of newFields) {
         if (data[f] === undefined) { data[f] = f === 'last_username_change' ? new Date().toISOString() : 0; updated = true; }
     }
@@ -204,9 +200,7 @@ window.getOrCreateUser = async function() {
             total_volume: data.total_volume,
             trades_count: data.trades_count,
             days_active: data.days_active,
-            last_username_change: data.last_username_change,
-            duels_won: data.duels_won,
-            duels_lost: data.duels_lost
+            last_username_change: data.last_username_change
         }).eq('id', window.userId);
     }
     return { user: data, isNew: false };
@@ -271,8 +265,6 @@ window.refreshActiveTab = async function() {
         case 'referral': if (window.renderReferralTab) await window.renderReferralTab(); break;
         case 'mining': if (window.renderMiningTab) await window.renderMiningTab(); break;
         case 'news': if (window.renderNewsTab) await window.renderNewsTab(); break;
-        case 'withdraw': if (window.renderWithdrawTab) await window.renderWithdrawTab(); break;
-        case 'pvp': if (window.renderPvpTab) await window.renderPvpTab(); break;
         case 'admin': if (window.renderAdminTab) await window.renderAdminTab(); break;
     }
 };
@@ -609,7 +601,6 @@ window.createWithdrawal = async function(amountStars) {
     });
     if (error) throw new Error(error.message);
     
-    // Списываем Stars
     await window.supabase.from('users').update({
         stars_balance: window.supabase.raw(`stars_balance - ${amountCents}`)
     }).eq('id', window.userId);
@@ -625,77 +616,6 @@ window.getWithdrawals = async function() {
         .order('created_at', { ascending: false });
     if (error) return [];
     return data;
-};
-
-window.getPendingWithdrawals = async function() {
-    const { data, error } = await window.supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('user_id', window.userId)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-    if (error) return [];
-    return data;
-};
-
-// ========== ДУЭЛИ ==========
-window.createDuel = async function(opponentId, stakeShares) {
-    if (stakeShares < 1) throw new Error('Ставка должна быть ≥ 1 акции');
-    const stakeCents = window.toCents(stakeShares);
-    const user = window.currentUser;
-    if (user.shares < stakeCents) throw new Error('Недостаточно акций');
-    
-    const { error } = await window.supabase.from('duels').insert({
-        challenger_id: window.userId,
-        opponent_id: opponentId,
-        stake: stakeCents,
-        status: 'pending',
-        created_at: new Date().toISOString()
-    });
-    if (error) throw new Error(error.message);
-    return true;
-};
-
-window.getActiveDuels = async function() {
-    const { data, error } = await window.supabase
-        .from('duels')
-        .select('*')
-        .or(`challenger_id.eq.${window.userId},opponent_id.eq.${window.userId}`)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-    if (error) return [];
-    return data;
-};
-
-window.acceptDuel = async function(duelId) {
-    // Получаем данные дуэли
-    const { data: duel, error } = await window.supabase.from('duels').select('*').eq('id', duelId).single();
-    if (error) throw new Error(error.message);
-    if (duel.status !== 'pending') throw new Error('Дуэль уже завершена');
-    if (duel.opponent_id !== window.userId) throw new Error('Вы не являетесь соперником');
-    
-    // Случайный победитель
-    const winner = Math.random() < 0.5 ? duel.challenger_id : duel.opponent_id;
-    // Начисляем победителю ставку
-    await window.supabase.from('users').update({
-        shares: window.supabase.raw(`shares + ${duel.stake}`)
-    }).eq('id', winner);
-    // Обновляем статистику побед/поражений
-    await window.supabase.from('users').update({
-        duels_won: window.supabase.raw(`duels_won + 1`)
-    }).eq('id', winner);
-    const loser = winner === duel.challenger_id ? duel.opponent_id : duel.challenger_id;
-    await window.supabase.from('users').update({
-        duels_lost: window.supabase.raw(`duels_lost + 1`)
-    }).eq('id', loser);
-    
-    // Обновляем статус дуэли
-    await window.supabase.from('duels').update({
-        status: 'completed',
-        winner_id: winner
-    }).eq('id', duelId);
-    
-    return { winner, stake: window.fromCents(duel.stake) };
 };
 
 // ========== АДМИНКА ==========
