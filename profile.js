@@ -1,4 +1,4 @@
-// profile.js – финальная версия (без обучения, с проверкой hideBalance)
+// profile.js – финальная версия (без обучения, без смены ника, hideBalance, исправлен дубль эмодзи)
 
 const avatarEmojis = ['👤','😀','😎','👍','🐱','🐶','🦊','🐼','🍕','🍔','🍩','☕','💎','💰','🎲','🏆','🎁','🌟','🔥','❤️','🚀','🍀','👑','🎯'];
 const bgColors = [
@@ -23,7 +23,6 @@ function getAvatarStyle(emoji) {
     return `font-size: ${special[emoji] || '48px'};`;
 }
 
-// ========== ПРАВИЛЬНОЕ СКЛОНЕНИЕ ==========
 function getConditionText(ach) {
     if (ach.condition_type === 'none') return '';
     let val = ach.condition_value;
@@ -61,7 +60,6 @@ function getConditionText(ach) {
     }
 }
 
-// ========== ПОДСВЕТКА НОВЫХ ДОСТИЖЕНИЙ ==========
 let lastKnownAchievementIds = [];
 
 async function checkNewAchievements(earnedAchievements) {
@@ -70,15 +68,14 @@ async function checkNewAchievements(earnedAchievements) {
     if (newIds.length) {
         const newAch = earnedAchievements.filter(a => newIds.includes(a.id));
         for (const ach of newAch) {
-            const icon = ach.icon || '🏆';
-            window.showCustomModal('🏆 Новое достижение!', `${icon} ${ach.name}\n\n${ach.description}`);
+            window.showCustomModal('🏆 Новое достижение!', `${ach.name}\n\n${ach.description}`);
         }
     }
     lastKnownAchievementIds = currentIds;
     localStorage.setItem('lastKnownAchievementIds', JSON.stringify(currentIds));
 }
 
-// ========== БЛИЖАЙШИЕ ДОСТИЖЕНИЯ ==========
+// ========== ОСТАЛЬНЫЕ ФУНКЦИИ (без изменений) ==========
 async function getNextAchievementsMixed(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return [];
@@ -113,7 +110,6 @@ async function getNextAchievementsMixed(currentUser, getUserStats) {
     return withProgress.slice(0, 5);
 }
 
-// ========== ПРОГРЕСС ПО КАТЕГОРИЯМ ==========
 async function getCategoryProgress(currentUser, getUserStats) {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return {};
@@ -141,7 +137,6 @@ async function getCategoryProgress(currentUser, getUserStats) {
     return categories;
 }
 
-// ========== СПРАВОЧНИК ==========
 async function getAllAchievementsByCategory() {
     const { data: all } = await window.supabase.from('achievements').select('*').order('condition_value', { ascending: true });
     if (!all) return {};
@@ -254,7 +249,7 @@ async function showAchievementsGuide(currentUser, getUserStats) {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
-// ========== КАСТОМИЗАЦИЯ АВАТАРА ==========
+// ========== КАСТОМИЗАЦИЯ АВАТАРА (без изменений) ==========
 async function awardStylistAchievement() {
     const { data: ach } = await window.supabase.from('achievements').select('id').eq('name', '🎨 Стилист').single();
     if (ach) await window.awardAchievement(ach.id);
@@ -319,7 +314,6 @@ async function openAchievementSelectorForSlot(slot, earnedAchievements, currentS
     });
 }
 
-// Шаги кастомизации (без изменений)
 function showAvatarStep(currentUser, updateCallback, nextCallback, showCustomModal) {
     const currentAvatar = currentUser.avatar_url || '👤';
     const optionsHtml = avatarEmojis.map(emoji => {
@@ -493,7 +487,6 @@ window.renderProfileTab = async function(currentUser, supabase, userId, fromCent
     const emojiStyle = getAvatarStyle(avatarUrl);
     const registeredDate = currentUser.registered_at ? new Date(currentUser.registered_at).toLocaleDateString() : 'неизвестно';
     
-    // ===== СКРЫТИЕ БАЛАНСА =====
     const hideBalance = localStorage.getItem('hide_balance') === 'true';
     const starsDisplay = hideBalance ? '***' : fromCents(currentUser.stars_balance);
     const sharesDisplay = hideBalance ? '***' : fromCents(currentUser.shares);
