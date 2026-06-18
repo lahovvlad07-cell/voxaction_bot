@@ -1,4 +1,5 @@
-// wallet.js – кошелёк с кнопкой "Последние операции" по центру, загружает 10 последних пополнений
+// wallet.js – кошелёк с выводом Stars
+
 window.renderWalletTab = async function() {
     const { user: freshUser } = await window.getOrCreateUser();
     window.currentUser = freshUser;
@@ -86,23 +87,19 @@ window.renderWalletTab = async function() {
             
             <div class="wallet-actions">
                 <button id="topupBtn" class="wallet-btn primary">💸 Пополнить Stars</button>
-                <button id="withdrawBtn" class="wallet-btn secondary">🎁 Вывести через подарки</button>
+                <button id="withdrawBtn" class="wallet-btn secondary">💸 Вывод Stars</button>
             </div>
             
-            <!-- Кнопка "Последние операции" по центру -->
-            <div style="display: flex; justify-content: center; margin: 20px 0 12px;">
-                <button id="toggleHistoryBtn" class="wallet-btn secondary" style="width: auto; padding: 10px 24px; border-radius: 40px; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,255,255,0.3); color: #0ff; font-size: 14px; cursor: pointer;">
-                    📜 Последние операции
-                </button>
-            </div>
-            <div id="walletHistoryContainer" style="display: none; margin-bottom: 20px;">
-                <div class="wallet-history-list" id="walletHistoryList"></div>
+            <div style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.1); padding-top:16px;">
+                <h3 style="text-align:center; font-size:16px; margin-bottom:12px;">📋 История выводов</h3>
+                <div id="withdrawHistory"></div>
             </div>
             
             <div class="wallet-info">
                 <div class="wallet-info-icon">ℹ️</div>
                 <div class="wallet-info-text">
                     Минимальная сумма пополнения — <strong>10 ⭐</strong>. Максимум <strong>500 ⭐ за 12 часов</strong>. Комиссия 5%.
+                    <br>Минимальная сумма вывода — <strong>10 ⭐</strong>.
                 </div>
             </div>
         </div>
@@ -120,50 +117,34 @@ window.renderWalletTab = async function() {
         }
     });
     
-    document.getElementById('withdrawBtn').addEventListener('click', () => {
-        window.tg.openTelegramLink('https://t.me/VoxAction_Bot?start=withdraw_gifts');
-    });
-    
-    // Обработчик для кнопки "Последние операции"
-    const toggleBtn = document.getElementById('toggleHistoryBtn');
-    const historyContainer = document.getElementById('walletHistoryContainer');
-    const historyList = document.getElementById('walletHistoryList');
-    let historyLoaded = false;
-    
-    toggleBtn.addEventListener('click', async () => {
-        if (historyContainer.style.display === 'none') {
-            if (!historyLoaded) {
-                try {
-                    const { data: ops } = await window.supabase
-                        .from('topup_history')
-                        .select('amount, created_at, type')
-                        .eq('user_id', window.userId)
-                        .order('created_at', { ascending: false })
-                        .limit(10);
-                    if (ops && ops.length) {
-                        historyList.innerHTML = ops.map(op => `
-                            <div class="wallet-history-item">
-                                <span class="wallet-history-type ${op.type === 'topup' ? 'topup' : 'withdraw'}">
-                                    ${op.type === 'topup' ? '⬆ Пополнение' : '⬇ Вывод'}
-                                </span>
-                                <span class="wallet-history-amount">${(op.amount / 100).toFixed(2)} ⭐</span>
-                                <span class="wallet-history-date">${new Date(op.created_at).toLocaleDateString()}</span>
-                            </div>
-                        `).join('');
-                    } else {
-                        historyList.innerHTML = '<div class="wallet-history-empty">Нет операций</div>';
-                    }
-                } catch(e) {
-                    console.warn('Ошибка загрузки истории', e);
-                    historyList.innerHTML = '<div class="wallet-history-empty">Ошибка загрузки</div>';
-                }
-                historyLoaded = true;
-            }
-            historyContainer.style.display = 'block';
-            toggleBtn.textContent = '🔼 Скрыть операции';
-        } else {
-            historyContainer.style.display = 'none';
-            toggleBtn.textContent = '📜 Последние операции';
+    document.getElementById('withdrawBtn').addEventListener('click', async () => {
+        const amount = parseInt(prompt('Введите сумму для вывода (минимум 10 ⭐):', '10'));
+        if (!amount || amount < 10) {
+            window.showCustomModal('Ошибка', 'Минимальная сумма вывода – 10 ⭐');
+            return;
+        }
+        try {
+            await window.createWithdrawal(amount);
+            window.showToast('✅ Заявка на вывод отправлена');
+            window.renderWalletTab();
+        } catch(e) {
+            window.showCustomModal('Ошибка', e.message);
         }
     });
+    
+    async function loadWithdrawHistory() {
+        const list = await window.getWithdrawals();
+        const container = document.getElementById('withdrawHistory');
+        if (!list.length) {
+            container.innerHTML = '<p style="color:#9ca3af; font-size:13px;">Нет заявок</p>';
+            return;
+        }
+        container.innerHTML = list.map(w => `
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <span>${window.fromCents(w.amount)} ⭐</span>
+                <span style="color:${w.status === 'pending' ? '#fbbf24' : w.status === 'approved' ? '#4ade80' : '#f87171'}">${w.status === 'pending' ? '⏳ На рассмотрении' : w.status === 'approved' ? '✅ Одобрен' : '❌ Отклонён'}</span>
+            </div>
+        `).join('');
+    }
+    loadWithdrawHistory();
 };
