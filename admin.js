@@ -1,4 +1,4 @@
-// admin.js – полная админ-панель с управлением выводами, дуэлями, достижениями
+// admin.js – полностью переработанная админ-панель (v2.0)
 
 const OWNER_ID = 6048486427;
 
@@ -9,20 +9,18 @@ window.renderAdminTab = async function() {
     }
 
     try {
-        const [stats, usersData, orders, newsList, adminsList, mmPrice, achievements, withdrawals, duels] = await Promise.all([
-            window.adminFetchStats(),
+        // Загружаем все данные параллельно
+        const [usersData, orders, newsList, adminsList, achievements, withdrawals] = await Promise.all([
             window.adminFetchUsers(),
             window.getActiveOrders(),
             window.getNews(),
             window.getAdmins(),
-            window.getMarketMakerPrice(),
             window.getAllAchievements(),
-            window.supabase.from('withdrawals').select('*').order('created_at', { ascending: false }),
-            window.supabase.from('duels').select('*').order('created_at', { ascending: false })
+            window.supabase.from('withdrawals').select('*').order('created_at', { ascending: false })
         ]);
 
+        const users = usersData.users || [];
         const withdrawalsData = withdrawals.data || [];
-        const duelsData = duels.data || [];
 
         let html = `
             <div class="admin-container">
@@ -38,22 +36,19 @@ window.renderAdminTab = async function() {
                     <button class="admin-nav-btn" data-tab="admins">👑 Админы</button>
                     <button class="admin-nav-btn" data-tab="achievements">🏆 Достижения</button>
                     <button class="admin-nav-btn" data-tab="withdrawals">💸 Выводы</button>
-                    <button class="admin-nav-btn" data-tab="duels">⚔️ Дуэли</button>
                     <button class="admin-nav-btn" data-tab="settings">⚙️ Настройки</button>
                 </div>
 
                 <!-- Главная -->
                 <div id="admin-dashboard" class="admin-pane active">
                     <div class="stats-grid">
-                        <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${stats.total_shares || 0}</div><div class="stat-label">Акций в обращении</div></div>
-                        <div class="stat-card"><div class="stat-icon">🏦</div><div class="stat-value">${stats.reserve || 0}</div><div class="stat-label">Резерв</div></div>
-                        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${usersData.users?.length || 0}</div><div class="stat-label">Всего пользователей</div></div>
-                        <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value">${stats.total_trades || 0}</div><div class="stat-label">Всего сделок</div></div>
+                        <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${users.reduce((s,u) => s + u.shares, 0) / 100}</div><div class="stat-label">Акций в обращении</div></div>
+                        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${users.length}</div><div class="stat-label">Пользователей</div></div>
+                        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value">${orders.length}</div><div class="stat-label">Активных ордеров</div></div>
                         <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-value">${withdrawalsData.filter(w => w.status === 'pending').length}</div><div class="stat-label">Заявок на вывод</div></div>
-                        <div class="stat-card"><div class="stat-icon">⚔️</div><div class="stat-value">${duelsData.filter(d => d.status === 'pending').length}</div><div class="stat-label">Активных дуэлей</div></div>
                     </div>
                     <div class="quick-actions">
-                        <h3>Быстрые действия</h3>
+                        <h3>⚡ Быстрые действия</h3>
                         <div class="quick-grid">
                             <button class="quick-btn" id="quickAddShares">➕ Выдать акции</button>
                             <button class="quick-btn" id="quickAddStars">⭐ Выдать Stars</button>
@@ -81,21 +76,6 @@ window.renderAdminTab = async function() {
                 <!-- Новости -->
                 <div id="admin-news" class="admin-pane" style="display:none;">
                     <h3>📰 Управление новостями</h3>
-                    <div class="news-editor">
-                        <input type="text" id="newsTitle" placeholder="Заголовок" style="margin-bottom:8px;">
-                        <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
-                            <button class="format-btn" data-tag="b">B</button>
-                            <button class="format-btn" data-tag="i">I</button>
-                            <button class="format-btn" data-tag="h2">H</button>
-                            <button class="format-btn" data-tag="center">≡</button>
-                        </div>
-                        <textarea id="newsContent" placeholder="Содержание новости" rows="6" style="width:100%; padding:12px; background:#0a0f1a; border:1px solid rgba(0,255,255,0.3); border-radius:16px; color:white; resize:vertical;"></textarea>
-                        <div style="margin:8px 0;">
-                            <input type="file" id="newsImageFile" accept="image/*" style="margin:4px 0;">
-                            <span style="font-size:11px; color:#9ca3af;">Загрузите изображение</span>
-                        </div>
-                        <button id="createNewsBtn" style="background:linear-gradient(135deg,#2b6e9e,#1a4c6e);">➕ Создать новость</button>
-                    </div>
                     <div id="newsListAdmin" style="margin-top:16px;"></div>
                 </div>
 
@@ -125,7 +105,6 @@ window.renderAdminTab = async function() {
                             <option value="total_volume">Общий объём</option>
                             <option value="stars_held">Баланс Stars</option>
                             <option value="days_active">Дней активности</option>
-                            <option value="duels_won">Побед в дуэлях</option>
                         </select>
                         <input type="number" id="achValue" placeholder="Значение условия" style="margin-bottom:8px;">
                         <button id="createAchievementBtn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e1e2f;">➕ Создать достижение</button>
@@ -136,34 +115,7 @@ window.renderAdminTab = async function() {
                 <!-- Выводы -->
                 <div id="admin-withdrawals" class="admin-pane" style="display:none;">
                     <h3>💸 Управление выводами</h3>
-                    <div id="withdrawalsList" style="max-height:400px; overflow-y:auto;">
-                        ${withdrawalsData.map(w => `
-                            <div style="background:rgba(0,0,0,0.3); border-radius:16px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                                <span>ID: ${w.user_id} | ${window.fromCents(w.amount)} ⭐ | ${w.status}</span>
-                                ${w.status === 'pending' ? `
-                                    <div>
-                                        <button class="approve-withdrawal" data-id="${w.id}" style="background:rgba(74,222,128,0.2); border:1px solid #4ade80; color:#4ade80; padding:4px 12px; border-radius:20px; cursor:pointer;">✅ Одобрить</button>
-                                        <button class="reject-withdrawal" data-id="${w.id}" style="background:rgba(255,0,0,0.2); border:1px solid #ff4444; color:#ff6b6b; padding:4px 12px; border-radius:20px; cursor:pointer;">❌ Отклонить</button>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `).join('')}
-                        ${!withdrawalsData.length ? '<p style="color:#9ca3af;">Нет заявок на вывод</p>' : ''}
-                    </div>
-                </div>
-
-                <!-- Дуэли -->
-                <div id="admin-duels" class="admin-pane" style="display:none;">
-                    <h3>⚔️ Управление дуэлями</h3>
-                    <div id="duelsList" style="max-height:400px; overflow-y:auto;">
-                        ${duelsData.map(d => `
-                            <div style="background:rgba(0,0,0,0.3); border-radius:16px; padding:12px; margin-bottom:8px;">
-                                <span>${d.challenger_id} vs ${d.opponent_id} | Ставка: ${window.fromCents(d.stake)} акций | Статус: ${d.status}</span>
-                                ${d.status === 'pending' ? `<button class="force-duel" data-id="${d.id}" style="background:rgba(251,191,36,0.2); border:1px solid #fbbf24; color:#fbbf24; padding:4px 12px; border-radius:20px; cursor:pointer;">Завершить (случайно)</button>` : ''}
-                            </div>
-                        `).join('')}
-                        ${!duelsData.length ? '<p style="color:#9ca3af;">Нет дуэлей</p>' : ''}
-                    </div>
+                    <div id="withdrawalsList" style="max-height:400px; overflow-y:auto;"></div>
                 </div>
 
                 <!-- Настройки -->
@@ -171,18 +123,13 @@ window.renderAdminTab = async function() {
                     <h3>⚙️ Настройки приложения</h3>
                     <div style="margin-bottom:16px;">
                         <label>Цена выкупа 1 акции (в ⭐):</label>
-                        <input type="number" id="mmPriceInput" value="${mmPrice}" style="margin-bottom:8px;">
+                        <input type="number" id="mmPriceInput" value="${await window.getSetting('market_maker_price') || 100}" style="margin-bottom:8px;">
                         <button id="saveMmPriceBtn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e1e2f;">Сохранить</button>
                     </div>
                     <div style="margin-bottom:16px;">
                         <label>Базовая скорость майнинга (акций/сек):</label>
                         <input type="number" id="miningBaseRate" step="0.000001" value="${await window.getSetting('mining_base_rate') || 0.00000463}" style="margin-bottom:8px;">
                         <button id="saveMiningRateBtn" style="background:linear-gradient(135deg,#2b6e9e,#1a4c6e);">Сохранить</button>
-                    </div>
-                    <div>
-                        <label>Включить майнинг:</label>
-                        <input type="checkbox" id="miningEnabled" checked style="width:auto; margin:0 8px;">
-                        <button id="saveFeatureToggleBtn" style="background:linear-gradient(135deg,#2b6e9e,#1a4c6e);">Сохранить</button>
                     </div>
                 </div>
             </div>
@@ -201,10 +148,10 @@ window.renderAdminTab = async function() {
             .admin-nav-btn.active { background:linear-gradient(135deg,#2b6e9e,#1a4c6e); color:white; box-shadow:0 0 12px rgba(43,110,158,0.4); }
             .admin-nav-btn:hover:not(.active) { background:rgba(255,255,255,0.05); }
             .admin-pane { background:rgba(0,0,0,0.25); border-radius:20px; padding:16px; margin-top:12px; }
-            .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; margin-bottom:16px; }
+            .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
             .stat-card { background:rgba(18,24,38,0.7); backdrop-filter:blur(8px); border-radius:20px; padding:16px 12px; text-align:center; border:1px solid rgba(56,189,248,0.2); }
             .stat-icon { font-size:28px; }
-            .stat-value { font-size:24px; font-weight:800; background:linear-gradient(135deg,#eef2ff,#a5b4fc); -webkit-background-clip:text; background-clip:text; color:transparent; }
+            .stat-value { font-size:22px; font-weight:800; background:linear-gradient(135deg,#eef2ff,#a5b4fc); -webkit-background-clip:text; background-clip:text; color:transparent; }
             .stat-label { font-size:10px; color:#9ca3af; margin-top:4px; }
             .quick-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; }
             .quick-btn { padding:10px; border-radius:20px; border:none; background:rgba(255,255,255,0.05); color:#eef2ff; cursor:pointer; transition:0.2s; }
@@ -262,8 +209,7 @@ window.renderAdminTab = async function() {
 
         // ---- ПОЛЬЗОВАТЕЛИ ----
         async function renderUsers(filter = '') {
-            const users = await window.adminFetchUsers();
-            const list = users.users || [];
+            const list = users;
             const filtered = filter ? list.filter(u => String(u.id).includes(filter) || (u.username || '').toLowerCase().includes(filter.toLowerCase())) : list;
             const container = document.getElementById('usersList');
             if (!filtered.length) {
@@ -302,7 +248,7 @@ window.renderAdminTab = async function() {
             else window.showCustomModal('Ошибка',res.error);
         }));
 
-        // ---- НОВОСТИ ----
+        // ---- НОВОСТИ (админ-список) ----
         async function loadNewsAdmin() {
             const list = await window.getNews();
             const container = document.getElementById('newsListAdmin');
@@ -328,52 +274,6 @@ window.renderAdminTab = async function() {
             });
         }
         loadNewsAdmin();
-
-        document.querySelectorAll('.format-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const tag = this.dataset.tag;
-                const textarea = document.getElementById('newsContent');
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                const selected = textarea.value.substring(start, end);
-                let wrapped = '';
-                if (tag === 'center') {
-                    wrapped = `<div style="text-align:center;">${selected}</div>`;
-                } else {
-                    wrapped = `<${tag}>${selected}</${tag}>`;
-                }
-                textarea.value = textarea.value.substring(0, start) + wrapped + textarea.value.substring(end);
-                textarea.focus();
-            });
-        });
-
-        document.getElementById('createNewsBtn').onclick = async () => {
-            const title = document.getElementById('newsTitle').value.trim();
-            const content = document.getElementById('newsContent').value.trim();
-            const fileInput = document.getElementById('newsImageFile');
-            if (!title || !content) {
-                window.showCustomModal('Ошибка', 'Заполните заголовок и содержание');
-                return;
-            }
-            let imageBase64 = null;
-            if (fileInput.files && fileInput.files[0]) {
-                const reader = new FileReader();
-                imageBase64 = await new Promise((resolve) => {
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.readAsDataURL(fileInput.files[0]);
-                });
-            }
-            try {
-                await window.createNews(title, content, imageBase64 || null);
-                window.showToast('Новость создана!');
-                document.getElementById('newsTitle').value = '';
-                document.getElementById('newsContent').value = '';
-                document.getElementById('newsImageFile').value = '';
-                loadNewsAdmin();
-            } catch(e) {
-                window.showCustomModal('Ошибка', e.message);
-            }
-        };
 
         // ---- АДМИНЫ ----
         async function loadAdmins() {
@@ -463,6 +363,23 @@ window.renderAdminTab = async function() {
         };
 
         // ---- ВЫВОДЫ ----
+        const withdrawalsContainer = document.getElementById('withdrawalsList');
+        if (!withdrawalsData.length) {
+            withdrawalsContainer.innerHTML = '<p style="color:#9ca3af;">Нет заявок на вывод</p>';
+        } else {
+            withdrawalsContainer.innerHTML = withdrawalsData.map(w => `
+                <div style="background:rgba(0,0,0,0.3); border-radius:16px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <span>ID: ${w.user_id} | ${window.fromCents(w.amount)} ⭐ | ${w.status}</span>
+                    ${w.status === 'pending' ? `
+                        <div>
+                            <button class="approve-withdrawal" data-id="${w.id}" style="background:rgba(74,222,128,0.2); border:1px solid #4ade80; color:#4ade80; padding:4px 12px; border-radius:20px; cursor:pointer;">✅ Одобрить</button>
+                            <button class="reject-withdrawal" data-id="${w.id}" style="background:rgba(255,0,0,0.2); border:1px solid #ff4444; color:#ff6b6b; padding:4px 12px; border-radius:20px; cursor:pointer;">❌ Отклонить</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
         document.querySelectorAll('.approve-withdrawal').forEach(btn => {
             btn.addEventListener('click', async function() {
                 const id = parseInt(this.dataset.id);
@@ -477,34 +394,13 @@ window.renderAdminTab = async function() {
                 const id = parseInt(this.dataset.id);
                 if (!confirm('Отклонить вывод?')) return;
                 const { data: w } = await window.supabase.from('withdrawals').select('user_id, amount').eq('id', id).single();
-                // Возвращаем Stars пользователю
-                await window.supabase.from('users').update({
-                    stars_balance: window.supabase.raw(`stars_balance + ${w.amount}`)
-                }).eq('id', w.user_id);
+                if (w) {
+                    await window.supabase.from('users').update({
+                        stars_balance: window.supabase.raw(`stars_balance + ${w.amount}`)
+                    }).eq('id', w.user_id);
+                }
                 await window.supabase.from('withdrawals').update({ status: 'rejected' }).eq('id', id);
                 window.showToast('Вывод отклонён, Stars возвращены');
-                window.renderAdminTab();
-            });
-        });
-
-        // ---- ДУЭЛИ ----
-        document.querySelectorAll('.force-duel').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const id = parseInt(this.dataset.id);
-                if (!confirm('Завершить дуэль случайным победителем?')) return;
-                const { data: duel } = await window.supabase.from('duels').select('*').eq('id', id).single();
-                const winner = Math.random() < 0.5 ? duel.challenger_id : duel.opponent_id;
-                await window.supabase.from('users').update({
-                    shares: window.supabase.raw(`shares + ${duel.stake}`)
-                }).eq('id', winner);
-                await window.supabase.from('users').update({
-                    duels_won: window.supabase.raw(`duels_won + 1`)
-                }).eq('id', winner);
-                await window.supabase.from('duels').update({
-                    status: 'completed',
-                    winner_id: winner
-                }).eq('id', id);
-                window.showToast('Дуэль завершена');
                 window.renderAdminTab();
             });
         });
