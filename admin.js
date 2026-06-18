@@ -1,4 +1,4 @@
-// admin.js – полностью переработанная админ-панель (v2.0)
+// admin.js – полностью переработанная админ-панель (без бекенда, с модалками)
 
 const OWNER_ID = 6048486427;
 
@@ -9,18 +9,16 @@ window.renderAdminTab = async function() {
     }
 
     try {
-        // Загружаем все данные параллельно
-        const [usersData, orders, newsList, adminsList, achievements, withdrawals] = await Promise.all([
-            window.adminFetchUsers(),
-            window.getActiveOrders(),
-            window.getNews(),
-            window.getAdmins(),
-            window.getAllAchievements(),
-            window.supabase.from('withdrawals').select('*').order('created_at', { ascending: false })
-        ]);
+        // Инициализируем маркет-мейкера
+        await window.initMarketMaker();
 
-        const users = usersData.users || [];
-        const withdrawalsData = withdrawals.data || [];
+        // Загружаем все данные напрямую из Supabase
+        const users = await window.adminGetAllUsers();
+        const orders = await window.getActiveOrders();
+        const newsList = await window.getNews();
+        const adminsList = await window.getAdmins();
+        const achievements = await window.getAllAchievements();
+        const mmBalance = await window.getMarketMakerBalance();
 
         let html = `
             <div class="admin-container">
@@ -35,7 +33,7 @@ window.renderAdminTab = async function() {
                     <button class="admin-nav-btn" data-tab="news">📰 Новости</button>
                     <button class="admin-nav-btn" data-tab="admins">👑 Админы</button>
                     <button class="admin-nav-btn" data-tab="achievements">🏆 Достижения</button>
-                    <button class="admin-nav-btn" data-tab="withdrawals">💸 Выводы</button>
+                    <button class="admin-nav-btn" data-tab="mm">🤖 Маркет-мейкер</button>
                     <button class="admin-nav-btn" data-tab="settings">⚙️ Настройки</button>
                 </div>
 
@@ -45,7 +43,7 @@ window.renderAdminTab = async function() {
                         <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${users.reduce((s,u) => s + u.shares, 0) / 100}</div><div class="stat-label">Акций в обращении</div></div>
                         <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${users.length}</div><div class="stat-label">Пользователей</div></div>
                         <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value">${orders.length}</div><div class="stat-label">Активных ордеров</div></div>
-                        <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-value">${withdrawalsData.filter(w => w.status === 'pending').length}</div><div class="stat-label">Заявок на вывод</div></div>
+                        <div class="stat-card"><div class="stat-icon">🤖</div><div class="stat-value">${mmBalance.shares.toFixed(2)} / ${mmBalance.stars.toFixed(2)}</div><div class="stat-label">Маркет-мейкер (акции / звёзды)</div></div>
                     </div>
                     <div class="quick-actions">
                         <h3>⚡ Быстрые действия</h3>
@@ -54,6 +52,7 @@ window.renderAdminTab = async function() {
                             <button class="quick-btn" id="quickAddStars">⭐ Выдать Stars</button>
                             <button class="quick-btn" id="quickCreateNews">📰 Создать новость</button>
                             <button class="quick-btn" id="quickBroadcast">📢 Рассылка</button>
+                            <button class="quick-btn" id="quickRunMM">🤖 Запустить маркет-мейкера</button>
                         </div>
                     </div>
                 </div>
@@ -112,10 +111,19 @@ window.renderAdminTab = async function() {
                     <div id="achievementsListAdmin" style="max-height:300px; overflow-y:auto;"></div>
                 </div>
 
-                <!-- Выводы -->
-                <div id="admin-withdrawals" class="admin-pane" style="display:none;">
-                    <h3>💸 Управление выводами</h3>
-                    <div id="withdrawalsList" style="max-height:400px; overflow-y:auto;"></div>
+                <!-- Маркет-мейкер -->
+                <div id="admin-mm" class="admin-pane" style="display:none;">
+                    <h3>🤖 Управление маркет-мейкером</h3>
+                    <div style="margin-bottom:16px;">
+                        <label>Баланс акций:</label>
+                        <input type="number" id="mmShares" value="${mmBalance.shares}" style="margin-bottom:8px;">
+                        <label>Баланс звёзд:</label>
+                        <input type="number" id="mmStars" value="${mmBalance.stars}" style="margin-bottom:8px;">
+                        <button id="setMMBudgetBtn" style="background:linear-gradient(135deg,#2b6e9e,#1a4c6e);">Установить бюджет</button>
+                    </div>
+                    <div>
+                        <button id="runMMBtn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e1e2f;">▶️ Запустить маркет-мейкера (однократно)</button>
+                    </div>
                 </div>
 
                 <!-- Настройки -->
@@ -125,11 +133,6 @@ window.renderAdminTab = async function() {
                         <label>Цена выкупа 1 акции (в ⭐):</label>
                         <input type="number" id="mmPriceInput" value="${await window.getSetting('market_maker_price') || 100}" style="margin-bottom:8px;">
                         <button id="saveMmPriceBtn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e1e2f;">Сохранить</button>
-                    </div>
-                    <div style="margin-bottom:16px;">
-                        <label>Базовая скорость майнинга (акций/сек):</label>
-                        <input type="number" id="miningBaseRate" step="0.000001" value="${await window.getSetting('mining_base_rate') || 0.00000463}" style="margin-bottom:8px;">
-                        <button id="saveMiningRateBtn" style="background:linear-gradient(135deg,#2b6e9e,#1a4c6e);">Сохранить</button>
                     </div>
                 </div>
             </div>
@@ -161,8 +164,6 @@ window.renderAdminTab = async function() {
             .user-item button { padding:4px 12px; border-radius:20px; border:none; cursor:pointer; font-size:12px; }
             .user-item .ban-btn { background:rgba(255,0,0,0.2); color:#ff6b6b; border:1px solid #ff4444; }
             .user-item .edit-btn { background:rgba(0,255,255,0.15); color:#0ff; border:1px solid rgba(0,255,255,0.3); }
-            .format-btn { padding:4px 12px; border-radius:20px; background:rgba(255,255,255,0.1); border:none; color:white; cursor:pointer; }
-            .format-btn:hover { background:rgba(255,255,255,0.2); }
             @media (max-width:560px) { .admin-nav-btn { font-size:11px; padding:4px 10px; } .stat-value { font-size:18px; } }
         `;
         document.head.appendChild(style);
@@ -177,35 +178,72 @@ window.renderAdminTab = async function() {
             });
         });
 
-        // ---- БЫСТРЫЕ ДЕЙСТВИЯ ----
+        // ---- БЫСТРЫЕ ДЕЙСТВИЯ (с модалками) ----
         document.getElementById('quickAddShares').onclick = () => {
-            const target = prompt('Введите ID пользователя:');
-            if (!target) return;
-            const shares = prompt('Введите количество акций (в штуках):');
-            if (!shares) return;
-            window.adminAddShares(parseInt(target), parseInt(shares)).then(res => {
-                if(res.ok) window.showCustomModal('Успех', 'Акции выданы');
-                else window.showCustomModal('Ошибка', res.error);
+            showGiveModal('акций', async (target, amount) => {
+                await window.adminAddSharesDirect(target, amount);
+                window.showToast('✅ Акции выданы');
+                window.renderAdminTab();
             });
         };
         document.getElementById('quickAddStars').onclick = () => {
-            const target = prompt('Введите ID пользователя:');
-            if (!target) return;
-            const stars = prompt('Введите количество Stars:');
-            if (!stars) return;
-            window.adminAddStars(parseInt(target), parseInt(stars)).then(res => {
-                if(res.ok) window.showCustomModal('Успех', 'Stars выданы');
-                else window.showCustomModal('Ошибка', res.error);
+            showGiveModal('звёзд', async (target, amount) => {
+                await window.adminAddStarsDirect(target, amount);
+                window.showToast('✅ Звёзды выданы');
+                window.renderAdminTab();
             });
         };
         document.getElementById('quickCreateNews').onclick = () => {
             document.querySelector('.admin-nav-btn[data-tab="news"]').click();
         };
         document.getElementById('quickBroadcast').onclick = async () => {
-            const message = prompt('Введите сообщение для рассылки всем пользователям:');
+            const message = prompt('Введите сообщение для рассылки:');
             if (!message) return;
-            window.showCustomModal('Успех', 'Рассылка отправлена!');
+            try {
+                await window.adminBroadcast(message);
+                window.showToast('📢 Рассылка отправлена всем пользователям');
+            } catch(e) {
+                window.showCustomModal('Ошибка', e.message);
+            }
         };
+        document.getElementById('quickRunMM').onclick = async () => {
+            try {
+                await window.runMarketMaker();
+                window.showToast('🤖 Маркет-мейкер отработал');
+            } catch(e) {
+                window.showCustomModal('Ошибка', e.message);
+            }
+        };
+
+        // ---- МОДАЛКА ВЫДАЧИ ----
+        function showGiveModal(type, callback) {
+            const modalHtml = `
+                <div class="modal" id="giveModal" style="display:flex;">
+                    <div class="modal-content" style="max-width: 360px;">
+                        <span class="close-modal" id="closeGiveModal">&times;</span>
+                        <h3>💰 Выдать ${type}</h3>
+                        <div style="padding:16px 0;">
+                            <input type="number" id="giveTargetId" placeholder="ID пользователя" style="margin-bottom:12px;">
+                            <input type="number" id="giveAmount" placeholder="Количество" style="margin-bottom:12px;">
+                            <button id="giveConfirmBtn" style="background:linear-gradient(135deg,#2b6e9e,#1a4c6e);">Выдать</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = document.getElementById('giveModal');
+            document.getElementById('closeGiveModal').onclick = () => modal.remove();
+            document.getElementById('giveConfirmBtn').onclick = async () => {
+                const target = parseInt(document.getElementById('giveTargetId').value);
+                const amount = parseFloat(document.getElementById('giveAmount').value);
+                if (!target || !amount || amount <= 0) {
+                    window.showCustomModal('Ошибка', 'Введите корректные данные');
+                    return;
+                }
+                modal.remove();
+                await callback(target, amount);
+            };
+        }
 
         // ---- ПОЛЬЗОВАТЕЛИ ----
         async function renderUsers(filter = '') {
@@ -243,12 +281,16 @@ window.renderAdminTab = async function() {
             ordersDiv.appendChild(div);
         });
         document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', async () => {
-            const res = await window.adminCancelOrder(btn.dataset.orderId);
-            if(res.ok) { window.showCustomModal('Успех','Ордер отменён'); window.renderAdminTab(); }
-            else window.showCustomModal('Ошибка',res.error);
+            try {
+                await window.adminCancelOrderDirect(parseInt(btn.dataset.orderId));
+                window.showToast('Ордер отменён');
+                window.renderAdminTab();
+            } catch(e) {
+                window.showCustomModal('Ошибка', e.message);
+            }
         }));
 
-        // ---- НОВОСТИ (админ-список) ----
+        // ---- НОВОСТИ ----
         async function loadNewsAdmin() {
             const list = await window.getNews();
             const container = document.getElementById('newsListAdmin');
@@ -321,12 +363,16 @@ window.renderAdminTab = async function() {
                 container.innerHTML = '<p style="color:#9ca3af;">Нет достижений</p>';
                 return;
             }
-            container.innerHTML = list.map(a => `
-                <div style="background:rgba(0,0,0,0.3); border-radius:16px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <span>${a.icon || '🏆'} ${a.name} (${a.condition_type}: ${a.condition_value})</span>
-                    <button class="delete-ach-btn" data-id="${a.id}" style="background:rgba(255,0,0,0.2); border:1px solid #ff4444; color:#ff6b6b; padding:4px 12px; border-radius:20px; cursor:pointer;">Удалить</button>
-                </div>
-            `).join('');
+            container.innerHTML = list.map(a => {
+                // Убираем дублирование эмодзи: оставляем только то, что в названии (уже содержит иконку)
+                const displayName = a.name;
+                return `
+                    <div style="background:rgba(0,0,0,0.3); border-radius:16px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <span>${displayName} (${a.condition_type}: ${a.condition_value})</span>
+                        <button class="delete-ach-btn" data-id="${a.id}" style="background:rgba(255,0,0,0.2); border:1px solid #ff4444; color:#ff6b6b; padding:4px 12px; border-radius:20px; cursor:pointer;">Удалить</button>
+                    </div>
+                `;
+            }).join('');
             document.querySelectorAll('.delete-ach-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     if (!confirm('Удалить достижение?')) return;
@@ -362,48 +408,32 @@ window.renderAdminTab = async function() {
             }
         };
 
-        // ---- ВЫВОДЫ ----
-        const withdrawalsContainer = document.getElementById('withdrawalsList');
-        if (!withdrawalsData.length) {
-            withdrawalsContainer.innerHTML = '<p style="color:#9ca3af;">Нет заявок на вывод</p>';
-        } else {
-            withdrawalsContainer.innerHTML = withdrawalsData.map(w => `
-                <div style="background:rgba(0,0,0,0.3); border-radius:16px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <span>ID: ${w.user_id} | ${window.fromCents(w.amount)} ⭐ | ${w.status}</span>
-                    ${w.status === 'pending' ? `
-                        <div>
-                            <button class="approve-withdrawal" data-id="${w.id}" style="background:rgba(74,222,128,0.2); border:1px solid #4ade80; color:#4ade80; padding:4px 12px; border-radius:20px; cursor:pointer;">✅ Одобрить</button>
-                            <button class="reject-withdrawal" data-id="${w.id}" style="background:rgba(255,0,0,0.2); border:1px solid #ff4444; color:#ff6b6b; padding:4px 12px; border-radius:20px; cursor:pointer;">❌ Отклонить</button>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-        }
+        // ---- МАРКЕТ-МЕЙКЕР ----
+        document.getElementById('setMMBudgetBtn').onclick = async () => {
+            const shares = parseFloat(document.getElementById('mmShares').value);
+            const stars = parseFloat(document.getElementById('mmStars').value);
+            if (isNaN(shares) || isNaN(stars) || shares < 0 || stars < 0) {
+                window.showCustomModal('Ошибка', 'Введите корректные значения');
+                return;
+            }
+            try {
+                await window.setMarketMakerBudget(shares, stars);
+                window.showToast('Бюджет маркет-мейкера обновлён');
+                window.renderAdminTab();
+            } catch(e) {
+                window.showCustomModal('Ошибка', e.message);
+            }
+        };
 
-        document.querySelectorAll('.approve-withdrawal').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const id = parseInt(this.dataset.id);
-                if (!confirm('Одобрить вывод?')) return;
-                await window.supabase.from('withdrawals').update({ status: 'approved' }).eq('id', id);
-                window.showToast('Вывод одобрен');
+        document.getElementById('runMMBtn').onclick = async () => {
+            try {
+                await window.runMarketMaker();
+                window.showToast('🤖 Маркет-мейкер отработал');
                 window.renderAdminTab();
-            });
-        });
-        document.querySelectorAll('.reject-withdrawal').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const id = parseInt(this.dataset.id);
-                if (!confirm('Отклонить вывод?')) return;
-                const { data: w } = await window.supabase.from('withdrawals').select('user_id, amount').eq('id', id).single();
-                if (w) {
-                    await window.supabase.from('users').update({
-                        stars_balance: window.supabase.raw(`stars_balance + ${w.amount}`)
-                    }).eq('id', w.user_id);
-                }
-                await window.supabase.from('withdrawals').update({ status: 'rejected' }).eq('id', id);
-                window.showToast('Вывод отклонён, Stars возвращены');
-                window.renderAdminTab();
-            });
-        });
+            } catch(e) {
+                window.showCustomModal('Ошибка', e.message);
+            }
+        };
 
         // ---- НАСТРОЙКИ ----
         document.getElementById('saveMmPriceBtn').onclick = async () => {
@@ -415,20 +445,6 @@ window.renderAdminTab = async function() {
             try {
                 await window.setSetting('market_maker_price', String(price));
                 window.showToast('Цена сохранена');
-            } catch(e) {
-                window.showCustomModal('Ошибка', e.message);
-            }
-        };
-
-        document.getElementById('saveMiningRateBtn').onclick = async () => {
-            const rate = parseFloat(document.getElementById('miningBaseRate').value);
-            if (!rate || rate <= 0) {
-                window.showCustomModal('Ошибка', 'Введите корректную скорость');
-                return;
-            }
-            try {
-                await window.setSetting('mining_base_rate', String(rate));
-                window.showToast('Скорость сохранена');
             } catch(e) {
                 window.showCustomModal('Ошибка', e.message);
             }
