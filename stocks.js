@@ -1,4 +1,4 @@
-// stocks.js – улучшенная вкладка с проверкой hideBalance
+// stocks.js – финальная версия с профессиональным графиком, компактными ордерами, модалкой покупки, автообновлением
 
 // Определяем глобальную функцию getActiveBuyOrders, если её нет
 if (!window.getActiveBuyOrders) {
@@ -244,9 +244,10 @@ window.renderStocksTab = async function(currentUser) {
                 <div class="balance-card"><div class="bal-label">💰 Цена</div><div class="bal-value ${hasPrice ? 'price-active' : 'price-placeholder'}">${showPrice}</div></div>
             </div>
             
-            <!-- График (увеличенный) -->
-            <div class="chart-container-main" style="height:200px;">
+            <!-- График (увеличенный с тултипом) -->
+            <div class="chart-container-main" style="height:200px; position:relative;">
                 <canvas id="mainPriceChart" width="600" height="200" style="width:100%; height:200px;"></canvas>
+                <div class="chart-tooltip" id="chartTooltip"><span class="price"></span></div>
             </div>
             
             <!-- Статистика -->
@@ -306,7 +307,7 @@ window.renderStocksTab = async function(currentUser) {
 
     document.getElementById('app').innerHTML = html;
 
-    // ---- ГРАФИК (увеличенный) ----
+    // ---- ГРАФИК (профессиональный с тултипом) ----
     function drawMainChart() {
         const canvas = document.getElementById('mainPriceChart');
         if (!canvas) return;
@@ -321,7 +322,8 @@ window.renderStocksTab = async function(currentUser) {
             ctx.fillRect(0, 0, w, h);
             ctx.fillStyle = '#9ca3af';
             ctx.font = '12px sans-serif';
-            ctx.fillText('Нет данных для графика', w/2 - 60, h/2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Нет данных для графика', w/2, h/2);
             return;
         }
 
@@ -329,40 +331,69 @@ window.renderStocksTab = async function(currentUser) {
         const maxP = Math.max(...prices, 0.01);
         const minP = Math.min(...prices, 0);
         const range = maxP - minP || 1;
+        const padding = { top: 10, bottom: 20, left: 35, right: 10 };
+        const chartW = w - padding.left - padding.right;
+        const chartH = h - padding.top - padding.bottom;
 
         ctx.clearRect(0, 0, w, h);
-        // Сетка
-        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        
+        // Сетка (горизонтальные линии)
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
         ctx.lineWidth = 0.5;
-        for (let i = 0; i < 5; i++) {
-            const y = (h / 5) * i;
+        const steps = 5;
+        for (let i = 0; i <= steps; i++) {
+            const y = padding.top + (chartH / steps) * i;
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(w, y);
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(w - padding.right, y);
             ctx.stroke();
+            // Подписи цен
+            const price = maxP - (range / steps) * i;
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '9px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(price.toFixed(2), padding.left - 5, y + 3);
         }
-        // Линия цены
+
+        // Линия цены (сглаженная)
         ctx.beginPath();
         ctx.strokeStyle = '#0ff';
         ctx.lineWidth = 2;
-        const step = w / (prices.length - 1);
-        prices.forEach((price, i) => {
-            const x = i * step;
-            const y = h - 12 - ((price - minP) / range) * (h - 24);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        });
+        const step = chartW / (prices.length - 1);
+        ctx.moveTo(padding.left, padding.top + chartH - ((prices[0] - minP) / range) * chartH);
+        for (let i = 1; i < prices.length; i++) {
+            const x = padding.left + i * step;
+            const y = padding.top + chartH - ((prices[i] - minP) / range) * chartH;
+            ctx.lineTo(x, y);
+        }
         ctx.stroke();
-        // Заливка
-        ctx.lineTo(w, h - 12);
-        ctx.lineTo(0, h - 12);
+
+        // Заливка под линией
+        const lastX = padding.left + (prices.length - 1) * step;
+        ctx.lineTo(lastX, padding.top + chartH);
+        ctx.lineTo(padding.left, padding.top + chartH);
+        ctx.closePath();
         ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
         ctx.fill();
-        // Подписи
-        ctx.fillStyle = '#9ca3af';
-        ctx.font = '10px sans-serif';
-        ctx.fillText(minP.toFixed(2), 5, h - 10);
-        ctx.fillText(maxP.toFixed(2), 5, 15);
+
+        // Интерактивность (tooltip при наведении)
+        canvas.onmousemove = function(e) {
+            const rect = this.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const index = Math.round((mouseX - padding.left) / step);
+            if (index < 0 || index >= prices.length) {
+                document.getElementById('chartTooltip').classList.remove('visible');
+                return;
+            }
+            const price = prices[index];
+            const tooltip = document.getElementById('chartTooltip');
+            tooltip.innerHTML = `<span class="price">${price.toFixed(2)} ⭐</span>`;
+            tooltip.style.left = Math.min(Math.max(mouseX, 30), w - 30) + 'px';
+            tooltip.classList.add('visible');
+        };
+        canvas.onmouseleave = function() {
+            document.getElementById('chartTooltip').classList.remove('visible');
+        };
     }
     setTimeout(drawMainChart, 50);
     window.addEventListener('resize', () => setTimeout(drawMainChart, 50));
@@ -391,7 +422,7 @@ window.renderStocksTab = async function(currentUser) {
         `).join('') : '<div class="empty-placeholder">Нет заявок</div>';
     }
 
-    // ---- АКТИВНЫЕ ОРДЕРА (чужие) с кнопкой "Купить всё" ----
+    // ---- АКТИВНЫЕ ОРДЕРА (чужие) с кнопкой "Купить" ----
     function renderActiveSellOrders() {
         const container = document.getElementById('activeSellOrdersList');
         if (!container) return;
