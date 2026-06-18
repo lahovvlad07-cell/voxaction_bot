@@ -1,4 +1,5 @@
-// referral.js – улучшенная версия (фиксы, анимации, единый стиль)
+// referral.js – улучшенная версия (бонус за приглашения работает)
+
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     let referralCount = currentUser.referral_count || 0;
@@ -167,7 +168,6 @@ window.renderReferralTab = async function() {
                 ${canClaim ? `<button class="claim-btn" data-friends="${target}" data-stars="${rewardStars}">🎁 Получить ${rewardStars} ⭐</button>` : ''}
             </div>
         `;
-        // Анимация прогресс-бара
         setTimeout(() => {
             const fill = document.getElementById('progressFillReferral');
             if (fill) fill.style.transition = 'width 0.8s ease';
@@ -311,12 +311,16 @@ window.renderReferralTab = async function() {
         claimBtn.addEventListener('click', async () => {
             const friends = parseInt(claimBtn.dataset.friends);
             const stars = parseInt(claimBtn.dataset.stars);
-            const result = await window.claimReferralBonus(friends, stars);
-            if (result.ok) {
-                window.showToast(`🎉 Получено ${stars} ⭐!`);
-                await window.renderReferralTab();
-            } else {
-                window.showCustomModal('Ошибка', result.error || 'Не удалось получить');
+            try {
+                const result = await window.claimReferralBonus(friends, stars);
+                if (result.ok) {
+                    window.showToast(`🎉 Получено ${stars} ⭐!`);
+                    await window.renderReferralTab();
+                } else {
+                    window.showCustomModal('Ошибка', result.error || 'Не удалось получить бонус');
+                }
+            } catch(e) {
+                window.showCustomModal('Ошибка', e.message);
             }
         });
     }
