@@ -1,4 +1,4 @@
-// admin.js – полностью переработанная админ-панель (без бекенда, с модалками)
+// admin.js – полностью переработанная админ-панель с рабочим маркет-мейкером
 
 const OWNER_ID = 6048486427;
 
@@ -9,7 +9,7 @@ window.renderAdminTab = async function() {
     }
 
     try {
-        // Инициализируем маркет-мейкера
+        // Инициализируем маркет-мейкера (создаём пользователя, если нет)
         await window.initMarketMaker();
 
         // Загружаем все данные напрямую из Supabase
@@ -123,6 +123,7 @@ window.renderAdminTab = async function() {
                     </div>
                     <div>
                         <button id="runMMBtn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1e1e2f;">▶️ Запустить маркет-мейкера (однократно)</button>
+                        <p style="font-size:12px; color:#9ca3af; margin-top:8px;">Автоматический запуск каждые 5 минут</p>
                     </div>
                 </div>
 
@@ -364,7 +365,7 @@ window.renderAdminTab = async function() {
                 return;
             }
             container.innerHTML = list.map(a => {
-                // Убираем дублирование эмодзи: оставляем только то, что в названии (уже содержит иконку)
+                // Убираем дублирование эмодзи
                 const displayName = a.name;
                 return `
                     <div style="background:rgba(0,0,0,0.3); border-radius:16px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
