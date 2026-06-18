@@ -141,7 +141,6 @@
             await updateOnlineStatus();
             setInterval(updateOnlineStatus, 15000);
             
-            // Стартовая вкладка — Профиль
             await window.renderProfileTab(
                 window.currentUser, window.supabase, window.userId, window.fromCents, window.showCustomModal,
                 window.getUserStats, window.getUserRank, window.getEarnedAchievements, window.getAllAchievements,
@@ -155,7 +154,6 @@
             window.supabase.channel('global-updates')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => { if (document.querySelector('.tab.active')?.dataset.tab === 'rating') window.refreshActiveTab(); })
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trades' }, () => { if (document.querySelector('.tab.active')?.dataset.tab === 'rating') window.refreshActiveTab(); })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'withdrawals' }, () => { if (document.querySelector('.tab.active')?.dataset.tab === 'wallet') window.refreshActiveTab(); })
                 .subscribe();
         } catch(err) {
             document.getElementById('app').innerHTML = `<div class="card error">Ошибка: ${err.message}</div>`;
