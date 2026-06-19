@@ -1,64 +1,27 @@
-// referral.js – улучшенная версия (бонус за приглашения работает)
+// referral.js – упрощённая рефералка с бонусом за пополнение
 
 window.renderReferralTab = async function() {
     const currentUser = window.currentUser;
     let referralCount = currentUser.referral_count || 0;
-    let totalEarnedStars = 0;
+    let totalEarnedShares = 0;
 
-    async function loadFreshData() {
-        const { user } = await window.getOrCreateUser();
-        window.currentUser = user;
-        referralCount = user.referral_count || 0;
-        try {
-            const { data } = await window.supabase
-                .from('referral_bonuses')
-                .select('stars_received')
-                .eq('user_id', window.userId);
-            totalEarnedStars = data.reduce((sum, b) => sum + b.stars_received, 0);
-        } catch(e) { console.warn(e); }
+    // Загружаем список рефералов и считаем, сколько пополнили
+    async function loadReferralData() {
+        const list = await window.getReferralsList();
+        const topups = list.filter(r => r.topupCompleted);
+        referralCount = list.length;
+        // За каждое пополнение друзьями даём 3 акции
+        totalEarnedShares = topups.length * 3;
+        return { list, topups };
     }
-    await loadFreshData();
 
-    const bonusLevels = [
-        { friends: 1, stars: 3 },
-        { friends: 3, stars: 5 },
-        { friends: 5, stars: 10 },
-        { friends: 10, stars: 25 }
-    ];
-
-    let claimedBonuses = [];
-    try {
-        const { data } = await window.supabase
-            .from('referral_bonuses')
-            .select('friends_required')
-            .eq('user_id', window.userId);
-        claimedBonuses = data.map(b => b.friends_required);
-    } catch(e) { console.warn(e); }
-
-    let nextLevel = null;
-    for (let l of bonusLevels) {
-        if (!claimedBonuses.includes(l.friends)) {
-            nextLevel = l;
-            break;
-        }
-    }
-    const allCompleted = !nextLevel;
-    const target = nextLevel ? nextLevel.friends : bonusLevels[bonusLevels.length-1].friends;
-    const progressPercent = Math.min(100, (referralCount / target) * 100);
-    const remaining = Math.max(0, target - referralCount);
-    const rewardStars = nextLevel ? nextLevel.stars : 0;
-    const canClaim = (referralCount >= target) && nextLevel !== null;
+    const { list: fullReferralsList, topups } = await loadReferralData();
 
     let currentPage = 1;
     const itemsPerPage = 10;
-    let fullReferralsList = [];
-    let totalPages = 0;
+    let totalPages = Math.ceil(fullReferralsList.length / itemsPerPage);
 
     async function loadReferralsPage(page) {
-        if (fullReferralsList.length === 0) {
-            fullReferralsList = await window.getReferralsList();
-            totalPages = Math.ceil(fullReferralsList.length / itemsPerPage);
-        }
         const start = (page - 1) * itemsPerPage;
         const end = start + itemsPerPage;
         const pageItems = fullReferralsList.slice(start, end);
@@ -99,7 +62,7 @@ window.renderReferralTab = async function() {
                         </div>
                     </div>
                     <div class="referral-status-badge">
-                        ${r.topupCompleted ? '<span class="status-success">✅ Пополнил</span>' : '<span class="status-pending">⏳ Ожидает пополнения</span>'}
+                        ${r.topupCompleted ? '<span class="status-success">✅ Пополнил (бонус начислен)</span>' : '<span class="status-pending">⏳ Ожидает пополнения на 10 ⭐</span>'}
                     </div>
                 </div>
             `;
@@ -143,7 +106,7 @@ window.renderReferralTab = async function() {
         <div class="card" style="overflow: visible !important;">
             <div class="referral-header">
                 <h2>Приводи друзей и зарабатывай</h2>
-                <p>Приглашай друзей, получай звёзды и бонусы</p>
+                <p>Приглашай друзей, получай бонусы, когда они пополняют баланс</p>
             </div>
             <div class="stats-circles">
                 <div class="stat-circle">
@@ -151,30 +114,20 @@ window.renderReferralTab = async function() {
                     <div class="label">друзей</div>
                 </div>
                 <div class="stat-circle">
-                    <div class="value">${totalEarnedStars}</div>
-                    <div class="label">⭐ заработано</div>
+                    <div class="value">${totalEarnedShares}</div>
+                    <div class="label">акций получено</div>
+                </div>
+                <div class="stat-circle">
+                    <div class="value">${topups.length}</div>
+                    <div class="label">пополнили</div>
                 </div>
             </div>
-    `;
-
-    if (allCompleted) {
-        html += `<div class="progress-block"><div class="all-bonuses-claimed">🎉 Все награды собраны! Спасибо, что с нами!</div></div>`;
-    } else {
-        html += `
             <div class="progress-block">
-                <div class="progress-label">🎯 До следующей награды <strong>${rewardStars} ⭐</strong> осталось пригласить <strong>${remaining}</strong> друга(ей)</div>
-                <div class="progress-bar"><div class="progress-fill" id="progressFillReferral" style="width: ${progressPercent}%;"></div></div>
-                <div class="progress-stats">${referralCount} / ${target}</div>
-                ${canClaim ? `<button class="claim-btn" data-friends="${target}" data-stars="${rewardStars}">🎁 Получить ${rewardStars} ⭐</button>` : ''}
+                <div class="progress-label">🎯 Бонус за каждого друга, пополнившего баланс на <strong>10 ⭐</strong> — <strong>3 акции</strong></div>
+                <div style="font-size:14px; color:#9ca3af; margin-top:8px;">
+                    ${topups.length} из ${referralCount} друзей уже пополнили
+                </div>
             </div>
-        `;
-        setTimeout(() => {
-            const fill = document.getElementById('progressFillReferral');
-            if (fill) fill.style.transition = 'width 0.8s ease';
-        }, 100);
-    }
-
-    html += `
             <div class="invite-section">
                 <div class="invite-link" id="refLinkText" style="cursor:pointer;">${inviteLink || 'Установите свой код'}</div>
                 <div class="custom-code-section">
@@ -199,18 +152,17 @@ window.renderReferralTab = async function() {
             <div class="bonus-stock-card">
                 <div class="bonus-stock-icon">🎁</div>
                 <div class="bonus-stock-text">
-                    <strong>Бонус за пополнение друга:</strong> вы получите <strong>5 акций</strong>, а ваш друг — <strong>5 ⭐</strong>, когда он пополнит баланс от <strong>10 ⭐</strong>.
+                    <strong>Как получить бонус?</strong> Пригласите друга, и когда он пополнит баланс на <strong>10 ⭐</strong>, вы автоматически получите <strong>3 акции</strong>.
                 </div>
             </div>
             <div class="legend">
-                ⭐ Звёзды начисляются автоматически за каждого приведённого друга (по достижении порога). 
-                Бонусные акции за пополнение друга — после его первого пополнения от 10 ⭐.
+                ⭐ Бонус начисляется только после пополнения друга. Акции зачисляются на ваш баланс автоматически.
             </div>
         </div>
     `;
     document.getElementById('app').innerHTML = html;
 
-    // --- Обработчики с обратной связью ---
+    // --- Обработчики ---
     const fullLinkSpan = document.getElementById('refLinkText');
     const copyBtn = document.getElementById('copyRefLinkBtn');
     const shareBtn = document.getElementById('shareRefLinkBtn');
@@ -230,7 +182,6 @@ window.renderReferralTab = async function() {
     customInput.addEventListener('input', updateLink);
     updateLink();
 
-    // Клик по ссылке – копирование
     fullLinkSpan.addEventListener('click', () => {
         const linkText = fullLinkSpan.innerText;
         if (linkText && !linkText.includes('Сначала установите код')) {
@@ -302,25 +253,6 @@ window.renderReferralTab = async function() {
             if (collapsible.classList.contains('open') && !document.getElementById('referralsListContent').innerHTML) {
                 currentPage = 1;
                 await loadReferralsPage(1);
-            }
-        });
-    }
-
-    const claimBtn = document.querySelector('.claim-btn');
-    if (claimBtn) {
-        claimBtn.addEventListener('click', async () => {
-            const friends = parseInt(claimBtn.dataset.friends);
-            const stars = parseInt(claimBtn.dataset.stars);
-            try {
-                const result = await window.claimReferralBonus(friends, stars);
-                if (result.ok) {
-                    window.showToast(`🎉 Получено ${stars} ⭐!`);
-                    await window.renderReferralTab();
-                } else {
-                    window.showCustomModal('Ошибка', result.error || 'Не удалось получить бонус');
-                }
-            } catch(e) {
-                window.showCustomModal('Ошибка', e.message);
             }
         });
     }
