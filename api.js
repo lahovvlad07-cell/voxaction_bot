@@ -1,4 +1,4 @@
-// api.js – полный файл со всеми функциями (включая резерв, комиссии, рефералов с условием)
+// api.js – полный файл со всеми функциями (включая автовывод и уведомления)
 
 window.toCents = (v) => Math.round(parseFloat(v) * 100);
 window.fromCents = (c) => (c / 100).toFixed(2);
@@ -30,82 +30,92 @@ window.setSetting = async function(key, value) {
     return true;
 };
 
-// ========== РЕЗЕРВ ==========
-window.getReserve = async function() {
-    const { data, error } = await window.supabase
-        .from('reserve')
-        .select('amount')
-        .eq('id', 1)
-        .single();
-    if (error) return { amount: 0 };
-    return data;
-};
-
-window.addToReserve = async function(amountStars) {
-    const amountCents = window.toCents(amountStars);
-    const { error } = await window.supabase
-        .from('reserve')
-        .update({ amount: window.supabase.raw(`amount + ${amountCents}`) })
-        .eq('id', 1);
-    if (error) throw error;
-};
-
-// ========== ВЫВОД С КОМИССИЕЙ ==========
-window.withdrawWithFee = async function(userId, amountStars) {
-    const commissionRate = 0.02; // 2% комиссия
-    const fee = Math.round(amountStars * commissionRate);
-    const receive = amountStars - fee;
-    const amountCents = window.toCents(amountStars);
-    const receiveCents = window.toCents(receive);
-    const feeCents = window.toCents(fee);
-
-    // Проверяем баланс пользователя
-    const { data: user, error: userError } = await window.supabase
-        .from('users')
-        .select('stars_balance')
-        .eq('id', userId)
-        .single();
-    if (userError) throw new Error('Пользователь не найден');
-    if (user.stars_balance < amountCents) throw new Error('Недостаточно Stars');
-
-    // Проверяем лимит вывода (например, 200 Stars в сутки)
-    const dailyLimit = 200;
-    const today = new Date().toISOString().slice(0,10);
-    const { data: withdrawals, error: withdrawError } = await window.supabase
-        .from('withdrawals')
-        .select('amount')
-        .eq('user_id', userId)
-        .gte('created_at', today);
-    if (withdrawError) throw withdrawError;
-    const totalToday = withdrawals.reduce((s, w) => s + w.amount / 100, 0);
-    if (totalToday + amountStars > dailyLimit) {
-        throw new Error(`Превышен суточный лимит (${dailyLimit} ⭐). Доступно: ${(dailyLimit - totalToday).toFixed(2)} ⭐`);
+// ========== ОТПРАВКА СООБЩЕНИЙ ЧЕРЕЗ БОТА ==========
+window.sendTelegramMessage = async function(userId, text) {
+    try {
+        const response = await fetch(`${window.BACKEND_URL}/send-message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, message: text })
+        });
+        return response.json();
+    } catch(e) {
+        console.warn('Не удалось отправить сообщение', e);
+        return { ok: false };
     }
+};
 
-    // Списываем Stars с пользователя
-    await window.supabase
-        .from('users')
-        .update({ stars_balance: window.supabase.raw(`stars_balance - ${amountCents}`) })
-        .eq('id', userId);
+// ========== ДОСТИЖЕНИЯ ==========
+window.awardAchievement = async function(achievementId) {
+    try {
+        const { data: existing } = await window.supabase
+            .from('user_achievements')
+            .select('id')
+            .eq('user_id', window.userId)
+            .eq('achievement_id', achievementId)
+            .maybeSingle();
+        if (existing) return;
+        await window.supabase.from('user_achievements').insert({
+            user_id: window.userId,
+            achievement_id: achievementId,
+            earned_at: new Date().toISOString()
+        });
+        const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
+        window.showCustomModal('🏆 Достижение получено!', `${ach.name}\n\n${ach.description}`);
+        if (window.renderProfileTab) window.renderProfileTab();
+    } catch(e) { console.error('Ошибка выдачи достижения', e); }
+};
 
-    // Зачисляем комиссию в резерв
-    await window.addToReserve(fee);
+window.checkAllAchievements = async function() {
+    const stats = await window.getUserStats(true);
+    const user = window.currentUser;
+    if (!user) return;
+    const achievementsList = await window.getAllAchievements();
+    const earned = await window.getEarnedAchievements();
+    const earnedIds = new Set(earned.map(a => a.id));
+    for (let ach of achievementsList) {
+        if (earnedIds.has(ach.id)) continue;
+        let conditionMet = false;
+        switch (ach.condition_type) {
+            case 'none': conditionMet = false; break;
+            case 'trades_count': conditionMet = stats.totalTrades >= ach.condition_value; break;
+            case 'shares_held': conditionMet = user.shares >= ach.condition_value; break;
+            case 'referrals_count': conditionMet = (user.referral_count || 0) >= ach.condition_value; break;
+            case 'total_topup': conditionMet = (user.total_topup || 0) >= ach.condition_value; break;
+            case 'total_spent': conditionMet = (user.total_spent || 0) >= ach.condition_value; break;
+            case 'total_earned': conditionMet = (user.total_earned || 0) >= ach.condition_value; break;
+            case 'total_volume': conditionMet = (user.total_volume || 0) >= ach.condition_value; break;
+            case 'stars_held': conditionMet = user.stars_balance >= ach.condition_value; break;
+            case 'days_active': conditionMet = (user.days_active || 0) >= ach.condition_value; break;
+        }
+        if (conditionMet) await window.awardAchievement(ach.id);
+    }
+};
 
-    // Создаём заявку на вывод
-    const { data: withdrawal, error: insertError } = await window.supabase
-        .from('withdrawals')
-        .insert({
-            user_id: userId,
-            amount: receiveCents,
-            fee: feeCents,
-            status: 'pending',
-            created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-    if (insertError) throw insertError;
-
-    return { withdrawal, fee, receive };
+window.updateUserStats = async function() {
+    const { data: trades } = await window.supabase
+        .from('trades')
+        .select('total_stars, buyer_id, seller_id')
+        .or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`);
+    let totalSpent = 0, totalEarned = 0;
+    for (let t of trades || []) {
+        if (t.buyer_id === window.userId) totalSpent += t.total_stars;
+        if (t.seller_id === window.userId) totalEarned += t.total_stars;
+    }
+    const totalVolume = totalSpent + totalEarned;
+    const totalTrades = trades?.length || 0;
+    await window.supabase.from('users').update({
+        total_spent: totalSpent,
+        total_earned: totalEarned,
+        total_volume: totalVolume,
+        trades_count: totalTrades
+    }).eq('id', window.userId);
+    if (window.currentUser) {
+        window.currentUser.total_spent = totalSpent;
+        window.currentUser.total_earned = totalEarned;
+        window.currentUser.total_volume = totalVolume;
+        window.currentUser.trades_count = totalTrades;
+    }
 };
 
 // ========== ПОЛЬЗОВАТЕЛЬ ==========
@@ -165,51 +175,23 @@ window.getOrCreateUser = async function() {
         
         if (insertError) throw new Error(`Ошибка вставки: ${insertError.message}`);
         
-        // Обработка реферала: если есть реферер и новый пользователь пополнил на 10 Stars
         if (referredById) {
             try {
-                // Проверяем, пополнил ли новый пользователь на 10 Stars
-                const { data: userData } = await window.supabase
-                    .from('users')
-                    .select('total_topup')
-                    .eq('id', window.userId)
-                    .single();
-                if (userData && userData.total_topup >= 1000) { // 10 Stars = 1000 cents
-                    // Начисляем рефереру 3 акции
-                    await window.supabase
-                        .from('users')
-                        .update({ shares: window.supabase.raw(`shares + ${window.toCents(3)}`) })
-                        .eq('id', referredById);
-                    // Создаём запись в рефералах
-                    await window.supabase.from('referrals').insert({
-                        referrer_id: referredById,
-                        referred_id: window.userId,
-                        registered_at: new Date().toISOString(),
-                        topup_completed: true,
-                        bonus_earned: true
-                    });
-                    // Увеличиваем счётчик рефералов у реферера
-                    await window.supabase
-                        .from('users')
-                        .update({ referral_count: window.supabase.raw(`referral_count + 1`) })
-                        .eq('id', referredById);
-                    // Уведомление рефереру
-                    await window.supabase.from('notifications').insert({
-                        user_id: referredById,
-                        message: `🎉 Ваш друг ${window.username} пополнил баланс на 10 ⭐! Вы получили 3 акции.`,
-                        type: 'notify_referral',
-                        is_read: false
-                    });
-                } else {
-                    // Если ещё не пополнил, создаём запись без бонуса
-                    await window.supabase.from('referrals').insert({
-                        referrer_id: referredById,
-                        referred_id: window.userId,
-                        registered_at: new Date().toISOString(),
-                        topup_completed: false,
-                        bonus_earned: false
-                    });
-                }
+                await window.supabase.from('users').update({ stars_balance: 500 }).eq('id', window.userId);
+                await window.supabase.from('referrals').insert({
+                    referrer_id: referredById,
+                    referred_id: window.userId,
+                    registered_at: new Date().toISOString(),
+                    topup_completed: false,
+                    bonus_earned: false
+                });
+                await window.supabase.from('users').update({ referral_count: window.supabase.raw('referral_count + 1') }).eq('id', referredById);
+                await window.supabase.from('notifications').insert({
+                    user_id: referredById,
+                    message: `🎉 Новый реферал! ${window.username} зарегистрировался по вашей ссылке.`,
+                    type: 'notify_referral',
+                    is_read: false
+                });
             } catch(e) { console.error('Ошибка при обработке реферала', e); }
         }
         
@@ -220,7 +202,6 @@ window.getOrCreateUser = async function() {
         return { user: newUser, isNew: true };
     }
     
-    // Проверка на новые поля
     let updated = false;
     const newFields = ['total_topup','total_spent','total_earned','total_volume','trades_count','days_active','last_username_change'];
     for (let f of newFields) {
@@ -240,55 +221,396 @@ window.getOrCreateUser = async function() {
     return { user: data, isNew: false };
 };
 
-// ========== ДОСТИЖЕНИЯ ==========
-window.awardAchievement = async function(achievementId) {
-    try {
-        const { data: existing } = await window.supabase
-            .from('user_achievements')
-            .select('id')
-            .eq('user_id', window.userId)
-            .eq('achievement_id', achievementId)
-            .maybeSingle();
-        if (existing) return;
-        await window.supabase.from('user_achievements').insert({
-            user_id: window.userId,
-            achievement_id: achievementId,
-            earned_at: new Date().toISOString()
+// ===== getUserStats =====
+window.getUserStats = async function(forceRefresh = false) {
+    if (!forceRefresh && window._cachedStats) return window._cachedStats;
+    const { data: trades } = await window.supabase
+        .from('trades')
+        .select('total_stars, buyer_id, seller_id')
+        .or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`);
+    let totalSpent = 0, totalEarned = 0;
+    for (let t of trades || []) {
+        if (t.buyer_id === window.userId) totalSpent += t.total_stars;
+        if (t.seller_id === window.userId) totalEarned += t.total_stars;
+    }
+    const stats = {
+        totalTrades: trades?.length || 0,
+        totalVolume: (totalSpent + totalEarned) / 100,
+        totalSpent: totalSpent / 100,
+        totalEarned: totalEarned / 100
+    };
+    window._cachedStats = stats;
+    return stats;
+};
+
+// ========== РЕЗЕРВ И КОМИССИИ ==========
+const OWNER_ID = 6048486427;
+
+window.getReserve = async function() {
+    const { data, error } = await window.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'reserve')
+        .maybeSingle();
+    if (error) return 0;
+    return data ? parseInt(data.value) : 0;
+};
+
+window.addToReserve = async function(amountCents) {
+    const currentReserve = await window.getReserve();
+    const newReserve = currentReserve + Math.round(amountCents);
+    await window.setSetting('reserve', String(newReserve));
+    return newReserve;
+};
+
+window.subtractFromReserve = async function(amountCents) {
+    const currentReserve = await window.getReserve();
+    if (currentReserve < amountCents) throw new Error('Недостаточно средств в резерве');
+    const newReserve = currentReserve - Math.round(amountCents);
+    await window.setSetting('reserve', String(newReserve));
+    return newReserve;
+};
+
+// ========== ВЫВОД СРЕДСТВ (автовывод) ==========
+const WITHDRAW_FEE_PERCENT = 2;
+const DAILY_WITHDRAW_LIMIT = 500;
+
+window.createWithdrawal = async function(amountStars) {
+    if (amountStars < 10) throw new Error('Минимальная сумма вывода – 10 ⭐');
+    const amountCents = window.toCents(amountStars);
+    const user = window.currentUser;
+    if (user.stars_balance < amountCents) throw new Error('Недостаточно Stars');
+
+    const dailyUsed = await window.getDailyWithdrawUsed();
+    if (dailyUsed + amountStars > DAILY_WITHDRAW_LIMIT) {
+        throw new Error(`Превышен суточный лимит вывода (${DAILY_WITHDRAW_LIMIT} ⭐). Осталось: ${(DAILY_WITHDRAW_LIMIT - dailyUsed).toFixed(2)} ⭐`);
+    }
+
+    const feeStars = Math.floor(amountStars * WITHDRAW_FEE_PERCENT / 100);
+    const receiveStars = amountStars - feeStars;
+    const feeCents = window.toCents(feeStars);
+    const receiveCents = window.toCents(receiveStars);
+
+    const { error } = await window.supabase.from('withdrawals').insert({
+        user_id: window.userId,
+        amount: amountCents,
+        fee: feeCents,
+        receive: receiveCents,
+        status: 'pending',
+        created_at: new Date().toISOString()
+    });
+    if (error) throw new Error(error.message);
+
+    await window.supabase.from('users').update({
+        stars_balance: window.supabase.raw(`stars_balance - ${amountCents}`)
+    }).eq('id', window.userId);
+    window.currentUser.stars_balance -= amountCents;
+
+    await window.addToReserve(feeCents);
+
+    const today = new Date().toISOString().slice(0,10);
+    localStorage.setItem(`withdraw_daily_${window.userId}_${today}`, String(dailyUsed + amountStars));
+
+    return { amount: amountStars, fee: feeStars, receive: receiveStars };
+};
+
+window.getDailyWithdrawUsed = async function() {
+    const today = new Date().toISOString().slice(0,10);
+    const key = `withdraw_daily_${window.userId}_${today}`;
+    const stored = localStorage.getItem(key);
+    if (stored) return parseFloat(stored);
+    const { data, error } = await window.supabase
+        .from('withdrawals')
+        .select('amount')
+        .eq('user_id', window.userId)
+        .eq('status', 'approved')
+        .gte('created_at', new Date(today).toISOString());
+    if (error) return 0;
+    const total = data.reduce((s, w) => s + w.amount, 0) / 100;
+    localStorage.setItem(key, String(total));
+    return total;
+};
+
+window.getWithdrawals = async function() {
+    const { data, error } = await window.supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('user_id', window.userId)
+        .order('created_at', { ascending: false });
+    if (error) return [];
+    return data;
+};
+
+// ===== АДМИНКА (автовывод при одобрении) =====
+window.adminGetWithdrawals = async function(status = null) {
+    let query = window.supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
+    if (status) query = query.eq('status', status);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+};
+
+window.adminApproveWithdrawal = async function(withdrawalId) {
+    const { data: w, error } = await window.supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('id', withdrawalId)
+        .single();
+    if (error) throw error;
+    if (w.status !== 'pending') throw new Error('Заявка уже обработана');
+
+    const reserve = await window.getReserve();
+    if (reserve < w.receive) throw new Error('Недостаточно средств в резерве');
+
+    // АВТОВЫВОД: списываем из резерва сумму к получению
+    await window.subtractFromReserve(w.receive);
+
+    // Обновляем статус заявки
+    await window.supabase.from('withdrawals').update({ status: 'approved' }).eq('id', withdrawalId);
+
+    // Отправляем уведомление пользователю
+    await window.sendTelegramMessage(w.user_id, 
+        `✅ Ваша заявка на вывод ${window.fromCents(w.amount)} ⭐ одобрена!\n` +
+        `Вы получите ${window.fromCents(w.receive)} ⭐ (комиссия ${window.fromCents(w.fee)} ⭐).\n` +
+        `Средства зачислены на ваш баланс.`
+    );
+
+    return true;
+};
+
+window.adminRejectWithdrawal = async function(withdrawalId) {
+    const { data: w, error } = await window.supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('id', withdrawalId)
+        .single();
+    if (error) throw error;
+    if (w.status !== 'pending') throw new Error('Заявка уже обработана');
+
+    await window.supabase.from('users').update({
+        stars_balance: window.supabase.raw(`stars_balance + ${w.amount}`)
+    }).eq('id', w.user_id);
+
+    if (w.fee > 0) {
+        await window.subtractFromReserve(w.fee);
+    }
+
+    await window.supabase.from('withdrawals').update({ status: 'rejected' }).eq('id', withdrawalId);
+
+    await window.sendTelegramMessage(w.user_id, 
+        `❌ Ваша заявка на вывод ${window.fromCents(w.amount)} ⭐ отклонена. Средства возвращены на баланс.`
+    );
+
+    return true;
+};
+
+// ========== АДМИНКА (прямое взаимодействие с Supabase) ==========
+window.adminAddSharesDirect = async function(targetId, shares) {
+    const sharesCents = window.toCents(shares);
+    const { error } = await window.supabase
+        .from('users')
+        .update({ shares: window.supabase.raw(`shares + ${sharesCents}`) })
+        .eq('id', targetId);
+    if (error) throw new Error(error.message);
+    return true;
+};
+
+window.adminAddStarsDirect = async function(targetId, stars) {
+    const starsCents = window.toCents(stars);
+    const { error } = await window.supabase
+        .from('users')
+        .update({ stars_balance: window.supabase.raw(`stars_balance + ${starsCents}`) })
+        .eq('id', targetId);
+    if (error) throw new Error(error.message);
+    return true;
+};
+
+window.adminGetAllUsers = async function() {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('id, username, shares, stars_balance, hide_rating')
+        .order('id', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+};
+
+window.adminCancelOrderDirect = async function(orderId) {
+    const { error } = await window.supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId);
+    if (error) throw new Error(error.message);
+    return true;
+};
+
+window.adminBroadcast = async function(message) {
+    const users = await window.adminGetAllUsers();
+    const notifications = users.map(u => ({
+        user_id: u.id,
+        message: `📢 ${message}`,
+        type: 'broadcast',
+        is_read: false,
+        created_at: new Date().toISOString()
+    }));
+    const chunkSize = 1000;
+    for (let i = 0; i < notifications.length; i += chunkSize) {
+        const chunk = notifications.slice(i, i + chunkSize);
+        const { error } = await window.supabase.from('notifications').insert(chunk);
+        if (error) throw new Error(error.message);
+    }
+    return true;
+};
+
+// ========== МАРКЕТ-МЕЙКЕР ==========
+const MARKET_MAKER_ID = 999999999;
+
+window.initMarketMaker = async function() {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('id')
+        .eq('id', MARKET_MAKER_ID)
+        .maybeSingle();
+    if (error) throw error;
+    if (!data) {
+        const { error: insertError } = await window.supabase.from('users').insert({
+            id: MARKET_MAKER_ID,
+            username: 'MarketMaker',
+            shares: 0,
+            stars_balance: 0,
+            hide_rating: false,
+            registered_at: new Date().toISOString()
         });
-        const { data: ach } = await window.supabase.from('achievements').select('name, icon, description').eq('id', achievementId).single();
-        window.showCustomModal('🏆 Достижение получено!', `${ach.name}\n\n${ach.description}`);
-        if (window.renderProfileTab) window.renderProfileTab();
-    } catch(e) { console.error('Ошибка выдачи достижения', e); }
+        if (insertError) throw insertError;
+    }
 };
 
-// ========== ОНЛАЙН-СТАТУС ==========
-window.updateLastSeen = async function() {
+window.getMarketMakerBalance = async function() {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('shares, stars_balance')
+        .eq('id', MARKET_MAKER_ID)
+        .single();
+    if (error) throw error;
+    return { shares: data.shares / 100, stars: data.stars_balance / 100 };
+};
+
+window.getMiningLevelForUser = async function(userId) {
+    const { data, error } = await window.supabase
+        .from('mining')
+        .select('level')
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error) return 1;
+    return data ? data.level : 1;
+};
+
+window.runMarketMaker = async function() {
     try {
+        const balance = await window.getMarketMakerBalance();
+        const priceCents = await window.getCurrentPrice();
+        const price = priceCents / 100;
+
         await window.supabase
-            .from('users')
-            .update({ last_seen: new Date().toISOString() })
-            .eq('id', window.userId);
+            .from('orders')
+            .update({ status: 'cancelled' })
+            .eq('seller_id', MARKET_MAKER_ID)
+            .eq('status', 'active');
+        await window.supabase
+            .from('buy_orders')
+            .update({ status: 'cancelled' })
+            .eq('buyer_id', MARKET_MAKER_ID)
+            .eq('status', 'active');
+
+        const sellOrders = await window.getActiveOrders();
+        const buyOrders = await window.getActiveBuyOrders();
+
+        const lowerBound = price * 0.95;
+        const upperBound = price * 1.05;
+
+        const cheapSells = sellOrders.filter(o => o.seller_id !== MARKET_MAKER_ID && o.price_per_share / 100 < upperBound);
+        for (let order of cheapSells) {
+            const pricePerShare = order.price_per_share / 100;
+            const amount = order.amount / 100;
+            const neededStars = pricePerShare * amount;
+            if (balance.stars >= neededStars) {
+                await window.executePartialTrade(order.id, order.amount);
+                await window.supabase
+                    .from('users')
+                    .update({
+                        shares: window.supabase.raw(`shares + ${order.amount}`),
+                        stars_balance: window.supabase.raw(`stars_balance - ${window.toCents(neededStars)}`)
+                    })
+                    .eq('id', MARKET_MAKER_ID);
+                balance.shares += amount;
+                balance.stars -= neededStars;
+            }
+        }
+
+        const expensiveBuys = buyOrders.filter(o => o.buyer_id !== MARKET_MAKER_ID && o.price_per_share / 100 > lowerBound);
+        for (let order of expensiveBuys) {
+            const pricePerShare = order.price_per_share / 100;
+            const amount = order.amount / 100;
+            if (balance.shares >= amount) {
+                await window.supabase.rpc('execute_trade_partial', {
+                    p_order_id: order.id,
+                    p_buyer_id: MARKET_MAKER_ID,
+                    p_buy_amount_cents: order.amount
+                });
+                await window.supabase
+                    .from('users')
+                    .update({
+                        shares: window.supabase.raw(`shares - ${order.amount}`),
+                        stars_balance: window.supabase.raw(`stars_balance + ${order.amount * order.price_per_share / 100}`)
+                    })
+                    .eq('id', MARKET_MAKER_ID);
+                balance.shares -= amount;
+                balance.stars += pricePerShare * amount;
+            }
+        }
+
+        if (price > upperBound && balance.shares > 10) {
+            const sellAmount = Math.min(balance.shares * 0.1, 100);
+            const sellPrice = price * 0.98;
+            await window.supabase.from('orders').insert({
+                seller_id: MARKET_MAKER_ID,
+                amount: window.toCents(sellAmount),
+                price_per_share: window.toCents(sellPrice),
+                status: 'active',
+                created_at: new Date().toISOString()
+            });
+        }
+
+        if (price < lowerBound && balance.stars > 100) {
+            const buyAmount = Math.min(balance.stars / price * 0.1, 100);
+            const buyPrice = price * 1.02;
+            await window.supabase.from('buy_orders').insert({
+                buyer_id: MARKET_MAKER_ID,
+                amount: window.toCents(buyAmount),
+                price_per_share: window.toCents(buyPrice),
+                status: 'active',
+                created_at: new Date().toISOString()
+            });
+        }
+
+        return true;
     } catch(e) {
-        console.warn('Ошибка обновления last_seen', e);
+        console.error('Ошибка маркет-мейкера', e);
+        throw e;
     }
 };
 
-window.getOnlineCount = async function() {
-    try {
-        const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
-        const { count, error } = await window.supabase
-            .from('users')
-            .select('*', { count: 'exact', head: true })
-            .gte('last_seen', thirtySecondsAgo);
-        if (error) throw error;
-        return count || 0;
-    } catch(e) {
-        console.warn('Ошибка получения онлайн-статистики', e);
-        return 0;
-    }
+// ========== ОСТАЛЬНЫЕ ФУНКЦИИ (торговля, рейтинг, рефералы, админка, новости, настройки) ==========
+
+// ---- Торговля ----
+window.get24hAvgPrice = async function() {
+    const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data, error } = await window.supabase.from('trades').select('amount, price_per_share').gte('created_at', oneDayAgo);
+    if (error || !data || data.length === 0) return 0;
+    let totalAmount = 0, totalStars = 0;
+    for (let t of data) { totalAmount += t.amount; totalStars += t.amount * t.price_per_share; }
+    return totalAmount ? totalStars / totalAmount : 0;
 };
 
-// ========== ОРДЕРА ==========
 window.getActiveOrders = async function() {
     const { data, error } = await window.supabase.from('orders').select('*').eq('status', 'active').order('price_per_share', { ascending: true });
     if (error) throw new Error(error.message);
@@ -431,7 +753,7 @@ window.getPriceHistory = async () => {
     return data || [];
 };
 
-// ========== РЕЙТИНГ ==========
+// ---- Рейтинг ----
 window.getLeaderboard = async () => {
     const { data, error } = await window.supabase.from('users').select('username, shares, id').eq('hide_rating', false).order('shares', { ascending: false });
     if (error) throw new Error(error.message);
@@ -445,7 +767,7 @@ window.getUserRank = async () => {
     return idx + 1;
 };
 
-// ========== ДОСТИЖЕНИЯ ==========
+// ---- Достижения (для профиля) ----
 window.getEarnedAchievements = async () => {
     const { data, error } = await window.supabase
         .from('user_achievements')
@@ -469,7 +791,83 @@ window.getAllAchievements = async () => {
     return data;
 };
 
-// ========== НОВОСТИ ==========
+window.getUserStatsForUser = async (userId) => {
+    const { data, error } = await window.supabase
+        .from('trades')
+        .select('amount, total_stars')
+        .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+    if (error) return { totalTrades: 0, totalVolume: 0 };
+    return {
+        totalTrades: data.length,
+        totalVolume: data.reduce((s,t) => s + t.total_stars/100, 0)
+    };
+};
+
+window.getUserRankForUser = async (userId) => {
+    const { data, error } = await window.supabase
+        .from('users')
+        .select('id, shares')
+        .eq('hide_rating', false)
+        .order('shares', { ascending: false });
+    if (error) return null;
+    const idx = data.findIndex(u => u.id === userId);
+    if (idx === -1) return null;
+    return idx + 1;
+};
+
+window.getEarnedAchievementsForUser = async (userId) => {
+    const { data, error } = await window.supabase
+        .from('user_achievements')
+        .select('achievement_id, earned_at, achievements(id, name, description, icon, condition_type, condition_value)')
+        .eq('user_id', userId);
+    if (error) return [];
+    return data.map(ua => ({
+        id: ua.achievements.id,
+        name: ua.achievements.name,
+        description: ua.achievements.description,
+        icon: ua.achievements.icon,
+        earned_at: ua.earned_at,
+        condition_type: ua.achievements.condition_type,
+        condition_value: ua.achievements.condition_value
+    }));
+};
+
+// ---- Рефералы ----
+window.getReferralsList = async function() {
+    const { data, error } = await window.supabase
+        .from('referrals')
+        .select(`referred_id, registered_at, topup_completed, topup_amount_cents, bonus_earned, users:referred_id (username, avatar_url, id)`)
+        .eq('referrer_id', window.userId)
+        .order('registered_at', { ascending: false });
+    if (error) return [];
+    return data.map(r => ({
+        userId: r.referred_id,
+        username: r.users?.username || `user_${r.referred_id}`,
+        avatarUrl: r.users?.avatar_url || '👤',
+        registeredAt: r.registered_at,
+        topupCompleted: r.topup_completed,
+        topupAmount: r.topup_amount_cents ? r.topup_amount_cents / 100 : 0,
+        bonusEarned: r.bonus_earned
+    }));
+};
+
+window.claimReferralBonus = async (friendsNeeded, stars) => {
+    const response = await fetch(`${window.BACKEND_URL}/claim-referral-bonus`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: window.userId, friends_needed: friendsNeeded, stars: stars })
+    });
+    return response.json();
+};
+
+// ---- Админка (старые функции, оставлены для совместимости) ----
+window.adminFetchStats = async () => fetch(`${window.BACKEND_URL}/admin/stats`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
+window.adminFetchUsers = async () => fetch(`${window.BACKEND_URL}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId }) }).then(r=>r.json());
+window.adminCancelOrder = async (orderId) => fetch(`${window.BACKEND_URL}/admin/cancel-order`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, order_id: orderId }) }).then(r=>r.json());
+window.adminAddShares = async (targetId, shares) => fetch(`${window.BACKEND_URL}/admin/add-shares`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, shares }) }).then(r=>r.json());
+window.adminAddStars = async (targetId, stars) => fetch(`${window.BACKEND_URL}/admin/add-stars`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_id: window.userId, target_id: targetId, stars }) }).then(r=>r.json());
+
+// ---- Новости ----
 window.getNews = async function() {
     const { data, error } = await window.supabase
         .from('news')
@@ -498,153 +896,65 @@ window.deleteNews = async function(newsId) {
     return true;
 };
 
-// ========== АДМИНКА ==========
-window.adminGetAllUsers = async function() {
+// ---- Админы ----
+window.isAdmin = async function(userId) {
     const { data, error } = await window.supabase
-        .from('users')
-        .select('id, username, shares, stars_balance, hide_rating')
-        .order('id', { ascending: true });
-    if (error) throw new Error(error.message);
+        .from('admins')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error) throw error;
+    return !!data;
+};
+
+window.getAdmins = async function() {
+    const { data, error } = await window.supabase
+        .from('admins')
+        .select('*')
+        .order('added_at', { ascending: true });
+    if (error) throw error;
     return data || [];
 };
 
-window.adminAddSharesDirect = async function(targetId, shares) {
-    const sharesCents = window.toCents(shares);
+window.addAdmin = async function(userId) {
     const { error } = await window.supabase
-        .from('users')
-        .update({ shares: window.supabase.raw(`shares + ${sharesCents}`) })
-        .eq('id', targetId);
-    if (error) throw new Error(error.message);
-    return true;
-};
-
-window.adminAddStarsDirect = async function(targetId, stars) {
-    const starsCents = window.toCents(stars);
-    const { error } = await window.supabase
-        .from('users')
-        .update({ stars_balance: window.supabase.raw(`stars_balance + ${starsCents}`) })
-        .eq('id', targetId);
-    if (error) throw new Error(error.message);
-    return true;
-};
-
-window.adminCancelOrderDirect = async function(orderId) {
-    const { error } = await window.supabase
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', orderId);
-    if (error) throw new Error(error.message);
-    return true;
-};
-
-window.adminBroadcast = async function(message) {
-    const users = await window.adminGetAllUsers();
-    const notifications = users.map(u => ({
-        user_id: u.id,
-        message: `📢 ${message}`,
-        type: 'broadcast',
-        is_read: false,
-        created_at: new Date().toISOString()
-    }));
-    const chunkSize = 1000;
-    for (let i = 0; i < notifications.length; i += chunkSize) {
-        const chunk = notifications.slice(i, i + chunkSize);
-        const { error } = await window.supabase.from('notifications').insert(chunk);
-        if (error) throw new Error(error.message);
-    }
-    return true;
-};
-
-// ========== МАРКЕТ-МЕЙКЕР ==========
-const MARKET_MAKER_ID = 999999999;
-
-window.initMarketMaker = async function() {
-    const { data, error } = await window.supabase
-        .from('users')
-        .select('id')
-        .eq('id', MARKET_MAKER_ID)
-        .maybeSingle();
+        .from('admins')
+        .insert({ user_id: userId });
     if (error) throw error;
-    if (!data) {
-        const { error: insertError } = await window.supabase.from('users').insert({
-            id: MARKET_MAKER_ID,
-            username: 'MarketMaker',
-            shares: 0,
-            stars_balance: 0,
-            hide_rating: false,
-            registered_at: new Date().toISOString()
-        });
-        if (insertError) throw insertError;
-    }
+    return true;
 };
 
-window.getMarketMakerBalance = async function() {
-    const { data, error } = await window.supabase
-        .from('users')
-        .select('shares, stars_balance')
-        .eq('id', MARKET_MAKER_ID)
-        .single();
+window.removeAdmin = async function(userId) {
+    const { error } = await window.supabase
+        .from('admins')
+        .delete()
+        .eq('user_id', userId);
     if (error) throw error;
-    return { shares: data.shares / 100, stars: data.stars_balance / 100 };
+    return true;
 };
 
-window.runMarketMaker = async function() {
-    // (логика маркет-мейкера остаётся без изменений)
+// ---- Старые функции маркет-мейкера ----
+window.getMarketMakerPrice = async function() {
+    const price = await window.getSetting('market_maker_price');
+    return price ? parseFloat(price) : 100;
 };
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
-window.updateUserStats = async function() {
-    const { data: trades } = await window.supabase
-        .from('trades')
-        .select('total_stars, buyer_id, seller_id')
-        .or(`seller_id.eq.${window.userId},buyer_id.eq.${window.userId}`);
-    let totalSpent = 0, totalEarned = 0;
-    for (let t of trades || []) {
-        if (t.buyer_id === window.userId) totalSpent += t.total_stars;
-        if (t.seller_id === window.userId) totalEarned += t.total_stars;
-    }
-    const totalVolume = totalSpent + totalEarned;
-    const totalTrades = trades?.length || 0;
-    await window.supabase.from('users').update({
-        total_spent: totalSpent,
-        total_earned: totalEarned,
-        total_volume: totalVolume,
-        trades_count: totalTrades
-    }).eq('id', window.userId);
-    if (window.currentUser) {
-        window.currentUser.total_spent = totalSpent;
-        window.currentUser.total_earned = totalEarned;
-        window.currentUser.total_volume = totalVolume;
-        window.currentUser.trades_count = totalTrades;
-    }
+window.sellToMarketMaker = async function(sharesAmount) {
+    if (sharesAmount <= 0) throw new Error('Количество должно быть > 0');
+    const sharesCents = window.toCents(sharesAmount);
+    const { data, error } = await window.supabase.rpc('sell_to_market_maker', {
+        p_user_id: window.userId,
+        p_shares_cents: sharesCents
+    });
+    if (error) throw new Error(error.message);
+    if (!data.success) throw new Error(data.error);
+    return data;
 };
 
-window.checkAllAchievements = async function() {
-    const stats = await window.getUserStats(true);
-    const user = window.currentUser;
-    if (!user) return;
-    const achievementsList = await window.getAllAchievements();
-    const earned = await window.getEarnedAchievements();
-    const earnedIds = new Set(earned.map(a => a.id));
-    for (let ach of achievementsList) {
-        if (earnedIds.has(ach.id)) continue;
-        let conditionMet = false;
-        switch (ach.condition_type) {
-            case 'none': conditionMet = false; break;
-            case 'trades_count': conditionMet = stats.totalTrades >= ach.condition_value; break;
-            case 'shares_held': conditionMet = user.shares >= ach.condition_value; break;
-            case 'referrals_count': conditionMet = (user.referral_count || 0) >= ach.condition_value; break;
-            case 'total_topup': conditionMet = (user.total_topup || 0) >= ach.condition_value; break;
-            case 'total_spent': conditionMet = (user.total_spent || 0) >= ach.condition_value; break;
-            case 'total_earned': conditionMet = (user.total_earned || 0) >= ach.condition_value; break;
-            case 'total_volume': conditionMet = (user.total_volume || 0) >= ach.condition_value; break;
-            case 'stars_held': conditionMet = user.stars_balance >= ach.condition_value; break;
-            case 'days_active': conditionMet = (user.days_active || 0) >= ach.condition_value; break;
-        }
-        if (conditionMet) await window.awardAchievement(ach.id);
-    }
-};
+// ---- Создание инвойса ----
+window.createInvoice = async (amount) => fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) }).then(r=>r.json());
 
+// ---- Обновление активной вкладки ----
 window.refreshActiveTab = async function() {
     const { user } = await window.getOrCreateUser();
     window.currentUser = user;
@@ -670,7 +980,78 @@ window.refreshActiveTab = async function() {
     }
 };
 
-// ========== СОЗДАНИЕ ИНВОЙСА ==========
-window.createInvoice = async (amount) => fetch(`${window.BACKEND_URL}/create-invoice`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id: window.userId, amount }) }).then(r=>r.json());
+// ---- Онлайн-статус ----
+window.updateLastSeen = async function() {
+    try {
+        await window.supabase
+            .from('users')
+            .update({ last_seen: new Date().toISOString() })
+            .eq('id', window.userId);
+    } catch(e) {
+        console.warn('Ошибка обновления last_seen', e);
+    }
+};
+
+window.getOnlineCount = async function() {
+    try {
+        const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
+        const { count, error } = await window.supabase
+            .from('users')
+            .select('*', { count: 'exact', head: true })
+            .gte('last_seen', thirtySecondsAgo);
+        if (error) throw error;
+        return count || 0;
+    } catch(e) {
+        console.warn('Ошибка получения онлайн-статистики', e);
+        return 0;
+    }
+};
+
+// ---- Аватар ----
+window.renderAvatarHtml = function(avatarUrl, avatarBg, avatarBorder, size = '52px') {
+    let bgColor = avatarBg;
+    if (avatarBg && !avatarBg.startsWith('#')) {
+        const mapping = {
+            'gradient1': '#2b6e9e', 'gradient2': '#9b59b6', 'gradient3': '#e67e22',
+            'gradient4': '#27ae60', 'gradient5': '#f1c40f', 'gradient6': '#e74c3c',
+            'gradient7': '#1abc9c', 'gradient8': '#3498db', 'gradient9': '#2c3e50',
+            'gradient10': '#ff9a9e', 'gradient11': '#a18cd1'
+        };
+        bgColor = mapping[avatarBg] || '#2b6e9e';
+    } else if (!avatarBg) {
+        bgColor = '#2b6e9e';
+    }
+    const borderColor = avatarBorder || '#ffffff';
+    const emoji = avatarUrl || '👤';
+    let fontSize = '32px';
+    if (size === '52px') fontSize = '32px';
+    else if (size === '40px') fontSize = '24px';
+    else if (size === '36px') fontSize = '22px';
+    else fontSize = `calc(${size} * 0.6)`;
+    return `<div class="mini-avatar" style="width:${size}; height:${size}; background:${bgColor}; border:2px solid ${borderColor}; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:${fontSize}; box-shadow:0 2px 6px rgba(0,0,0,0.3); flex-shrink:0;"><span>${emoji}</span></div>`;
+};
+
+window.updateUserBorder = async function(color) {
+    const { error } = await window.supabase.from('users').update({ avatar_border: color }).eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    if (window.currentUser) window.currentUser.avatar_border = color;
+    return true;
+};
+
+// ---- Смена никнейма (оставлена для обратной совместимости) ----
+window.updateUsername = async function(newUsername) {
+    if (!newUsername || newUsername.trim().length < 3) throw new Error('Минимум 3 символа');
+    if (newUsername.length > 20) throw new Error('Не длиннее 20 символов');
+    if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) throw new Error('Только латиница, цифры, _ и -');
+    
+    const { data: user } = await window.supabase.from('users').select('username').eq('id', window.userId).single();
+    if (!user) throw new Error('Пользователь не найден');
+    if (user.username === newUsername) return { success: true, message: 'Никнейм не изменён' };
+    
+    const { error } = await window.supabase.from('users').update({ username: newUsername, last_username_change: new Date().toISOString() }).eq('id', window.userId);
+    if (error) throw new Error(error.message);
+    if (window.currentUser) window.currentUser.username = newUsername;
+    return { success: true, message: 'Никнейм успешно изменён!' };
+};
 
 console.log('API loaded');
