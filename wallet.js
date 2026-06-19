@@ -1,4 +1,4 @@
-// wallet.js – кошелёк с выводом Stars
+// wallet.js – с комиссией и лимитами вывода
 
 window.renderWalletTab = async function() {
     const { user: freshUser } = await window.getOrCreateUser();
@@ -38,6 +38,9 @@ window.renderWalletTab = async function() {
             topupLimitRemaining = Math.max(0, 500 - topupLimitUsed);
         }
     } catch(e) { console.warn('Ошибка загрузки лимита пополнений', e); }
+    
+    // Получаем резерв
+    const reserve = await window.getReserve();
     
     const html = `
         <div class="wallet-container">
@@ -87,19 +90,14 @@ window.renderWalletTab = async function() {
             
             <div class="wallet-actions">
                 <button id="topupBtn" class="wallet-btn primary">💸 Пополнить Stars</button>
-                <button id="withdrawBtn" class="wallet-btn secondary">💸 Вывод Stars</button>
-            </div>
-            
-            <div style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.1); padding-top:16px;">
-                <h3 style="text-align:center; font-size:16px; margin-bottom:12px;">📋 История выводов</h3>
-                <div id="withdrawHistory"></div>
+                <button id="withdrawBtn" class="wallet-btn secondary">💳 Вывести Stars</button>
             </div>
             
             <div class="wallet-info">
                 <div class="wallet-info-icon">ℹ️</div>
                 <div class="wallet-info-text">
-                    Минимальная сумма пополнения — <strong>10 ⭐</strong>. Максимум <strong>500 ⭐ за 12 часов</strong>. Комиссия 5%.
-                    <br>Минимальная сумма вывода — <strong>10 ⭐</strong>.
+                    Минимальная сумма пополнения — <strong>10 ⭐</strong>. Максимум <strong>500 ⭐ за 12 часов</strong>.<br>
+                    Вывод: комиссия <strong>2%</strong>, суточный лимит <strong>200 ⭐</strong>.
                 </div>
             </div>
         </div>
@@ -118,33 +116,28 @@ window.renderWalletTab = async function() {
     });
     
     document.getElementById('withdrawBtn').addEventListener('click', async () => {
-        const amount = parseInt(prompt('Введите сумму для вывода (минимум 10 ⭐):', '10'));
-        if (!amount || amount < 10) {
-            window.showCustomModal('Ошибка', 'Минимальная сумма вывода – 10 ⭐');
-            return;
-        }
+        // Получаем данные о лимите вывода
+        const dailyLimit = 200;
+        const today = new Date().toISOString().slice(0,10);
+        const { data: withdrawals } = await window.supabase
+            .from('withdrawals')
+            .select('amount')
+            .eq('user_id', window.userId)
+            .gte('created_at', today);
+        const totalToday = withdrawals.reduce((s, w) => s + w.amount / 100, 0);
+        const available = dailyLimit - totalToday;
+        
+        const amount = parseFloat(prompt(
+            `Введите сумму для вывода (комиссия 2%, суточный лимит ${dailyLimit} ⭐, осталось ${available.toFixed(2)} ⭐):`,
+            "10"
+        ));
+        if (isNaN(amount) || amount < 1) return;
         try {
-            await window.createWithdrawal(amount);
-            window.showToast('✅ Заявка на вывод отправлена');
+            const result = await window.withdrawWithFee(window.userId, amount);
+            window.showToast(`✅ Заявка на вывод ${result.receive.toFixed(2)} ⭐ (комиссия ${result.fee} ⭐) отправлена`);
             window.renderWalletTab();
         } catch(e) {
             window.showCustomModal('Ошибка', e.message);
         }
     });
-    
-    async function loadWithdrawHistory() {
-        const list = await window.getWithdrawals();
-        const container = document.getElementById('withdrawHistory');
-        if (!list.length) {
-            container.innerHTML = '<p style="color:#9ca3af; font-size:13px;">Нет заявок</p>';
-            return;
-        }
-        container.innerHTML = list.map(w => `
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-                <span>${window.fromCents(w.amount)} ⭐</span>
-                <span style="color:${w.status === 'pending' ? '#fbbf24' : w.status === 'approved' ? '#4ade80' : '#f87171'}">${w.status === 'pending' ? '⏳ На рассмотрении' : w.status === 'approved' ? '✅ Одобрен' : '❌ Отклонён'}</span>
-            </div>
-        `).join('');
-    }
-    loadWithdrawHistory();
 };
